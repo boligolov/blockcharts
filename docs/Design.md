@@ -683,8 +683,8 @@ needed). `package.json`: `exports` (`.` → the full kit with `types`/`import`/`
 `/*! blockcharts <version> | MIT License */`. Checked on a real tarball: installing into a clean project,
 `import BC from 'blockcharts'` and a kit subpath, `require`, `manifest.json` through `with { type: 'json' }`,
 and `tsc` (nodenext) sees the types (the expected error on a nonexistent method fires). Package size 225 KB.
-Not done: `npm publish` itself. CI (`.github/workflows/ci.yml`: `npm test` and `npm run site`) exists but has
-not run yet.
+Not done: `npm publish` itself. CI (`.github/workflows/ci.yml`: `npm test` and `npm run site` on every push
+to `main` and every pull request) passed on its first run.
 
 ## The site (`site/`, `npm run site`)
 
@@ -734,7 +734,7 @@ columns, the Astro site, the canvas renderer, the MIT license and exports, READM
 principles, the business landing page.
 
 Left (the full list is [ROADMAP.md](../ROADMAP.md)):
-1. Publishing: the first CI run, deploying the site to blockcharts.online, `npm publish`, the CDN.
+1. Publishing: deploying the site to blockcharts.online, `npm publish`, the CDN, the plugin directory.
 2. Business blocks: KPI tile, table, funnel, waterfall, bullet, treemap, a dashboard grid.
 3. Skill evals with and without the skill, and a second trial run on an agent.
 4. Zoom optimization levels 2 and 3 (gesture preview, DOM patching by ref) — not needed for SVG by the
