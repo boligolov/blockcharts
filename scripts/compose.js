@@ -4,11 +4,14 @@
 //   3. exactly those blocks are loaded and every spec is validated against the real data before anything is written;
 //   4. core + blocks + data + specs are inlined in a fixed order, so the same input gives byte-identical output.
 //
-// compose({ data, charts, title?, css?, before?, after?, include?, distDir?, allowErrors? }) -> { html, blocks, bytes, diagnostics, unusedData }
+// compose({ data, charts, title?, subtitle?, layout?, css?, before?, after?, include?, distDir?, allowErrors? }) -> { html, blocks, bytes, diagnostics, unusedData }
 //   data    { name: rows | { columns } | { csv: "text" } | { csvFile: "file.csv" } }   the data lake. CSV: the first row names the
 //           columns; numbers are recognized per column, "", NA, null... are missing values; optional delimiter, nullValues and
 //           types ({ col: "string" }). csvFile is relative to `baseDir` and must stay inside it.
-//   charts  [ spec | { spec, title?, note?, noteHtml? } ]
+//   charts  [ spec | { spec, title?, note?, noteHtml?, span? } ]   each chart sits in a card; span = how many grid columns it takes
+//   title / subtitle  the page heading (and the <title>) and one line under it
+//   layout  { columns: 1..12 } a dashboard grid: charts fill it left to right, a card takes `span` columns (default: the full row);
+//           on a narrow screen every card takes the full width
 //   before / after  raw trusted HTML placed before the charts / after the scripts (page chrome, custom scripts)
 //   include extra block names to inline for hand-written scripts (`after`) that call BC.chart themselves
 //   css     extra stylesheet text, placed after the default one
@@ -46,17 +49,26 @@ const jsonForScript = (v) =>
 
 const plain = (v) => JSON.parse(JSON.stringify(v));
 
-// Readable without any styling by the caller, and the chart colors follow the reader's light/dark setting.
+// Readable without any styling by the caller, and the chart colors follow the reader's light/dark setting. The look of a
+// business dashboard: a quiet grey page, white cards, one strong blue among calm colors, the reader's own UI font (no web
+// font: a report loads nothing), figures that line up. Every color is a variable, so a company palette is a few lines of css.
 const DEFAULT_CSS = [
-  ':root{--bg:#fff;--fg:#1c1917;--muted:#78716c;--bc-text:#44403c;--bc-axis:#a8a29e;--bc-grid:#eeeceb;--bc-tooltip-bg:#fff;',
-  '--bc-c0:#4e79a7;--bc-c1:#f28e2b;--bc-c2:#e15759;--bc-c3:#76b7b2;--bc-c4:#59a14f;--bc-c5:#edc948;--bc-c6:#b07aa1;--bc-c7:#ff9da7}',
-  '@media (prefers-color-scheme:dark){:root{--bg:#141312;--fg:#f5f5f4;--muted:#a8a29e;--bc-text:#d6d3d1;--bc-axis:#78716c;--bc-grid:#2a2826;--bc-tooltip-bg:#292725;',
-  '--bc-c0:#7aa6d6;--bc-c1:#ffb066;--bc-c2:#ff7f80;--bc-c3:#8fd3ce;--bc-c4:#7ec672;--bc-c5:#f5d76e;--bc-c6:#d0a0c6;--bc-c7:#ffb3bc}}',
+  ':root{--bg:#f4f5f7;--card:#fff;--fg:#0f172a;--muted:#64748b;--line:#e4e7ec;',
+  '--bc-text:#1e293b;--bc-label:#64748b;--bc-axis:#cbd2dc;--bc-grid:#edf0f4;--bc-tooltip-bg:#fff;--bc-kpi:#0f172a;--bc-good:#11a05a;--bc-bad:#e5484d;',
+  '--bc-c0:#3a6fe4;--bc-c1:#16a39d;--bc-c2:#f29b38;--bc-c3:#e0527a;--bc-c4:#8a6be8;--bc-c5:#5d718f;--bc-c6:#2e9e62;--bc-c7:#ea7b4f}',
+  '@media (prefers-color-scheme:dark){:root{--bg:#0c1016;--card:#141a22;--fg:#e8edf4;--muted:#8a96a8;--line:#232b36;',
+  '--bc-text:#d9e0ea;--bc-label:#8a96a8;--bc-axis:#3a4452;--bc-grid:#212a35;--bc-tooltip-bg:#1b2330;--bc-kpi:#f3f6fa;--bc-good:#3dc57f;--bc-bad:#ff6b6f;',
+  '--bc-c0:#6f98f4;--bc-c1:#3cc7c0;--bc-c2:#f6b25e;--bc-c3:#f27b9b;--bc-c4:#a88ff3;--bc-c5:#8fa2bd;--bc-c6:#55c68b;--bc-c7:#f69a73}}',
   '*{box-sizing:border-box}',
-  'body{margin:0 auto;max-width:760px;padding:24px 16px 48px;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}',
-  '.bc-section{margin:0 0 32px}.bc-section h2{font-size:16px;margin:0 0 4px}.bc-section p{margin:0 0 12px;color:var(--muted);font-size:13px}',
-  '.bc-chart{user-select:none}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}',
-  '@media print{body{max-width:none}}',
+  'body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased}',
+  '.bc-page{max-width:880px;margin:0 auto;padding:32px 20px 56px}.bc-page.bc-wide{max-width:1240px}',
+  '.bc-header{margin:0 0 20px}.bc-header h1{font-size:24px;line-height:1.2;letter-spacing:-.02em;margin:0 0 4px}.bc-header p{margin:0;color:var(--muted)}',
+  '.bc-grid{display:grid;grid-template-columns:repeat(var(--bc-cols,1),minmax(0,1fr));gap:16px}',
+  '.bc-section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 14px;min-width:0;box-shadow:0 1px 2px rgba(16,24,40,.04)}',
+  '.bc-section h2{font-size:14px;font-weight:600;margin:0 0 2px}.bc-section p{margin:0 0 10px;color:var(--muted);font-size:13px}',
+  '.bc-chart{user-select:none}.bc-chart text{font-variant-numeric:tabular-nums}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}',
+  '@media (max-width:720px){.bc-grid{grid-template-columns:1fr}.bc-grid>.bc-section{grid-column:auto!important}.bc-page{padding:20px 12px 40px}}',
+  '@media print{body{background:#fff}.bc-page,.bc-page.bc-wide{max-width:none;padding:0}.bc-section{box-shadow:none;break-inside:avoid}}',
 ].join('\n');
 
 const COMPRESS_MIN_CHARS = 2048;
@@ -175,8 +187,15 @@ function compose(opts) {
   if (!Array.isArray(options.charts) || !options.charts.length) throw new ComposeError('charts must be a non-empty array');
   const compress = options.compress === undefined ? 'auto' : options.compress;
   if (compress !== 'auto' && compress !== true && compress !== false) throw new ComposeError('compress must be "auto", true or false');
+  const layout = options.layout;
+  if (layout !== undefined && (!layout || typeof layout !== 'object' || Array.isArray(layout))) throw new ComposeError('layout must be an object: { "columns": 4 }');
+  const columns = layout && layout.columns !== undefined ? layout.columns : 1;
+  if (!Number.isInteger(columns) || columns < 1 || columns > 12) throw new ComposeError('layout.columns must be a whole number from 1 to 12');
   const charts = options.charts.map((c, i) => {
     const entry = c && c.spec ? c : { spec: c };
+    if (entry.span !== undefined && (!Number.isInteger(entry.span) || entry.span < 1 || entry.span > columns)) {
+      throw new ComposeError(`charts[${i}].span must be a whole number from 1 to ${columns} (layout.columns)`);
+    }
     if (!entry.spec || typeof entry.spec !== 'object') throw new ComposeError(`charts[${i}] is not a chart spec`);
     const bad = findUnserializable(entry.spec, `charts[${i}]`, []);
     if (bad) throw new ComposeError(`${bad.path} ${bad.why}`);
@@ -273,11 +292,15 @@ function compose(opts) {
   const scripts = [read(manifest.core.file)].concat(blockNames.map((n) => read(manifest.blocks[n].file)));
   const bytes = scripts.reduce((n, s) => n + Buffer.byteLength(s), 0);
 
-  const section = ({ spec, title, note, noteHtml }) => {
+  // every chart is a card in the grid; a card spans `span` columns (the whole row by default)
+  const section = ({ spec, title, note, noteHtml, span }) => {
     const tag = `<script type="application/json" data-bc-chart>${jsonForScript(spec)}</script>`;
-    if (!title && !note && !noteHtml) return tag;
-    return `<section class="bc-section">${title ? `<h2>${escapeText(title)}</h2>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
+    const width = columns > 1 ? ` style="grid-column:span ${span || columns}"` : '';
+    return `<section class="bc-section"${width}>${title ? `<h2>${escapeText(title)}</h2>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
   };
+  const header = options.title || options.subtitle
+    ? `<header class="bc-header">${options.title ? `<h1>${escapeText(options.title)}</h1>` : ''}${options.subtitle ? `<p>${escapeText(options.subtitle)}</p>` : ''}</header>`
+    : '';
 
   const html = [
     '<!doctype html>',
@@ -285,8 +308,12 @@ function compose(opts) {
     `<title>${escapeText(options.title || 'Charts')}</title>`,
     styleTag([options.defaultCss === false ? '' : DEFAULT_CSS, options.css ? String(options.css) : '']),
     '</head><body>',
+    `<main class="bc-page${columns > 1 ? ' bc-wide' : ''}">`,
+    header,
     options.before || '',
+    `<div class="bc-grid"${columns > 1 ? ` style="--bc-cols:${columns}"` : ''}>`,
     charts.map(section).join('\n'),
+    '</div></main>',
     scripts.map(script).join('\n'),
     `<script type="application/json" id="bc-data">${jsonForScript(stored)}</script>`,
     options.after || '',

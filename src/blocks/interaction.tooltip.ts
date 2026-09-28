@@ -17,8 +17,8 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 4,
-    doc: 'Shows the datum under the pointer: a marker plus a box with the fields behind it. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns.',
+    version: 6,
+    doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. For a vertical line that follows the pointer, add interaction.crosshair.',
     params: {
       fields: { kind: 'list', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
       formats: { kind: 'any', doc: 'How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits).' },
@@ -51,24 +51,27 @@
       const tip = doc.createElement('div');
       tip.setAttribute('class', 'bc-tooltip');
       tip.setAttribute('role', 'tooltip');
+      // a card: the page's own font, figures that line up, a soft shadow; every color is a variable a theme can set
       Object.assign(tip.style, {
         position: 'absolute', display: 'none', pointerEvents: 'none', zIndex: '10', whiteSpace: 'nowrap',
-        font: '12px/1.4 system-ui, sans-serif', padding: '6px 8px', borderRadius: '6px',
+        fontSize: '12px', lineHeight: '1.45', fontVariantNumeric: 'tabular-nums', padding: '8px 11px', borderRadius: '10px',
         background: 'var(--bc-tooltip-bg, #fff)', color: 'var(--bc-text, #333)',
-        border: '1px solid var(--bc-axis, #ccc)', boxShadow: '0 2px 8px rgba(0,0,0,.18)',
+        border: '1px solid var(--bc-tooltip-border, rgba(127,127,127,.22))',
+        boxShadow: 'var(--bc-tooltip-shadow, 0 10px 28px rgba(15,23,42,.14), 0 2px 6px rgba(15,23,42,.08))',
       });
       const dot = doc.createElement('div');
       dot.setAttribute('class', 'bc-tooltip-dot');
       Object.assign(dot.style, {
-        position: 'absolute', display: 'none', pointerEvents: 'none', width: '10px', height: '10px', marginLeft: '-5px', marginTop: '-5px',
-        boxSizing: 'border-box', borderRadius: '50%', border: '2px solid var(--bc-text, #333)', background: 'transparent',
+        position: 'absolute', display: 'none', pointerEvents: 'none', width: '12px', height: '12px', marginLeft: '-6px', marginTop: '-6px',
+        boxSizing: 'border-box', borderRadius: '50%', border: '2.5px solid var(--bc-tooltip-bg, #fff)', background: 'var(--bc-text, #333)',
+        boxShadow: '0 1px 4px rgba(15,23,42,.3)',
       });
       const highlight = doc.createElement('div');
       highlight.setAttribute('class', 'bc-tooltip-highlight');
       Object.assign(highlight.style, {
-        position: 'absolute', display: 'none', pointerEvents: 'none', boxSizing: 'border-box',
-        background: 'var(--bc-tooltip-highlight-fill, rgba(127,127,127,.25))',
-        outline: '1.5px solid var(--bc-tooltip-highlight-line, var(--bc-text, #333))', outlineOffset: '-1.5px',
+        position: 'absolute', display: 'none', pointerEvents: 'none', boxSizing: 'border-box', borderRadius: '3px',
+        background: 'var(--bc-tooltip-highlight-fill, rgba(127,127,127,.14))',
+        outline: '1.5px solid var(--bc-tooltip-highlight-line, rgba(127,127,127,.45))', outlineOffset: '-1.5px',
       });
       host.appendChild(dot);
       host.appendChild(highlight);
@@ -127,14 +130,48 @@
         return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
       };
 
-      function lines(mark: BC.MarkSpec, def: BC.MarkDef, row: number): [string, string][] {
+      const write = (field: string, row: number): string => {
+        const v = live.table.columns[field][row];
+        return formats[field] ? formats[field](v) || '–' : format(v);
+      };
+
+      /** The field that names the datum — the category (band) or the date (time) its x (or y) is on — or null. Shown
+       *  as the card's heading rather than as a line, also when `fields` lists what else to show. */
+      function headingField(mark: BC.MarkSpec): string | null {
+        for (const ch of ['x', 'y']) {
+          try {
+            const c = live.channel(mark, ch);
+            if (c.field && c.scale && (c.scale.kind === 'band' || c.scale.kind === 'time') && live.table.columns[c.field]) return c.field;
+          } catch (e) {
+            // not a channel of this mark
+          }
+        }
+        return null;
+      }
+
+      /** The color the datum is drawn in, for the dot next to the heading; '' when it cannot be told. */
+      function colorOf(mark: BC.MarkSpec, index: number, row: number): string {
+        try {
+          if (mark.color !== undefined) {
+            const c = live.channel(mark, 'color');
+            if (c.scale && c.mapped[row]) return String(c.mapped[row]);
+          }
+        } catch (e) {
+          // no color channel after all
+        }
+        if (typeof mark.fill === 'string') return mark.fill;
+        if (typeof mark.stroke === 'string') return mark.stroke;
+        return mark.type === 'arc' || mark.type === 'text' ? '' : live.color(index);
+      }
+
+      function lines(mark: BC.MarkSpec, def: BC.MarkDef, row: number, skip?: string | null): [string, string][] {
         const out: [string, string][] = [];
-        const seen = new Set<string>();
+        const seen = new Set<string>(skip ? [skip] : []);
         const add = (field: string) => {
           const col = live.table.columns[field];
           if (!col || seen.has(field)) return;
           seen.add(field);
-          out.push([field, formats[field] ? formats[field](col[row]) || '–' : format(col[row])]);
+          out.push([field, write(field, row)]);
         };
         if (only) {
           only.forEach(add);
@@ -172,6 +209,7 @@
         if (!best) return hide();
         const { pick, mark, def, index } = best as { pick: BC.Pick; mark: BC.MarkSpec; def: BC.MarkDef; index: number };
 
+        const heading = headingField(mark);
         const rows = lines(mark, def, pick.row);
         let custom: BC.TooltipContent;
         const fn = contentFn();
@@ -191,18 +229,41 @@
         if (custom === null || custom === false) return hide();
 
         tip.textContent = '';
+        const color = colorOf(mark, index, pick.row);
         if (custom === undefined) {
+          if (heading) {
+            const head = doc.createElement('div');
+            head.setAttribute('class', 'bc-tooltip-heading');
+            head.setAttribute('data-bc-field', heading);
+            Object.assign(head.style, { display: 'flex', alignItems: 'center', gap: '7px', fontWeight: '600', marginBottom: '4px' });
+            if (color) {
+              const sw = doc.createElement('span');
+              Object.assign(sw.style, { width: '8px', height: '8px', borderRadius: '50%', background: color, flex: 'none' });
+              head.appendChild(sw);
+            }
+            const t = doc.createElement('span');
+            // a date heading without a format of its own is written as a date, not as the ISO string it was given as
+            const col = live.table.columns[heading];
+            const isTime = ((): boolean => { for (const ch of ['x', 'y']) { try { const c = live.channel(mark, ch); if (c.field === heading && c.scale && c.scale.kind === 'time') return true; } catch (e) { /* not a channel */ } } return false; })();
+            t.textContent = !formats[heading] && isTime ? BC.formatter('date')(col[pick.row]) || write(heading, pick.row) : write(heading, pick.row);
+            head.appendChild(t);
+            tip.appendChild(head);
+          }
+          const grid = doc.createElement('div');
+          grid.setAttribute('class', 'bc-tooltip-lines');
+          Object.assign(grid.style, { display: 'grid', gridTemplateColumns: 'auto auto', columnGap: '16px', rowGap: '1px' });
           for (const [label, value] of rows) {
-            const line = doc.createElement('div');
+            if (label === heading) continue;
             const name = doc.createElement('span');
-            name.textContent = label + ': ';
-            name.style.opacity = '0.65';
+            name.textContent = label;
+            name.style.opacity = '0.68';
             const val = doc.createElement('span');
             val.textContent = value;
-            line.appendChild(name);
-            line.appendChild(val);
-            tip.appendChild(line);
+            Object.assign(val.style, { textAlign: 'right', fontWeight: '600' });
+            grid.appendChild(name);
+            grid.appendChild(val);
           }
+          if (grid.children.length) tip.appendChild(grid);
         } else {
           insert(custom);
         }
@@ -229,6 +290,7 @@
         } else if (markerMode !== 'none') {
           dot.style.left = ax + 'px';
           dot.style.top = ay + 'px';
+          dot.style.background = color || 'var(--bc-text, #333)';
           dot.style.display = 'block';
           highlight.style.display = 'none';
         } else {

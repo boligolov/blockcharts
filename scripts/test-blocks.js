@@ -14,13 +14,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const barSpec = () => ({
     data: 'cats',
     scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-    guides: [{ type: 'grid', scale: 'y' }, { type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+    guides: [{ type: 'grid', scale: 'y' }, { type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
     marks: [{ type: 'rect', x: 'k', y: 'v' }],
   });
   const lineSpec = (extra) => ({
     data: 'series',
     scales: { x: { type: 'time' }, y: { type: 'linear' } },
-    guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
     marks: [{ type: 'line', x: 't', y: 'v', group: 's' }],
     ...extra,
   });
@@ -290,7 +290,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const ptSpec = (guides) => ({
     data: 'pts',
     scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'color' } },
-    guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }, ...guides],
+    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }, ...guides],
     marks: [{ type: 'point', x: 'a', y: 'b', color: 'g' }],
   });
   const bottomAxisEnd = (svg) => +svg.match(/<path d="M[\d.]+ [\d.]+H([\d.]+)/)[1];
@@ -353,7 +353,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(xs[0] < xs[1] && xs[1] < xs[2], 'items run left to right');
 
     const both = new FakeNode('div');
-    BC.chart(both, ptSpec([{ type: 'axis', scale: 'y', position: 'right' }, { type: 'legend', scale: 'color' }]));
+    BC.chart(both, ptSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right' }, { type: 'legend', scale: 'color' }]));
     const s2 = svgOf(both);
     const rightAxisX = +s2.match(/<path d="M([\d.]+) [\d.]+V[\d.]+M[\d.]+ [\d.]+H([\d.]+)/g).map((m) => m)[0].match(/M([\d.]+)/)[1];
     const legendX = +s2.match(/<rect x="([\d.]+)"[^>]*class="bc-legend-swatch"/)[1];
@@ -379,7 +379,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const tipOf = (host) => host.children.find((c) => c.attrs.class === 'bc-tooltip');
   const dotOf = (host) => host.children.find((c) => c.attrs.class === 'bc-tooltip-dot');
   const highlightOf = (host) => host.children.find((c) => c.attrs.class === 'bc-tooltip-highlight');
-  const tipText = (host) => { const t = tipOf(host); return t.children.map((line) => line.children.map((c) => c.text).join('')); };
+  // the card as lines of 'field: value': the heading (category or date) first, then each label/value pair of the grid;
+  // any other child (a custom content line) as its text
+  const tipText = (host) => {
+    const out = [];
+    for (const c of tipOf(host).children) {
+      if (c.attrs.class === 'bc-tooltip-heading') out.push(c.attrs['data-bc-field'] + ': ' + c.children[c.children.length - 1].text);
+      else if (c.attrs.class === 'bc-tooltip-lines') for (let k = 0; k < c.children.length; k += 2) out.push(c.children[k].text + ': ' + c.children[k + 1].text);
+      else out.push(c.children.length ? c.children.map((x) => x.text).join('') : c.text);
+    }
+    return out;
+  };
   const hover = async (host, x, y, extra) => { host.children[0].fire('pointermove', { clientX: x, clientY: y, buttons: 0, ...extra }); await flush(); };
   const circles = (svg) => [...svg.matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)"/g)].map((m) => ({ x: +m[1], y: +m[2] }));
   const tipSpec = (extra, tooltip) => ({ ...ptSpec([]), interaction: [{ type: 'tooltip', ...tooltip }], ...extra });
@@ -501,7 +511,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     });
     const c = circles(svgOf(host))[0];
     await hover(host, c.x, c.y);
-    assert(tipText(host).includes('t: 2024-03-01'), 'the point (on top) is reported, with its own fields: ' + tipText(host));
+    assert(tipText(host).includes('t: Mar 1, 2024'), 'the point (on top) is reported, with its own fields, the date written as a date: ' + tipText(host));
     assert(!tipText(host).some((l) => l.startsWith('s:')), 'not the line, which also passes here');
   });
 
@@ -707,7 +717,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     data: 'stk',
     transforms: [{ type: 'stack', field: 'v', by: 'k', group: 's', ...extra }],
     scales: { x: { type: 'band' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
-    guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }, { type: 'legend', scale: 'color', position: 'top' }],
+    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }, { type: 'legend', scale: 'color', position: 'top' }],
     marks: [{ type: 'rect', x: 'k', y: 'v1', y2: 'v0', color: 's' }],
   });
 
@@ -750,7 +760,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     data: 'areas',
     transforms: [{ type: 'stack', field: 'v', by: 't', group: 's' }],
     scales: { x: { type: 'time' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
-    guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
     marks: marks || [{ type: 'area', x: 't', y: 'v1', y2: 'v0', color: 's' }],
   });
 
@@ -831,7 +841,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const jumpSpec = (zoom) => ({
     data: 'jump',
     scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
-    guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
     marks: [{ type: 'line', x: 'x', y: 'y' }],
     interaction: [{ type: 'zoom', wheel: 'always', ...zoom }],
   });
@@ -880,7 +890,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const edgeSpec = (extra) => ({
     data: 'edge',
     scales: { x: { type: 'time' }, y: { type: 'linear' } },
-    guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
     marks: [{ type: 'line', x: 't', y: 'v' }],
     ...extra,
   });
@@ -915,18 +925,18 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('layout: room is only added where the padding is not enough, and it does not push other guides away', () => {
     // short labels (numbers) fit inside the default 16px padding: the plot keeps its full width
     const plain = new FakeNode('div');
-    BC.chart(plain, { data: 'cats', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, guides: [{ type: 'axis', scale: 'x' }], marks: [{ type: 'point', x: 'v', y: 'v' }] });
+    BC.chart(plain, { data: 'cats', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }], marks: [{ type: 'point', x: 'v', y: 'v' }] });
     assert.strictEqual(bottomAxisEnd(svgOf(plain)), 624, 'right edge at 640 - 16');
 
     // wide labels widen the right margin...
     const wide = new FakeNode('div');
-    BC.chart(wide, edgeSpec({ guides: [{ type: 'axis', scale: 'x' }] }));
+    BC.chart(wide, edgeSpec({ guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }] }));
     const end = bottomAxisEnd(svgOf(wide));
     assert(end < 624 && end >= 640 - half('Jun 2024') - 1, `right edge moved in just enough: ${end}`);
 
     // ...but a second guide on that side sits right against the plot, not behind an imaginary reserved strip
     const both = new FakeNode('div');
-    BC.chart(both, edgeSpec({ scales: { x: { type: 'time' }, y: { type: 'linear', range: 'height' } }, guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y', position: 'right' }] }));
+    BC.chart(both, edgeSpec({ scales: { x: { type: 'time' }, y: { type: 'linear', range: 'height' } }, guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right' }] }));
     const svg = svgOf(both);
     const rightAxisX = +svg.match(/<path d="M([\d.]+) [\d.]+V[\d.]+M[\d.]+ [\d.]+H([\d.]+)/g).find((d) => /^<path d="M([\d.]+) [\d.]+V/.test(d)).match(/M([\d.]+)/)[1];
     assert.strictEqual(rightAxisX, bottomAxisEnd(svg), 'the right axis starts exactly where the x axis ends');
@@ -936,7 +946,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     BC.define({ role: 'guide', type: 'halo', version: 1, measure: () => ({ overhang: { left: 60 } }), render: () => ({}) });
     BC.define({ role: 'guide', type: 'mute', version: 1, measure: () => ({}), render: () => ({}) });
     const host = new FakeNode('div');
-    const h = BC.chart(host, { ...edgeSpec({ guides: [{ type: 'halo' }, { type: 'mute' }, { type: 'axis', scale: 'x' }] }) });
+    const h = BC.chart(host, { ...edgeSpec({ guides: [{ type: 'halo' }, { type: 'mute' }, { type: 'axis', line: 'on', ticks: true, scale: 'x' }] }) });
     assert.deepStrictEqual(h.diagnostics, []);
     const [x0] = svgOf(host).match(/<path d="M([\d.]+) [\d.]+H/).slice(1).map(Number);
     assert.strictEqual(x0, 60, 'the plot starts at least 60 from the left edge');
@@ -1012,7 +1022,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       data: 'measure',
       transforms: [{ type: 'bin', field: 'h', bins: 8 }],
       scales: { x: { type: 'linear', nice: false }, y: { type: 'linear', zero: true } },
-      guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+      guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
       marks: [{ type: 'rect', x: 'bin0', x2: 'bin1', y: 'count' }],
       interaction: [{ type: 'tooltip' }],
     });
@@ -1199,7 +1209,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const heatSpec = (guides, extra) => ({
     data: 'heat',
     scales: { x: { type: 'band', paddingInner: 0.05, paddingOuter: 0 }, y: { type: 'band', paddingInner: 0.05, paddingOuter: 0 }, color: { type: 'sequential' } },
-    guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }, ...guides],
+    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }, ...guides],
     marks: [{ type: 'rect', x: 'day', y: 'part', color: 'n' }],
     interaction: [{ type: 'tooltip' }],
     ...extra,
@@ -1558,7 +1568,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const spec = {
       data: 'series',
       scales: { x: { type: 'time' }, y: { type: 'linear' }, color: { type: 'color' } },
-      guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }, { type: 'legend', scale: 'color' }],
+      guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }, { type: 'legend', scale: 'color' }],
       marks: [{ type: 'line', x: 't', y: 'v', color: 's' }],
       interaction: [{ type: 'legend-filter', fit: ['y'] }],
     };
@@ -2514,38 +2524,38 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const formatSpec = (guides, extra) => ({
     data: 'cats',
     scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-    guides: [{ type: 'axis', scale: 'x' }, ...guides],
+    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, ...guides],
     marks: [{ type: 'rect', x: 'k', y: 'v' }],
     ...extra,
   });
 
   test('axis format: linear ticks as currency and percent, time ticks as dates, categories untouched', () => {
     const money = new FakeNode('div');
-    const h = BC.chart(money, formatSpec([{ type: 'axis', scale: 'y', format: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } }]));
+    const h = BC.chart(money, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', format: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } }]));
     assert.deepStrictEqual(h.diagnostics, []);
     const y = yLabels(svgOf(money)).map((l) => l.text);
     assert(y.length >= 3 && y.every((t) => /^\$\d+$/.test(t)), y.join());
 
     BC.data('shares2', [{ k: 'a', s: 'x', v: 1 }, { k: 'a', s: 'y', v: 3 }, { k: 'b', s: 'x', v: 2 }, { k: 'b', s: 'y', v: 2 }]);
     const pct = new FakeNode('div');
-    BC.chart(pct, { data: 'shares2', transforms: [{ type: 'stack', field: 'v', by: 'k', group: 's', normalize: true }], scales: { x: { type: 'band' }, y: { type: 'linear', domain: [0, 1] } }, guides: [{ type: 'axis', scale: 'y', format: 'percent' }], marks: [{ type: 'rect', x: 'k', y: 'v1', y2: 'v0' }] });
+    BC.chart(pct, { data: 'shares2', transforms: [{ type: 'stack', field: 'v', by: 'k', group: 's', normalize: true }], scales: { x: { type: 'band' }, y: { type: 'linear', domain: [0, 1] } }, guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'y', format: 'percent' }], marks: [{ type: 'rect', x: 'k', y: 'v1', y2: 'v0' }] });
     const p = yLabels(svgOf(pct)).map((l) => l.text);
     assert.strictEqual(p[0], '0%');
     assert.strictEqual(p[p.length - 1], '100%', 'a normalized stack reads as percent: ' + p.join());
 
     const dates = new FakeNode('div');
-    BC.chart(dates, lineSpec({ guides: [{ type: 'axis', scale: 'x', format: { month: 'short', year: '2-digit' } }, { type: 'axis', scale: 'y' }] }));
+    BC.chart(dates, lineSpec({ guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x', format: { month: 'short', year: '2-digit' } }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }] }));
     const x = xLabels(svgOf(dates)).map((l) => l.text);
     assert(x.length >= 2 && x.every((t) => /^[A-Z][a-z]{2} 24$/.test(t)), x.join());
     assert(x.includes('Jan 24'));
 
     const cats = new FakeNode('div');
-    BC.chart(cats, { ...formatSpec([]), guides: [{ type: 'axis', scale: 'x', format: 'percent' }] });
+    BC.chart(cats, { ...formatSpec([]), guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x', format: 'percent' }] });
     assert.deepStrictEqual(xLabels(svgOf(cats)).map((l) => l.text), ['a', 'b', 'c', 'd'], 'a category axis has nothing to format');
     const width = (host) => bottomAxisEnd(svgOf(host));
     const wide = new FakeNode('div'), narrow = new FakeNode('div');
-    BC.chart(wide, formatSpec([{ type: 'axis', scale: 'y', format: { style: 'currency', currency: 'USD', minimumFractionDigits: 2 } }]));
-    BC.chart(narrow, formatSpec([{ type: 'axis', scale: 'y' }]));
+    BC.chart(wide, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', format: { style: 'currency', currency: 'USD', minimumFractionDigits: 2 } }]));
+    BC.chart(narrow, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y' }]));
     assert(svgOf(wide) !== svgOf(narrow));
     const leftEdge = (host) => +svgOf(host).match(/<path d="M([\d.]+) [\d.]+V/g).map((m) => m.match(/M([\d.]+)/)[1]).sort((a, b) => a - b).pop();
     assert(leftEdge(wide) > leftEdge(narrow), 'the wider labels made room for themselves');
@@ -2554,7 +2564,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('axis format: a bad format is a guide diagnostic, the chart still draws', () => {
     logged.error.length = 0;
     const host = new FakeNode('div');
-    const h = BC.chart(host, formatSpec([{ type: 'axis', scale: 'y', format: { style: 'currency' } }, { type: 'axis', scale: 'y', position: 'right', format: 'bogus' }]));
+    const h = BC.chart(host, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', format: { style: 'currency' } }, { type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right', format: 'bogus' }]));
     assert(h.diagnostics.some((d) => d.path === 'guides[1]' && /invalid format/.test(d.message)), JSON.stringify(h.diagnostics));
     assert(h.diagnostics.some((d) => d.path === 'guides[2]' && /unknown format "bogus"/.test(d.message)));
     assert.strictEqual(count(layer(svgOf(host), 'marks'), /<rect /g), 4, 'the marks are there');
@@ -2563,8 +2573,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('axis title: named below or beside the labels, rotated on vertical axes, and it takes room', () => {
     const plain = new FakeNode('div'), titled = new FakeNode('div');
-    BC.chart(plain, formatSpec([{ type: 'axis', scale: 'y' }]));
-    const h = BC.chart(titled, formatSpec([{ type: 'axis', scale: 'y', title: 'Revenue, USD' }, { type: 'axis', scale: 'x', title: 'Region' }]));
+    BC.chart(plain, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y' }]));
+    const h = BC.chart(titled, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', title: 'Revenue, USD' }, { type: 'axis', line: 'on', ticks: true, scale: 'x', title: 'Region' }]));
     assert.deepStrictEqual(h.diagnostics, []);
     const t = texts(svgOf(titled));
     const yt = t.find((l) => l.text === 'Revenue, USD');
@@ -2582,17 +2592,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(!/NaN/.test(svgOf(titled)));
 
     const right = new FakeNode('div');
-    BC.chart(right, formatSpec([{ type: 'axis', scale: 'y', position: 'right', title: 'Units' }]));
+    BC.chart(right, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right', title: 'Units' }]));
     assert(/rotate\(90 /.test(texts(svgOf(right)).find((l) => l.text === 'Units').attrs), 'a right axis reads top to bottom');
     const top = new FakeNode('div');
-    BC.chart(top, formatSpec([{ type: 'axis', scale: 'x', position: 'top', title: 'On top' }]));
+    BC.chart(top, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'x', position: 'top', title: 'On top' }]));
     const tt = texts(svgOf(top)).find((l) => l.text === 'On top');
     assert(tt && /dominant-baseline="auto"/.test(tt.attrs), 'a top title sits above its labels');
     const notText = new FakeNode('div');
-    const hn = BC.chart(notText, formatSpec([{ type: 'axis', scale: 'y', title: 5 }]));
+    const hn = BC.chart(notText, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', title: 5 }]));
     assert(hn.diagnostics.some((d) => d.path === 'guides[1].title' && /must be a string/.test(d.message)), 'a title that is not a string is a validation error');
     const evil = new FakeNode('div');
-    BC.chart(evil, formatSpec([{ type: 'axis', scale: 'y', title: '<b>x</b> & y' }]));
+    BC.chart(evil, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', title: '<b>x</b> & y' }]));
     assert(svgOf(evil).includes('&lt;b>x&lt;/b> &amp; y') && !svgOf(evil).includes('<b>'), 'a title is text');
   });
 
@@ -2683,7 +2693,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const hbarSpec = () => ({
     data: 'cats',
     scales: { x: { type: 'linear', zero: true }, y: { type: 'band' } },
-    guides: [{ type: 'grid', scale: 'x' }, { type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+    guides: [{ type: 'grid', scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
     marks: [{ type: 'rect', x: 'v', y: 'k' }],
     interaction: [{ type: 'tooltip' }],
   });
@@ -2707,7 +2717,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(!/NaN/.test(svg));
 
     await hover(host, bars[1].x + bars[1].w / 2, bars[1].y + bars[1].h / 2);
-    assert.deepStrictEqual(tipText(host), ['v: 6', 'k: b']);
+    assert.deepStrictEqual(tipText(host), ['k: b', 'v: 6'], 'the category (on y here) heads the card');
     await hover(host, bars[1].x + bars[1].w + 30, bars[1].y + bars[1].h / 2);
     assert.strictEqual(tipOf(host).style.display, 'none', 'beyond the end of the bar');
   });

@@ -1,0 +1,31 @@
+{
+  "title": "Funnel",
+  "data": {
+    "funnel": [
+      { "stage": "Visits", "users": 48200 },
+      { "stage": "Product views", "users": 21500 },
+      { "stage": "Add to cart", "users": 6400 },
+      { "stage": "Checkout", "users": 3100 },
+      { "stage": "Purchase", "users": 2270 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Checkout funnel",
+      "note": "transform.funnel centers each stage on zero (users0 = -users/2, users1 = +users/2), so the bars narrow like a funnel, and adds the share of the first stage (rate) and of the one before (stepRate). A text mark writes the rate to the right of each bar; the tooltip shows all three.",
+      "spec": {
+        "data": "funnel",
+        "size": [720, 320],
+        "padding": { "right": 64 },
+        "transforms": [{ "type": "funnel", "field": "users" }],
+        "scales": { "y": { "type": "band", "paddingInner": 0.22 }, "x": { "type": "linear" } },
+        "guides": [{ "type": "axis", "scale": "y" }],
+        "marks": [
+          { "type": "rect", "x": "users0", "x2": "users1", "y": "stage", "radius": 4 },
+          { "type": "text", "x": "users1", "y": "stage", "text": "rate", "format": { "style": "percent", "maximumFractionDigits": 1 }, "anchor": "start", "dx": 8, "weight": 600 }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["users", "rate", "stepRate"], "formats": { "users": "integer", "rate": { "style": "percent", "maximumFractionDigits": 1 }, "stepRate": { "style": "percent", "maximumFractionDigits": 1 } } }]
+      }
+    }
+  ]
+}

@@ -46,7 +46,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     BC.data('wrapped', wrapped);
     await BC.ready();
     const host = new FakeNode('div');
-    const h = BC.chart(host, { data: 'utf', scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } }, guides: [{ type: 'axis', scale: 'x' }], marks: [{ type: 'rect', x: 'k', y: 'v' }] });
+    const h = BC.chart(host, { data: 'utf', scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } }, guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }], marks: [{ type: 'rect', x: 'k', y: 'v' }] });
     assert.deepStrictEqual(h.diagnostics, []);
     for (const label of ['Регион Север', '東京', 'naïve ☃']) assert(svgOf(host).includes(`>${label}<`), label);
     const w = new FakeNode('div');
@@ -180,7 +180,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
   });
 
   // ── binary columns ──
-  const line = (data) => ({ data, scales: { x: { type: 'linear' }, y: { type: 'linear' } }, guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }], marks: [{ type: 'point', x: 'a', y: 'b' }] });
+  const line = (data) => ({ data, scales: { x: { type: 'linear' }, y: { type: 'linear' } }, guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }], marks: [{ type: 'point', x: 'a', y: 'b' }] });
   const same = async (name, binary, plain) => {
     BC.data(name + '-bin', binary);
     BC.data(name + '-plain', plain);

@@ -170,7 +170,7 @@ for (const file of recipeFiles) {
   test(`skill: recipe ${file} is a complete page that composes cleanly and draws`, async () => {
     const page = JSON.parse(fs.readFileSync(path.join(skillDir, 'recipes', file), 'utf8'));
     assert(page.title && page.data && Array.isArray(page.charts) && page.charts.length, 'title, data and charts');
-    for (const key of Object.keys(page)) assert(['title', 'data', 'charts', 'css', 'compress'].includes(key), `page key ${key} is one SKILL.md documents`);
+    for (const key of Object.keys(page)) assert(['title', 'subtitle', 'layout', 'data', 'charts', 'css', 'compress'].includes(key), `page key ${key} is one SKILL.md documents`);
 
     const result = packagedCompose.compose(page); // the packaged runtime, not the repo's
     assert.deepStrictEqual(result.diagnostics, [], 'no errors and no warnings');

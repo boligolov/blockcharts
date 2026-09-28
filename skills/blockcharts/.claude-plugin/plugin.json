@@ -1,6 +1,6 @@
 {
   "name": "blockcharts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Build interactive HTML dashboards and chart reports as one self-contained file: Claude writes a JSON description, a composer checks it against the data and ships only the chart code the page uses.",
   "author": {
     "name": "Alexander Lisin",
@@ -9,5 +9,14 @@
   "homepage": "https://blockcharts.online",
   "repository": "https://github.com/boligolov/blockcharts",
   "license": "MIT",
-  "keywords": ["charts", "dashboard", "report", "html", "business", "json", "csv", "visualization"]
+  "keywords": [
+    "charts",
+    "dashboard",
+    "report",
+    "html",
+    "business",
+    "json",
+    "csv",
+    "visualization"
+  ]
 }

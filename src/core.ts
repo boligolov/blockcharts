@@ -378,7 +378,10 @@
       }
     };
 
-    if (!Array.isArray(spec.marks) || !spec.marks.length) err('marks', 'at least one mark is required');
+    // a chart draws something: a mark, or at least a guide (a KPI tile is a guide alone)
+    const hasGuides = Array.isArray(spec.guides) && spec.guides.length > 0;
+    if (!Array.isArray(spec.marks)) err('marks', 'marks must be a list (an empty one is fine when the chart has a guide, such as a KPI)');
+    else if (!spec.marks.length && !hasGuides) err('marks', 'at least one mark is required (or a guide, such as a KPI)');
 
     if (spec.view !== undefined) {
       if (!spec.view || typeof spec.view !== 'object') err('view', 'view must map scale names to domains');
@@ -722,7 +725,26 @@
         const scale = scales[name];
         if (!scale || !scale.ticks) return [];
         const o = ctx.orientation(name);
-        const count = approxCount !== undefined ? approxCount : Math.max(2, Math.round(o === 'vertical' ? plot.h / 40 : o === 'horizontal' ? plot.w / 80 : 6));
+        let count = approxCount !== undefined ? approxCount : Math.max(2, Math.round(o === 'vertical' ? plot.h / 40 : o === 'horizontal' ? plot.w / 80 : 6));
+        // categories are named, not sampled: show every label that fits (measured), thin them only when they do not
+        if (approxCount === undefined && scale.kind === 'band' && o) {
+          const labels = scale.domain() as unknown[];
+          let widest = 0;
+          for (const v of labels) {
+            const text = String(v);
+            if (o === 'vertical') {
+              widest = Math.max(widest, ctx.measure(text, 11).h);
+              continue;
+            }
+            // a horizontal axis wraps a long label onto two lines, so what has to fit is about half of it (or its longest word)
+            const full = ctx.measure(text, 11).w;
+            const word = text.split(/\s+/).reduce((m, part) => Math.max(m, ctx.measure(part, 11).w), 0);
+            widest = Math.max(widest, Math.min(full, Math.max(word, full / 2)));
+          }
+          // measure() is deliberately generous (layout must never clip), so real labels are narrower than it says: allow for that
+          const fit = Math.floor((o === 'horizontal' ? plot.w : plot.h) / (o === 'horizontal' ? widest * 0.9 + 4 : widest + 3));
+          count = Math.max(count, Math.min(labels.length, fit));
+        }
         const key = `${name}:${count}`;
         let t = tickCache.get(key);
         if (!t) tickCache.set(key, (t = scale.ticks(count)));
@@ -1023,8 +1045,13 @@
     host.appendChild(box);
   }
 
+  /** Narrowest width a chart is laid out at, px: below it, it scales down as a drawing. */
+  const MIN_LAYOUT_WIDTH = 200;
+
   function chart(host: HTMLElement, spec: BC.ChartSpec): BC.ChartHandle {
     let current = spec;
+    /** The width the chart is built at now (null: its own size). */
+    let laidOut: number | null = null;
     let checks: BC.Diagnostic[] = [];
     let built: Built | null = null;
     let cleanups: (() => void)[] = [];
@@ -1070,7 +1097,9 @@
       keptView = null;
       if (!checks.some((d) => d.level === 'error')) {
         try {
-          built = build(host, current, cleanups, carried || undefined);
+          laidOut = widthFor(current);
+          const effective = laidOut === null ? current : { ...current, size: [laidOut, Array.isArray(current.size) ? current.size[1] : 400] as [number, number] };
+          built = build(host, effective, cleanups, carried || undefined);
         } catch (e) {
           checks.push({ level: 'error', path: '', message: e instanceof Error ? e.message : String(e) });
         }
@@ -1084,6 +1113,34 @@
     }
 
     const run = () => start(++epoch);
+
+    /** The width to lay the chart out at: the container's, when it is narrower than the chart's size; else null. */
+    const widthFor = (s: BC.ChartSpec): number | null => {
+      if (!s || s.responsive === false) return null;
+      const w = (host as { clientWidth?: unknown }).clientWidth;
+      const design = Array.isArray(s.size) && typeof s.size[0] === 'number' ? s.size[0] : 640;
+      if (typeof w !== 'number' || !isFinite(w) || w <= 0 || w >= design - 1) return null;
+      return Math.max(MIN_LAYOUT_WIDTH, Math.round(w));
+    };
+    // relayout when the container's width changes (a phone turned, a window resized), keeping the zoom
+    const G = globalThis as { ResizeObserver?: new (cb: () => void) => { observe(el: Element): void; disconnect(): void } };
+    let observer: { disconnect(): void } | null = null;
+    let queued = false;
+    if (typeof G.ResizeObserver === 'function' && spec.responsive !== false) {
+      const ro = new G.ResizeObserver(() => {
+        if (queued || destroyed) return;
+        queued = true;
+        const later = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (fn: () => void) => setTimeout(fn, 16);
+        later(() => {
+          queued = false;
+          if (destroyed || widthFor(current) === laidOut) return;
+          keptView = built ? built.viewState() : keptView;
+          run();
+        });
+      });
+      ro.observe(host);
+      observer = ro;
+    }
 
     run();
     return {
@@ -1111,6 +1168,7 @@
       getView() { return built ? built.getView() : {}; },
       destroy() {
         destroyed = true;
+        if (observer) observer.disconnect();
         epoch++;
         teardown();
         settle();

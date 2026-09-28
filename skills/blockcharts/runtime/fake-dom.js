@@ -5,6 +5,11 @@
 // An unparseable color is ignored by the setter, like in a browser (the previous color stays).
 const COLOR = /^(#[0-9a-f]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\)|[a-z]+)$/i;
 const NOT_COLORS = new Set(['none', 'notacolor', 'inherit', 'initial']);
+// A gradient as the renderer built it: its line and color stops, readable in a test.
+class FakeGradient {
+  constructor(line) { this.line = line; this.stops = []; }
+  addColorStop(offset, color) { this.stops.push([offset, color]); }
+}
 class FakeContext {
   constructor(canvas) {
     this.canvas = canvas;
@@ -15,7 +20,11 @@ class FakeContext {
     Object.assign(this, { globalAlpha: 1, lineWidth: 1, lineJoin: 'miter', lineCap: 'butt', font: '10px sans-serif', textAlign: 'start', textBaseline: 'alphabetic', dash: [] });
   }
   get fillStyle() { return this._fill; }
-  set fillStyle(v) { if (typeof v === 'string' && COLOR.test(v.trim()) && !NOT_COLORS.has(v.trim())) this._fill = v.trim().toLowerCase(); }
+  set fillStyle(v) {
+    if (v instanceof FakeGradient) this._fill = v;
+    else if (typeof v === 'string' && COLOR.test(v.trim()) && !NOT_COLORS.has(v.trim())) this._fill = v.trim().toLowerCase();
+  }
+  createLinearGradient(x0, y0, x1, y1) { return new FakeGradient([x0, y0, x1, y1]); }
   get strokeStyle() { return this._stroke; }
   set strokeStyle(v) { if (typeof v === 'string' && COLOR.test(v.trim()) && !NOT_COLORS.has(v.trim())) this._stroke = v.trim().toLowerCase(); }
   _style() {

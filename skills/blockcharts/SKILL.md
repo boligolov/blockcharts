@@ -1,9 +1,9 @@
 ---
 name: blockcharts
-description: Build a standalone HTML page with interactive charts — a dashboard or a chart report (bars, stacked and grouped bars, lines, areas, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
+description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -37,7 +37,9 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 - `data`: named datasets. A dataset can also be CSV: `{"csv": "date,region,amount
 2024-01-05,North,1200
 ..."}`, or `{"csvFile": "orders.csv"}` for a file next to `page.json` (it must stay inside that folder). The first CSV row names the columns; numbers and ISO dates are recognized by themselves. Rows (`[{...}]`) or columns (`{"columns": {"a": [..], "b": [..]}}`). Every row has the same keys. Missing value = `null`. Numbers are numbers, not strings. **Dates are ISO strings** (`"2024-03-01"` or `"2024-03-01T12:00:00Z"`), read as UTC. Several charts may use the same dataset.
-- `charts`: each entry is a chart spec, or `{title, note, spec}` to get a heading and a sentence around it.
+- `charts`: each entry is a chart spec, or `{title, note, spec, span}` to get a heading and a sentence around it. Every chart sits in a card.
+- `title` and `subtitle`: the page heading and one line under it (the period, the scope, the unit: "FY2025 · all regions · USD").
+- `layout`: `{"columns": 4}` turns the page into a dashboard grid; each chart takes `span` columns (default: the whole row). Put KPI tiles first, `span: 1` each, then the charts (`span: 2` or `3`). On a phone every card takes the full width. Size a chart for its card: about 280 px wide per column.
 - Optional: `css` (extra stylesheet text), `compress` (`"auto"` by default: big datasets are stored gzipped, which you do not have to think about).
 
 ## Chart spec
@@ -94,6 +96,29 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Survey / Likert answers**: count with `aggregate` (`groupby` question and answer, `count`), stack with `normalize: true`, put the question on the band scale and format the axis as percent.
 
+**KPI tile**: a chart whose guides include `{"type": "kpi", "field": "revenue", "label": "Revenue", "format": ..., "note": "vs last month"}`. It shows the value of the last row in large type and its change against the row before, green when it rises (`"better": "down"` for costs and churn). `aggregate` (sum, mean, ...) makes one number of all rows; `against` compares with another field (a target); `compare: "first"` shows the change over the period. It takes the room it needs at the top: a line plus an area under it in the same chart become the sparkline (y scale without `zero`, the area with `toBottom: true`). A tile may also be the guide alone, with `"marks": []`. Size it about [280, 150] with small padding. See `recipes/executive-dashboard.json`.
+
+**Waterfall (bridge)**: `transform.waterfall` (`field` = the change of each row, `total` = a field that marks subtotal rows) writes `<field>0`, `<field>1`, `step` (increase / decrease / total), `amount` and `top`. Draw a `rect` with y = `<field>1`, y2 = `<field>0`, `color: "step"` on a color scale with `domain` ["increase", "decrease", "total"] and your three colors as `range`; label with a `text` at y = `top`, text = `amount`. See `recipes/waterfall.json`.
+
+**Funnel**: `transform.funnel` (`field` = how many reached the stage, stages in row order) writes `<field>0`, `<field>1` (centered on zero), `rate` and `stepRate`. Draw a `rect` with x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale, and a `text` of `rate` at x = `<field>1`. See `recipes/funnel.json`.
+
+**Targets and thresholds**: `mark.rule` draws lines at values. `{"type": "rule", "y": {"value": 50000}, "dash": [4, 4], "label": "Target"}` is a horizontal line at 50 000 on the y scale (keep it inside the domain). On a band scale it becomes a short tick across the band: a bullet chart is three grey `rect` bands, a slim `rect` of the result (`thickness: 0.36`) and a `rule` of the target. See `recipes/bullet.json`.
+
+**Treemap**: `transform.treemap` (`field` = size, `group` = block, `name` = label, `aspect` = plot width / height) writes x0, x1, y0, y1 in 0..1 and `label`. Draw a `rect` (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with `domain: [0, 1]`, no axes, colored by the group; a `text` of `label` at (x0, y1) with `on` set to the color field. See `recipes/treemap.json`.
+
+**The dashboard look**: charts already come with quiet axes, a card tooltip and a calm palette. What makes them look finished:
+- A line with a soft area under it: an `area` with `fade: true` and a `line` on top, both with the same explicit color (`"fill"`/`"stroke"`: `"var(--bc-c0, #3a6fe4)"`), `curve: "smooth"` on both. Without an explicit color, each mark takes the next palette color.
+- Bars with `radius` 3–4; `paddingInner` 0.25–0.35 on the band scale.
+- A grid on the value axis only (`{"type": "grid", "scale": "y"}`), compact number formats on axes (`{"style": "currency", "currency": "USD", "notation": "compact"}`).
+- Direct value labels (`mark.text`) instead of a legend when there are few bars.
+- A `note` that says what the chart shows, in one sentence.
+- Names at the line ends instead of a legend: `"label": "name"` (or `"value"`, `"both"` with `format`) on each
+  `line`, `"name"` for a line that is not split into series, and room on the right (`"padding": {"right": 96}`).
+- `{"type": "crosshair"}` with the tooltip on time series: a line that follows the pointer to the nearest date.
+- `{"type": "animate"}`: the chart plays in once (bars grow, lines draw); readers who ask for less motion get none.
+- On a phone a chart is laid out again at the screen width, so keep `size` for the desktop card and do not
+  shrink it for phones.
+
 ## Recipes
 
 | Need | Recipe |
@@ -113,6 +138,11 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | A very long series (tens of thousands of points and more) | `recipes/long-series.json` |
 | A scatter plot of tens of thousands of points (canvas, binary columns) | `recipes/scatter-large.json` |
 | Several charts on one page | `recipes/dashboard.json` |
+| A business dashboard: KPI tiles with sparklines, a trend against plan, a donut, a bridge and a funnel in a grid | `recipes/executive-dashboard.json` |
+| How a start value becomes an end value through gains and losses (profit bridge) | `recipes/waterfall.json` |
+| Conversion through the stages of a process | `recipes/funnel.json` |
+| Results against their targets, with qualitative ranges | `recipes/bullet.json` |
+| Shares of a whole across two levels (region, then product) | `recipes/treemap.json` |
 | A report from raw CSV rows: monthly totals, ranking, currency | `recipes/report-from-csv.json` |
 
 Each recipe is a complete `page.json` that composes as it stands.

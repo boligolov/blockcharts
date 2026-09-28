@@ -11,8 +11,8 @@
   const def: BC.RendererDef = {
     role: 'renderer',
     type: 'canvas',
-    version: 1,
-    doc: 'Draws a display list on one <canvas>, scaled to its container and sharp on high-density screens. Meant for charts with tens of thousands of marks (a big scatter plot), where an SVG element per mark gets slow: about 5 times faster to redraw at 50,000 points. A single long line is one path either way, so it gains little; decimate it instead. It reads the same CSS variables as the SVG renderer (themes, dark mode) and follows changes of the color scheme, but a canvas has no elements: CSS classes and native tooltips on marks do not exist here. Zoom, brush, tooltip and legend filter work as usual.',
+    version: 2,
+    doc: 'Draws a display list on one <canvas>, scaled to its container and sharp on high-density screens. Meant for charts with tens of thousands of marks (a big scatter plot), where an SVG element per mark gets slow: about 5 times faster to redraw at 50,000 points. A single long line is one path either way, so it gains little; decimate it instead. It reads the same CSS variables as the SVG renderer (themes, dark mode) and follows changes of the color scheme, but a canvas has no elements: CSS classes and native tooltips on marks do not exist here. Zoom, brush, tooltip and legend filter work as usual, and so do fading fills.',
     render(list, host) {
       const doc = host.ownerDocument || document;
       const canvas = doc.createElement('canvas');
@@ -56,6 +56,25 @@
         }
         colors.set(value, out);
         return out;
+      };
+
+      // the same color with alpha 0, for the transparent end of a fade: the context writes any valid color back as
+      // #rrggbb or rgba(r, g, b, a), which is easy to take apart
+      const clear = (color: string): string => {
+        ctx.fillStyle = color;
+        const n = String(ctx.fillStyle);
+        const hex = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(n);
+        if (hex) return `rgba(${parseInt(hex[1], 16)}, ${parseInt(hex[2], 16)}, ${parseInt(hex[3], 16)}, 0)`;
+        const rgb = /^rgba?\(([^,]+),([^,]+),([^,)]+)/.exec(n);
+        return rgb ? `rgba(${rgb[1].trim()}, ${rgb[2].trim()}, ${rgb[3].trim()}, 0)` : 'rgba(0, 0, 0, 0)';
+      };
+      /** A fill that fades from the color at the top of the plot to transparent at its bottom (Style.fade). */
+      const fadeOf = (color: string): CanvasGradient => {
+        const p = current.plot;
+        const g = ctx.createLinearGradient(0, p.y, 0, p.y + p.h);
+        g.addColorStop(0, color);
+        g.addColorStop(1, clear(color));
+        return g;
       };
 
       const fontOf = (p: BC.TextPrim): string => {
@@ -119,7 +138,7 @@
         const paint = (path?: Path2D) => {
           if (fill) {
             ctx.globalAlpha = a * (own.fillOpacity === undefined ? 1 : own.fillOpacity);
-            ctx.fillStyle = fill;
+            ctx.fillStyle = s.fade ? fadeOf(fill) : fill;
             if (path) ctx.fill(path); else ctx.fill();
           }
           if (stroke) {

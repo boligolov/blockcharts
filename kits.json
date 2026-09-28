@@ -1,15 +1,103 @@
 {
   "basic": {
     "doc": "Bars, lines, points and areas on linear, time and band scales, with axes, grid, legend and tooltip.",
-    "blocks": ["scale.linear", "scale.time", "scale.band", "scale.color", "mark.rect", "mark.line", "mark.point", "mark.area", "mark.text", "guide.axis", "guide.grid", "guide.legend", "interaction.tooltip", "renderer.svg"]
+    "blocks": [
+      "scale.linear",
+      "scale.time",
+      "scale.band",
+      "scale.color",
+      "mark.rect",
+      "mark.line",
+      "mark.point",
+      "mark.area",
+      "mark.text",
+      "guide.axis",
+      "guide.grid",
+      "guide.legend",
+      "interaction.tooltip",
+      "renderer.svg"
+    ]
   },
   "timeseries": {
     "doc": "Long series over time: lines and areas with zoom, brush, legend filter, decimation and aggregation; also the canvas renderer for very large series.",
-    "blocks": ["scale.linear", "scale.time", "scale.color", "mark.line", "mark.area", "mark.point", "guide.axis", "guide.grid", "guide.legend", "interaction.tooltip", "interaction.zoom", "interaction.brush", "interaction.zoom-controls", "interaction.legend-filter", "transform.decimate", "transform.aggregate", "transform.stack", "renderer.svg", "renderer.canvas"]
+    "blocks": [
+      "scale.linear",
+      "scale.time",
+      "scale.color",
+      "mark.line",
+      "mark.area",
+      "mark.point",
+      "guide.axis",
+      "guide.grid",
+      "guide.legend",
+      "interaction.tooltip",
+      "interaction.zoom",
+      "interaction.brush",
+      "interaction.zoom-controls",
+      "interaction.legend-filter",
+      "transform.decimate",
+      "transform.aggregate",
+      "transform.stack",
+      "renderer.svg",
+      "renderer.canvas"
+    ]
   },
   "composition": {
-    "doc": "Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, aggregation.",
-    "blocks": ["scale.linear", "scale.time", "scale.band", "scale.color", "scale.sequential", "mark.rect", "mark.area", "mark.arc", "mark.text", "mark.point", "mark.boxplot", "guide.axis", "guide.grid", "guide.legend", "interaction.tooltip", "interaction.legend-filter", "transform.stack", "transform.bin", "transform.aggregate", "transform.quartiles", "renderer.svg"]
+    "doc": "Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap, aggregation.",
+    "blocks": [
+      "scale.linear",
+      "scale.time",
+      "scale.band",
+      "scale.color",
+      "scale.sequential",
+      "mark.rect",
+      "mark.area",
+      "mark.arc",
+      "mark.text",
+      "mark.point",
+      "mark.boxplot",
+      "guide.axis",
+      "guide.grid",
+      "guide.legend",
+      "interaction.tooltip",
+      "interaction.legend-filter",
+      "transform.stack",
+      "transform.bin",
+      "transform.aggregate",
+      "transform.quartiles",
+      "renderer.svg",
+      "transform.waterfall",
+      "transform.funnel",
+      "transform.treemap",
+      "mark.rule"
+    ]
+  },
+  "dashboard": {
+    "doc": "Business dashboards: KPI tiles with sparklines, bars, lines and areas, waterfall, funnel, treemap, bullet and target lines, donut, with axes, grid, legend, tooltip and legend filter.",
+    "blocks": [
+      "scale.linear",
+      "scale.time",
+      "scale.band",
+      "scale.color",
+      "transform.aggregate",
+      "transform.waterfall",
+      "transform.funnel",
+      "transform.treemap",
+      "mark.rect",
+      "mark.line",
+      "mark.area",
+      "mark.point",
+      "mark.text",
+      "mark.arc",
+      "mark.rule",
+      "guide.axis",
+      "guide.grid",
+      "guide.legend",
+      "guide.kpi",
+      "interaction.tooltip",
+      "interaction.legend-filter",
+      "renderer.svg"
+    ]
   },
   "full": {
     "doc": "Every block.",

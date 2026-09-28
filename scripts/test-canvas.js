@@ -60,7 +60,7 @@ const bars = (extra) => ({
   marks: [{ type: 'rect', x: 'k', y: 'v' }],
   ...extra,
 });
-const withGuides = (extra) => bars({ guides: [{ type: 'grid', scale: 'y' }, { type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }], ...extra });
+const withGuides = (extra) => bars({ guides: [{ type: 'grid', scale: 'y' }, { type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }], ...extra });
 
 const draw = (w, spec, rows) => {
   w.BC.data('d', rows || ROWS);
@@ -102,9 +102,28 @@ test('canvas: colors come from CSS variables of the page, with their fallbacks, 
   assert.deepStrictEqual(fills(marks({ '--bc-c0': 'none' })), [], 'none paints nothing');
 });
 
+test('canvas: a fading area is filled by a gradient over the plot, from the color to the same color transparent', () => {
+  const lines = (vars) => {
+    const w = world({ vars });
+    w.BC.data('d', [{ t: 0, v: 3 }, { t: 1, v: 6 }, { t: 2, v: 4 }]);
+    const host = w.host();
+    w.BC.chart(host, { data: 'd', renderer: 'canvas', size: [400, 240], scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true } }, marks: [{ type: 'area', x: 't', y: 'v', fade: true, curve: 'smooth' }] });
+    return ops(frame(ctxOf(host)), 'fill');
+  };
+  const [hex] = lines({ '--bc-c0': '#3a6fe4' });
+  assert(hex.fillStyle && Array.isArray(hex.fillStyle.stops), 'a gradient, not a flat color');
+  assert.deepStrictEqual(hex.fillStyle.stops, [[0, '#3a6fe4'], [1, 'rgba(58, 111, 228, 0)']], 'the color, then the same color with alpha 0');
+  assert.deepStrictEqual(hex.fillStyle.line, [0, 16, 0, 224], 'vertical, over the plot');
+  assert.strictEqual(hex.globalAlpha, 0.45, 'at the fill opacity');
+  const [rgb] = lines({ '--bc-c0': 'rgb(1, 2, 3)' });
+  assert.deepStrictEqual(rgb.fillStyle.stops[1], [1, 'rgba(1, 2, 3, 0)'], 'an rgb() color too');
+  assert.deepStrictEqual(lines({ '--bc-c0': 'notacolor' }), [], 'an invalid color paints nothing, faded or not');
+});
+
 test('canvas: size follows the container and the screen density, and is capped', () => {
   const size = (opts) => {
-    const { host, ctx } = draw(world(opts), bars());
+    // the renderer's own scaling, with the core's relayout to a narrow container turned off
+    const { host, ctx } = draw(world(opts), bars({ responsive: false }));
     const c = host.children[0];
     return { w: c.width, h: c.height, transform: ops(ctx.calls, 'setTransform').pop().args, clear: ops(ctx.calls, 'clearRect').pop().args };
   };
@@ -119,6 +138,13 @@ test('canvas: size follows the container and the screen density, and is capped',
   assert.strictEqual(size({ width: 100000 }).w, 16384, 'so is the canvas itself');
 });
 
+test('canvas: on a narrow container the core lays the chart out at its width, and the canvas follows', () => {
+  const { host, ctx } = draw(world({ width: 300, dpr: 2 }), bars());
+  const c = host.children[0];
+  assert.deepStrictEqual([c.width, c.height], [600, 480], 'laid out 300 wide, the height kept (240), at density 2');
+  assert.deepStrictEqual(ops(ctx.calls, 'setTransform').pop().args, [2, 0, 0, 2, 0, 0], 'one chart unit is one CSS pixel: text keeps its size');
+});
+
 test('canvas: repaints when the container is resized or the color scheme changes, and stops after destroy', () => {
   let resize, observed = 0, disconnected = 0, media, mutation, mutationOff = 0;
   const w = world({
@@ -130,9 +156,9 @@ test('canvas: repaints when the container is resized or the color scheme changes
     },
   });
   w.doc.documentElement = new El('html', w.doc);
-  const { host, h, ctx } = draw(w, bars());
+  const { host, h, ctx } = draw(w, bars({ responsive: false }));
   const canvas = host.children[0];
-  assert.strictEqual(observed, 1);
+  assert.strictEqual(observed, 1, 'the renderer watches the width (the core does not, with responsive: false)');
   assert.strictEqual(canvas.width, 300);
   const frames = () => ops(ctx.calls, 'clearRect').length;
   const before = frames();
@@ -377,7 +403,9 @@ test('canvas: zoom repaints the canvas with what is visible, and the tooltip fin
   await flush();
   const tip = host.children.find((c) => c.attrs.class === 'bc-tooltip');
   assert(tip && tip.style.display !== 'none', 'a tooltip appeared over the canvas');
-  const lines = tip.children.map((line) => line.children.map((c) => c.text).join(''));
+  const grid = tip.children.find((c) => c.attrs.class === 'bc-tooltip-lines');
+  const lines = [];
+  for (let k = 0; grid && k < grid.children.length; k += 2) lines.push(grid.children[k].text + ': ' + grid.children[k + 1].text);
   assert(lines.some((l) => /^y: [2346]$/.test(l)) && lines.some((l) => /^x: [1-4]$/.test(l)), 'with the values of the row: ' + lines);
 });
 
@@ -389,7 +417,7 @@ test('canvas: the spec names it, BC.needs lists it, and the composer and validat
   assert.deepStrictEqual(arr(w.BC.validate(bars())), []);
   assert(arr(w.BC.validate(bars({ renderer: 'webgl' }))).some((d) => /renderer\.webgl/.test(d.message) || /webgl/.test(d.message)));
   const def = w.BC.get('renderer.canvas');
-  assert.strictEqual(def.version, 1);
+  assert.strictEqual(def.version, 2);
   assert(/canvas/i.test(def.doc));
 });
 

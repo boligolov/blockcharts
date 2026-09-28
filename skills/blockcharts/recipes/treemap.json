@@ -1,0 +1,41 @@
+{
+  "title": "Treemap",
+  "data": {
+    "sales": [
+      { "region": "North America", "product": "Enterprise", "revenue": 4200000 },
+      { "region": "North America", "product": "Pro", "revenue": 2600000 },
+      { "region": "North America", "product": "Starter", "revenue": 900000 },
+      { "region": "Europe", "product": "Enterprise", "revenue": 3100000 },
+      { "region": "Europe", "product": "Pro", "revenue": 2200000 },
+      { "region": "Europe", "product": "Starter", "revenue": 700000 },
+      { "region": "Asia Pacific", "product": "Enterprise", "revenue": 1900000 },
+      { "region": "Asia Pacific", "product": "Pro", "revenue": 1500000 },
+      { "region": "Asia Pacific", "product": "Starter", "revenue": 600000 },
+      { "region": "Latin America", "product": "Pro", "revenue": 500000 },
+      { "region": "Latin America", "product": "Starter", "revenue": 300000 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Revenue by region and product",
+      "note": "transform.treemap lays the rows out as near-square cells, one block per region (group), each cell's area its revenue. It writes the corners (x0, x1, y0, y1) in 0..1, drawn by a rect on two linear scales with the domain [0, 1] and no axes, and a label only for cells big enough to hold one; `on` keeps the label readable on its cell's color. Set `aspect` to the plot's width / height.",
+      "spec": {
+        "data": "sales",
+        "size": [720, 400],
+        "padding": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+        "transforms": [{ "type": "treemap", "field": "revenue", "group": "region", "name": "product", "aspect": 1.9, "padding": 0.006, "labelMin": 0.03 }],
+        "scales": {
+          "x": { "type": "linear", "domain": [0, 1] },
+          "y": { "type": "linear", "domain": [0, 1] },
+          "color": { "type": "color" }
+        },
+        "guides": [{ "type": "legend", "scale": "color", "position": "bottom" }],
+        "marks": [
+          { "type": "rect", "x": "x0", "x2": "x1", "y": "y1", "y2": "y0", "color": "region", "radius": 3 },
+          { "type": "text", "x": "x0", "y": "y1", "text": "label", "on": "region", "anchor": "start", "baseline": "hanging", "dx": 8, "dy": 8, "size": 12, "weight": 600 }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["region", "product", "revenue"], "formats": { "revenue": { "style": "currency", "currency": "USD", "notation": "compact", "maximumFractionDigits": 1 } } }]
+      }
+    }
+  ]
+}

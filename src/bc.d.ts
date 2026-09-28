@@ -75,6 +75,10 @@ declare namespace BC {
     interaction?: InteractionSpec[];
     /** Initial view: scale name → visible domain (zoomed state). Same thing `setView` changes at runtime. */
     view?: Record<string, unknown[]>;
+    /** When the chart's container is narrower than `size` (a phone), the chart is laid out again at the container's width,
+     *  so text keeps its size instead of shrinking with the drawing; and again whenever that width changes. Default true;
+     *  false keeps `size` and only scales. A wider container scales the drawing up as always. */
+    responsive?: boolean;
     /** Default "svg". */
     renderer?: string;
   }
@@ -192,6 +196,9 @@ declare namespace BC {
     fillOpacity?: number;
     strokeLinejoin?: 'round' | 'miter' | 'bevel';
     strokeLinecap?: 'round' | 'butt' | 'square';
+    /** The fill fades out downwards: full `fillOpacity` at the top of the plot, transparent at its bottom (a vertical
+     *  gradient over the plot rectangle, the same for every shape, so areas stacked on one chart fade alike). */
+    fade?: boolean;
   }
 
   interface PrimBase {

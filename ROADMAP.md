@@ -31,13 +31,13 @@ and the ways to ship it (composer, kits, loader, npm) serve it.
 
 ## Business blocks
 
-After the repository and the site are done. Each is a block (or a few), with a recipe and tests:
+Done: KPI tiles (guide.kpi), waterfall, funnel, treemap, target lines and bullet charts (mark.rule, bar
+`thickness`), the dashboard grid in `page.json`, and the dashboard look (see docs/Design.md). Still to do:
 
-- [ ] **KPI tile**: a number, its change against a previous period (up/down, colored by meaning), a sparkline.
-- [ ] **Table**: sortable, number formats shared with axes and tooltips, optional bars or heat in cells.
-- [ ] **More chart types** for business reports: funnel, waterfall (bridge), bullet chart (value against
-      target), treemap, sparkline as its own small chart, and lines/bars against a target or threshold.
-- [ ] **Dashboard layout** in `page.json`: a grid of tiles and charts instead of one column.
+- [ ] **Table** (much later; there is a lot to it): its own design question — an HTML table rather than SVG text (scrolls, selects, prints as a
+      table), sortable, number formats shared with axes and tooltips, optional bars or heat in cells.
+- [ ] **Waterfall and bar value labels on a phone** can crowd each other when the bands get narrow; thin or
+      shorten them (compact format without decimals) when they would overlap.
 
 ## Ideas, not decided
 

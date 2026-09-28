@@ -55,7 +55,7 @@ const axisStarts = (svg) => [...svg.matchAll(/<path d="M([\d.]+) ([\d.]+)[^>]*cl
 const dSpec = () => ({
   data: 'sales',
   scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true }, y2: { type: 'linear', range: 'height' } },
-  guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }, { type: 'axis', scale: 'y2', position: 'right' }],
+  guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }, { type: 'axis', line: 'on', ticks: true, scale: 'y2', position: 'right' }],
   marks: [
     { type: 'point', x: 'month', y: 'revenue', r: 4 },
     { type: 'point', x: 'month', y: { field: 'units', scale: 'y2' }, r: 3 },
@@ -111,7 +111,7 @@ test('validate: catches dangling scale, missing block, unknown field, bad params
   s.marks.push({ type: 'hexbin', x: 'month' });
   s.marks.push({ type: 'point', x: 'month', y: 'ghost', shade: 'red', r: 'big' });
   s.marks.push({ type: 'point', x: 'month' });
-  s.guides.push({ type: 'axis', scale: 'y', position: 'middle' });
+  s.guides.push({ type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'middle' });
   s.guides.push({ type: 'axis' });
   s.scales.z = { type: 'log' };
   const d = BC.validate(s);
@@ -228,6 +228,7 @@ test('interaction: attach gets a live context, cleanup runs on update/destroy', 
 
 require('./test-blocks.js')({ test, FakeNode, svgOf, count, axisStarts, logged, flush, dist });
 require('./test-data.js')({ test, FakeNode, svgOf, count, axisStarts, logged, flush, dist });
+require('./test-business.js')({ test, FakeNode, svgOf, count, flush });
 
 (async () => {
   for (const [name, fn] of queue) {

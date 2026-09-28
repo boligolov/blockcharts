@@ -1,10 +1,11 @@
 ---
-// The first screen: the one idea (a page carries only the blocks its charts use) and a real report made by the composer
-// from one of the skill's recipes, drawn live. The size tags are read from that report and the release, not typed in.
+// The first screen: the one idea (a page carries only the blocks its charts use) and a piece of a real dashboard made from
+// one of the skill's recipes, drawn live: two KPI tiles over a trend. The size tags are those of that recipe's report.
 import { baseUrl, jsonForScript, kb } from '../lib/site.mjs';
 
-interface Props { charts: { title?: string; note?: string; spec: unknown }[]; codeBytes: number; blocks: number; totalBlocks: number; coreGzip: number; blockRange: [number, number] }
-const { charts, codeBytes, blocks, totalBlocks, coreGzip, blockRange } = Astro.props;
+interface Chart { title?: string; note?: string; spec: unknown }
+interface Props { tiles: Chart[]; trend: Chart; file: string; recipe: string; codeBytes: number; blocks: number; totalBlocks: number; coreGzip: number; blockRange: [number, number] }
+const { tiles, trend, file, recipe, codeBytes, blocks, totalBlocks, coreGzip, blockRange } = Astro.props;
 const base = baseUrl(import.meta.env.BASE_URL);
 ---
 <section class="hero" id="top">
@@ -31,26 +32,27 @@ const base = baseUrl(import.meta.env.BASE_URL);
       <div class="window">
         <div class="window-bar">
           <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="file">sales-report.html</span>
+          <span class="file">{file}</span>
           <span class="meta">
             <span class="tag neutral">{blocks} of {totalBlocks} blocks</span>
             <span class="tag num">{kb(codeBytes)} of code</span>
           </span>
         </div>
         <div class="window-body">
-          <div class="pair">
-            {charts.map((c) => (
-              <div>
-                {c.title && <h3>{c.title}</h3>}
-                <script is:inline type="application/json" data-bc-chart set:html={jsonForScript(c.spec)} />
-              </div>
+          <div class="tiles">
+            {tiles.map((c) => (
+              <div class="tile-card"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(c.spec)} /></div>
             ))}
+          </div>
+          <div class="chart-card">
+            {trend.title && <h3>{trend.title}</h3>}
+            <script is:inline type="application/json" data-bc-chart set:html={jsonForScript(trend.spec)} />
           </div>
         </div>
       </div>
       <p class="window-caption">
-        Live: this is the <a href={`${base}examples/report-from-csv/`}>report-from-csv</a> recipe — raw order rows in, monthly totals and a
-        ranking out. Hover the points and bars.
+        Live, from the <a href={`${base}examples/${recipe}/`}>{recipe}</a> recipe — see <a href={`${base}examples/${recipe}.report.html`}>the whole dashboard</a>.
+        Hover the lines.
       </p>
     </div>
   </div>

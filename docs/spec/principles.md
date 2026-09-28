@@ -12,8 +12,8 @@ The words MUST, SHOULD and MAY in §12 are used as in RFC 2119. Changes are list
 
 A charting library is usually one bundle: every chart type, every interaction, every option, loaded by
 every page that draws a single bar chart. blockcharts turns that around. The page carries the **core**
-(24.5 KB minified, under 10 KB gzipped: data loading, validation, the drawing pipeline) and **only the
-blocks its charts use**, each between 0.4 and 6 KB. A chart without zoom carries no zoom; a page without a
+(26 KB minified, about 10 KB gzipped: data loading, validation, the drawing pipeline) and **only the blocks
+its charts use**, each between 0.4 and 8 KB. A chart without zoom carries no zoom; a page without a
 pie carries no arcs.
 
 What a chart uses is not chosen by anyone: it is read from the spec (`BC.needs(spec)`) and closed over the
@@ -22,10 +22,11 @@ too long or too short. Sizes below are minified code, measured on the example pa
 
 | page | blocks | code in the page |
 |---|---|---|
-| a pie chart | 6 | 41.1 KB |
-| a bar chart with labels and a tooltip | 8 | 42.6 KB |
-| monthly totals and a ranking from raw CSV rows | 12 | 52.7 KB |
-| everything blockcharts has | 27 | 91.7 KB |
+| a pie chart | 6 | 44.8 KB |
+| a bar chart with labels and a tooltip | 8 | 47.1 KB |
+| monthly totals and a ranking from raw CSV rows | 12 | 59.7 KB |
+| an executive dashboard: KPI tiles, a trend, a donut, a waterfall and a funnel, animated | 20 | 74.8 KB |
+| everything blockcharts has | 34 | 115.3 KB |
 
 Blocks are shared across the page: five charts with axes carry `guide.axis` once. The same rule holds
 however the code arrives (§11): a composed report inlines exactly its blocks, the loader fetches exactly
@@ -40,14 +41,15 @@ named `<role>.<type>`:
 | role | job | examples |
 |---|---|---|
 | `scale` | maps values to positions or colors | `linear`, `time`, `band`, `color`, `sequential` |
-| `transform` | reshapes rows before drawing | `aggregate`, `stack`, `bin`, `quartiles`, `decimate` |
-| `mark` | draws rows | `rect`, `line`, `area`, `point`, `text`, `arc`, `boxplot` |
-| `guide` | explains a scale | `axis`, `grid`, `legend` |
-| `interaction` | lets the reader explore | `tooltip`, `zoom`, `brush`, `legend-filter`, `zoom-controls` |
+| `transform` | reshapes rows before drawing | `aggregate`, `stack`, `bin`, `quartiles`, `decimate`, `waterfall`, `funnel`, `treemap` |
+| `mark` | draws rows | `rect`, `line`, `area`, `point`, `text`, `arc`, `boxplot`, `rule` |
+| `guide` | explains a scale or the chart | `axis`, `grid`, `legend`, `kpi` |
+| `interaction` | lets the reader explore | `tooltip`, `crosshair`, `zoom`, `brush`, `legend-filter`, `zoom-controls`, `animate` |
 | `renderer` | puts the picture on screen | `svg`, `canvas` |
 
 A chart type is a **composition**: a bar chart is `band + linear + rect`, a heatmap `band + band + rect +
-sequential`, a histogram `bin + rect`, a pie `arc + color`. A new kind of chart is usually a new recipe,
+sequential`, a histogram `bin + rect`, a pie `arc + color`, a waterfall `waterfall + rect`, a bullet chart
+`rect + rect + rule`, a KPI tile `kpi` over a `line`. A new kind of chart is usually a new recipe,
 not new code; when it does need code, that is one new block, and only pages that use it pay for it.
 
 Blocks talk to each other only through the core. Every block declares what it `requires`, its parameters
@@ -80,7 +82,8 @@ the deepest:
 A report is **one HTML file**. It opens from disk by double-click, works offline, needs no server, no
 account and no build step, and looks the same on every machine. It can be emailed, attached to a ticket,
 put in a shared folder or archived next to the data it was made from, and it still opens in ten years,
-because everything it needs is inside it — and, by §1, nothing it does not need.
+because everything it needs is inside it — and, by §1, nothing it does not need. On a screen narrower than the
+chart, the chart is laid out again at that width, so its text stays readable on a phone.
 
 ## 5. The chart is data, not code
 

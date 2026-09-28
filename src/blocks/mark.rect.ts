@@ -27,6 +27,7 @@
    *  band-scale axis, `dodge` (if given) splits the band into one equal, gapped sub-band per distinct dodge value —
    *  a row whose dodge value never appeared among the visible rows (nullish) has no extent, like a missing channel. */
   function axis(ctx: BC.ChartCtx, spec: BC.MarkSpec, name: string, baseline: number, dodge: Dodge | null) {
+    const share = typeof spec.thickness === 'number' && spec.thickness > 0 ? Math.min(1, spec.thickness) : 1;
     const main = ctx.channel(spec, name);
     const end = ctx.channel(spec, name + '2');
     const bw = main.scale ? main.scale.bandwidth : undefined;
@@ -44,8 +45,8 @@
           start = a + gi * sub + gap / 2;
           size = sub - gap;
         } else {
-          start = a;
-          size = bw;
+          start = a + (bw * (1 - share)) / 2;
+          size = bw * share;
         }
       } else if (end.raw.length) {
         start = Math.min(a, end.mapped[i]);
@@ -61,13 +62,14 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rect',
-    version: 7,
+    version: 8,
     doc: 'Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field).',
     params: {
       baseline: { kind: 'number', default: 0, doc: 'Where bars start on a continuous axis without a second channel. Keep it inside the scale domain (scale `zero: true` for 0).' },
       fill: { kind: 'string', doc: 'Any CSS color. Default: theme color by mark index.' },
       opacity: { kind: 'number', default: 1 },
       radius: { kind: 'number', default: 0, doc: 'Corner radius in px.' },
+      thickness: { kind: 'number', default: 1, doc: 'Share of the band a bar fills, centered (0.4 = a slim bar; a bullet chart draws the value slimmer than the ranges behind it).' },
       dodgePadding: { kind: 'number', default: 0.1, doc: 'Gap between the bars of one dodged category, as a fraction of each bar\'s share of the band.' },
     },
     channels: {

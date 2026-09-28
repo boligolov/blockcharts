@@ -40,6 +40,28 @@
   const isColumn = (side: Side) => side === 'left' || side === 'right';
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
+  const ITEM_GAP = 14; // between two items of a row
+  const itemWidth = (it: Item) => SWATCH + GAP + it.w;
+
+  /** Items of a row legend packed into lines no wider than the plot: a long legend wraps instead of running off. */
+  function linesOf(items: Item[], width: number): Item[][] {
+    const lines: Item[][] = [];
+    let line: Item[] = [];
+    let used = 0;
+    for (const it of items) {
+      const w = itemWidth(it);
+      if (line.length && used + ITEM_GAP + w > width) {
+        lines.push(line);
+        line = [];
+        used = 0;
+      }
+      used += (line.length ? ITEM_GAP : 0) + w;
+      line.push(it);
+    }
+    if (line.length) lines.push(line);
+    return lines;
+  }
+
   function barLength(column: boolean, ctx: BC.ChartCtx): number {
     return column ? clamp(ctx.plot.h * 0.6, 80, 200) : clamp(ctx.plot.w * 0.4, 100, 240);
   }
@@ -47,8 +69,8 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 3,
-    doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels. On the right or left it is a column, on top or bottom a row. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
+    version: 5,
+    doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels. On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
       scale: { kind: 'scale', required: true, doc: 'A color or sequential scale.' },
       position: { kind: 'enum', values: ['top', 'right', 'bottom', 'left'], default: 'right' },
@@ -66,7 +88,7 @@
         return out;
       }
       const items = itemsOf(scale, ctx);
-      out[side] = !items.length ? 0 : column ? SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD : ROW + PAD;
+      out[side] = !items.length ? 0 : column ? SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD : linesOf(items, ctx.plot.w).length * ROW + PAD;
       return out;
     },
     render(spec, ctx, offset) {
@@ -108,7 +130,7 @@
           data: { 'bc-legend-scale': String(spec.scale), 'bc-legend-index': String(it.index) },
           style: it.hidden ? { opacity: HIDDEN_OPACITY } : undefined,
           children: [
-            { type: 'rect', x: px, y: py + (ROW - SWATCH) / 2, w: SWATCH, h: SWATCH, r: 2, style: { fill: it.color }, cls: 'bc-legend-swatch' },
+            { type: 'rect', x: px, y: py + (ROW - SWATCH) / 2, w: SWATCH, h: SWATCH, r: SWATCH / 2, style: { fill: it.color }, cls: 'bc-legend-swatch' },
             { type: 'text', x: px + SWATCH + GAP, y: py + ROW / 2, text: it.label, size: FONT, baseline: 'middle', style: { fill: TEXT } },
           ],
         });
@@ -119,12 +141,15 @@
         const left = side === 'right' ? x + w + offset.right : x - offset.left - width;
         items.forEach((it, i) => put(left + PAD, y + 4 + i * ROW, it));
       } else {
-        const top = side === 'top' ? y - offset.top - (ROW + PAD) : y + h + offset.bottom + PAD / 2;
-        let cx = x;
-        for (const it of items) {
-          put(cx, top, it);
-          cx += SWATCH + GAP + it.w + 14;
-        }
+        const lines = linesOf(items, w);
+        const top = side === 'top' ? y - offset.top - (lines.length * ROW + PAD) : y + h + offset.bottom + PAD / 2;
+        lines.forEach((line, k) => {
+          let cx = x;
+          for (const it of line) {
+            put(cx, top + k * ROW, it);
+            cx += itemWidth(it) + ITEM_GAP;
+          }
+        });
       }
       return { axes: prims };
     },

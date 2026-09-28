@@ -1,0 +1,754 @@
+{
+  "title": "Executive dashboard",
+  "subtitle": "FY2025 · all regions · figures in USD",
+  "layout": {
+    "columns": 4
+  },
+  "data": {
+    "monthly": [
+      {
+        "month": "2025-01-01",
+        "revenue": 182400,
+        "target": 200000,
+        "orders": 1840,
+        "conversion": 0.0312,
+        "churn": 0.042
+      },
+      {
+        "month": "2025-02-01",
+        "revenue": 195100,
+        "target": 209000,
+        "orders": 1925,
+        "conversion": 0.0318,
+        "churn": 0.041
+      },
+      {
+        "month": "2025-03-01",
+        "revenue": 210300,
+        "target": 218000,
+        "orders": 2070,
+        "conversion": 0.0321,
+        "churn": 0.041
+      },
+      {
+        "month": "2025-04-01",
+        "revenue": 204200,
+        "target": 227000,
+        "orders": 2010,
+        "conversion": 0.0315,
+        "churn": 0.04
+      },
+      {
+        "month": "2025-05-01",
+        "revenue": 226500,
+        "target": 236000,
+        "orders": 2195,
+        "conversion": 0.0327,
+        "churn": 0.039
+      },
+      {
+        "month": "2025-06-01",
+        "revenue": 241300,
+        "target": 245000,
+        "orders": 2330,
+        "conversion": 0.0331,
+        "churn": 0.039
+      },
+      {
+        "month": "2025-07-01",
+        "revenue": 238200,
+        "target": 254000,
+        "orders": 2290,
+        "conversion": 0.0329,
+        "churn": 0.038
+      },
+      {
+        "month": "2025-08-01",
+        "revenue": 255400,
+        "target": 263000,
+        "orders": 2455,
+        "conversion": 0.0336,
+        "churn": 0.037
+      },
+      {
+        "month": "2025-09-01",
+        "revenue": 268100,
+        "target": 272000,
+        "orders": 2560,
+        "conversion": 0.0341,
+        "churn": 0.037
+      },
+      {
+        "month": "2025-10-01",
+        "revenue": 281700,
+        "target": 281000,
+        "orders": 2680,
+        "conversion": 0.0347,
+        "churn": 0.036
+      },
+      {
+        "month": "2025-11-01",
+        "revenue": 297300,
+        "target": 290000,
+        "orders": 2815,
+        "conversion": 0.0352,
+        "churn": 0.036
+      },
+      {
+        "month": "2025-12-01",
+        "revenue": 312600,
+        "target": 300000,
+        "orders": 2960,
+        "conversion": 0.0358,
+        "churn": 0.035
+      }
+    ],
+    "channels": [
+      {
+        "channel": "Organic",
+        "revenue": 1082000
+      },
+      {
+        "channel": "Paid search",
+        "revenue": 771000
+      },
+      {
+        "channel": "Referral",
+        "revenue": 403000
+      },
+      {
+        "channel": "Email",
+        "revenue": 342000
+      },
+      {
+        "channel": "Social",
+        "revenue": 315100
+      }
+    ],
+    "bridge": [
+      {
+        "item": "Revenue",
+        "value": 891600,
+        "subtotal": false
+      },
+      {
+        "item": "Cost of sales",
+        "value": -348200,
+        "subtotal": false
+      },
+      {
+        "item": "Gross profit",
+        "value": null,
+        "subtotal": true
+      },
+      {
+        "item": "Marketing",
+        "value": -121500,
+        "subtotal": false
+      },
+      {
+        "item": "Salaries",
+        "value": -207800,
+        "subtotal": false
+      },
+      {
+        "item": "Other income",
+        "value": 33900,
+        "subtotal": false
+      },
+      {
+        "item": "Operating profit",
+        "value": null,
+        "subtotal": true
+      }
+    ],
+    "funnel": [
+      {
+        "stage": "Visits",
+        "users": 48200
+      },
+      {
+        "stage": "Product views",
+        "users": 21500
+      },
+      {
+        "stage": "Add to cart",
+        "users": 6400
+      },
+      {
+        "stage": "Checkout",
+        "users": 3100
+      },
+      {
+        "stage": "Purchase",
+        "users": 2270
+      }
+    ]
+  },
+  "charts": [
+    {
+      "span": 1,
+      "spec": {
+        "data": "monthly",
+        "size": [
+          280,
+          150
+        ],
+        "padding": {
+          "top": 4,
+          "right": 2,
+          "bottom": 4,
+          "left": 2
+        },
+        "scales": {
+          "x": {
+            "type": "time"
+          },
+          "y": {
+            "type": "linear"
+          }
+        },
+        "guides": [
+          {
+            "type": "kpi",
+            "field": "revenue",
+            "label": "Revenue, December",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 1
+            },
+            "note": "vs November"
+          }
+        ],
+        "marks": [
+          {
+            "type": "area",
+            "x": "month",
+            "y": "revenue",
+            "fade": true,
+            "curve": "smooth",
+            "toBottom": true,
+            "fill": "var(--bc-c0, #3a6fe4)"
+          },
+          {
+            "type": "line",
+            "x": "month",
+            "y": "revenue",
+            "curve": "smooth",
+            "stroke": "var(--bc-c0, #3a6fe4)"
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "revenue"
+            ],
+            "formats": {
+              "revenue": {
+                "style": "currency",
+                "currency": "USD",
+                "maximumFractionDigits": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "span": 1,
+      "spec": {
+        "data": "monthly",
+        "size": [
+          280,
+          150
+        ],
+        "padding": {
+          "top": 4,
+          "right": 2,
+          "bottom": 4,
+          "left": 2
+        },
+        "scales": {
+          "x": {
+            "type": "band",
+            "paddingInner": 0.3
+          },
+          "y": {
+            "type": "linear",
+            "zero": true
+          }
+        },
+        "guides": [
+          {
+            "type": "kpi",
+            "field": "orders",
+            "label": "Orders",
+            "format": "integer",
+            "note": "vs November"
+          }
+        ],
+        "marks": [
+          {
+            "type": "rect",
+            "x": "month",
+            "y": "orders",
+            "fill": "var(--bc-c1, #16a39d)",
+            "radius": 2
+          }
+        ]
+      }
+    },
+    {
+      "span": 1,
+      "spec": {
+        "data": "monthly",
+        "size": [
+          280,
+          150
+        ],
+        "padding": {
+          "top": 4,
+          "right": 2,
+          "bottom": 4,
+          "left": 2
+        },
+        "scales": {
+          "x": {
+            "type": "time"
+          },
+          "y": {
+            "type": "linear"
+          }
+        },
+        "guides": [
+          {
+            "type": "kpi",
+            "field": "conversion",
+            "label": "Conversion rate",
+            "format": {
+              "style": "percent",
+              "minimumFractionDigits": 2
+            },
+            "compare": "first",
+            "note": "since January"
+          }
+        ],
+        "marks": [
+          {
+            "type": "area",
+            "x": "month",
+            "y": "conversion",
+            "fade": true,
+            "curve": "smooth",
+            "toBottom": true,
+            "fill": "var(--bc-c4, #8a6be8)"
+          },
+          {
+            "type": "line",
+            "x": "month",
+            "y": "conversion",
+            "curve": "smooth",
+            "stroke": "var(--bc-c4, #8a6be8)"
+          }
+        ]
+      }
+    },
+    {
+      "span": 1,
+      "spec": {
+        "data": "monthly",
+        "size": [
+          280,
+          150
+        ],
+        "padding": {
+          "top": 4,
+          "right": 2,
+          "bottom": 4,
+          "left": 2
+        },
+        "scales": {
+          "x": {
+            "type": "time"
+          },
+          "y": {
+            "type": "linear"
+          }
+        },
+        "guides": [
+          {
+            "type": "kpi",
+            "field": "churn",
+            "label": "Monthly churn",
+            "format": {
+              "style": "percent",
+              "minimumFractionDigits": 1
+            },
+            "compare": "first",
+            "better": "down",
+            "note": "since January"
+          }
+        ],
+        "marks": [
+          {
+            "type": "area",
+            "x": "month",
+            "y": "churn",
+            "fade": true,
+            "curve": "smooth",
+            "toBottom": true,
+            "fill": "var(--bc-c3, #e0527a)"
+          },
+          {
+            "type": "line",
+            "x": "month",
+            "y": "churn",
+            "curve": "smooth",
+            "stroke": "var(--bc-c3, #e0527a)"
+          }
+        ]
+      }
+    },
+    {
+      "span": 3,
+      "title": "Revenue against plan",
+      "note": "Monthly revenue (the filled line) and the plan (dashed). The plan was beaten from October on.",
+      "spec": {
+        "data": "monthly",
+        "size": [
+          860,
+          300
+        ],
+        "scales": {
+          "x": {
+            "type": "time"
+          },
+          "y": {
+            "type": "linear",
+            "zero": true
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x",
+            "format": {
+              "month": "short"
+            }
+          },
+          {
+            "type": "axis",
+            "scale": "y",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact"
+            }
+          }
+        ],
+        "marks": [
+          {
+            "type": "area",
+            "x": "month",
+            "y": "revenue",
+            "fade": true,
+            "curve": "smooth",
+            "fill": "var(--bc-c0, #3a6fe4)"
+          },
+          {
+            "type": "line",
+            "x": "month",
+            "y": "target",
+            "stroke": "var(--bc-label, #64748b)",
+            "strokeWidth": 1.5,
+            "dash": [
+              5,
+              4
+            ],
+            "label": "name",
+            "name": "Plan"
+          },
+          {
+            "type": "line",
+            "x": "month",
+            "y": "revenue",
+            "curve": "smooth",
+            "strokeWidth": 2.5,
+            "stroke": "var(--bc-c0, #3a6fe4)",
+            "label": "name",
+            "name": "Revenue"
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "revenue",
+              "target"
+            ],
+            "formats": {
+              "revenue": {
+                "style": "currency",
+                "currency": "USD",
+                "maximumFractionDigits": 0
+              },
+              "target": {
+                "style": "currency",
+                "currency": "USD",
+                "maximumFractionDigits": 0
+              }
+            }
+          },
+          {
+            "type": "crosshair"
+          },
+          {
+            "type": "animate"
+          }
+        ],
+        "padding": {
+          "right": 96
+        }
+      }
+    },
+    {
+      "span": 1,
+      "title": "Revenue by channel",
+      "spec": {
+        "data": "channels",
+        "size": [
+          280,
+          320
+        ],
+        "scales": {
+          "color": {
+            "type": "color"
+          }
+        },
+        "guides": [
+          {
+            "type": "legend",
+            "scale": "color",
+            "position": "bottom"
+          }
+        ],
+        "marks": [
+          {
+            "type": "arc",
+            "value": "revenue",
+            "color": "channel",
+            "innerRadius": 0.62,
+            "padAngle": 0.02,
+            "sort": "desc"
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "formats": {
+              "revenue": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 1
+              }
+            }
+          },
+          {
+            "type": "legend-filter"
+          }
+        ]
+      }
+    },
+    {
+      "span": 2,
+      "title": "From revenue to operating profit",
+      "note": "Q4. Green adds, red takes away; blue bars are the totals so far.",
+      "spec": {
+        "data": "bridge",
+        "size": [
+          560,
+          300
+        ],
+        "padding": {
+          "top": 28
+        },
+        "transforms": [
+          {
+            "type": "waterfall",
+            "field": "value",
+            "total": "subtotal"
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "band",
+            "paddingInner": 0.28
+          },
+          "y": {
+            "type": "linear",
+            "zero": true
+          },
+          "color": {
+            "type": "color",
+            "domain": [
+              "increase",
+              "decrease",
+              "total"
+            ],
+            "range": [
+              "var(--bc-c6, #2e9e62)",
+              "var(--bc-c3, #e0527a)",
+              "var(--bc-c0, #3a6fe4)"
+            ]
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x"
+          },
+          {
+            "type": "axis",
+            "scale": "y",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact"
+            }
+          }
+        ],
+        "marks": [
+          {
+            "type": "rect",
+            "x": "item",
+            "y": "value1",
+            "y2": "value0",
+            "color": "step",
+            "radius": 3
+          },
+          {
+            "type": "text",
+            "x": "item",
+            "y": "top",
+            "text": "amount",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 1
+            },
+            "baseline": "auto",
+            "dy": -6,
+            "weight": 600
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "amount"
+            ],
+            "formats": {
+              "amount": {
+                "style": "currency",
+                "currency": "USD",
+                "maximumFractionDigits": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "span": 2,
+      "title": "Checkout funnel",
+      "note": "December. The share of visitors who reached each stage.",
+      "spec": {
+        "data": "funnel",
+        "size": [
+          560,
+          300
+        ],
+        "padding": {
+          "right": 60
+        },
+        "transforms": [
+          {
+            "type": "funnel",
+            "field": "users"
+          }
+        ],
+        "scales": {
+          "y": {
+            "type": "band",
+            "paddingInner": 0.22
+          },
+          "x": {
+            "type": "linear"
+          }
+        },
+        "guides": [
+          {
+            "type": "axis",
+            "scale": "y"
+          }
+        ],
+        "marks": [
+          {
+            "type": "rect",
+            "x": "users0",
+            "x2": "users1",
+            "y": "stage",
+            "radius": 4
+          },
+          {
+            "type": "text",
+            "x": "users1",
+            "y": "stage",
+            "text": "rate",
+            "format": {
+              "style": "percent",
+              "maximumFractionDigits": 1
+            },
+            "anchor": "start",
+            "dx": 8,
+            "weight": 600
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "users",
+              "rate",
+              "stepRate"
+            ],
+            "formats": {
+              "users": "integer",
+              "rate": {
+                "style": "percent",
+                "maximumFractionDigits": 1
+              },
+              "stepRate": {
+                "style": "percent",
+                "maximumFractionDigits": 1
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

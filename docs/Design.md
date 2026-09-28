@@ -724,6 +724,70 @@ theme) in `site/src/lib/highlight.mjs`; Shiki's HTML grammar does not color the 
 `<script type="application/json">`, so an HTML snippet is cut into runs of html/json lines and put back
 together. Specs in the demos are printed compactly (anything short on one line).
 
+## Business blocks and the dashboard look (2026-09-28)
+
+Asked for: new blocks for business dashboards, examples, the site, and ideas for making the charts look more
+"expensive". What was built, all as atoms (a page pays only for what it names):
+
+- **`guide.kpi`** — a key figure as a chart's heading: label, value in large type, change against the
+  previous row (or the first, or another field via `against`), green/red by `better`. A guide, not a mark,
+  because a guide's `measure` reserves room at the top, so a line in the same chart becomes the sparkline
+  without the agent computing any padding. For a tile with only the number, validation now allows
+  `"marks": []` when the chart has a guide ("at least one mark, or a guide").
+- **`transform.waterfall`** (`<field>0`, `<field>1`, `step`, `amount`, `top`; subtotal rows from 0),
+  **`transform.funnel`** (bars centered on 0, `rate`, `stepRate`), **`transform.treemap`** (squarified, one
+  or two levels, corners in 0..1, labels only for cells big enough). Static transforms: a view-dependent
+  one would not take part in domain inference, so the treemap takes the plot's `aspect` as a parameter.
+- **`mark.rule`** — lines at values: a constant `{ "value": 50000 }` is mapped through the scale (in the
+  core a constant channel is a pixel value, so the rule maps it itself); on a band it spans the band
+  (`thickness`): the bullet chart's target tick. Repeated rows draw one line. **`mark.rect` `thickness`**
+  (v8) makes the slim bar of a bullet chart.
+- **The dashboard look**, as new defaults and options:
+  - `Style.fade` in the contract: a vertical gradient from the fill to transparent over the plot, in both
+    renderers (SVG `linearGradient` per color, the color in a style attribute with `;{}<>` removed; canvas
+    `createLinearGradient` with the color's transparent twin). `mark.area` `fade` (no outline) and
+    `toBottom` (fill to the plot bottom when the axis does not start at 0: sparklines).
+  - `curve: "smooth"` on lines and areas: a monotone cubic (Fritsch–Carlson) — smooth, through every
+    point, never overshooting between two of them. Duplicated in the two blocks rather than put in the core,
+    so a page without curves carries none of it.
+  - `guide.axis` v6: no tick marks by default, the axis line only along a horizontal axis, labels in a
+    quieter `--bc-label` color; category labels too wide for their band wrap onto two lines; the core
+    shows every category label that fits (measured) instead of one per 80 px. The old look is
+    `ticks: true, line: "on"` (the layout tests use it, so they still pin the geometry to the pixel).
+  - The tooltip as a card: the category or date as its heading with the series' color dot, label/value
+    lines with the values right-aligned in tabular figures, a soft shadow, and a crosshair on lines and
+    areas (`crosshair`). It grew to 8 KB (see ROADMAP: the crosshair could be its own block).
+  - Round legend swatches; a row legend wraps onto more lines.
+  - A calmer palette with one strong blue, `--bc-good` / `--bc-bad` / `--bc-kpi` / `--bc-label`, the
+    reader's UI font (Inter if installed, no web font), tabular figures.
+  - The composer's page: a grey page with white cards, a visible title and `subtitle`, and
+    `layout: { columns }` + `span` per chart for a dashboard grid that stacks on a phone.
+- **Recipes**: `executive-dashboard` (4 KPI tiles, revenue against plan, a donut, a profit bridge, a
+  funnel), `waterfall`, `funnel`, `bullet`, `treemap`. A new kit, `dashboard` (22 blocks, 28 KB gzip).
+- **Found on the way**: a regex written through a shell heredoc lost its backslash (`/s+/` instead of
+  `/\s+/`) and split labels at every "s" — caught only by looking at the rendered dashboard; the label test
+  now lists the exact words expected.
+
+## After the look: labels, crosshair, animation, phones (2026-09-28)
+
+- **`mark.line` `label`** (v7): the series name, its last value or both at the end of each line, in its color.
+  The labels of every labelled line of a chart are spread together (each mark computes all of them, the same
+  way, and draws its own), so two separate line marks — revenue and plan — do not write over each other.
+- **`interaction.crosshair`**: the crosshair left the tooltip (v6). It snaps to the row whose x is nearest the
+  pointer at any height (a mark's own pick only reaches a few px around its shape), on lines and areas by
+  default, on every mark with `snap: "all"`, or follows the pointer freely. The tooltip only got 0.4 KB
+  lighter: its weight is the card, not the line.
+- **`interaction.animate`**: bars grow from the baseline, lines and areas are wiped in from the left, a pie
+  opens from its center, anything else fades; the browser's own animation of the SVG marks layer (Web
+  Animations API, no timer loop). Once per chart host: a rebuild (a new width, an update) does not replay it.
+  Nothing for `prefers-reduced-motion: reduce`, nothing where the API is missing.
+- **Responsive layout, in the core**: when the host is narrower than `size[0]`, the chart is built at the
+  host's width (the height stays), so text keeps its size on a phone instead of shrinking with the drawing; a
+  ResizeObserver rebuilds it when the width changes, keeping the zoom, and ignores changes of height. Never
+  narrower than 200 px; `responsive: false` keeps the old behaviour; a wider host scales up as before, and
+  with no width known (a server, the composer's dry run, the tests) nothing changes.
+- **Table** stays in ROADMAP, much later.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

@@ -1,0 +1,41 @@
+{
+  "title": "Waterfall",
+  "data": {
+    "bridge": [
+      { "item": "Revenue", "value": 891600, "subtotal": false },
+      { "item": "Cost of sales", "value": -348200, "subtotal": false },
+      { "item": "Gross profit", "value": null, "subtotal": true },
+      { "item": "Marketing", "value": -121500, "subtotal": false },
+      { "item": "Salaries", "value": -207800, "subtotal": false },
+      { "item": "Other income", "value": 33900, "subtotal": false },
+      { "item": "Operating profit", "value": null, "subtotal": true }
+    ]
+  },
+  "charts": [
+    {
+      "title": "From revenue to operating profit",
+      "note": "transform.waterfall keeps a running total in row order: each bar starts where the last one ended. Rows marked by the `total` field are subtotals, drawn from 0. The `step` column (increase, decrease, total) is colored by a color scale with a fixed domain and range; `amount` and `top` put each figure above its bar.",
+      "spec": {
+        "data": "bridge",
+        "size": [720, 340],
+        "padding": { "top": 28 },
+        "transforms": [{ "type": "waterfall", "field": "value", "total": "subtotal" }],
+        "scales": {
+          "x": { "type": "band", "paddingInner": 0.28 },
+          "y": { "type": "linear", "zero": true },
+          "color": { "type": "color", "domain": ["increase", "decrease", "total"], "range": ["var(--bc-c6, #2e9e62)", "var(--bc-c3, #e0527a)", "var(--bc-c0, #3a6fe4)"] }
+        },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y", "format": { "style": "currency", "currency": "USD", "notation": "compact" } }
+        ],
+        "marks": [
+          { "type": "rect", "x": "item", "y": "value1", "y2": "value0", "color": "step", "radius": 3 },
+          { "type": "text", "x": "item", "y": "top", "text": "amount", "format": { "style": "currency", "currency": "USD", "notation": "compact", "maximumFractionDigits": 1 }, "baseline": "auto", "dy": -6, "weight": 600 }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["amount", "value1"], "formats": { "amount": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }, "value1": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } } }]
+      }
+    }
+  ]
+}

@@ -21,11 +21,12 @@ const recipe = (name: string) => {
   return r;
 };
 
-const heroRecipe = recipe('report-from-csv');
-const galleryNames = ['grouped-bar', 'lines-by-series', 'stacked-area-100', 'pie', 'heatmap', 'dual-axis'];
+const heroRecipe = recipe('executive-dashboard');
+const galleryNames = ['waterfall', 'funnel', 'treemap', 'bullet', 'grouped-bar', 'lines-by-series'];
 const gallery = galleryNames.map(recipe);
 const { lake, charts } = lakeOf([heroRecipe, ...gallery]);
 
+const heroCharts = charts.get('executive-dashboard');
 const blocksOf = new Map([heroRecipe, ...gallery].map((r) => [r.name, blocksNeeded(r)]));
 const code = loadPageCode();
 const totalBlocks = code.blocks.length;
@@ -36,15 +37,15 @@ const sizePages = [
   ['pie', 'A pie chart'],
   ['bar', 'A bar chart with labels'],
   ['report-from-csv', 'A sales report from CSV'],
-  ['boxplot', 'Boxplots with outliers'],
+  ['executive-dashboard', 'An executive dashboard, 8 charts'],
 ].map(([name, label]) => ({ label, bytes: sizes[name], blocks: blocksNeeded(recipe(name)).length }));
 ---
 <Base title="blockcharts" landing version={release.version} description="Atomic charts for HTML dashboards: a page carries exactly the chart blocks it uses, nothing more. Light, customizable, and an agent skill that turns your data into one HTML report.">
   <script is:inline src={`${base}release/kits/full.js`}></script>
   <script is:inline type="application/json" id="bc-data" set:html={jsonForScript(lake)} />
 
-  <Hero charts={charts.get('report-from-csv')} codeBytes={sizes['report-from-csv']} blocks={blocksOf.get('report-from-csv').length} totalBlocks={totalBlocks} coreGzip={code.core.gzip} blockRange={blockRange} />
-  <BlockMap blocks={blockList} used={blocksOf.get('report-from-csv')} coreBytes={code.core.bytes} file="sales-report.html" />
+  <Hero tiles={heroCharts.slice(0, 2)} trend={{ ...heroCharts[4], spec: { ...heroCharts[4].spec, size: [620, 250] } }} file="executive-dashboard.html" recipe="executive-dashboard" codeBytes={sizes['executive-dashboard']} blocks={blocksOf.get('executive-dashboard').length} totalBlocks={totalBlocks} coreGzip={code.core.gzip} blockRange={blockRange} />
+  <BlockMap blocks={blockList} used={blocksOf.get('executive-dashboard')} coreBytes={code.core.bytes} file="executive-dashboard.html" />
   <HowItWorks />
   <Stats blocks={totalBlocks} coreBytes={code.core.bytes} coreGzip={code.core.gzip} allBytes={allBytes} pages={sizePages} />
   <Customize />

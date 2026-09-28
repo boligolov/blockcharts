@@ -269,12 +269,41 @@ test('compose: a tooltip function registered by name in an "after" script is fou
   assert.deepStrictEqual(errors, []);
 });
 
+test('compose: a dashboard grid — columns, spans, a heading and a subtitle; bad layouts are refused', () => {
+  const page = compose({
+    title: 'Q3 <review>', subtitle: 'Sales & margin',
+    layout: { columns: 4 },
+    data: DATA,
+    charts: [{ spec: bars(), span: 1 }, { spec: bars(), span: 3, title: 'Wide' }, bars()],
+  });
+  const h = page.html;
+  assert(h.includes('<main class="bc-page bc-wide">') && h.includes('<div class="bc-grid" style="--bc-cols:4">'), 'a wide page with a 4-column grid');
+  assert(h.includes('<h1>Q3 &lt;review&gt;</h1><p>Sales &amp; margin</p>'), 'the heading and subtitle, escaped');
+  const spans = [...h.matchAll(/<section class="bc-section" style="grid-column:span (\d+)">/g)].map((m) => +m[1]);
+  assert.deepStrictEqual(spans, [1, 3, 4], 'spans as given; a chart without one takes the full row');
+  assert(h.indexOf('<h1>') < h.indexOf('<div class="bc-grid"'), 'the heading comes before the grid');
+
+  const single = compose({ data: DATA, charts: [bars()] }).html;
+  assert(single.includes('<main class="bc-page">') && !single.includes('style="--bc-cols') && !single.includes('style="grid-column'), 'one column: a narrow page, cards without spans');
+  assert(single.includes('<section class="bc-section">'), 'even a chart with no title sits in a card');
+  assert(!single.includes('<header'), 'no heading without a title');
+
+  for (const [layout, re] of [[{ columns: 0 }, /layout.columns/], [{ columns: 13 }, /layout.columns/], [{ columns: 2.5 }, /layout.columns/], [[], /layout must be an object/], ['4', /layout must be an object/]]) {
+    assert.throws(() => compose({ data: DATA, charts: [bars()], layout }), (e) => e instanceof ComposeError && re.test(e.message), JSON.stringify(layout));
+  }
+  for (const span of [0, 5, 1.5, '2']) {
+    assert.throws(() => compose({ data: DATA, charts: [{ spec: bars(), span }], layout: { columns: 4 } }), (e) => e instanceof ComposeError && /charts\[0\]\.span/.test(e.message), String(span));
+  }
+  assert.throws(() => compose({ data: DATA, charts: [{ spec: bars(), span: 2 }] }), /from 1 to 1/, 'a span needs a grid to span');
+});
+
 test('compose: a page is readable without any CSS from the caller, and the caller can add to it or drop it', () => {
   const styles = (html) => html.match(/<style>[\s\S]*?<\/style>/g) || [];
   const base = compose({ data: DATA, charts: [bars()] });
   assert.strictEqual(styles(base.html).length, 1);
-  assert(base.html.includes('--bc-c0:#4e79a7') && base.html.includes('prefers-color-scheme:dark'), 'chart theme variables, light and dark');
-  assert(base.html.includes('font:15px/1.5 system-ui'), 'typography');
+  assert(base.html.includes('--bc-c0:#3a6fe4') && base.html.includes('prefers-color-scheme:dark'), 'chart theme variables, light and dark');
+  assert(base.html.includes('font:14px/1.5 Inter,ui-sans-serif,system-ui'), "typography: the reader's UI font, no web font to fetch");
+  assert(base.html.includes('font-variant-numeric:tabular-nums'), 'figures line up');
 
   const extra = compose({ data: DATA, charts: [bars()], css: '.mine{color:red}' });
   assert.strictEqual(styles(extra.html).length, 1, 'still one <style>');

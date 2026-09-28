@@ -1,0 +1,36 @@
+{
+  "title": "Bullet chart",
+  "data": {
+    "goals": [
+      { "metric": "Revenue", "actual": 1.04, "target": 1, "poor": 0.7, "fair": 0.9, "good": 1.2 },
+      { "metric": "Gross margin", "actual": 0.93, "target": 1, "poor": 0.7, "fair": 0.9, "good": 1.2 },
+      { "metric": "New customers", "actual": 1.12, "target": 1, "poor": 0.7, "fair": 0.9, "good": 1.2 },
+      { "metric": "Satisfaction", "actual": 0.86, "target": 1, "poor": 0.7, "fair": 0.9, "good": 1.2 },
+      { "metric": "On-time delivery", "actual": 0.97, "target": 1, "poor": 0.7, "fair": 0.9, "good": 1.2 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Results against target",
+      "note": "Each goal as a share of its target, so different units share one axis. Three rect marks draw the grey bands (poor, fair, good) behind a slim bar of the result (`thickness`), and mark.rule draws the target as a tick across each band.",
+      "spec": {
+        "data": "goals",
+        "size": [720, 300],
+        "scales": { "y": { "type": "band", "paddingInner": 0.35 }, "x": { "type": "linear", "domain": [0, 1.2] } },
+        "guides": [
+          { "type": "grid", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "axis", "scale": "x", "format": "percent" }
+        ],
+        "marks": [
+          { "type": "rect", "x": "good", "y": "metric", "fill": "var(--bc-grid, #edf0f4)" },
+          { "type": "rect", "x": "fair", "y": "metric", "fill": "var(--bc-axis, #cbd2dc)", "opacity": 0.55 },
+          { "type": "rect", "x": "poor", "y": "metric", "fill": "var(--bc-axis, #cbd2dc)" },
+          { "type": "rect", "x": "actual", "y": "metric", "thickness": 0.36, "radius": 2, "fill": "var(--bc-c0, #3a6fe4)" },
+          { "type": "rule", "x": "target", "y": "metric", "thickness": 0.75, "strokeWidth": 2.5, "stroke": "var(--bc-text, #1e293b)" }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["actual", "target"], "formats": { "actual": "percent", "target": "percent" } }]
+      }
+    }
+  ]
+}
