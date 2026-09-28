@@ -1,0 +1,66 @@
+{
+  "title": "Sales report from a CSV",
+  "data": {
+    "orders": {
+      "csv": "date,region,product,amount\n2024-01-05,North,Chairs,1200\n2024-01-19,South,Tables,2300\n2024-01-28,East,Chairs,900\n2024-02-03,North,Tables,3100\n2024-02-14,West,Chairs,1500\n2024-02-25,South,Chairs,1100\n2024-03-02,East,Tables,2700\n2024-03-11,North,Chairs,1800\n2024-03-21,West,Tables,3300\n2024-04-06,South,Tables,2900\n2024-04-17,North,Chairs,1400\n2024-04-30,East,Chairs,1000\n2024-05-08,West,Tables,3600\n2024-05-19,North,Tables,3900\n2024-05-27,South,Chairs,1300"
+    }
+  },
+  "charts": [
+    {
+      "title": "Revenue per month",
+      "note": "The aggregate transform groups the rows (here by calendar month) and sums the amounts; the axes and the tooltip write them as currency with `format`.",
+      "spec": {
+        "data": "orders",
+        "size": [640, 300],
+        "transforms": [
+          {
+            "type": "aggregate",
+            "groupby": [{ "field": "date", "unit": "month", "as": "month" }],
+            "measures": [{ "op": "sum", "field": "amount", "as": "revenue" }],
+            "sort": "month"
+          }
+        ],
+        "scales": { "x": { "type": "time" }, "y": { "type": "linear", "zero": true } },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x", "format": { "month": "short" } },
+          { "type": "axis", "scale": "y", "title": "Revenue", "format": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } }
+        ],
+        "marks": [
+          { "type": "line", "x": "month", "y": "revenue" },
+          { "type": "point", "x": "month", "y": "revenue" }
+        ],
+        "interaction": [
+          { "type": "tooltip", "formats": { "month": { "month": "long", "year": "numeric" }, "revenue": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } } }
+        ]
+      }
+    },
+    {
+      "title": "Revenue by region, largest first",
+      "spec": {
+        "data": "orders",
+        "size": [640, 300],
+        "transforms": [
+          {
+            "type": "aggregate",
+            "groupby": ["region"],
+            "measures": [{ "op": "sum", "field": "amount", "as": "revenue" }],
+            "sort": "revenue",
+            "order": "desc"
+          }
+        ],
+        "scales": { "x": { "type": "band" }, "y": { "type": "linear", "zero": true } },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y", "format": "compact" }
+        ],
+        "marks": [
+          { "type": "rect", "x": "region", "y": "revenue", "radius": 2 },
+          { "type": "text", "x": "region", "y": "revenue", "text": "revenue", "format": "compact", "baseline": "auto", "dy": -5 }
+        ],
+        "interaction": [{ "type": "tooltip", "formats": { "revenue": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } } }]
+      }
+    }
+  ]
+}

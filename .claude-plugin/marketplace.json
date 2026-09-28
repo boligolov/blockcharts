@@ -1,0 +1,25 @@
+{
+  "name": "blockcharts",
+  "owner": {
+    "name": "Alexander Lisin",
+    "url": "https://github.com/boligolov/blockcharts"
+  },
+  "metadata": {
+    "description": "Interactive HTML dashboards assembled from only the chart blocks they use: an agent skill built on blockcharts."
+  },
+  "plugins": [
+    {
+      "name": "blockcharts",
+      "source": "./skills/blockcharts",
+      "description": "Build interactive HTML dashboards and chart reports as one self-contained file: Claude writes a JSON description, a composer checks it against the data and ships only the chart code the page uses.",
+      "author": {
+        "name": "Alexander Lisin"
+      },
+      "homepage": "https://blockcharts.online",
+      "repository": "https://github.com/boligolov/blockcharts",
+      "license": "MIT",
+      "keywords": ["charts", "dashboard", "report", "html", "business", "json", "csv", "visualization"],
+      "category": "productivity"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+# The library, the composer, the skill and the release on every push to main and every pull request; then the site.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            site/package-lock.json
+
+      - name: Install
+        run: |
+          npm ci
+          npm --prefix site ci
+
+      # builds, then six suites; also fails while skills/blockcharts differs from a fresh build
+      - name: Test
+        run: npm test
+
+      # the release, the example reports, the skill download, Astro, then the link and chart checks
+      - name: Site
+        run: npm run site

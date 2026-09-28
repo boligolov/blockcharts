@@ -1,0 +1,39 @@
+{
+  "title": "Team dashboard",
+  "css": "body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px}h2{font-size:16px;margin:0 0 4px}p{margin:0 0 8px;color:#666;font-size:13px}.bc-section{margin:24px 0}",
+  "data": {
+    "tickets": [
+      { "week": "2024-05-06", "opened": 34, "closed": 30 },
+      { "week": "2024-05-13", "opened": 41, "closed": 38 },
+      { "week": "2024-05-20", "opened": 29, "closed": 36 },
+      { "week": "2024-05-27", "opened": 45, "closed": 40 },
+      { "week": "2024-06-03", "opened": 38, "closed": 44 },
+      { "week": "2024-06-10", "opened": 33, "closed": 35 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Tickets opened",
+      "note": "Two charts on one page can read the same dataset.",
+      "spec": {
+        "data": "tickets",
+        "size": [640, 240],
+        "scales": { "x": { "type": "time", "padding": 0.03 }, "y": { "type": "linear", "zero": true } },
+        "guides": [{ "type": "grid", "scale": "y" }, { "type": "axis", "scale": "x" }, { "type": "axis", "scale": "y" }],
+        "marks": [{ "type": "line", "x": "week", "y": "opened" }, { "type": "point", "x": "week", "y": "opened", "r": 3 }],
+        "interaction": [{ "type": "tooltip" }]
+      }
+    },
+    {
+      "title": "Opened against closed",
+      "spec": {
+        "data": "tickets",
+        "size": [640, 240],
+        "scales": { "x": { "type": "linear", "padding": 0.1 }, "y": { "type": "linear", "padding": 0.1 } },
+        "guides": [{ "type": "grid", "scale": "x" }, { "type": "grid", "scale": "y" }, { "type": "axis", "scale": "x" }, { "type": "axis", "scale": "y" }],
+        "marks": [{ "type": "point", "x": "opened", "y": "closed", "r": 5 }],
+        "interaction": [{ "type": "tooltip" }]
+      }
+    }
+  ]
+}

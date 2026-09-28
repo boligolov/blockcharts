@@ -1,0 +1,15 @@
+// Cloudflare Workers configuration for blockcharts.online: a static site, the Astro build in dist/.
+// The build runs from the repository root, because the site is made from the library:
+//   build command:  npm ci && npm --prefix site ci && npm run site
+//   deploy command: npx wrangler deploy --config site/wrangler.jsonc
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // must equal the name of the Worker this repository deploys to (Workers & Pages → the project)
+  "name": "blockcharts",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist"
+  },
+  // one preview per branch; nothing in it differs from production
+  "previews": {}
+}

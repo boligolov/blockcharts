@@ -1,0 +1,55 @@
+---
+// Three steps from a table to a file. The spec, the error and the list of blocks are the real composer's (composeDemo).
+import Install from './Install.astro';
+import Highlight from './Highlight.astro';
+import { composeDemo } from '../lib/site.mjs';
+
+const demo = composeDemo();
+// one top-level key per line, the values compact but spaced, so it wraps readably in a narrow card
+const specText = ['{', Object.entries(demo.spec).map(([k, v]) => `  ${JSON.stringify(k)}: ${JSON.stringify(v).replace(/([,:])(?=[[{"])/g, '$1 ')}`).join(',\n'), '}'].join('\n');
+---
+<section class="section" id="install">
+  <div class="wrap install-grid">
+    <div>
+      <p class="kicker">Install</p>
+      <h2>From a spreadsheet to a report in one request</h2>
+      <p class="intro" style="margin-bottom: 28px;">Install the skill once. Then give Claude the data and say what you want to see.</p>
+      <ol class="steps">
+        <li><b>Your data</b><span>Paste a table into the chat or point to a CSV file. Dirty exports are fine: totals per month or per region are computed in the page.</span></li>
+        <li><b>Claude describes the charts</b><span>As a short JSON description, never as code. The composer checks every chart against the real data and names each mistake, so Claude fixes it before you see anything.</span></li>
+        <li><b>You get one HTML file</b><span>Interactive charts with tooltips, zoom and a clickable legend. Email it, attach it to a ticket, put it in a shared folder — it opens anywhere, offline.</span></li>
+      </ol>
+    </div>
+    <Install />
+  </div>
+</section>
+
+<section class="section alt" id="how">
+  <div class="wrap">
+    <p class="kicker">How it works</p>
+    <h2>Charts described as data, built from blocks</h2>
+    <p class="intro">There is no chart code to get wrong. A chart is a few lines of JSON; the page is assembled from exactly the blocks those lines name.</p>
+    <div class="flow">
+      <div class="step">
+        <span class="n">1 · Describe</span>
+        <h3>A chart is a JSON spec</h3>
+        <p>Data, named scales, marks, axes and interactions. The same description a person or an agent can read.</p>
+        <Highlight code={specText} lang="json" />
+      </div>
+      <div class="step">
+        <span class="n">2 · Check</span>
+        <h3>Validated against the data</h3>
+        <p>Unknown columns, wrong scale types, broken formats — reported with their place in the JSON. Nothing is written while a chart is wrong.</p>
+        <pre><code>{demo.error}</code></pre>
+      </div>
+      <div class="step">
+        <span class="n">3 · Assemble</span>
+        <h3>Only the blocks it names</h3>
+        <p>The spec above needs {demo.blocks.length} blocks: {demo.blocks.map((b, i) => <>{i ? ', ' : ''}<code>{b}</code></>)}. Only those, the core and the data go into the file.</p>
+        <pre><code>{`sales-report.html
+  core + ${demo.blocks.length} blocks + data
+  opens from disk, offline`}</code></pre>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,10 @@
+---
+import { jsonForScript } from '../lib/site.mjs';
+interface Props { title: string; href: string; text: string; spec: unknown; pill?: string }
+const { title, href, text, spec, pill } = Astro.props;
+---
+<div class="card">
+  <h3><a href={href}>{title}</a></h3>
+  <script is:inline type="application/json" data-bc-chart set:html={jsonForScript(spec)} />
+  <p>{text}{pill && <> <span class="pill">{pill}</span></>}</p>
+</div>

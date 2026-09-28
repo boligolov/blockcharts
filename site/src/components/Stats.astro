@@ -1,0 +1,42 @@
+---
+// The numbers, all read from the release and the composed recipes when the site is built.
+import { kb } from '../lib/site.mjs';
+
+interface Props {
+  blocks: number;
+  coreBytes: number;
+  coreGzip: number;
+  allBytes: number;
+  pages: { label: string; bytes: number; blocks: number }[];
+}
+const { blocks, coreBytes, coreGzip, allBytes, pages } = Astro.props;
+const smallest = Math.min(...pages.map((p) => p.bytes));
+const n = (b: number) => (b / 1024).toFixed(0);
+---
+<section class="section alt" id="numbers">
+  <div class="wrap">
+    <p class="kicker">In numbers</p>
+    <h2>A report carries its charts, not a whole library</h2>
+    <p class="intro">Minified sizes of the code inside each composed page of the examples, next to everything blockcharts has. The data comes on top, gzipped when it is large.</p>
+    <div class="stats">
+      <div><div class="v">{blocks}</div><div class="l">blocks, one job each</div></div>
+      <div><div class="v num">{n(coreGzip)}<small>KB</small></div><div class="l">the core, gzipped ({kb(coreBytes)} minified)</div></div>
+      <div><div class="v num">{n(smallest)}<small>KB</small></div><div class="l">code in the smallest example report</div></div>
+      <div><div class="v">0</div><div class="l">dependencies, and no network requests from a report</div></div>
+    </div>
+    <div class="sizes" role="list" aria-label="Code per page">
+      {pages.map((p) => (
+        <div class="row" role="listitem">
+          <span>{p.label} <span class="muted">· {p.blocks} blocks</span></span>
+          <span class="track"><span class="fill" style={`width:${((p.bytes / allBytes) * 100).toFixed(1)}%`}></span></span>
+          <span class="kb">{kb(p.bytes)}</span>
+        </div>
+      ))}
+      <div class="row all" role="listitem">
+        <span>Everything <span class="muted">· {blocks} blocks</span></span>
+        <span class="track"><span class="fill" style="width:100%"></span></span>
+        <span class="kb">{kb(allBytes)}</span>
+      </div>
+    </div>
+  </div>
+</section>

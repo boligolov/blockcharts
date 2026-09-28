@@ -1,0 +1,35 @@
+---
+// What a person who receives a report gets from it.
+const icon = {
+  file: '<path d="M6 3h7l5 5v13H6z" /><path d="M13 3v5h5" /><path d="M9 13h6M9 17h6" />',
+  hand: '<path d="M4 12h3l3-7 4 14 3-7h3" />',
+  check: '<circle cx="12" cy="12" r="8.5" /><path d="M8.2 12.3l2.5 2.5 5-5.3" />',
+  bolt: '<path d="M13 3L5 13.5h6L10 21l8-10.5h-6z" />',
+  brush: '<path d="M4 20c2.5 0 4-1.4 4-3.5A2.5 2.5 0 0 0 5.5 14C4 14 4 16 4 17.5z" /><path d="M8.5 13.5L19 3l2 2-10.5 10.5" />',
+  lock: '<rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />',
+};
+const features = [
+  { icon: icon.file, title: 'Opens anywhere', body: 'One .html file: double-click it, email it, attach it to a ticket, keep it next to the data. No server, no login, no internet needed.' },
+  { icon: icon.hand, title: 'Interactive, not a screenshot', body: 'Tooltips with formatted numbers, zoom and pan on time series, drag to select, click the legend to hide a series and watch the rest rescale.' },
+  { icon: icon.check, title: 'Numbers you can trust', body: 'Every chart is checked against the data before the file exists. Money, percentages and dates are formatted the same way on every machine.' },
+  { icon: icon.bolt, title: 'Fast with real data', body: 'A year of hourly readings or tens of thousands of points stays smooth: long lines are thinned to what the screen can show, big scatters drawn on a canvas.' },
+  { icon: icon.brush, title: 'Looks like your company', body: 'Charts take their colors and fonts from CSS variables: your palette, light and dark themes, clean printing — without touching a chart.' },
+  { icon: icon.lock, title: 'Your data stays yours', body: 'The composer runs on your machine or in Claude’s sandbox. The report fetches nothing and reports nothing: no CDN, no analytics, no tracking.' },
+];
+---
+<section class="section" id="why">
+  <div class="wrap">
+    <p class="kicker">For the people who read the report</p>
+    <h2>A dashboard your team can just open</h2>
+    <p class="intro">No BI seat to buy, no link that stops working, no deck of static screenshots.</p>
+    <div class="cards">
+      {features.map((f) => (
+        <div class="tile">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={f.icon} /></span>
+          <h3>{f.title}</h3>
+          <p>{f.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

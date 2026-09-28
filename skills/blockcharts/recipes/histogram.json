@@ -1,0 +1,70 @@
+{
+  "title": "Histogram",
+  "data": {
+    "people": {
+      "columns": { "height": [159.5, 166.3, 163.2, 167.9, 165.5, 164.5, 178.2, 180, 171.4, 177.7, 181, 180.1, 158, 159.6, 185, 172.8, 174.3, 173.3, 170, 176, 155.5, 174.2, 167.5, 164.4, 172.6, 166.5, 172.2, 170, 169.1, 166.5, 175.7, 175, 174.8, 176.4, 167.8, 173.3, 175.3, 168.7, 171.2, 184.1, 168.8, 174.7, 165.6, 162.2, 172.3, 168.7, 160.7, 164.4, 182.4, 175.4, 175.4, 171.9, 173.1, 164.1, 177.1, 166.1, 165.7, 163.2, 166, 185.5, 141.5, 172.8, 185.4, 165.5, 181.2, 168.1, 175.9, 171.4, 164, 179.1, 171.4, 163.9, 172.4, 163, 171.5, 167.6, 190.6, 180.1, 157.1, 171.6] }
+    }
+  },
+  "charts": [
+    {
+      "title": "Distribution of heights",
+      "note": "transform.bin counts the values in round-edged bins; the rect draws each bin from its start (x) to its end (x2), as tall as its count.",
+      "spec": {
+        "data": "people",
+        "size": [
+          640,
+          300
+        ],
+        "transforms": [
+          {
+            "type": "bin",
+            "field": "height",
+            "bins": 10
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "linear",
+            "nice": false
+          },
+          "y": {
+            "type": "linear",
+            "zero": true
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x"
+          },
+          {
+            "type": "axis",
+            "scale": "y"
+          }
+        ],
+        "marks": [
+          {
+            "type": "rect",
+            "x": "bin0",
+            "x2": "bin1",
+            "y": "count"
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "bin0",
+              "bin1",
+              "count"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

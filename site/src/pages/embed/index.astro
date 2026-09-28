@@ -1,0 +1,22 @@
+---
+import Base from '../../layouts/Base.astro';
+import { baseUrl, embedPages, loadRelease } from '../../lib/site.mjs';
+
+const base = baseUrl(import.meta.env.BASE_URL);
+const release = loadRelease();
+const pages = embedPages(base);
+---
+<Base title="Embedding" nav="embed" version={release.version} description="How to put blockcharts into a page of your own.">
+  <h1>Embedding</h1>
+  <p class="lead">Put charts into a page you already have. Each demo is live, and the code under it is exactly what runs.</p>
+  <div class="grid">
+    {pages.map((p) => (
+      <div class="card">
+        <h3><a href={`${base}embed/${p.file.replace(/\.html$/, '')}/`}>{p.title}</a></h3>
+        <p set:html={p.lead} />
+      </div>
+    ))}
+  </div>
+  <h2>Or make a report file</h2>
+  <p>If you only need a document with charts in it, skip all of this: write a <code>page.json</code> and let the composer produce one HTML file. See <a href={`${base}guide/#composer`}>the guide</a>.</p>
+</Base>

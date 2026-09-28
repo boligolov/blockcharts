@@ -1,0 +1,31 @@
+---
+import Base from '../../layouts/Base.astro';
+import Snippet from '../../components/Snippet.astro';
+import { baseUrl, embedPages, loadRelease } from '../../lib/site.mjs';
+
+export function getStaticPaths() {
+  const base = baseUrl(import.meta.env.BASE_URL);
+  return embedPages(base).map((p) => ({ params: { page: p.file.replace(/\.html$/, '') }, props: { page: p } }));
+}
+
+const base = baseUrl(import.meta.env.BASE_URL);
+const { page } = Astro.props;
+const release = loadRelease();
+---
+<Base title={page.title} nav="embed" version={release.version} description={page.lead}>
+  <p class="muted"><a href={`${base}embed/`}>Embedding</a> /</p>
+  <h1>{page.title}</h1>
+  <p class="lead" set:html={page.lead} />
+  {page.sections.map((s) => (
+    <>
+      <h2 set:html={s.h} />
+      {s.p && <p set:html={s.p} />}
+      {(s.html || s.htmlLiveOnly) && <div class="demo" set:html={s.html || s.htmlLiveOnly} />}
+      {s.extra && <Fragment set:html={s.extra} />}
+      {s.extraAfter && <Fragment set:html={s.extraAfter} />}
+      {s.note && <p class="muted" set:html={s.note} />}
+      {s.html && <Snippet code={s.shown || s.html} label="HTML" />}
+      {s.code && <Snippet code={s.code} label={s.label} />}
+    </>
+  ))}
+</Base>

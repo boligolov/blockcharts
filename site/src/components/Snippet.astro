@@ -1,0 +1,24 @@
+---
+// A code block with a label and a copy button, highlighted at build time (Highlight.astro).
+import Highlight from './Highlight.astro';
+
+interface Props { code: string; label?: string; lang?: string }
+const { code, label } = Astro.props;
+
+/** The language from the label when none is given: "bar.json" → json, "HTML" → html, "shell" → shellscript. */
+function langOf(label = ''): string {
+  const l = label.toLowerCase();
+  if (/json|spec|format|data forms/.test(l)) return 'jsonc';
+  if (/html/.test(l)) return 'html';
+  if (/javascript|\.m?js$/.test(l)) return 'js';
+  if (/css/.test(l)) return 'css';
+  if (/shell|terminal|sh$/.test(l)) return 'shellscript';
+  return 'plaintext';
+}
+const lang = Astro.props.lang || langOf(label);
+---
+<div class="snippet">
+  {label && <p class="label">{label}</p>}
+  <button class="copy" type="button">Copy</button>
+  <Highlight code={code} lang={lang} />
+</div>

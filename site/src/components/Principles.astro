@@ -1,0 +1,36 @@
+---
+// The principles, docs/spec/principles.md, in six cards. Each names the section it summarizes.
+import { repoFile } from '../lib/site.mjs';
+
+const principles = [
+  { ref: '§1', title: 'Exactly what the charts need, nothing more', body: 'A page carries the core and only the blocks its charts use. They are read from the specs and their declared dependencies — never listed by hand, so the list is never too long.' },
+  { ref: '§2', title: 'Blocks are atoms', body: 'One role, one job: scales, transforms, marks, guides, interactions, renderers. A bar chart is band + linear + rect; a new kind of chart is a recipe, or one new block.' },
+  { ref: '§3', title: 'Customizable at every level', body: 'Parameters, CSS variables and classes, your own set of blocks, functions by name, and blocks of your own on the same contract as the built-in ones.' },
+  { ref: '§4', title: 'The page is the product', body: 'A report is one HTML file. It opens from disk, works offline, needs no server or account — everything it needs is inside it, and nothing it does not.' },
+  { ref: '§5–7', title: 'The chart is data, checked', body: 'Plain JSON, everything declared once. Every chart is validated against the real data before the file is written; each problem names its place in the JSON.' },
+  { ref: '§8–10', title: 'Light, repeatable, private', body: 'Big data is gzipped or binary, long series decimated. The same input gives the same bytes. A report loads nothing from the network.' },
+];
+---
+<section class="section" id="principles">
+  <div class="wrap">
+    <p class="kicker">The principles</p>
+    <h2>Atoms first: why a report stays small</h2>
+    <p class="intro">
+      <strong>blockcharts principles v1.0</strong> — how a page gets exactly the code its charts need and what follows from it, written down
+      for a person writing a report, an agent writing one for them, and anyone writing a block. With the requirements every page, block and
+      composer must meet.
+    </p>
+    <div class="cards">
+      {principles.map((p) => (
+        <div class="tile">
+          <p class="ref">{p.ref}</p>
+          <h3>{p.title}</h3>
+          <p>{p.body}</p>
+        </div>
+      ))}
+    </div>
+    <div class="section-more">
+      <a class="btn btn-secondary" href={repoFile('docs/spec/principles.md')}>Read the principles</a>
+    </div>
+  </div>
+</section>

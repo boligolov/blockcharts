@@ -1,0 +1,43 @@
+---
+// Every block of the release, grouped by role, with the ones the hero report carries lit up: the whole idea of the
+// library in one picture. The list and the sizes come from the release manifest; "used" from the composer.
+import { kb } from '../lib/site.mjs';
+
+interface Props { blocks: { name: string; bytes: number }[]; used: string[]; coreBytes: number; file: string }
+const { blocks, used, coreBytes, file } = Astro.props;
+const roles = ['scale', 'transform', 'mark', 'guide', 'interaction', 'renderer'];
+const byRole = roles.map((role) => ({ role, blocks: blocks.filter((b) => b.name.startsWith(role + '.')) }));
+const usedBytes = coreBytes + blocks.filter((b) => used.includes(b.name)).reduce((n, b) => n + b.bytes, 0);
+const allBytes = coreBytes + blocks.reduce((n, b) => n + b.bytes, 0);
+const left = blocks.length - used.length;
+---
+<section class="section blockmap-section" id="blocks-inside">
+  <div class="wrap">
+    <p class="kicker">What is inside {file}</p>
+    <h2>{used.length} of {blocks.length} blocks. The other {left} never reach the page.</h2>
+    <p class="intro">
+      A chart library is usually one bundle that every page downloads whole. Here every scale, mark, axis and interaction is its own
+      tiny block, and the file carries only the ones its charts name: {kb(usedBytes)} of code instead of {kb(allBytes)}.
+    </p>
+    <div class="blockmap">
+      <div class="bm-core"><span class="bm-name">core</span><span class="bm-size num">{kb(coreBytes)}</span><span class="bm-note">loading, validation, the drawing pipeline — always there</span></div>
+      {byRole.map((g) => (
+        <div class="bm-role">
+          <span class="bm-role-name">{g.role}</span>
+          <div class="bm-chips">
+            {g.blocks.map((b) => {
+              const on = used.includes(b.name);
+              return (
+                <span class={on ? 'bm-chip on' : 'bm-chip'} title={on ? `${b.name}: in the file` : `${b.name}: not needed, not shipped`}>
+                  <span class="bm-name">{b.name.slice(g.role.length + 1)}</span>
+                  <span class="bm-size num">{(b.bytes / 1024).toFixed(1)}</span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+    <p class="bm-legend"><span class="bm-chip on"><span class="bm-name">in the file</span></span> <span class="bm-chip"><span class="bm-name">not needed, not shipped</span></span> sizes in KB, minified</p>
+  </div>
+</section>

@@ -1,0 +1,41 @@
+---
+import Base from '../layouts/Base.astro';
+import { REPO, loadRelease } from '../lib/site.mjs';
+
+const release = loadRelease();
+---
+<Base title="Privacy" version={release.version} description="What blockcharts, its skill and this website collect: nothing.">
+  <div class="prose">
+    <h1>Privacy</h1>
+    <p class="lead">Short version: nothing about you or your data is collected, by the skill, by the reports it makes, or by this website.</p>
+
+    <h2>The skill and the composer</h2>
+    <p>
+      The skill runs one program, the composer, on your computer or in Claude’s sandbox. It reads the page description and the CSV files
+      next to it and writes an HTML file. It makes no network requests and sends your data nowhere. What Claude itself does with a
+      conversation is covered by Anthropic’s privacy policy, not this one.
+    </p>
+
+    <h2>The reports</h2>
+    <p>
+      A composed report contains its data and its code and loads nothing from the network: no fonts, no scripts from a CDN, no analytics.
+      Opening one tells no one that it was opened.
+    </p>
+
+    <h2>The library from a CDN or npm</h2>
+    <p>
+      If you load blockcharts into your own pages from a CDN, that CDN sees the requests for its files, as with any file it serves. The
+      library itself sends nothing anywhere.
+    </p>
+
+    <h2>This website</h2>
+    <p>
+      blockcharts.online is a static site. It sets no cookies and runs no analytics or tracking scripts; its fonts and chart code are served
+      from the site itself. The one thing it stores is your choice of light or dark theme, in your browser’s local storage, and it never
+      leaves your browser. The hosting provider may keep ordinary server logs (such as IP addresses) for security and operations.
+    </p>
+
+    <h2>Questions</h2>
+    <p>Open an issue in the <a href={`${REPO}/issues`}>GitHub repository</a>.</p>
+  </div>
+</Base>

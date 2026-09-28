@@ -1,0 +1,33 @@
+{
+  "title": "Bar chart",
+  "data": {
+    "sales": [
+      { "region": "North", "total": 42 },
+      { "region": "South", "total": 58 },
+      { "region": "East", "total": 31 },
+      { "region": "West", "total": 66 },
+      { "region": "Central", "total": 25 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Sales by region",
+      "note": "The text mark writes the value above each bar: it reads its x and y like the bars and takes the label from the text field.",
+      "spec": {
+        "data": "sales",
+        "size": [640, 300],
+        "scales": { "x": { "type": "band" }, "y": { "type": "linear", "zero": true } },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" }
+        ],
+        "marks": [
+          { "type": "rect", "x": "region", "y": "total", "radius": 2 },
+          { "type": "text", "x": "region", "y": "total", "text": "total", "baseline": "auto", "dy": -5 }
+        ],
+        "interaction": [{ "type": "tooltip" }]
+      }
+    }
+  ]
+}

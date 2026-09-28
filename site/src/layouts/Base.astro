@@ -1,0 +1,139 @@
+---
+import '../styles/site.css';
+import Logo from '../components/Logo.astro';
+import { baseUrl, REPO, repoFile, SITE } from '../lib/site.mjs';
+
+interface Props {
+  title: string;
+  nav?: 'home' | 'examples' | 'embed' | 'guide' | 'blocks';
+  description?: string;
+  version?: string;
+  /** The landing page lays out its own full-width sections; the other pages sit in one column. */
+  landing?: boolean;
+}
+const { title, nav, description, version, landing } = Astro.props;
+const base = baseUrl(import.meta.env.BASE_URL);
+const links = [
+  ['Examples', 'examples/', 'examples'],
+  ['Embedding', 'embed/', 'embed'],
+  ['Guide', 'guide/', 'guide'],
+  ['Blocks', 'blocks/', 'blocks'],
+];
+const full = title === 'blockcharts' ? 'blockcharts — only the chart code your page needs' : `${title} · blockcharts`;
+const canonical = new URL(Astro.url.pathname, SITE).href;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <title>{full}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="blockcharts" />
+    <meta property="og:title" content={full} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <script is:inline>
+      // the chosen theme is applied before the first paint, so there is no flash
+      try { var t = localStorage.getItem('bc-site-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <header class="site">
+      <div class="wrap">
+        <a class="brand" href={base}><Logo /> blockcharts</a>
+        <nav aria-label="Main">
+          {landing && <a href="#install">Install</a>}
+          {landing && <a href="#blocks-inside">How it’s light</a>}
+          {landing && <a href="#customize">Customize</a>}
+          {links.map(([label, href, key]) => <a href={base + href} aria-current={key === nav ? 'page' : undefined}>{label}</a>)}
+          <a href={REPO}>GitHub</a>
+        </nav>
+        <div class="header-actions">
+          <button class="theme" type="button" data-mode="auto" aria-label="Theme: follow the system">
+            <svg data-icon="auto" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="6.5" /><path d="M10 3.5v13a6.5 6.5 0 0 0 0-13z" fill="currentColor" /></svg>
+            <svg data-icon="light" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="3.5" /><path d="M10 2v1.8M10 16.2V18M2 10h1.8M16.2 10H18M4.3 4.3l1.3 1.3M14.4 14.4l1.3 1.3M4.3 15.7l1.3-1.3M14.4 5.6l1.3-1.3" /></svg>
+            <svg data-icon="dark" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M16 12.5A6.5 6.5 0 0 1 7.5 4a6.5 6.5 0 1 0 8.5 8.5z" /></svg>
+          </button>
+          {landing ? <a class="btn btn-primary btn-small" href="#install">Get the skill</a> : <a class="btn btn-secondary btn-small" href={`${base}#install`}>Get the skill</a>}
+        </div>
+      </div>
+    </header>
+    {landing ? <main class="landing"><slot /></main> : <main><div class="wrap narrow"><slot /></div></main>}
+    <footer class="site">
+      <div class="wrap">
+        <div class="cols-f">
+          <a class="brand" href={base}><Logo /> blockcharts</a>
+          <div class="links">
+            <a href={`${base}examples/`}>Examples</a>
+            <a href={`${base}embed/`}>Embedding</a>
+            <a href={`${base}guide/`}>Guide</a>
+            <a href={`${base}blocks/`}>Blocks</a>
+            <a href={repoFile('docs/spec/principles.md')}>Principles</a>
+            <a href={repoFile('docs/skill.md')}>Installing the skill</a>
+            <a href={REPO}>GitHub</a>
+            <a href={`${base}release/manifest.json`}>Release manifest</a>
+            <a href={repoFile('LICENSE')}>MIT license</a>
+            <a href={`${base}privacy/`}>Privacy</a>
+          </div>
+        </div>
+        <p class="note">
+          blockcharts {version} · every chart on this site is drawn live by the released blocks, from the same recipes the skill ships;
+          every number about sizes is read from the release at build time.
+        </p>
+      </div>
+    </footer>
+    <script is:inline>
+      (function () {
+        var KEY = 'bc-site-theme';
+        var LABEL = { auto: 'Theme: follow the system', light: 'Theme: light', dark: 'Theme: dark' };
+        function get() { try { return localStorage.getItem(KEY) || 'auto'; } catch (e) { return 'auto'; } }
+        function set(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+        function apply(v) { if (v === 'light' || v === 'dark') document.documentElement.setAttribute('data-theme', v); else document.documentElement.removeAttribute('data-theme'); }
+        var button = document.querySelector('button.theme');
+        if (button) {
+          var order = ['auto', 'light', 'dark'];
+          var show = function () { var m = get(); button.setAttribute('data-mode', m); button.setAttribute('aria-label', LABEL[m] || LABEL.auto); button.title = LABEL[m] || LABEL.auto; };
+          show();
+          button.addEventListener('click', function () { var next = order[(order.indexOf(get()) + 1) % 3]; set(next); apply(next); show(); });
+        }
+        // copy buttons: the text is in data-copy, or in the <pre><code> next to the button
+        document.querySelectorAll('button.copy').forEach(function (b) {
+          b.addEventListener('click', function () {
+            var text = b.getAttribute('data-copy');
+            if (text === null) { var code = b.parentNode.querySelector('pre code, pre'); text = code ? code.textContent : ''; }
+            if (!text || !navigator.clipboard) return;
+            var label = b.textContent;
+            navigator.clipboard.writeText(text).then(function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = label; }, 1200); }, function () {});
+          });
+        });
+        // tabs (the install box): arrow keys move between tabs, as the ARIA pattern expects
+        document.querySelectorAll('[role="tablist"]').forEach(function (list) {
+          var tabs = Array.prototype.slice.call(list.querySelectorAll('[role="tab"]'));
+          function select(tab) {
+            tabs.forEach(function (t) {
+              var on = t === tab;
+              t.setAttribute('aria-selected', on ? 'true' : 'false');
+              t.tabIndex = on ? 0 : -1;
+              var panel = document.getElementById(t.getAttribute('aria-controls'));
+              if (panel) panel.hidden = !on;
+            });
+          }
+          tabs.forEach(function (t, i) {
+            t.addEventListener('click', function () { select(t); });
+            t.addEventListener('keydown', function (e) {
+              var j = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : -1;
+              if (j < 0 && e.key !== 'ArrowLeft') return;
+              var next = tabs[(j + tabs.length) % tabs.length];
+              select(next); next.focus(); e.preventDefault();
+            });
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+---
+// The four ways in. The skill is the main one; the other three are the same built files for people who write pages.
+import Highlight from './Highlight.astro';
+import { baseUrl, kb } from '../lib/site.mjs';
+
+interface Props { basicGzip: number; loaderBytes: number; version: string }
+const { basicGzip, loaderBytes, version } = Astro.props;
+const base = baseUrl(import.meta.env.BASE_URL);
+const ways = [
+  {
+    title: 'Agent skill',
+    for_: 'For anyone who asks Claude for reports',
+    body: 'Claude writes the JSON, the bundled composer checks it and writes the file. Nothing to learn but what you want to see.',
+    code: '/plugin install blockcharts@blockcharts', lang: 'shellscript',
+    href: '#install', more: 'Install it', featured: true,
+  },
+  {
+    title: 'Composer',
+    for_: 'For scripts, pipelines, CI',
+    body: 'The same composer from the command line: a page.json with data and charts in, one checked HTML file out. Plain Node, no dependencies.',
+    code: 'node compose.js page.json report.html', lang: 'shellscript',
+    href: `${base}guide/#composer`, more: 'The composer',
+  },
+  {
+    title: 'One script tag',
+    for_: 'For your own pages and apps',
+    body: `A kit is the core and a set of blocks in one file, from a CDN or npm — ${kb(basicGzip)} gzipped for bars, lines and areas. Charts are JSON in the HTML.`,
+    code: `npm install blockcharts`, lang: 'shellscript',
+    href: `${base}embed/kit/`, more: 'Try a kit',
+  },
+  {
+    title: 'Loader',
+    for_: 'For sites with many different charts',
+    body: `A ${kb(loaderBytes)} script finds the charts on a page and fetches only the blocks they use, with SRI hashes from the release manifest.`,
+    code: `<script src=".../${version}/loader.js" data-auto></script>`, lang: 'html',
+    href: `${base}embed/loader/`, more: 'Try the loader',
+  },
+];
+---
+<section class="section alt" id="ways-in">
+  <div class="wrap">
+    <p class="kicker">Four ways in</p>
+    <h2>One set of blocks, however you ship it</h2>
+    <p class="intro">The skill is the quickest way to a report. The same built blocks also go into your own pages — pick by where the charts will live.</p>
+    <div class="cards four">
+      {ways.map((w) => (
+        <div class={w.featured ? 'tile featured' : 'tile'}>
+          <h3>{w.title}</h3>
+          <p class="for">{w.for_}</p>
+          <p>{w.body}</p>
+          <Highlight code={w.code} lang={w.lang} />
+          <a class="more" href={w.href}>{w.more} →</a>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

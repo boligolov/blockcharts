@@ -1,0 +1,36 @@
+{
+  "title": "Scatter with groups",
+  "data": {
+    "people": [
+      { "height": 152, "weight": 51, "group": "A" }, { "height": 158, "weight": 55, "group": "A" },
+      { "height": 163, "weight": 60, "group": "A" }, { "height": 169, "weight": 64, "group": "A" },
+      { "height": 174, "weight": 70, "group": "A" }, { "height": 181, "weight": 77, "group": "A" },
+      { "height": 155, "weight": 58, "group": "B" }, { "height": 160, "weight": 63, "group": "B" },
+      { "height": 166, "weight": 69, "group": "B" }, { "height": 172, "weight": 73, "group": "B" },
+      { "height": 178, "weight": 82, "group": "B" }, { "height": 185, "weight": 88, "group": "B" }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Height and weight",
+      "spec": {
+        "data": "people",
+        "size": [640, 340],
+        "scales": {
+          "x": { "type": "linear", "padding": 0.05 },
+          "y": { "type": "linear", "padding": 0.05 },
+          "color": { "type": "color" }
+        },
+        "guides": [
+          { "type": "grid", "scale": "x" },
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "legend", "scale": "color" }
+        ],
+        "marks": [{ "type": "point", "x": "height", "y": "weight", "color": "group", "r": 4, "opacity": 0.85 }],
+        "interaction": [{ "type": "tooltip" }]
+      }
+    }
+  ]
+}

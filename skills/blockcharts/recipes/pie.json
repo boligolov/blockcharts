@@ -1,0 +1,26 @@
+{
+  "title": "Pie and donut",
+  "data": {
+    "browsers": [
+      { "browser": "Chrome", "share": 64 },
+      { "browser": "Safari", "share": 19 },
+      { "browser": "Edge", "share": 5.5 },
+      { "browser": "Firefox", "share": 3.2 },
+      { "browser": "Other", "share": 8.3 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Browser share",
+      "note": "One slice per row, its angle proportional to the value. innerRadius turns the pie into a donut; label writes the percentage outside each slice. Clicking a legend item hides that slice (interaction.legend-filter) and the rest recompute their share against the smaller total automatically — mark.arc always divides by the total of only the visible rows, so hiding is not a separate feature, just a consequence of how the angles are computed. Double-click a legend item to isolate it.",
+      "spec": {
+        "data": "browsers",
+        "size": [640, 340],
+        "scales": { "color": { "type": "color" } },
+        "guides": [{ "type": "legend", "scale": "color" }],
+        "marks": [{ "type": "arc", "value": "share", "color": "browser", "innerRadius": 0.5, "label": "percent", "sort": "desc" }],
+        "interaction": [{ "type": "tooltip" }, { "type": "legend-filter" }]
+      }
+    }
+  ]
+}

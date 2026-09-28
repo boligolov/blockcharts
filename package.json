@@ -1,0 +1,70 @@
+{
+  "name": "blockcharts",
+  "version": "0.1.0",
+  "description": "Interactive SVG and canvas charts described as JSON, assembled from independent blocks. For standalone HTML reports and for pages of your own.",
+  "keywords": [
+    "charts",
+    "visualization",
+    "svg",
+    "canvas",
+    "json",
+    "report",
+    "dashboard",
+    "zoom",
+    "no-dependencies"
+  ],
+  "license": "MIT",
+  "author": "Alexander Lisin",
+  "homepage": "https://blockcharts.online",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boligolov/blockcharts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/boligolov/blockcharts/issues"
+  },
+  "type": "commonjs",
+  "main": "./release/kits/full.js",
+  "module": "./release/kits/full.mjs",
+  "types": "./release/bc.d.ts",
+  "unpkg": "./release/kits/full.js",
+  "jsdelivr": "./release/kits/full.js",
+  "exports": {
+    ".": {
+      "types": "./release/kits/full.d.mts",
+      "import": "./release/kits/full.mjs",
+      "default": "./release/kits/full.js"
+    },
+    "./kits/*": "./release/kits/*",
+    "./blocks/*": "./release/blocks/*",
+    "./core.js": "./release/core.js",
+    "./loader.js": "./release/loader.js",
+    "./manifest.json": "./release/manifest.json",
+    "./bc.d.ts": "./release/bc.d.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "release",
+    "LICENSE",
+    "README.md"
+  ],
+  "sideEffects": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "manifest": "node scripts/build-manifest.js && node scripts/minify.js",
+    "test": "npm run build && npm run manifest && node scripts/test.js && node scripts/test-canvas.js && node scripts/test-compose.js && node scripts/test-csv.js && node scripts/test-skill.js && node scripts/test-dist.js",
+    "page": "npm run build && npm run manifest && node scripts/page.js",
+    "skill": "npm run build && npm run manifest && node scripts/build-skill.js",
+    "release": "npm run build && npm run manifest && node scripts/build-dist.js",
+    "site": "npm run build && npm run manifest && npm --prefix site run build && node scripts/check-site.js",
+    "prepack": "npm run release"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "fflate": "^0.8.3",
+    "typescript": "^7.0.2"
+  }
+}

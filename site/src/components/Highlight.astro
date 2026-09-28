@@ -1,0 +1,10 @@
+---
+// Code highlighted at build time (src/lib/highlight.mjs): both palettes at once as CSS variables, site.css shows the one
+// that matches the page theme. JSON inside an HTML snippet's <script type="application/json"> is highlighted too.
+import { highlight } from '../lib/highlight.mjs';
+
+interface Props { code: string; lang: string }
+const { code, lang } = Astro.props;
+const html = await highlight(code, lang);
+---
+<Fragment set:html={html} />

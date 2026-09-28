@@ -1,0 +1,58 @@
+---
+import Base from '../../layouts/Base.astro';
+import Snippet from '../../components/Snippet.astro';
+import { baseUrl, blocksNeeded, jsonForScript, kb, kitFor, loadRecipes, loadRelease, loadReportSizes } from '../../lib/site.mjs';
+
+export function getStaticPaths() {
+  return loadRecipes().map((r) => ({ params: { name: r.name }, props: { recipe: r } }));
+}
+
+const base = baseUrl(import.meta.env.BASE_URL);
+const { recipe } = Astro.props;
+const release = loadRelease();
+const { name: kitName, blocks } = kitFor(recipe, release, blocksNeeded);
+const kit = release.kits[kitName];
+const reportBytes = loadReportSizes()[recipe.name];
+
+// what a reader copies: the kit from a CDN, the data, and every chart of the example
+const embedded = [
+  `<script src="https://cdn.example.com/blockcharts/${release.version}/kits/${kitName}.js"></script>`,
+  '',
+  '<script type="application/json" id="bc-data">',
+  JSON.stringify(recipe.data),
+  '</script>',
+  '',
+  ...recipe.charts.flatMap((c) => ['<script type="application/json" data-bc-chart>', JSON.stringify(c.spec, null, 2), '</script>', '']),
+].join('\n').trimEnd();
+const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : embedded;
+---
+<Base title={recipe.title} nav="examples" version={release.version} description={recipe.need}>
+  <p class="muted"><a href={`${base}examples/`}>Examples</a> /</p>
+  <h1>{recipe.title}</h1>
+  <p class="lead">{recipe.need}.</p>
+
+  <script is:inline src={`${base}release/kits/${kitName}.js`}></script>
+  <script is:inline type="application/json" id="bc-data" set:html={jsonForScript(recipe.data)} />
+  {recipe.charts.map((c) => (
+    <section class="bc-section">
+      {c.title && <h3>{c.title}</h3>}
+      {c.note && <p>{c.note}</p>}
+      <div class="demo"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(c.spec)} /></div>
+    </section>
+  ))}
+
+  <h2>The JSON</h2>
+  <p>
+    This is the whole input. <code>data</code> holds the datasets, each chart is a <code>spec</code> that names one.
+    Compose it with <code>node scripts/compose.js {recipe.name}.json report.html</code>.
+  </p>
+  <Snippet code={recipe.text} label={`${recipe.name}.json`} />
+  <p>The report the composer makes from it is <a href={`${base}examples/${recipe.name}.report.html`}>one standalone file</a> ({kb(reportBytes)}): open it from disk, mail it, print it.</p>
+
+  <h2>In a page of your own</h2>
+  <p>
+    The charts above use the <code>{kitName}</code> kit ({kb(kit.js.gzip)} gzipped), the smallest one that has the blocks this example needs:
+    {blocks.map((b, i) => <>{i ? ', ' : ' '}<code>{b}</code></>)}.
+  </p>
+  <Snippet code={shown} label="HTML" />
+</Base>

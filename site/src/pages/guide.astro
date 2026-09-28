@@ -1,0 +1,106 @@
+---
+import Base from '../layouts/Base.astro';
+import Snippet from '../components/Snippet.astro';
+import { baseUrl, kb, loadRelease } from '../lib/site.mjs';
+
+const base = baseUrl(import.meta.env.BASE_URL);
+const release = loadRelease();
+const kits = Object.entries(release.kits);
+const basic = release.kits.basic;
+
+const specExample = `{
+  "data": "sales",
+  "size": [640, 300],
+  "transforms": [ { "type": "aggregate", "groupby": ["region"], "measures": [ { "op": "sum", "field": "total", "as": "sum" } ] } ],
+  "scales": { "x": { "type": "band" }, "y": { "type": "linear", "zero": true } },
+  "guides": [
+    { "type": "grid", "scale": "y" },
+    { "type": "axis", "scale": "x" },
+    { "type": "axis", "scale": "y", "title": "Revenue", "format": { "style": "currency", "currency": "USD" } }
+  ],
+  "marks": [ { "type": "rect", "x": "region", "y": "sum" } ],
+  "interaction": [ { "type": "tooltip" } ]
+}`;
+const formatExample = `{ "style": "currency", "currency": "EUR", "maximumFractionDigits": 0 }
+{ "month": "short", "year": "2-digit" }
+{ "maximumFractionDigits": 1, "suffix": " kg", "locale": "de-DE" }`;
+const shell = `npm install
+npm run build && npm run manifest
+node scripts/compose.js skills/blockcharts/recipes/report-from-csv.json report.html`;
+const integrity = `<script src="release/kits/basic.js"
+        integrity="${basic.js.sha384}"
+        crossorigin="anonymous"></script>`;
+---
+<Base title="Guide" nav="guide" version={release.version} description="How a chart spec works, how to feed data, and which files to ship.">
+  <h1>Guide</h1>
+  <p class="lead">The ideas in one page: a chart is a JSON spec; blocks do the work; you pick how the code reaches the page.</p>
+
+  <h2 id="spec">A chart spec</h2>
+  <p>A spec names a dataset and says how to draw it. There is no code in it.</p>
+  <Snippet code={specExample} label="chart spec" />
+  <ul>
+    <li><b>Scales</b> are declared once and named: <code>x</code> and <code>y</code> by convention, anything else is yours (<code>color</code>, <code>y2</code>, …). A chart can have several scales in one direction, which is how dual axes work.</li>
+    <li><b>Marks</b> read data through <i>channels</i>: <code>"x": "region"</code> means the field <code>region</code> on the scale named <code>x</code>.</li>
+    <li><b>Guides</b> (axis, grid, legend) attach to scales, not marks, so two marks on the same scales share one axis.</li>
+    <li><b>Transforms</b> prepare the data first: stack, bin, aggregate, decimate.</li>
+    <li><b>Interactions</b> are zoom, brush, legend filter and tooltip.</li>
+    <li>A block is named by its role and type; <code>{'{"type": "rect"}'}</code> in <code>marks</code> is <code>mark.rect</code>. <a href={`${base}blocks/`}>All blocks and their parameters.</a></li>
+  </ul>
+
+  <h2 id="data">Data</h2>
+  <p>
+    Datasets are named and shared: several charts can read the same one. Rows, columns, CSV (when composing), gzip and binary columns are all accepted;
+    <a href={`${base}embed/data/`}>see them side by side</a>. Dates are ISO strings and are read as UTC. A missing value is <code>null</code>, and a row without a value is simply not drawn.
+  </p>
+
+  <h2 id="formatting">Numbers and dates</h2>
+  <p>
+    Axes, tooltips, text labels and color bars take a <code>format</code>: a preset (<code>percent</code>, <code>compact</code>, <code>integer</code>, <code>year</code>,
+    <code>month</code>, <code>day</code>, <code>date</code>, <code>datetime</code>) or an object of <code>Intl</code> options, with <code>locale</code>, <code>prefix</code> and
+    <code>suffix</code> on top. The default locale is <code>en-US</code> and dates are UTC, so a report reads the same on every machine.
+  </p>
+  <Snippet code={formatExample} label="format examples" />
+
+  <h2 id="composer">The composer and the agent skill</h2>
+  <p>
+    The composer turns a <code>page.json</code> into one HTML file. It works out which blocks the charts need, checks every spec against the real data (each mistake comes back with
+    its path in the JSON), draws every chart once in a sandbox to catch what only shows up when drawing, and writes the page. The same input always gives the same bytes, and nothing
+    is written until every chart is valid.
+  </p>
+  <Snippet code={shell} label="shell" />
+  <p>
+    <code>npm run skill</code> packs the composer with instructions and recipes for an AI agent. The agent writes only JSON, runs the composer, and fixes what the messages say.
+    Every <a href={`${base}examples/`}>example</a> is a recipe from that package.
+  </p>
+
+  <h2 id="files">Files, kits and sizes</h2>
+  <p><code>npm run release</code> writes the files below. Everything is minified.</p>
+  <table>
+    <thead><tr><th>Kit</th><th>Blocks</th><th>Size</th><th>gzip</th><th>For</th></tr></thead>
+    <tbody>
+      {kits.map(([name, k]) => <tr><td><code>{name}</code></td><td>{k.blocks.length}</td><td>{kb(k.js.bytes)}</td><td>{kb(k.js.gzip)}</td><td>{k.doc}</td></tr>)}
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>File</th><th>Size</th><th>gzip</th></tr></thead>
+    <tbody>
+      <tr><td><code>core.js</code></td><td>{kb(release.core.bytes)}</td><td>{kb(release.core.gzip)}</td></tr>
+      <tr><td><code>loader.js</code></td><td>{kb(release.loader.bytes)}</td><td>{kb(release.loader.gzip)}</td></tr>
+    </tbody>
+  </table>
+  <p>
+    Besides kits, every block is a file of its own (<code>blocks/mark.line.js</code>) and <code>manifest.json</code> lists them with their dependencies. A kit for one page:
+    <code>node scripts/build-dist.js --page page.json=report</code>. Kits are also ES modules (<code>.mjs</code>); <a href={`${base}embed/module/`}>see the module demo</a>.
+  </p>
+
+  <h2 id="pin">Pin a version, add integrity</h2>
+  <p>Files of a version never change, so put the version in the CDN path. <code>manifest.json</code> has a SHA-384 hash for every file, ready for <code>integrity</code>. This is the real hash of the kit on this site:</p>
+  <Snippet code={integrity} label="HTML" />
+
+  <h2 id="limits">Limits</h2>
+  <ul>
+    <li>Charts are SVG: made for report-sized data (up to a few thousand marks; more with the <code>decimate</code> transform). A Canvas renderer for very large data is planned.</li>
+    <li>Modern browsers. Gzipped datasets need <code>DecompressionStream</code>. The composer needs Node 18 or later.</li>
+    <li>Custom code (a tooltip that builds its own content) is registered with <code>BC.defineFn</code> and referred to by name, so specs stay plain JSON. <a href={`${base}embed/api/`}>Example</a>.</li>
+  </ul>
+</Base>

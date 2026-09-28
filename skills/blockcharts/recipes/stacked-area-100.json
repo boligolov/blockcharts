@@ -1,0 +1,41 @@
+{
+  "title": "Share over time",
+  "data": {
+    "sources": {
+      "columns": {
+        "month": ["2024-01-01", "2024-02-01", "2024-03-01", "2024-04-01", "2024-05-01",
+                  "2024-01-01", "2024-02-01", "2024-03-01", "2024-04-01", "2024-05-01",
+                  "2024-01-01", "2024-02-01", "2024-03-01", "2024-04-01", "2024-05-01"],
+        "source": ["Search", "Search", "Search", "Search", "Search",
+                   "Social", "Social", "Social", "Social", "Social",
+                   "Direct", "Direct", "Direct", "Direct", "Direct"],
+        "visits": [400, 420, 380, 450, 470,
+                   250, 300, 320, 310, 280,
+                   200, 210, 260, 300, 350]
+      }
+    }
+  },
+  "charts": [
+    {
+      "title": "Traffic mix (100%)",
+      "note": "normalize: true scales every stack to 0..1, so the areas show shares rather than totals.",
+      "spec": {
+        "data": "sources",
+        "transforms": [{ "type": "stack", "field": "visits", "by": "month", "group": "source", "normalize": true }],
+        "scales": {
+          "x": { "type": "time" },
+          "y": { "type": "linear", "domain": [0, 1] },
+          "color": { "type": "color" }
+        },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "legend", "scale": "color", "position": "top" }
+        ],
+        "marks": [{ "type": "area", "x": "month", "y": "visits1", "y2": "visits0", "color": "source" }],
+        "interaction": [{ "type": "tooltip", "fields": ["month", "source", "visits"] }]
+      }
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "title": "Boxplot",
+  "data": {
+    "latency": [
+      { "service": "api", "ms": 120 }, { "service": "api", "ms": 135 }, { "service": "api", "ms": 128 },
+      { "service": "api", "ms": 142 }, { "service": "api", "ms": 118 }, { "service": "api", "ms": 155 },
+      { "service": "api", "ms": 131 }, { "service": "api", "ms": 126 }, { "service": "api", "ms": 149 },
+      { "service": "api", "ms": 390 },
+      { "service": "web", "ms": 60 }, { "service": "web", "ms": 65 }, { "service": "web", "ms": 58 },
+      { "service": "web", "ms": 72 }, { "service": "web", "ms": 61 }, { "service": "web", "ms": 69 },
+      { "service": "web", "ms": 64 }, { "service": "web", "ms": 12 },
+      { "service": "worker", "ms": 210 }, { "service": "worker", "ms": 240 }, { "service": "worker", "ms": 225 },
+      { "service": "worker", "ms": 260 }, { "service": "worker", "ms": 205 }, { "service": "worker", "ms": 275 },
+      { "service": "worker", "ms": 230 }, { "service": "worker", "ms": 248 }, { "service": "worker", "ms": 215 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Response time by service",
+      "note": "transform.quartiles computes one min/Q1/median/Q3/max (Tukey whiskers, 1.5x IQR) per service and reports points further out as separate rows instead of stretching the whisker to them (api has one at 390ms, web one at 12ms). mark.boxplot draws the box and whiskers from the summary rows; a plain mark.point layered on top, reading the same `value` field, draws the outliers — the two marks tell their rows apart because the fields they read are NaN on the rows meant for the other one.",
+      "spec": {
+        "data": "latency",
+        "size": [560, 320],
+        "transforms": [{ "type": "quartiles", "field": "ms", "group": "service" }],
+        "scales": {
+          "x": { "type": "band" },
+          "y": { "type": "linear", "zero": true }
+        },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" }
+        ],
+        "marks": [
+          { "type": "boxplot", "x": "service", "low": "low", "q1": "q1", "median": "median", "q3": "q3", "high": "high" },
+          { "type": "point", "x": "service", "y": "value", "r": 3.5, "fill": "#e15759" }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["service", "low", "q1", "median", "q3", "high", "count", "value"] }]
+      }
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+---
+import Base from '../layouts/Base.astro';
+import { kb, loadBlocks, loadRelease } from '../lib/site.mjs';
+
+const manifest = loadBlocks();
+const release = loadRelease();
+const roles = {
+  scale: 'Map data to positions or colors. Declared once per chart under <code>scales</code>, by name.',
+  transform: 'Prepare the dataset before anything is drawn (<code>transforms</code>).',
+  mark: 'Draw one thing per row (<code>marks</code>). They read fields through channels.',
+  guide: 'Axes, grids and legends, attached to scales (<code>guides</code>).',
+  interaction: 'What the reader can do with the chart (<code>interaction</code>).',
+  renderer: 'Turns the drawing instructions into output. There is one: SVG.',
+};
+const kind = (d) => (d.kind === 'enum' ? (d.values || []).map((v) => `"${v}"`).join(' | ') : d.kind);
+const scalesOf = (d) => (d.unscaled ? 'a plain field' : d.scales ? d.scales.join(', ') : 'any');
+const total = Object.keys(manifest.blocks).length;
+---
+<Base title="Blocks" nav="blocks" version={release.version} description="Every block, parameter and channel.">
+  <h1>Blocks</h1>
+  <p class="lead">{total} blocks in {Object.keys(roles).length} roles. This page is generated from the code: a parameter that does not exist here does not exist.</p>
+  <p>{Object.keys(roles).map((role, i) => <>{i ? ' · ' : ''}<a href={`#${role}`}>{role}</a></>)}</p>
+
+  {Object.entries(roles).map(([role, about]) => (
+    <>
+      <h2 id={role}>{role}</h2>
+      <p set:html={about} />
+      {Object.keys(manifest.blocks).filter((n) => n.startsWith(role + '.')).map((name) => {
+        const b = manifest.blocks[name];
+        const file = release.blocks[name];
+        const params = Object.entries(b.params || {});
+        const channels = Object.entries(b.channels || {});
+        return (
+          <div class="block" id={name}>
+            <h3>{name}</h3>
+            <p>{b.doc}</p>
+            <p class="muted">
+              <span class="pill">v{b.version}</span><span class="pill">{kb(file.bytes)} ({kb(file.gzip)} gzip)</span>
+              {b.requires.length > 0 && <span class="pill">needs {b.requires.join(', ')}</span>}
+            </p>
+            {params.length > 0 && (
+              <table>
+                <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th></th></tr></thead>
+                <tbody>
+                  {params.map(([p, d]) => (
+                    <tr>
+                      <td><code>{p}</code></td>
+                      <td>{kind(d)}{d.required && <> <b>required</b></>}</td>
+                      <td>{d.default !== undefined && <code>{JSON.stringify(d.default)}</code>}</td>
+                      <td>{d.doc}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {channels.length > 0 && (
+              <table>
+                <thead><tr><th>Channel</th><th></th><th>Scales</th><th></th></tr></thead>
+                <tbody>
+                  {channels.map(([c, d]) => <tr><td><code>{c}</code></td><td>{d.required ? <b>required</b> : 'optional'}</td><td>{scalesOf(d)}</td><td>{d.doc}</td></tr>)}
+                </tbody>
+              </table>
+            )}
+          </div>
+        );
+      })}
+    </>
+  ))}
+</Base>

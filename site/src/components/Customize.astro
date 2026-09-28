@@ -1,0 +1,55 @@
+---
+// Customization, from a parameter to a block of your own. The block shown is the one the "Your own block" demo runs.
+import Highlight from './Highlight.astro';
+import { baseUrl } from '../lib/site.mjs';
+
+const base = baseUrl(import.meta.env.BASE_URL);
+const levels = [
+  { title: 'Parameters', body: 'Each block documents its own: currency and date formats in any locale, axis titles, bar radius, tooltip fields, zoom limits.', href: `${base}blocks/`, more: 'Every parameter' },
+  { title: 'CSS', body: 'Colors are CSS variables and shapes have classes. A brand palette, dark mode or a print style is a stylesheet, not a spec change.', href: `${base}embed/theme/`, more: 'Themes' },
+  { title: 'Your set of blocks', body: 'Build a kit with exactly the blocks you draw — bars and a tooltip, nothing else — or let the loader fetch them per page.', href: `${base}guide/#files`, more: 'Kits and the loader' },
+  { title: 'Functions by name', body: 'A tooltip with your own content is a function registered once with BC.defineFn and named from the spec, so specs stay JSON.', href: `${base}embed/api/`, more: 'The handle API' },
+  { title: 'Blocks of your own', body: 'A block is a small script calling BC.define — the same contract as the built-in ones. Validated, themed, and shipped only where it is used.', href: `${base}embed/block/`, more: 'Write a block' },
+];
+const blockCode = `BC.define({
+  role: 'guide', type: 'target', version: 1,
+  params: { scale: { kind: 'scale', required: true },
+            value: { kind: 'number', required: true } },
+  render(spec, ctx) {
+    const y = ctx.scales[spec.scale](spec.value), { x, w } = ctx.plot;
+    return { overlay: [{ type: 'path', d: \`M\${x} \${y}H\${x + w}\`,
+      style: { stroke: 'var(--bc-c2)', strokeDash: [5, 4] } }] };
+  },
+});`;
+const useCode = `{ "type": "target", "scale": "y", "value": 50000 }`;
+const cssCode = `.report {
+  --bc-c0: #0b5cad;  /* your brand blue */
+  --bc-text: #33415c;
+  --bc-grid: #e8edf5;
+}`;
+---
+<section class="section alt" id="customize">
+  <div class="wrap">
+    <p class="kicker">Customizable</p>
+    <h2>Change anything, from a color to a whole new block</h2>
+    <p class="intro">Atoms compose in any way you need. Nothing to fork, no plugin system to learn: the built-in blocks use the same contract you do.</p>
+    <div class="custom-grid">
+      <ol class="levels">
+        {levels.map((l, i) => (
+          <li>
+            <span class="lv">{i + 1}</span>
+            <div><b>{l.title}</b><p>{l.body} <a href={l.href}>{l.more} →</a></p></div>
+          </li>
+        ))}
+      </ol>
+      <div class="custom-code">
+        <p class="label">A new block: a target line</p>
+        <Highlight code={blockCode} lang="js" />
+        <p class="label">Used in a spec</p>
+        <Highlight code={useCode} lang="json" />
+        <p class="label">Your colors</p>
+        <Highlight code={cssCode} lang="css" />
+      </div>
+    </div>
+  </div>
+</section>

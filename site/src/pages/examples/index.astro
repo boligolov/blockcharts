@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/Card.astro';
+import { baseUrl, jsonForScript, lakeOf, loadRecipes, loadRelease } from '../../lib/site.mjs';
+
+const base = baseUrl(import.meta.env.BASE_URL);
+const release = loadRelease();
+const recipes = loadRecipes();
+const { lake, charts } = lakeOf(recipes);
+---
+<Base title="Examples" nav="examples" version={release.version} description="A live example of every kind of chart, with its JSON.">
+  <h1>Examples</h1>
+  <p class="lead">
+    Every chart below is live: hover, and try Ctrl + wheel, dragging, and clicking the legend where it makes sense. Each example has its JSON,
+    the report the composer makes from it, and the HTML to embed it.
+  </p>
+  <script is:inline src={`${base}release/kits/full.js`}></script>
+  <script is:inline type="application/json" id="bc-data" set:html={jsonForScript(lake)} />
+  <div class="grid">
+    {recipes.map((r) => (
+      <Card title={r.title} href={`${base}examples/${r.name}/`} text={r.need} spec={charts.get(r.name)[0].spec} pill={r.charts.length > 1 ? `${r.charts.length} charts` : undefined} />
+    ))}
+  </div>
+</Base>

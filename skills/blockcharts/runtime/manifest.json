@@ -1,0 +1,1071 @@
+{
+  "core": {
+    "file": "core.js",
+    "bytes": 25092,
+    "version": "0.1.0"
+  },
+  "blocks": {
+    "scale.band": {
+      "file": "blocks/scale.band.js",
+      "bytes": 1216,
+      "version": 2,
+      "requires": [],
+      "closure": [
+        "scale.band"
+      ],
+      "params": {
+        "paddingInner": {
+          "kind": "number",
+          "default": 0.2,
+          "doc": "Gap between bands, as a fraction of the step."
+        },
+        "paddingOuter": {
+          "kind": "number",
+          "default": 0.1,
+          "doc": "Gap before the first and after the last band, as a fraction of the step."
+        }
+      },
+      "doc": "Categorical scale: one band per distinct value, in first-seen order. Maps a value to the band's lower edge; `bandwidth` is the band width. Bands always run in increasing pixel order (left to right, top to bottom), also on a vertical axis, so horizontal bars list their categories from the top. Zoom = a window of categories."
+    },
+    "scale.color": {
+      "file": "blocks/scale.color.js",
+      "bytes": 815,
+      "version": 2,
+      "requires": [],
+      "closure": [
+        "scale.color"
+      ],
+      "doc": "Categorical color scale: one color per distinct value, in first-seen order. Colors come from `range` (a list of CSS colors) or from the theme palette (--bc-c0 …). Colors stay tied to the value when the domain is narrowed (setView, a legend filter); a value outside the visible domain gets no color, so marks do not draw it."
+    },
+    "scale.linear": {
+      "file": "blocks/scale.linear.js",
+      "bytes": 1413,
+      "version": 2,
+      "requires": [],
+      "closure": [
+        "scale.linear"
+      ],
+      "params": {
+        "nice": {
+          "kind": "boolean",
+          "default": true,
+          "doc": "Extend the inferred domain to round tick values."
+        },
+        "zero": {
+          "kind": "boolean",
+          "default": false,
+          "doc": "Include 0 in the inferred domain (bars need it)."
+        },
+        "padding": {
+          "kind": "number",
+          "default": 0,
+          "doc": "Extra room around the data extent, as a fraction of its span (0.05 keeps edge points off the axes)."
+        }
+      },
+      "doc": "Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values."
+    },
+    "scale.sequential": {
+      "file": "blocks/scale.sequential.js",
+      "bytes": 2078,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "scale.sequential"
+      ],
+      "params": {},
+      "doc": "Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`."
+    },
+    "scale.time": {
+      "file": "blocks/scale.time.js",
+      "bytes": 2197,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "scale.time"
+      ],
+      "params": {
+        "padding": {
+          "kind": "number",
+          "default": 0,
+          "doc": "Extra room around the data extent, as a fraction of its span."
+        }
+      },
+      "doc": "Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates. Ticks snap to calendar units (seconds … years)."
+    },
+    "transform.aggregate": {
+      "file": "blocks/transform.aggregate.js",
+      "bytes": 4961,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "transform.aggregate"
+      ],
+      "params": {
+        "groupby": {
+          "kind": "list",
+          "doc": "Fields to group by: names, or { \"field\", \"unit\", \"as\" }. Empty or missing: one group of all rows."
+        },
+        "measures": {
+          "kind": "list",
+          "default": [
+            {
+              "op": "count"
+            }
+          ],
+          "doc": "What to compute per group: [{ \"op\": \"sum\", \"field\": \"revenue\", \"as\": \"total\" }]. `as` defaults to \"<op>_<field>\" (\"count\" for a plain count)."
+        },
+        "sort": {
+          "kind": "string",
+          "doc": "Output column (a group-by field or a measure `as`) to sort the groups by."
+        },
+        "order": {
+          "kind": "enum",
+          "values": [
+            "asc",
+            "desc"
+          ],
+          "default": "asc",
+          "doc": "Direction of `sort`."
+        },
+        "limit": {
+          "kind": "number",
+          "doc": "Keep only the first N groups (after sorting)."
+        }
+      },
+      "doc": "Group-by: one row per distinct combination of the `groupby` fields, with measures computed over the rows of each group (`sum`, `mean`, `min`, `max`, `median`, `count`, `distinct`). A group-by field can be cut into calendar units, `{ \"field\": \"date\", \"unit\": \"month\" }` (year, quarter, month, week from Monday, day, hour; UTC; the group value is the ISO start of the unit). Missing values are ignored by the measures (`count` without a field counts rows). Groups come in order of first appearance, or sorted by a column with `sort`; a time unit sorts by time unless told otherwise. `limit` keeps the first N groups after sorting (top N)."
+    },
+    "transform.bin": {
+      "file": "blocks/transform.bin.js",
+      "bytes": 2760,
+      "version": 2,
+      "requires": [],
+      "closure": [
+        "transform.bin"
+      ],
+      "params": {
+        "field": {
+          "kind": "field",
+          "required": true,
+          "doc": "Numeric field to count. Missing and non-numeric values are ignored."
+        },
+        "bins": {
+          "kind": "number",
+          "default": 10,
+          "doc": "Approximate number of bins; the width is rounded to 1, 2, 5 × 10^n."
+        },
+        "width": {
+          "kind": "number",
+          "doc": "Exact bin width; overrides `bins`."
+        },
+        "extent": {
+          "kind": "list",
+          "doc": "[min, max] to bin; values outside are ignored. Default: the range of the data."
+        },
+        "group": {
+          "kind": "field",
+          "doc": "Count separately for every value of this field."
+        },
+        "as": {
+          "kind": "list",
+          "doc": "Names of the three new columns: [start, end, count]."
+        }
+      },
+      "doc": "Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count."
+    },
+    "transform.decimate": {
+      "file": "blocks/transform.decimate.js",
+      "bytes": 3484,
+      "version": 2,
+      "requires": [],
+      "closure": [
+        "transform.decimate"
+      ],
+      "params": {
+        "x": {
+          "kind": "field",
+          "required": true,
+          "doc": "The x field of the line."
+        },
+        "y": {
+          "kind": "field",
+          "required": true,
+          "doc": "The y field of the line."
+        },
+        "scale": {
+          "kind": "scale",
+          "default": "x",
+          "doc": "Name of the x scale."
+        },
+        "group": {
+          "kind": "field",
+          "doc": "Decimate every series (value of this field) on its own."
+        },
+        "buckets": {
+          "kind": "number",
+          "doc": "Pixel columns to split the plot width into. Default: one per px of plot width."
+        },
+        "threshold": {
+          "kind": "number",
+          "default": 4,
+          "doc": "Decimate only when the window holds more than `threshold` rows per column."
+        }
+      },
+      "doc": "Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them."
+    },
+    "transform.quartiles": {
+      "file": "blocks/transform.quartiles.js",
+      "bytes": 2117,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "transform.quartiles"
+      ],
+      "params": {
+        "field": {
+          "kind": "field",
+          "required": true,
+          "doc": "Numeric field to summarize (the raw sample values). Missing and non-numeric values are ignored."
+        },
+        "group": {
+          "kind": "field",
+          "doc": "A separate summary per value of this field (the boxplot's category axis). A missing value is a group of its own, like transform.aggregate. Default: one summary."
+        },
+        "outliers": {
+          "kind": "boolean",
+          "default": true,
+          "doc": "true: whiskers stop at 1.5x IQR, points further out become their own \"value\" row. false: whiskers stretch to the true min/max, no outlier rows."
+        }
+      },
+      "doc": "The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row."
+    },
+    "transform.stack": {
+      "file": "blocks/transform.stack.js",
+      "bytes": 1475,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "transform.stack"
+      ],
+      "params": {
+        "field": {
+          "kind": "field",
+          "required": true,
+          "doc": "Numeric field to stack."
+        },
+        "by": {
+          "kind": "field",
+          "required": true,
+          "doc": "Field whose values are the stacks (the x of a stacked bar)."
+        },
+        "group": {
+          "kind": "field",
+          "doc": "Field that tells the series apart. Without it rows stack in data order."
+        },
+        "as": {
+          "kind": "list",
+          "doc": "Names of the two new columns: [start, end]."
+        },
+        "normalize": {
+          "kind": "boolean",
+          "default": false,
+          "doc": "Scale every stack to 0..1 (100% stacked)."
+        }
+      },
+      "doc": "Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area."
+    },
+    "mark.arc": {
+      "file": "blocks/mark.arc.js",
+      "bytes": 2997,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "mark.arc"
+      ],
+      "params": {
+        "innerRadius": {
+          "kind": "number",
+          "default": 0,
+          "doc": "Hole size as a fraction of the radius (0 = pie, 0.5 = donut)."
+        },
+        "startAngle": {
+          "kind": "number",
+          "default": 0,
+          "doc": "Where the first slice starts, in degrees clockwise from 12 o'clock."
+        },
+        "padAngle": {
+          "kind": "number",
+          "default": 1,
+          "doc": "Gap between slices, in degrees."
+        },
+        "sort": {
+          "kind": "enum",
+          "values": [
+            "none",
+            "desc",
+            "asc"
+          ],
+          "default": "none",
+          "doc": "Order of the slices by value; \"none\" keeps the data order."
+        },
+        "label": {
+          "kind": "enum",
+          "values": [
+            "none",
+            "percent",
+            "value"
+          ],
+          "default": "none",
+          "doc": "Text outside each slice (slices under 3% get none)."
+        },
+        "fill": {
+          "kind": "string",
+          "doc": "One color for all slices, when there is no color channel."
+        },
+        "opacity": {
+          "kind": "number",
+          "default": 1
+        }
+      },
+      "channels": {
+        "value": {
+          "required": true,
+          "unscaled": true,
+          "doc": "Numeric field: the size of each slice."
+        },
+        "color": {
+          "scales": [
+            "color",
+            "sequential"
+          ],
+          "doc": "Slice color per row from a color scale; a hidden category leaves its slice out."
+        }
+      },
+      "doc": "Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock."
+    },
+    "mark.area": {
+      "file": "blocks/mark.area.js",
+      "bytes": 1947,
+      "version": 2,
+      "requires": [],
+      "closure": [
+        "mark.area"
+      ],
+      "params": {
+        "baseline": {
+          "kind": "number",
+          "default": 0,
+          "doc": "Where the area starts when there is no y2. Keep it inside the scale domain."
+        },
+        "group": {
+          "kind": "field",
+          "doc": "Field whose distinct values become separate areas."
+        },
+        "fill": {
+          "kind": "string",
+          "doc": "Any CSS color. Default: theme color by series index."
+        },
+        "opacity": {
+          "kind": "number",
+          "default": 0.85
+        }
+      },
+      "channels": {
+        "x": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time"
+          ]
+        },
+        "y": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time"
+          ]
+        },
+        "y2": {
+          "scales": [
+            "linear",
+            "time"
+          ],
+          "sharesScale": "y",
+          "doc": "Lower edge of the band."
+        },
+        "color": {
+          "scales": [
+            "color"
+          ],
+          "doc": "One area per distinct value of the field, colored by a color scale."
+        }
+      },
+      "doc": "A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area."
+    },
+    "mark.boxplot": {
+      "file": "blocks/mark.boxplot.js",
+      "bytes": 2698,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "mark.boxplot"
+      ],
+      "params": {
+        "width": {
+          "kind": "number",
+          "default": 0.6,
+          "doc": "Box width: a fraction (0-1) of the category band, or, off a band scale, a fixed number of px."
+        },
+        "fill": {
+          "kind": "string",
+          "doc": "Box fill. Default: theme color by mark index (or the `color` channel)."
+        },
+        "fillOpacity": {
+          "kind": "number",
+          "default": 0.85
+        },
+        "strokeWidth": {
+          "kind": "number",
+          "default": 1.5,
+          "doc": "Width of the box outline and the whiskers."
+        },
+        "opacity": {
+          "kind": "number",
+          "default": 1
+        }
+      },
+      "channels": {
+        "x": {
+          "required": true,
+          "scales": [
+            "band",
+            "linear",
+            "time"
+          ]
+        },
+        "low": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time"
+          ],
+          "sharesScale": "y",
+          "doc": "Bottom of the lower whisker."
+        },
+        "q1": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time"
+          ],
+          "sharesScale": "y",
+          "doc": "Bottom of the box (25th percentile)."
+        },
+        "median": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time"
+          ],
+          "sharesScale": "y",
+          "doc": "Line drawn across the box."
+        },
+        "q3": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time"
+          ],
+          "sharesScale": "y",
+          "doc": "Top of the box (75th percentile)."
+        },
+        "high": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time"
+          ],
+          "sharesScale": "y",
+          "doc": "Top of the upper whisker."
+        },
+        "color": {
+          "scales": [
+            "color",
+            "sequential"
+          ],
+          "doc": "Box and whisker color per row, from a color scale; rows the scale gives no color are not drawn."
+        }
+      },
+      "doc": "A box (q1 to q3), a line across it at the median, and whiskers out to low/high — the usual shape for transform.quartiles' output. `x` is the category (a band scale, one box per category) or a plain position on a continuous one; the five value channels share the scale of `y` by default. Outliers are not drawn by this mark: transform.quartiles reports them as their own rows (only `value` set, the others NaN), meant for a plain mark.point layered on top reading the same `x` and `value`."
+    },
+    "mark.line": {
+      "file": "blocks/mark.line.js",
+      "bytes": 1743,
+      "version": 5,
+      "requires": [],
+      "closure": [
+        "mark.line"
+      ],
+      "params": {
+        "group": {
+          "kind": "field",
+          "doc": "Field whose distinct values become separate lines (long-format data)."
+        },
+        "stroke": {
+          "kind": "string",
+          "doc": "Any CSS color. Default: theme color by line index."
+        },
+        "strokeWidth": {
+          "kind": "number",
+          "default": 2
+        },
+        "dash": {
+          "kind": "list",
+          "doc": "Dash pattern, e.g. [4, 3]."
+        },
+        "opacity": {
+          "kind": "number",
+          "default": 1
+        }
+      },
+      "channels": {
+        "x": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time"
+          ]
+        },
+        "y": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time"
+          ]
+        },
+        "color": {
+          "scales": [
+            "color"
+          ],
+          "doc": "One line per distinct value of the field, colored by a color scale."
+        }
+      },
+      "doc": "A polyline per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale."
+    },
+    "mark.point": {
+      "file": "blocks/mark.point.js",
+      "bytes": 1443,
+      "version": 6,
+      "requires": [],
+      "closure": [
+        "mark.point"
+      ],
+      "params": {
+        "r": {
+          "kind": "number",
+          "default": 3,
+          "doc": "Radius in px."
+        },
+        "fill": {
+          "kind": "string",
+          "doc": "Any CSS color. Default: theme color by mark index."
+        },
+        "opacity": {
+          "kind": "number",
+          "default": 1
+        }
+      },
+      "channels": {
+        "x": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time",
+            "band"
+          ]
+        },
+        "y": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time",
+            "band"
+          ]
+        },
+        "color": {
+          "scales": [
+            "color",
+            "sequential"
+          ],
+          "doc": "Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn."
+        }
+      },
+      "doc": "One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot)."
+    },
+    "mark.rect": {
+      "file": "blocks/mark.rect.js",
+      "bytes": 2232,
+      "version": 7,
+      "requires": [],
+      "closure": [
+        "mark.rect"
+      ],
+      "params": {
+        "baseline": {
+          "kind": "number",
+          "default": 0,
+          "doc": "Where bars start on a continuous axis without a second channel. Keep it inside the scale domain (scale `zero: true` for 0)."
+        },
+        "fill": {
+          "kind": "string",
+          "doc": "Any CSS color. Default: theme color by mark index."
+        },
+        "opacity": {
+          "kind": "number",
+          "default": 1
+        },
+        "radius": {
+          "kind": "number",
+          "default": 0,
+          "doc": "Corner radius in px."
+        },
+        "dodgePadding": {
+          "kind": "number",
+          "default": 0.1,
+          "doc": "Gap between the bars of one dodged category, as a fraction of each bar's share of the band."
+        }
+      },
+      "channels": {
+        "x": {
+          "required": true,
+          "scales": [
+            "band",
+            "linear",
+            "time"
+          ]
+        },
+        "y": {
+          "required": true,
+          "scales": [
+            "band",
+            "linear",
+            "time"
+          ]
+        },
+        "x2": {
+          "scales": [
+            "linear",
+            "time"
+          ],
+          "sharesScale": "x",
+          "doc": "Other end of the rectangle along x."
+        },
+        "y2": {
+          "scales": [
+            "linear",
+            "time"
+          ],
+          "sharesScale": "y",
+          "doc": "Other end of the rectangle along y."
+        },
+        "color": {
+          "scales": [
+            "color",
+            "sequential"
+          ],
+          "doc": "Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn."
+        },
+        "dodge": {
+          "unscaled": true,
+          "doc": "Field that splits the band-scale axis into side-by-side bars, one per distinct value (grouped bar). Usually the same field as `color`. One distinct value (or none) draws a plain bar, unchanged."
+        }
+      },
+      "doc": "Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field)."
+    },
+    "mark.text": {
+      "file": "blocks/mark.text.js",
+      "bytes": 2361,
+      "version": 2,
+      "requires": [],
+      "closure": [
+        "mark.text"
+      ],
+      "params": {
+        "size": {
+          "kind": "number",
+          "default": 11,
+          "doc": "Font size in px."
+        },
+        "weight": {
+          "kind": "any",
+          "doc": "Font weight: a number (600) or a word (\"bold\")."
+        },
+        "anchor": {
+          "kind": "enum",
+          "values": [
+            "start",
+            "middle",
+            "end"
+          ],
+          "default": "middle",
+          "doc": "Horizontal alignment to the anchor point."
+        },
+        "baseline": {
+          "kind": "enum",
+          "values": [
+            "auto",
+            "middle",
+            "hanging"
+          ],
+          "default": "middle",
+          "doc": "\"auto\" puts the text above the point, \"hanging\" below it, \"middle\" centers it."
+        },
+        "dx": {
+          "kind": "number",
+          "default": 0,
+          "doc": "Move right by this many px."
+        },
+        "dy": {
+          "kind": "number",
+          "default": 0,
+          "doc": "Move down by this many px (negative moves up, e.g. -4 with baseline \"auto\" for a label above a bar)."
+        },
+        "rotate": {
+          "kind": "number",
+          "default": 0,
+          "doc": "Degrees around the anchor point."
+        },
+        "decimals": {
+          "kind": "number",
+          "doc": "Fixed number of decimals for numeric text."
+        },
+        "format": {
+          "kind": "any",
+          "doc": "How to write numbers (and dates): a preset (\"percent\", \"compact\", \"integer\", \"date\", ...) or an object of Intl options, e.g. { \"style\": \"currency\", \"currency\": \"USD\", \"maximumFractionDigits\": 0 }; also \"locale\", \"prefix\", \"suffix\". Overrides `decimals`."
+        },
+        "fill": {
+          "kind": "string",
+          "doc": "Any CSS color. Default: the theme text color."
+        }
+      },
+      "channels": {
+        "x": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time",
+            "band"
+          ]
+        },
+        "y": {
+          "required": true,
+          "scales": [
+            "linear",
+            "time",
+            "band"
+          ]
+        },
+        "text": {
+          "required": true,
+          "unscaled": true,
+          "doc": "Field with the text to show."
+        },
+        "color": {
+          "scales": [
+            "color",
+            "sequential"
+          ],
+          "doc": "Text color per row, from a color scale."
+        },
+        "on": {
+          "scales": [
+            "color",
+            "sequential"
+          ],
+          "sharesScale": "color",
+          "doc": "The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. Rows with no such color get no text."
+        }
+      },
+      "doc": "A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as \"percent\" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color."
+    },
+    "guide.axis": {
+      "file": "blocks/guide.axis.js",
+      "bytes": 2295,
+      "version": 4,
+      "requires": [],
+      "closure": [
+        "guide.axis"
+      ],
+      "params": {
+        "scale": {
+          "kind": "scale",
+          "required": true
+        },
+        "position": {
+          "kind": "enum",
+          "values": [
+            "top",
+            "right",
+            "bottom",
+            "left"
+          ]
+        },
+        "title": {
+          "kind": "string",
+          "doc": "Text that names the axis (with its unit, for example \"Revenue, USD\"). Rotated on a vertical axis."
+        },
+        "format": {
+          "kind": "any",
+          "doc": "How to write the tick labels of a linear or time scale: a preset (\"percent\", \"compact\", \"integer\", \"year\", \"month\", \"day\", \"date\", \"datetime\") or an object of Intl options, e.g. { \"style\": \"currency\", \"currency\": \"USD\", \"maximumFractionDigits\": 0 } or { \"month\": \"short\", \"year\": \"2-digit\" }. Also \"locale\" (default \"en-US\"), \"prefix\" and \"suffix\"."
+        }
+      },
+      "doc": "Axis line, ticks and labels for a positional scale. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis."
+    },
+    "guide.grid": {
+      "file": "blocks/guide.grid.js",
+      "bytes": 446,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "guide.grid"
+      ],
+      "params": {
+        "scale": {
+          "kind": "scale",
+          "required": true
+        }
+      },
+      "doc": "Grid lines at the ticks of a positional scale (the same ticks its axis shows). Draws behind the marks."
+    },
+    "guide.legend": {
+      "file": "blocks/guide.legend.js",
+      "bytes": 2627,
+      "version": 3,
+      "requires": [],
+      "closure": [
+        "guide.legend"
+      ],
+      "params": {
+        "scale": {
+          "kind": "scale",
+          "required": true,
+          "doc": "A color or sequential scale."
+        },
+        "position": {
+          "kind": "enum",
+          "values": [
+            "top",
+            "right",
+            "bottom",
+            "left"
+          ],
+          "default": "right"
+        },
+        "format": {
+          "kind": "any",
+          "doc": "How to write the labels of a color bar (a `sequential` scale): a preset (\"percent\", \"compact\", ...) or an object of Intl options; see guide.axis `format`."
+        }
+      },
+      "doc": "Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels. On the right or left it is a column, on top or bottom a row. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it."
+    },
+    "interaction.brush": {
+      "file": "blocks/interaction.brush.js",
+      "bytes": 4041,
+      "version": 2,
+      "requires": [],
+      "closure": [
+        "interaction.brush"
+      ],
+      "params": {
+        "scales": {
+          "kind": "list",
+          "default": [
+            "x"
+          ],
+          "doc": "Names of the scales to zoom. One horizontal scale selects a vertical band, one vertical scale a horizontal band, both a box."
+        },
+        "modifier": {
+          "kind": "enum",
+          "values": [
+            "shift",
+            "alt",
+            "ctrl",
+            "none"
+          ],
+          "default": "shift",
+          "doc": "Key that must be held to start a selection. \"none\" conflicts with the pan of interaction.zoom (turn its `pan` off)."
+        },
+        "fit": {
+          "kind": "list",
+          "doc": "Scales to refit to the selected window (usually [\"y\"])."
+        },
+        "minSize": {
+          "kind": "number",
+          "default": 6,
+          "doc": "Smallest selection, in px, along each selected axis."
+        }
+      },
+      "doc": "Drag a rectangle over the plot to zoom to it: on the scales in `scales` (default x) the view becomes the selected range, on a category (band) scale the categories under the selection. Shift + drag by default, so it does not fight with the pan of interaction.zoom; Escape cancels while dragging, double-click resets. A drag shorter than `minSize` px is not a selection."
+    },
+    "interaction.legend-filter": {
+      "file": "blocks/interaction.legend-filter.js",
+      "bytes": 1983,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "interaction.legend-filter"
+      ],
+      "params": {
+        "scale": {
+          "kind": "scale",
+          "doc": "The color scale to filter. Default: the scale of the first legend."
+        },
+        "fit": {
+          "kind": "list",
+          "doc": "Scales to refit to the visible rows after a change (usually [\"y\"]); by default they keep their domain."
+        }
+      },
+      "doc": "Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything."
+    },
+    "interaction.tooltip": {
+      "file": "blocks/interaction.tooltip.js",
+      "bytes": 5981,
+      "version": 4,
+      "requires": [],
+      "closure": [
+        "interaction.tooltip"
+      ],
+      "params": {
+        "fields": {
+          "kind": "list",
+          "doc": "Fields to show. Default: the fields the mark reads (its channels and group)."
+        },
+        "formats": {
+          "kind": "any",
+          "doc": "How to write values, per field: { \"revenue\": { \"style\": \"currency\", \"currency\": \"USD\" }, \"share\": \"percent\", \"date\": \"date\" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits)."
+        },
+        "content": {
+          "kind": "any",
+          "doc": "Name of a function registered with BC.defineFn (or, in a spec built in JS, the function itself). It gets a TooltipDatum and returns what to show: a string (text), { html }, a DOM Node, an array of those, null/false to hide the tooltip, or undefined for the default content. { html } is set with innerHTML and is not escaped — build it from trusted strings, never straight from a row value the data may contain."
+        },
+        "marker": {
+          "kind": "enum",
+          "values": [
+            "auto",
+            "dot",
+            "box",
+            "none"
+          ],
+          "default": "auto",
+          "doc": "\"dot\" draws a small circle at the point; \"box\" highlights the whole shape (used automatically for rect marks like bar/heatmap, where a dot would land on an edge); \"auto\" picks box when the mark reports its bounds and dot otherwise; \"none\" shows the tooltip text without a marker."
+        }
+      },
+      "doc": "Shows the datum under the pointer: a marker plus a box with the fields behind it. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns."
+    },
+    "interaction.zoom": {
+      "file": "blocks/interaction.zoom.js",
+      "bytes": 2830,
+      "version": 2,
+      "requires": [],
+      "closure": [
+        "interaction.zoom"
+      ],
+      "params": {
+        "scales": {
+          "kind": "list",
+          "default": [
+            "x"
+          ],
+          "doc": "Names of the scales to control."
+        },
+        "wheel": {
+          "kind": "enum",
+          "values": [
+            "ctrl",
+            "always",
+            "off"
+          ],
+          "default": "ctrl",
+          "doc": "\"ctrl\": Ctrl/Cmd + wheel (and trackpad pinch) zooms, so the page still scrolls; \"always\": plain wheel zooms."
+        },
+        "fit": {
+          "kind": "list",
+          "doc": "Scales to auto-fit to the zoomed window (usually [\"y\"]): their domain is recomputed from the rows that are visible."
+        },
+        "pan": {
+          "kind": "boolean",
+          "default": true
+        },
+        "maxZoom": {
+          "kind": "number",
+          "default": 50,
+          "doc": "How far in you can go, as a multiple of the full domain."
+        }
+      },
+      "doc": "Wheel zoom around the cursor, drag to pan, double-click to reset. Works on continuous scales (linear, time) by changing their view through setView; the layout stays frozen."
+    },
+    "interaction.zoom-controls": {
+      "file": "blocks/interaction.zoom-controls.js",
+      "bytes": 2462,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "interaction.zoom-controls"
+      ],
+      "params": {
+        "scales": {
+          "kind": "list",
+          "default": [
+            "x"
+          ],
+          "doc": "Names of the scales to control, the same as interaction.zoom and interaction.brush. Default [\"x\"] — set it to match whichever scales those use, so \"100%\" undoes everything they did."
+        },
+        "fit": {
+          "kind": "list",
+          "doc": "Scales to refit after a \"−\"/\"+\" click (usually [\"y\"]), the same as interaction.zoom's `fit`."
+        },
+        "step": {
+          "kind": "number",
+          "default": 0.5,
+          "doc": "How much \"−\"/\"+\" grow or shrink a continuous scale's span, as a factor of the current span (0.5 = double/halve)."
+        },
+        "maxZoom": {
+          "kind": "number",
+          "default": 50,
+          "doc": "How far \"+\" can go, as a multiple of the full domain."
+        },
+        "corner": {
+          "kind": "enum",
+          "values": [
+            "top-right",
+            "top-left",
+            "bottom-right",
+            "bottom-left"
+          ],
+          "default": "top-right",
+          "doc": "Which corner of the chart the buttons sit in."
+        }
+      },
+      "doc": "A small button bar over one corner of the chart: \"100%\" clears the controlled scales back to their full domain; \"−\"/\"+\" step a continuous one in and out around the center of its current view. A band scale only gets \"100%\" (there is nothing continuous to step)."
+    },
+    "renderer.canvas": {
+      "file": "blocks/renderer.canvas.js",
+      "bytes": 5619,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "renderer.canvas"
+      ],
+      "doc": "Draws a display list on one <canvas>, scaled to its container and sharp on high-density screens. Meant for charts with tens of thousands of marks (a big scatter plot), where an SVG element per mark gets slow: about 5 times faster to redraw at 50,000 points. A single long line is one path either way, so it gains little; decimate it instead. It reads the same CSS variables as the SVG renderer (themes, dark mode) and follows changes of the color scheme, but a canvas has no elements: CSS classes and native tooltips on marks do not exist here. Zoom, brush, tooltip and legend filter work as usual."
+    },
+    "renderer.svg": {
+      "file": "blocks/renderer.svg.js",
+      "bytes": 2547,
+      "version": 3,
+      "requires": [],
+      "closure": [
+        "renderer.svg"
+      ],
+      "doc": "Draws a display list as one <svg> scaled to its container via viewBox. Paths have no implicit fill: marks set `fill: \"none\"` for strokes."
+    }
+  }
+}

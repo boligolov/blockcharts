@@ -1,0 +1,57 @@
+---
+// The first screen: the one idea (a page carries only the blocks its charts use) and a real report made by the composer
+// from one of the skill's recipes, drawn live. The size tags are read from that report and the release, not typed in.
+import { baseUrl, jsonForScript, kb } from '../lib/site.mjs';
+
+interface Props { charts: { title?: string; note?: string; spec: unknown }[]; codeBytes: number; blocks: number; totalBlocks: number; coreGzip: number; blockRange: [number, number] }
+const { charts, codeBytes, blocks, totalBlocks, coreGzip, blockRange } = Astro.props;
+const base = baseUrl(import.meta.env.BASE_URL);
+---
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="kicker">Atomic charts for HTML dashboards</p>
+      <h1>Only the chart code your page needs. <em>Nothing more.</em></h1>
+      <p class="pitch">
+        blockcharts is a chart library cut into atoms: a scale, a bar, an axis, a tooltip — each one a tiny block. A page carries exactly
+        the blocks its charts use, never the whole library. Ask Claude for a dashboard and get one light HTML file that opens anywhere, offline.
+      </p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="#install">Get the skill</a>
+        <a class="btn btn-secondary" href="#blocks-inside">What is inside</a>
+      </div>
+      <ul class="facts">
+        <li>Core {kb(coreGzip)} gzipped</li>
+        <li>Blocks {(blockRange[0] / 1024).toFixed(1)}–{(blockRange[1] / 1024).toFixed(0)} KB each</li>
+        <li>Customizable down to your own block</li>
+        <li>Free, MIT license</li>
+      </ul>
+    </div>
+    <div>
+      <div class="window">
+        <div class="window-bar">
+          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="file">sales-report.html</span>
+          <span class="meta">
+            <span class="tag neutral">{blocks} of {totalBlocks} blocks</span>
+            <span class="tag num">{kb(codeBytes)} of code</span>
+          </span>
+        </div>
+        <div class="window-body">
+          <div class="pair">
+            {charts.map((c) => (
+              <div>
+                {c.title && <h3>{c.title}</h3>}
+                <script is:inline type="application/json" data-bc-chart set:html={jsonForScript(c.spec)} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <p class="window-caption">
+        Live: this is the <a href={`${base}examples/report-from-csv/`}>report-from-csv</a> recipe — raw order rows in, monthly totals and a
+        ranking out. Hover the points and bars.
+      </p>
+    </div>
+  </div>
+</section>

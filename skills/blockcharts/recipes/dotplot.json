@@ -1,0 +1,34 @@
+{
+  "title": "Dot plot",
+  "data": {
+    "teams": [
+      { "team": "Warriors", "wins": 44 },
+      { "team": "Suns", "wins": 51 },
+      { "team": "Nuggets", "wins": 53 },
+      { "team": "Clippers", "wins": 39 },
+      { "team": "Lakers", "wins": 43 },
+      { "team": "Kings", "wins": 48 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Wins by team",
+      "note": "A Cleveland dot plot: mark.point on a band y-scale and a linear x-scale, one dot per row, centered in its band. Reads as a lighter bar chart when only the ranking matters, not the exact bar length.",
+      "spec": {
+        "data": "teams",
+        "size": [560, 280],
+        "scales": {
+          "y": { "type": "band" },
+          "x": { "type": "linear", "zero": true, "nice": true }
+        },
+        "guides": [
+          { "type": "grid", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "axis", "scale": "x" }
+        ],
+        "marks": [{ "type": "point", "x": "wins", "y": "team", "r": 5 }],
+        "interaction": [{ "type": "tooltip" }]
+      }
+    }
+  ]
+}

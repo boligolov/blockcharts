@@ -1,0 +1,40 @@
+{
+  "title": "Lines by series",
+  "data": {
+    "traffic": {
+      "columns": {
+        "date": ["2024-01-01", "2024-02-01", "2024-03-01", "2024-04-01", "2024-05-01", "2024-06-01",
+                 "2024-01-01", "2024-02-01", "2024-03-01", "2024-04-01", "2024-05-01", "2024-06-01",
+                 "2024-01-01", "2024-02-01", "2024-03-01", "2024-04-01", "2024-05-01", "2024-06-01"],
+        "channel": ["web", "web", "web", "web", "web", "web",
+                    "app", "app", "app", "app", "app", "app",
+                    "email", "email", "email", "email", "email", "email"],
+        "visits": [200, 260, 310, 290, 350, 420,
+                   120, 150, 210, 260, 280, 330,
+                   60, 55, 70, 90, 85, 110]
+      }
+    }
+  },
+  "charts": [
+    {
+      "title": "Visits per channel",
+      "note": "Ctrl + wheel zooms (the y axis follows the visible part), drag pans, Shift + drag selects a range to zoom to, double-click resets. Click a legend item to hide or show a series; double-click it to show only that one.",
+      "spec": {
+        "data": "traffic",
+        "scales": {
+          "x": { "type": "time" },
+          "y": { "type": "linear", "zero": true },
+          "color": { "type": "color" }
+        },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "legend", "scale": "color", "position": "top" }
+        ],
+        "marks": [{ "type": "line", "x": "date", "y": "visits", "color": "channel" }],
+        "interaction": [{ "type": "zoom", "fit": ["y"] }, { "type": "brush", "fit": ["y"] }, { "type": "legend-filter" }, { "type": "tooltip" }]
+      }
+    }
+  ]
+}

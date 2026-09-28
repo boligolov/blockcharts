@@ -1,0 +1,34 @@
+{
+  "title": "Heatmap",
+  "data": {
+    "activity": {
+      "columns": {
+        "day":    ["Mon", "Mon", "Mon", "Mon", "Tue", "Tue", "Tue", "Tue", "Wed", "Wed", "Wed", "Wed", "Thu", "Thu", "Thu", "Thu", "Fri", "Fri", "Fri", "Fri"],
+        "period": ["Morning", "Noon", "Evening", "Night", "Morning", "Noon", "Evening", "Night", "Morning", "Noon", "Evening", "Night", "Morning", "Noon", "Evening", "Night", "Morning", "Noon", "Evening", "Night"],
+        "visits": [120, 340, 410, 60, 150, 380, 430, 55, 170, 420, 460, 70, 160, 400, 440, 65, 130, 300, 280, 90]
+      }
+    }
+  },
+  "charts": [
+    {
+      "title": "Visits by weekday and time of day",
+      "note": "Two band scales make the grid, a sequential scale turns the number into a color. A cell without a row stays empty.",
+      "spec": {
+        "data": "activity",
+        "size": [640, 300],
+        "scales": {
+          "x": { "type": "band", "paddingInner": 0.06, "paddingOuter": 0 },
+          "y": { "type": "band", "paddingInner": 0.06, "paddingOuter": 0 },
+          "color": { "type": "sequential" }
+        },
+        "guides": [
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "legend", "scale": "color" }
+        ],
+        "marks": [{ "type": "rect", "x": "day", "y": "period", "color": "visits" }],
+        "interaction": [{ "type": "tooltip" }]
+      }
+    }
+  ]
+}

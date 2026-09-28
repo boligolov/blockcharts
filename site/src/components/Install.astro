@@ -1,0 +1,60 @@
+---
+// Installing the skill: the main product, three ways in. Every command block can be copied; the /plugin lines are
+// typed into a Claude Code session by a person, the shell forms can be run by an agent too.
+import { baseUrl, repoFile, SITE } from '../lib/site.mjs';
+
+const base = baseUrl(import.meta.env.BASE_URL);
+type Block = { label?: string; lines: string[] };
+type Way = { id: string; tab: string; note: string; blocks?: Block[]; download?: boolean; after?: string };
+const ways: Way[] = [
+  {
+    id: 'code',
+    tab: 'Claude Code',
+    note: 'A plugin from this project’s own marketplace. It updates itself when a new version is out.',
+    blocks: [
+      { label: 'In a Claude Code session', lines: ['/plugin marketplace add boligolov/blockcharts', '/plugin install blockcharts@blockcharts'] },
+      { label: 'Or from a terminal', lines: ['claude plugin marketplace add boligolov/blockcharts', 'claude plugin install blockcharts@blockcharts'] },
+    ],
+  },
+  {
+    id: 'app',
+    tab: 'Claude.ai · Desktop',
+    note: 'Download the skill and upload it under Settings → Capabilities → Skills. Code execution must be on: Claude runs the composer in its sandbox and hands you the HTML file.',
+    download: true,
+  },
+  {
+    id: 'other',
+    tab: 'Any agent',
+    note: 'Unpack the folder into the agent’s skills folder (for Claude Code: ~/.claude/skills). It needs Node.js 18 or later.',
+    blocks: [
+      { label: 'macOS · Linux', lines: [`curl -fsSL ${SITE}/blockcharts.skill -o /tmp/blockcharts.zip`, 'mkdir -p ~/.claude/skills && unzip -o /tmp/blockcharts.zip -d ~/.claude/skills'] },
+      { label: 'Windows · PowerShell', lines: [`Invoke-WebRequest ${SITE}/blockcharts.skill -OutFile $env:TEMP\\blockcharts.zip`, 'Expand-Archive $env:TEMP\\blockcharts.zip $env:USERPROFILE\\.claude\\skills -Force'] },
+    ],
+  },
+];
+---
+<div class="install">
+  <div role="tablist" aria-label="Where to install the skill">
+    {ways.map((w, i) => (
+      <button role="tab" type="button" id={`tab-${w.id}`} aria-controls={`panel-${w.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{w.tab}</button>
+    ))}
+  </div>
+  {ways.map((w, i) => (
+    <div role="tabpanel" id={`panel-${w.id}`} aria-labelledby={`tab-${w.id}`} hidden={i !== 0}>
+      <p class="note">{w.note}</p>
+      {w.blocks?.map((b) => (
+        <div class="code">
+          {b.label && <span class="label">{b.label}</span>}
+          <pre><code>{b.lines.join('\n')}</code></pre>
+          <button class="copy" type="button" data-copy={b.lines.join('\n')} aria-label={`Copy: ${b.label || w.tab}`}>Copy</button>
+        </div>
+      ))}
+      {w.download && (
+        <p><a class="btn btn-primary" href={`${base}blockcharts.skill`} download>Download blockcharts.skill</a></p>
+      )}
+    </div>
+  ))}
+  <div role="presentation" style="padding: 0 22px 20px;">
+    <p class="after">Then just ask: <em>“make an HTML report of monthly revenue by region from sales.csv”</em>. More on scopes and updates in <a href={repoFile('docs/skill.md')}>docs/skill.md</a>.</p>
+  </div>
+</div>

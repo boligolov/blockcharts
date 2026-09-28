@@ -1,0 +1,36 @@
+{
+  "title": "Two scales on one chart",
+  "data": {
+    "monthly": [
+      { "month": 1, "revenue": 120, "units": 3400 }, { "month": 2, "revenue": 150, "units": 3900 },
+      { "month": 3, "revenue": 130, "units": 5200 }, { "month": 4, "revenue": 180, "units": 4800 },
+      { "month": 5, "revenue": 210, "units": 6100 }, { "month": 6, "revenue": 190, "units": 7300 },
+      { "month": 7, "revenue": 260, "units": 6900 }, { "month": 8, "revenue": 240, "units": 8800 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Revenue (left) and units sold (right)",
+      "note": "y2 is a second linear scale. A mark chooses it with { field, scale }, and its axis goes to the right with position.",
+      "spec": {
+        "data": "monthly",
+        "scales": {
+          "x": { "type": "linear", "padding": 0.05 },
+          "y": { "type": "linear", "zero": true },
+          "y2": { "type": "linear", "range": "height" }
+        },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "axis", "scale": "y2", "position": "right" }
+        ],
+        "marks": [
+          { "type": "point", "x": "month", "y": "revenue", "r": 4 },
+          { "type": "point", "x": "month", "y": { "field": "units", "scale": "y2" }, "r": 3 }
+        ],
+        "interaction": [{ "type": "tooltip" }]
+      }
+    }
+  ]
+}

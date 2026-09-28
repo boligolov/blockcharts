@@ -1,0 +1,2 @@
+"use strict";(function(){const o={role:"guide",type:"grid",version:1,params:{scale:{kind:"scale",required:!0}},render(c,e){const r=c.scale;if(!r)return{};const d=e.orientation(r)==="vertical",{x:i,y:n,w:l,h:a}=e.plot;let t="";for(const s of e.ticks(r))t+=d?`M${i} ${s.pos}H${i+l}`:`M${s.pos} ${n}V${n+a}`;return t?{grid:[{type:"path",d:t,cls:"bc-grid",style:{fill:"none",stroke:"var(--bc-grid, #e6e6e6)",strokeWidth:1}}]}:{}}};BC.define(o)})();
+
