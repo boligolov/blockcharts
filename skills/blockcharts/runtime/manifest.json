@@ -415,6 +415,67 @@
       },
       "doc": "A waterfall (bridge) chart: how a starting value becomes an ending one through gains and losses. In row order, each row adds its `field` to a running total; the transform writes where each bar starts and ends (`<field>0`, `<field>1`), its kind (`step`: \"increase\", \"decrease\" or \"total\"), what it stands for (`amount`: the change, or the total) and its upper end (`top`, for a label above it). Rows marked by the `total` field are subtotals: their bar goes from 0 to the running total, and their own value is ignored. Draw with mark.rect (y = `<field>1`, y2 = `<field>0` on a band x), colored by `step` through a color scale."
     },
+    "transform.window": {
+      "file": "blocks/transform.window.js",
+      "bytes": 3059,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "transform.window"
+      ],
+      "params": {
+        "field": {
+          "kind": "field",
+          "required": true,
+          "doc": "Numeric field to compute from."
+        },
+        "op": {
+          "kind": "enum",
+          "values": [
+            "cumsum",
+            "sum",
+            "mean",
+            "min",
+            "max",
+            "diff",
+            "pctChange"
+          ],
+          "required": true,
+          "doc": "cumsum | sum | mean | min | max | diff | pctChange."
+        },
+        "size": {
+          "kind": "number",
+          "doc": "Rows in the window of sum, mean, min, max (required for them)."
+        },
+        "align": {
+          "kind": "enum",
+          "values": [
+            "trailing",
+            "center"
+          ],
+          "default": "trailing",
+          "doc": "\"trailing\": the row and the size - 1 rows before it. \"center\": the row in the middle of its window."
+        },
+        "partial": {
+          "kind": "boolean",
+          "default": false,
+          "doc": "Compute windows cut short by the start or end of a series from the rows they have."
+        },
+        "sort": {
+          "kind": "field",
+          "doc": "Field that orders the rows (the x of the chart). Rows without it get NaN."
+        },
+        "group": {
+          "kind": "field",
+          "doc": "Field that splits the rows into series, each computed on its own; a missing value is a series of its own."
+        },
+        "as": {
+          "kind": "string",
+          "doc": "Name of the new column."
+        }
+      },
+      "doc": "A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%). Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default \"<op>_<field>\") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true."
+    },
     "mark.arc": {
       "file": "blocks/mark.arc.js",
       "bytes": 2997,

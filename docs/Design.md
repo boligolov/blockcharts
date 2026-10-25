@@ -43,7 +43,7 @@ Blocks are split by **role**, not by chart type.
 | Role | Examples |
 |---|---|
 | scale | linear, log, time, band, color |
-| transform | stack, bin, aggregate |
+| transform | stack, bin, aggregate, window |
 | mark | line, area, point, rect, arc, text |
 | guide | axis, grid, legend |
 | interaction | tooltip, hover, zoom |
@@ -812,6 +812,13 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   (the series sort is by pixel, and bands run left to right in domain order). A category outside the domain, or
   outside a zoomed window of categories, has no x and breaks the line like a missing value. End labels and the
   tooltip use the same centered x. Recipe `slope` (two years per region, end labels instead of a legend).
+- **`transform.window`**: a column computed from the rows before (or around) each row of a series, in `sort` order,
+  per `group`: `cumsum`, moving `sum` / `mean` / `min` / `max` over `size` rows (trailing or centered), `diff`,
+  `pctChange`. Rows stay where they are. Missing values are skipped by the window and get NaN; a window cut short by
+  the start of a series is NaN unless `partial`. Windows slide in O(n) — a running sum and count, monotone deques
+  for min and max — so a wide window on a long series costs the same as a narrow one (a direct computation took 32 s
+  on a 10,000-row window over 100,000 rows; a test holds it under 2 s). Recipe `moving-average`; in the
+  `timeseries` and `dashboard` kits.
 
 ## Next steps
 

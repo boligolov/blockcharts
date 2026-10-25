@@ -2963,4 +2963,105 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(shapes.length, 2);
     for (const s of shapes) assert(s.every((v) => Math.abs(v.x - mid('Before')) < 0.01 || Math.abs(v.x - mid('After')) < 0.01), `area vertices centered: ${JSON.stringify(s)}`);
   });
+
+  const win = (cols, spec) => BC.get('transform.window').apply(T(cols), { type: 'window', ...spec });
+  const nan = (col) => Array.from(col, (x) => (Number.isNaN(x) ? 'nan' : Math.round(x * 1e9) / 1e9));
+
+  test('transform.window: running total, change from the previous row, per series in sort order', () => {
+    // rows out of order, two series, a gap in A
+    const cols = { d: ['2024-03', '2024-01', '2024-02', '2024-01', '2024-02', '2024-04'], s: ['A', 'A', 'A', 'B', 'B', 'A'], v: [5, 2, null, 10, 12, 4] };
+    assert.deepStrictEqual(nan(win(cols, { field: 'v', op: 'cumsum', sort: 'd', group: 's' }).columns.cumsum_v), [7, 2, 'nan', 10, 22, 11], 'a gap adds nothing and has no total');
+    assert.deepStrictEqual(nan(win(cols, { field: 'v', op: 'diff', sort: 'd', group: 's', as: 'delta' }).columns.delta), ['nan', 'nan', 'nan', 'nan', 2, -1], 'next to a gap there is no change');
+    assert.deepStrictEqual(nan(win({ v: [10, 12, 0, 3, -4, -2] }, { field: 'v', op: 'pctChange' }).columns.pctChange_v), ['nan', 0.2, -1, 'nan', -2.333333333, 0.5], 'from 0 there is no percent; a negative base divides by its size');
+    assert.deepStrictEqual(nan(win({ v: [1, 2, 3] }, { field: 'v', op: 'cumsum' }).columns.cumsum_v), [1, 3, 6], 'no sort: data order');
+  });
+
+  test('transform.window: moving windows, trailing and centered, partial edges', () => {
+    const v = [1, 2, 3, 4, 5];
+    assert.deepStrictEqual(nan(win({ v }, { field: 'v', op: 'mean', size: 3 }).columns.mean_v), ['nan', 'nan', 2, 3, 4]);
+    assert.deepStrictEqual(nan(win({ v }, { field: 'v', op: 'mean', size: 3, partial: true }).columns.mean_v), [1, 1.5, 2, 3, 4]);
+    assert.deepStrictEqual(nan(win({ v }, { field: 'v', op: 'sum', size: 3, align: 'center' }).columns.sum_v), ['nan', 6, 9, 12, 'nan']);
+    assert.deepStrictEqual(nan(win({ v }, { field: 'v', op: 'max', size: 4, align: 'center', partial: true }).columns.max_v), [2, 3, 4, 5, 5], 'even size: two rows before, one after');
+    assert.deepStrictEqual(nan(win({ v: [3, null, 1, 8] }, { field: 'v', op: 'min', size: 2 }).columns.min_v), ['nan', 'nan', 1, 1], 'a missing row gets nothing, its neighbours skip it');
+    assert.deepStrictEqual(nan(win({ v }, { field: 'v', op: 'mean', size: 50 }).columns.mean_v), ['nan', 'nan', 'nan', 'nan', 'nan'], 'a window longer than the series');
+
+    // the sliding sums and deques against a direct computation, on random data with gaps
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let trial = 0; trial < 60; trial++) {
+      const n = 1 + Math.floor(rnd() * 40);
+      const vals = Array.from({ length: n }, () => (rnd() < 0.2 ? null : Math.round(rnd() * 200 - 100)));
+      const size = 1 + Math.floor(rnd() * 8);
+      const align = rnd() < 0.5 ? 'trailing' : 'center';
+      const partial = rnd() < 0.5;
+      for (const op of ['sum', 'mean', 'min', 'max']) {
+        const got = nan(win({ v: vals }, { field: 'v', op, size, align, partial }).columns[op + '_v']);
+        const before = align === 'center' ? Math.floor(size / 2) : size - 1;
+        const want = vals.map((x, k) => {
+          const a = k - before;
+          const b = k + size - 1 - before;
+          if (x === null || (!partial && (a < 0 || b >= n))) return 'nan';
+          const w = vals.slice(Math.max(0, a), Math.min(n, b + 1)).filter((y) => y !== null);
+          const r = op === 'sum' ? w.reduce((p, q) => p + q, 0) : op === 'mean' ? w.reduce((p, q) => p + q, 0) / w.length : op === 'min' ? Math.min(...w) : Math.max(...w);
+          return Math.round(r * 1e9) / 1e9;
+        });
+        assert.deepStrictEqual(got, want, `${op} size ${size} ${align} partial=${partial} on ${JSON.stringify(vals)}`);
+      }
+    }
+  });
+
+  test('transform.window: hostile input — bad params are clear errors, odd sort and group values, a long series stays fast', () => {
+    const cols = { v: [1, 2, 3], d: [3, 1, 2] };
+    assert.throws(() => win(cols, { field: 'v', op: 'median', size: 3 }), /"op" must be one of/);
+    assert.throws(() => win(cols, { field: 'v' }), /"op" must be one of/);
+    assert.throws(() => win(cols, { field: 'v', op: 'mean' }), /"mean" needs "size"/);
+    for (const size of [0, 2.5, -1, '3', NaN]) assert.throws(() => win(cols, { field: 'v', op: 'sum', size }), /needs "size"/, String(size));
+    assert.throws(() => win(cols, { field: 'v', op: 'cumsum', size: 3 }), /"size" applies to sum, mean, min and max/);
+    assert.throws(() => win(cols, { field: 'v', op: 'sum', size: 2, align: 'left' }), /"align"/);
+    assert.throws(() => win(cols, { field: 'nope', op: 'cumsum' }), /unknown field "nope"/);
+    assert.throws(() => win(cols, { field: 'v', op: 'cumsum', sort: 'nope' }), /unknown field "nope"/);
+    assert.throws(() => win(cols, { field: 'v', op: 'cumsum', group: 'nope' }), /unknown field "nope"/);
+    assert.throws(() => win(cols, { op: 'cumsum' }), /"field"/);
+    assert.throws(() => win(cols, { field: 'v', op: 'cumsum', as: '' }), /"as"/);
+    assert.deepStrictEqual(BC.get('transform.window').outputs({ field: 'v', op: 'mean', size: 3 }), ['mean_v']);
+    assert.deepStrictEqual(BC.get('transform.window').outputs({ field: 'v', op: 'mean', size: 3, as: 'avg' }), ['avg']);
+
+    assert.deepStrictEqual(nan(win(cols, { field: 'v', op: 'cumsum', sort: 'd' }).columns.cumsum_v), [6, 2, 5], 'sorted by a number field');
+    // dates as Date objects, a row without a date (NaN: left out), strings that are not numbers, mixed with numbers
+    const t = win({ v: [1, 1, 1, 1, 1], d: [new Date(3000), new Date(1000), null, new Date(NaN), new Date(2000)] }, { field: 'v', op: 'cumsum', sort: 'd' });
+    assert.deepStrictEqual(nan(t.columns.cumsum_v), [3, 1, 'nan', 'nan', 2]);
+    assert.deepStrictEqual(nan(win({ v: [1, 1, 1], d: ['b', 2, 'a'] }, { field: 'v', op: 'cumsum', sort: 'd' }).columns.cumsum_v), [3, 1, 2], 'numbers first, then strings');
+    // values that are not numbers are missing; null and NaN groups are one group of their own; "1" and 1 are different
+    const g = win({ v: ['5', 1, 2, 3, 4, true], s: [1, null, NaN, '1', 1, 1] }, { field: 'v', op: 'cumsum', group: 's' });
+    assert.deepStrictEqual(nan(g.columns.cumsum_v), ['nan', 1, 3, 3, 4, 'nan']);
+    assert.deepStrictEqual(Object.keys(cols), ['v', 'd'], 'the input table is untouched');
+    assert.strictEqual(win({ v: [] }, { field: 'v', op: 'mean', size: 3 }).length, 0, 'empty table');
+
+    const n = 100000;
+    const big = Float64Array.from({ length: n }, (_, i) => Math.sin(i / 50) * 100);
+    const t0 = Date.now();
+    const r = win({ v: big }, { field: 'v', op: 'max', size: n / 10 });
+    assert(Date.now() - t0 < 2000, `a window of 10,000 rows on 100,000 rows took ${Date.now() - t0} ms`);
+    assert.strictEqual(r.columns.max_v[n - 1], big.subarray(n - n / 10).reduce((a, b) => (b > a ? b : a)));
+  });
+
+  test('transform.window: a moving average drawn as a line next to the raw values, its column known to validate', () => {
+    BC.data('daily', Array.from({ length: 30 }, (_, i) => ({ day: `2024-01-${String(i + 1).padStart(2, '0')}`, sales: 100 + (i % 7) * 10 })));
+    const spec = {
+      data: 'daily',
+      transforms: [{ type: 'window', field: 'sales', op: 'mean', size: 7, sort: 'day', as: 'avg7' }],
+      scales: { x: { type: 'time' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'line', x: 'day', y: 'sales' }, { type: 'line', x: 'day', y: 'avg7' }],
+    };
+    assert.deepStrictEqual(BC.validate(spec), []);
+    const bad = BC.validate({ ...spec, marks: [{ type: 'line', x: 'day', y: 'avg' }] });
+    assert(bad.some((d) => /avg/.test(d.message)), JSON.stringify(bad));
+    const host = new FakeNode('div');
+    const h = BC.chart(host, spec);
+    assert.deepStrictEqual(h.diagnostics, []);
+    const paths = [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
+    assert.deepStrictEqual(paths.map((p) => p.length), [30, 24], 'the first six days have no full week');
+    const ys = paths[1].map((p) => p.y);
+    assert(Math.max(...ys) - Math.min(...ys) < 0.01, 'a weekly pattern averages out to a flat line');
+  });
 };

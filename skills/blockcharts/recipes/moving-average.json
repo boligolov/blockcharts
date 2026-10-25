@@ -1,0 +1,386 @@
+{
+  "title": "Moving average and running total",
+  "data": {
+    "signups": [
+      { "day": "2024-09-01", "signups": 84 },
+      { "day": "2024-09-02", "signups": 143 },
+      { "day": "2024-09-03", "signups": 199 },
+      { "day": "2024-09-04", "signups": 191 },
+      { "day": "2024-09-05", "signups": 227 },
+      { "day": "2024-09-06", "signups": 192 },
+      { "day": "2024-09-07", "signups": 133 },
+      { "day": "2024-09-08", "signups": 104 },
+      { "day": "2024-09-09", "signups": 153 },
+      { "day": "2024-09-10", "signups": 209 },
+      { "day": "2024-09-11", "signups": 215 },
+      { "day": "2024-09-12", "signups": 231 },
+      { "day": "2024-09-13", "signups": 187 },
+      { "day": "2024-09-14", "signups": 136 },
+      { "day": "2024-09-15", "signups": 114 },
+      { "day": "2024-09-16", "signups": 179 },
+      { "day": "2024-09-17", "signups": 228 },
+      { "day": "2024-09-18", "signups": 218 },
+      { "day": "2024-09-19", "signups": 210 },
+      { "day": "2024-09-20", "signups": 237 },
+      { "day": "2024-09-21", "signups": 153 },
+      { "day": "2024-09-22", "signups": 119 },
+      { "day": "2024-09-23", "signups": 171 },
+      { "day": "2024-09-24", "signups": 229 },
+      { "day": "2024-09-25", "signups": 247 },
+      { "day": "2024-09-26", "signups": 264 },
+      { "day": "2024-09-27", "signups": 199 },
+      { "day": "2024-09-28", "signups": 142 },
+      { "day": "2024-09-29", "signups": 126 },
+      { "day": "2024-09-30", "signups": 193 },
+      { "day": "2024-10-01", "signups": 224 },
+      { "day": "2024-10-02", "signups": 266 },
+      { "day": "2024-10-03", "signups": 284 },
+      { "day": "2024-10-04", "signups": 246 },
+      { "day": "2024-10-05", "signups": 144 },
+      { "day": "2024-10-06", "signups": 134 },
+      { "day": "2024-10-07", "signups": 216 },
+      { "day": "2024-10-08", "signups": 260 },
+      { "day": "2024-10-09", "signups": 324 },
+      { "day": "2024-10-10", "signups": 228 },
+      { "day": "2024-10-11", "signups": 273 },
+      { "day": "2024-10-12", "signups": 188 },
+      { "day": "2024-10-13", "signups": 154 },
+      { "day": "2024-10-14", "signups": 186 },
+      { "day": "2024-10-15", "signups": 259 },
+      { "day": "2024-10-16", "signups": 330 },
+      { "day": "2024-10-17", "signups": 316 },
+      { "day": "2024-10-18", "signups": 287 },
+      { "day": "2024-10-19", "signups": 207 },
+      { "day": "2024-10-20", "signups": 155 },
+      { "day": "2024-10-21", "signups": 204 },
+      { "day": "2024-10-22", "signups": 279 },
+      { "day": "2024-10-23", "signups": 327 },
+      { "day": "2024-10-24", "signups": 250 },
+      { "day": "2024-10-25", "signups": 318 },
+      { "day": "2024-10-26", "signups": 206 },
+      { "day": "2024-10-27", "signups": 142 },
+      { "day": "2024-10-28", "signups": 241 },
+      { "day": "2024-10-29", "signups": 267 },
+      { "day": "2024-10-30", "signups": 346 },
+      { "day": "2024-10-31", "signups": 345 },
+      { "day": "2024-11-01", "signups": 296 },
+      { "day": "2024-11-02", "signups": 206 },
+      { "day": "2024-11-03", "signups": 155 },
+      { "day": "2024-11-04", "signups": 250 },
+      { "day": "2024-11-05", "signups": 320 },
+      { "day": "2024-11-06", "signups": 387 },
+      { "day": "2024-11-07", "signups": 363 },
+      { "day": "2024-11-08", "signups": 296 },
+      { "day": "2024-11-09", "signups": 222 },
+      { "day": "2024-11-10", "signups": 161 },
+      { "day": "2024-11-11", "signups": 216 },
+      { "day": "2024-11-12", "signups": 293 },
+      { "day": "2024-11-13", "signups": 308 },
+      { "day": "2024-11-14", "signups": 360 },
+      { "day": "2024-11-15", "signups": 278 },
+      { "day": "2024-11-16", "signups": 202 },
+      { "day": "2024-11-17", "signups": 169 },
+      { "day": "2024-11-18", "signups": 235 },
+      { "day": "2024-11-19", "signups": 349 },
+      { "day": "2024-11-20", "signups": 326 },
+      { "day": "2024-11-21", "signups": 328 },
+      { "day": "2024-11-22", "signups": 295 },
+      { "day": "2024-11-23", "signups": 224 },
+      { "day": "2024-11-24", "signups": 176 },
+      { "day": "2024-11-25", "signups": 285 },
+      { "day": "2024-11-26", "signups": 321 },
+      { "day": "2024-11-27", "signups": 438 },
+      { "day": "2024-11-28", "signups": 405 },
+      { "day": "2024-11-29", "signups": 366 },
+      { "day": "2024-11-30", "signups": 231 }
+    ],
+    "sales": [
+      { "day": "2024-09-01", "region": "North", "revenue": 2636 },
+      { "day": "2024-09-01", "region": "South", "revenue": 2610 },
+      { "day": "2024-09-01", "region": "West", "revenue": 2752 },
+      { "day": "2024-09-02", "region": "North", "revenue": 4166 },
+      { "day": "2024-09-02", "region": "South", "revenue": 2756 },
+      { "day": "2024-09-02", "region": "West", "revenue": 3753 },
+      { "day": "2024-09-03", "region": "North", "revenue": 5107 },
+      { "day": "2024-09-03", "region": "South", "revenue": 5730 },
+      { "day": "2024-09-03", "region": "West", "revenue": 5510 },
+      { "day": "2024-09-04", "region": "North", "revenue": 7776 },
+      { "day": "2024-09-04", "region": "South", "revenue": 3689 },
+      { "day": "2024-09-04", "region": "West", "revenue": 4392 },
+      { "day": "2024-09-05", "region": "North", "revenue": 7304 },
+      { "day": "2024-09-05", "region": "South", "revenue": 4781 },
+      { "day": "2024-09-05", "region": "West", "revenue": 4417 },
+      { "day": "2024-09-06", "region": "North", "revenue": 6529 },
+      { "day": "2024-09-06", "region": "South", "revenue": 3760 },
+      { "day": "2024-09-06", "region": "West", "revenue": 5928 },
+      { "day": "2024-09-07", "region": "North", "revenue": 3603 },
+      { "day": "2024-09-07", "region": "South", "revenue": 2745 },
+      { "day": "2024-09-07", "region": "West", "revenue": 2701 },
+      { "day": "2024-09-08", "region": "North", "revenue": 2174 },
+      { "day": "2024-09-08", "region": "South", "revenue": 2529 },
+      { "day": "2024-09-08", "region": "West", "revenue": 3097 },
+      { "day": "2024-09-09", "region": "North", "revenue": 3567 },
+      { "day": "2024-09-09", "region": "South", "revenue": 3602 },
+      { "day": "2024-09-09", "region": "West", "revenue": 3327 },
+      { "day": "2024-09-10", "region": "North", "revenue": 7278 },
+      { "day": "2024-09-10", "region": "South", "revenue": 4309 },
+      { "day": "2024-09-10", "region": "West", "revenue": 3706 },
+      { "day": "2024-09-11", "region": "North", "revenue": 4445 },
+      { "day": "2024-09-11", "region": "South", "revenue": 3369 },
+      { "day": "2024-09-11", "region": "West", "revenue": 5710 },
+      { "day": "2024-09-12", "region": "North", "revenue": 5019 },
+      { "day": "2024-09-12", "region": "South", "revenue": 5083 },
+      { "day": "2024-09-12", "region": "West", "revenue": 4504 },
+      { "day": "2024-09-13", "region": "North", "revenue": 5915 },
+      { "day": "2024-09-13", "region": "South", "revenue": 5299 },
+      { "day": "2024-09-13", "region": "West", "revenue": 4810 },
+      { "day": "2024-09-14", "region": "North", "revenue": 4201 },
+      { "day": "2024-09-14", "region": "South", "revenue": 2194 },
+      { "day": "2024-09-14", "region": "West", "revenue": 3517 },
+      { "day": "2024-09-15", "region": "North", "revenue": 2851 },
+      { "day": "2024-09-15", "region": "South", "revenue": 1815 },
+      { "day": "2024-09-15", "region": "West", "revenue": 2173 },
+      { "day": "2024-09-16", "region": "North", "revenue": 4153 },
+      { "day": "2024-09-16", "region": "South", "revenue": 3350 },
+      { "day": "2024-09-16", "region": "West", "revenue": 3590 },
+      { "day": "2024-09-17", "region": "North", "revenue": 5267 },
+      { "day": "2024-09-17", "region": "South", "revenue": 4461 },
+      { "day": "2024-09-17", "region": "West", "revenue": 5320 },
+      { "day": "2024-09-18", "region": "North", "revenue": 4808 },
+      { "day": "2024-09-18", "region": "South", "revenue": 5044 },
+      { "day": "2024-09-18", "region": "West", "revenue": 6568 },
+      { "day": "2024-09-19", "region": "North", "revenue": 5708 },
+      { "day": "2024-09-19", "region": "South", "revenue": 4444 },
+      { "day": "2024-09-19", "region": "West", "revenue": 4191 },
+      { "day": "2024-09-20", "region": "North", "revenue": 6356 },
+      { "day": "2024-09-20", "region": "South", "revenue": 3785 },
+      { "day": "2024-09-20", "region": "West", "revenue": 3683 },
+      { "day": "2024-09-21", "region": "North", "revenue": 3797 },
+      { "day": "2024-09-21", "region": "South", "revenue": 2544 },
+      { "day": "2024-09-21", "region": "West", "revenue": 2635 },
+      { "day": "2024-09-22", "region": "North", "revenue": 2880 },
+      { "day": "2024-09-22", "region": "South", "revenue": 2688 },
+      { "day": "2024-09-22", "region": "West", "revenue": 2369 },
+      { "day": "2024-09-23", "region": "North", "revenue": 3321 },
+      { "day": "2024-09-23", "region": "South", "revenue": 3753 },
+      { "day": "2024-09-23", "region": "West", "revenue": 4417 },
+      { "day": "2024-09-24", "region": "North", "revenue": 6792 },
+      { "day": "2024-09-24", "region": "South", "revenue": 3787 },
+      { "day": "2024-09-24", "region": "West", "revenue": 4600 },
+      { "day": "2024-09-25", "region": "North", "revenue": 5251 },
+      { "day": "2024-09-25", "region": "South", "revenue": 4152 },
+      { "day": "2024-09-25", "region": "West", "revenue": 6906 },
+      { "day": "2024-09-26", "region": "North", "revenue": 6377 },
+      { "day": "2024-09-26", "region": "South", "revenue": 4450 },
+      { "day": "2024-09-26", "region": "West", "revenue": 4824 },
+      { "day": "2024-09-27", "region": "North", "revenue": 5504 },
+      { "day": "2024-09-27", "region": "South", "revenue": 3955 },
+      { "day": "2024-09-27", "region": "West", "revenue": 5532 },
+      { "day": "2024-09-28", "region": "North", "revenue": 2578 },
+      { "day": "2024-09-28", "region": "South", "revenue": 3195 },
+      { "day": "2024-09-28", "region": "West", "revenue": 3764 },
+      { "day": "2024-09-29", "region": "North", "revenue": 2034 },
+      { "day": "2024-09-29", "region": "South", "revenue": 2510 },
+      { "day": "2024-09-29", "region": "West", "revenue": 2509 },
+      { "day": "2024-09-30", "region": "North", "revenue": 4446 },
+      { "day": "2024-09-30", "region": "South", "revenue": 2200 },
+      { "day": "2024-09-30", "region": "West", "revenue": 4441 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Daily sign-ups and their 7-day average",
+      "note": "transform.window with op \"mean\" and size 7 averages each day with the six before it, so the weekly dip disappears and the trend shows. The first six days have no full week and are left out (partial: true would keep them). Draw the raw values thin and quiet and the average on top.",
+      "spec": {
+        "data": "signups",
+        "size": [
+          680,
+          300
+        ],
+        "padding": {
+          "right": 100
+        },
+        "transforms": [
+          {
+            "type": "window",
+            "field": "signups",
+            "op": "mean",
+            "size": 7,
+            "sort": "day",
+            "as": "avg7"
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "time"
+          },
+          "y": {
+            "type": "linear",
+            "zero": true,
+            "nice": true
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x",
+            "format": {
+              "month": "short",
+              "day": "numeric"
+            }
+          },
+          {
+            "type": "axis",
+            "scale": "y"
+          }
+        ],
+        "marks": [
+          {
+            "type": "line",
+            "x": "day",
+            "y": "signups",
+            "stroke": "var(--bc-axis, #9aa3b2)",
+            "strokeWidth": 1,
+            "opacity": 0.7,
+            "label": "name",
+            "name": "Daily"
+          },
+          {
+            "type": "line",
+            "x": "day",
+            "y": "avg7",
+            "strokeWidth": 2.5,
+            "curve": "smooth",
+            "label": "name",
+            "name": "7-day avg"
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "day",
+              "signups",
+              "avg7"
+            ],
+            "formats": {
+              "day": {
+                "weekday": "short",
+                "month": "short",
+                "day": "numeric"
+              },
+              "avg7": {
+                "maximumFractionDigits": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "title": "Revenue to date, by region",
+      "note": "op \"cumsum\" with group: a running total for each region, in the order of sort. Each total is computed over its own region only; end labels name the lines and give the month total.",
+      "spec": {
+        "data": "sales",
+        "size": [
+          680,
+          300
+        ],
+        "padding": {
+          "right": 130
+        },
+        "transforms": [
+          {
+            "type": "window",
+            "field": "revenue",
+            "op": "cumsum",
+            "sort": "day",
+            "group": "region",
+            "as": "toDate"
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "time"
+          },
+          "y": {
+            "type": "linear",
+            "zero": true,
+            "nice": true
+          },
+          "color": {
+            "type": "color"
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x",
+            "format": {
+              "month": "short",
+              "day": "numeric"
+            }
+          },
+          {
+            "type": "axis",
+            "scale": "y",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 1
+            }
+          }
+        ],
+        "marks": [
+          {
+            "type": "line",
+            "x": "day",
+            "y": "toDate",
+            "color": "region",
+            "label": "both",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 1
+            }
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "day",
+              "region",
+              "revenue",
+              "toDate"
+            ],
+            "formats": {
+              "revenue": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 1
+              },
+              "toDate": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 1
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

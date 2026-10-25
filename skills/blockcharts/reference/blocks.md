@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-35 blocks: `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.funnel`, `transform.quartiles`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+36 blocks: `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.funnel`, `transform.quartiles`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -171,6 +171,21 @@ Version 1, 1.4 KB. A waterfall (bridge) chart: how a starting value becomes an e
 | `kindAs` | string | `"step"` | Name of the column that says "increase", "decrease" or "total". |
 | `amountAs` | string | `"amount"` | Name of the column with what each bar stands for: the change of a step, the running total of a subtotal. Label bars with it. |
 | `topAs` | string | `"top"` | Name of the column with the upper end of each bar, where a label above it goes. |
+
+## transform.window
+
+Version 1, 3.0 KB. A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%). Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default "<op>_<field>") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `field` | field, **required** |  | Numeric field to compute from. |
+| `op` | one of `cumsum`, `sum`, `mean`, `min`, `max`, `diff`, `pctChange`, **required** |  | cumsum \| sum \| mean \| min \| max \| diff \| pctChange. |
+| `size` | number |  | Rows in the window of sum, mean, min, max (required for them). |
+| `align` | one of `trailing`, `center` | `"trailing"` | "trailing": the row and the size - 1 rows before it. "center": the row in the middle of its window. |
+| `partial` | boolean | `false` | Compute windows cut short by the start or end of a series from the rows they have. |
+| `sort` | field |  | Field that orders the rows (the x of the chart). Rows without it get NaN. |
+| `group` | field |  | Field that splits the rows into series, each computed on its own; a missing value is a series of its own. |
+| `as` | string |  | Name of the new column. |
 
 ## mark.arc
 
