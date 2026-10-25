@@ -776,7 +776,9 @@
               break;
             }
           }
-          if (!sorted) rows.sort((a, b) => xs[a] - xs[b]);
+          // a row with no x (NaN) has no place on the line: it goes last, where it cannot break the order of the others
+          // (a NaN in the comparator would make the whole sort inconsistent)
+          if (!sorted) rows.sort((a, b) => (xs[a] !== xs[a] ? (xs[b] !== xs[b] ? 0 : 1) : xs[b] !== xs[b] ? -1 : xs[a] - xs[b]));
           out.push({ key, rows });
         });
         return out;

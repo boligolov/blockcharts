@@ -11,11 +11,16 @@
   // 1970-01-01 is a Thursday; shift 7-day steps so weeks start on Monday.
   const WEEK_OFFSET = 4 * D;
 
+  /** The last moment a Date can hold, ms either side of 1970. A number past it is not a time (nanoseconds, say). */
+  const MAX_MS = 8.64e15;
+  /** More ticks than any axis can show: a guard, so a degenerate domain cannot make the tick loops run away. */
+  const MAX_TICKS = 1000;
+
   const pad2 = (n: number) => (n < 10 ? '0' : '') + n;
 
   /** Numbers are epoch milliseconds; strings are parsed as ISO dates (date-only = UTC midnight). */
   function toMs(v: unknown): number {
-    if (typeof v === 'number') return v;
+    if (typeof v === 'number') return Math.abs(v) <= MAX_MS ? v : NaN;
     if (typeof v === 'string') return Date.parse(v);
     if (v && typeof (v as Date).getTime === 'function') return (v as Date).getTime();
     return NaN;
@@ -36,31 +41,34 @@
   }
 
   function makeTicks(d0: number, d1: number, count: number): { t: number; label: string }[] {
-    const span = d1 - d0;
     const out: { t: number; label: string }[] = [];
+    // a view that does not parse (NaN) or runs backwards has no ticks
+    if (!isFinite(d0) || !isFinite(d1) || d1 < d0) return out;
+    const span = d1 - d0;
     const fixed = FIXED.find((f) => span / f <= count);
     if (fixed !== undefined) {
       const off = fixed === 7 * D ? WEEK_OFFSET : 0;
-      for (let t = Math.ceil((d0 - off) / fixed) * fixed + off; t <= d1; t += fixed) out.push({ t, label: labelFixed(t, fixed) });
+      for (let t = Math.ceil((d0 - off) / fixed) * fixed + off; t <= d1 && out.length < MAX_TICKS; t += fixed) out.push({ t, label: labelFixed(t, fixed) });
       return out;
     }
     const k = MONTHS.find((m) => span / (m * MONTH) <= count);
     if (k !== undefined) {
       const first = new Date(d0);
       let idx = Math.ceil((first.getUTCFullYear() * 12 + first.getUTCMonth()) / k) * k;
-      for (;; idx += k) {
+      for (; out.length < MAX_TICKS; idx += k) {
         const t = Date.UTC(Math.floor(idx / 12), idx % 12, 1);
+        if (!isFinite(t) || t > d1) break;
         if (t < d0) continue;
-        if (t > d1) break;
         out.push({ t, label: `${MON[idx % 12]} ${Math.floor(idx / 12)}` });
       }
       return out;
     }
     const years = niceYears(span, count);
-    for (let y = Math.ceil(new Date(d0).getUTCFullYear() / years) * years; ; y += years) {
+    for (let y = Math.ceil(new Date(d0).getUTCFullYear() / years) * years; out.length < MAX_TICKS; y += years) {
+      // past the last year a Date can hold, Date.UTC is NaN: stop there
       const t = Date.UTC(y, 0, 1);
+      if (!isFinite(t) || t > d1) break;
       if (t < d0) continue;
-      if (t > d1) break;
       out.push({ t, label: String(y) });
     }
     return out;
@@ -69,8 +77,8 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'time',
-    version: 1,
-    doc: 'Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates. Ticks snap to calendar units (seconds … years).',
+    version: 2,
+    doc: 'Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates. Ticks snap to calendar units (seconds … years). Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.',
     params: {
       padding: { kind: 'number', default: 0, doc: 'Extra room around the data extent, as a fraction of its span.' },
     },
@@ -79,18 +87,25 @@
       if (spec.domain && spec.domain.length === 2) {
         b0 = toMs(spec.domain[0]);
         b1 = toMs(spec.domain[1]);
+        if (!isFinite(b0) || !isFinite(b1)) throw new Error(`scale.time: domain must be two dates (ISO strings such as "2024-01-01", or epoch milliseconds), got ${JSON.stringify(spec.domain)}`);
       } else {
         b0 = Infinity;
         b1 = -Infinity;
+        let outOfRange = 0;
         for (const col of ctx.sources) {
           for (let i = 0; i < col.length; i++) {
             const t = toMs(col[i]);
-            if (!isFinite(t)) continue;
+            if (!isFinite(t)) {
+              if (typeof col[i] === 'number' && isFinite(col[i] as number)) outOfRange++;
+              continue;
+            }
             if (t < b0) b0 = t;
             if (t > b1) b1 = t;
           }
         }
         if (b0 > b1) {
+          // numbers, and not one of them a date: almost always a time in another unit
+          if (outOfRange) throw new Error('scale.time: the numbers are outside the range of dates; a time scale reads epoch milliseconds (from nanoseconds divide by 1e6, from seconds multiply by 1000)');
           b0 = 0;
           b1 = D;
         }

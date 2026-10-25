@@ -429,6 +429,21 @@ test('compose: a chart on the canvas renderer is checked, drawn once in the sand
   assert.strictEqual(handles[0].host.children[0].tag, 'canvas');
 });
 
+test('compose: a chart that never finishes drawing in the trial run is a spec error, not a hung composer', () => {
+  // the real blocks plus one whose render never returns
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bc-hang-'));
+  const src = path.join(__dirname, '../dist');
+  fs.mkdirSync(path.join(dir, 'blocks'));
+  fs.copyFileSync(path.join(src, 'core.js'), path.join(dir, 'core.js'));
+  for (const f of fs.readdirSync(path.join(src, 'blocks'))) fs.copyFileSync(path.join(src, 'blocks', f), path.join(dir, 'blocks', f));
+  fs.writeFileSync(path.join(dir, 'blocks', 'mark.hang.js'), `"use strict";\n(function () { BC.define({ role: 'mark', type: 'hang', version: 1, channels: {}, render() { for (;;) {} } }); })();\n`);
+  fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify(buildManifest(dir)));
+  const started = Date.now();
+  const spec = { ...bars(), marks: [{ type: 'hang' }] };
+  failsWith(() => compose({ data: DATA, charts: [bars(), spec], distDir: dir, drawTimeout: 300 }), /charts\[1\].*did not finish drawing/);
+  assert(Date.now() - started < 10000, 'it gives up instead of waiting forever');
+});
+
 (async () => {
   for (const [name, fn] of queue) {
     try { await fn(); passed++; console.log('ok  ', name); }

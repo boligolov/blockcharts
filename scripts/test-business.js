@@ -153,6 +153,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(!hostile.children[0].serialize().includes('<b>x</b>'), 'a label is text, not markup');
   });
 
+  test('guide.kpi: min and max of a long series (300,000 rows) do not overflow the stack', () => {
+    const v = new Float64Array(300000).map((_, i) => (i === 123456 ? -7 : i));
+    BC.data('longkpi', { columns: { v } });
+    for (const [aggregate, want] of [['max', '300K'], ['min', '-7']]) {
+      const { svg, h } = draw({ data: 'longkpi', marks: [], guides: [{ type: 'kpi', field: 'v', aggregate }] });
+      assert.deepStrictEqual(h.diagnostics, [], aggregate);
+      assert.strictEqual(kpiTexts(svg).value.text, want, aggregate);
+    }
+  });
+
   test('guide.kpi: takes room at the top (the chart under it is a sparkline), and a tile of the guide alone is valid', () => {
     const top = (svg) => Math.min(...paths(layer(svg, 'marks')).map((p) => Math.min(...[...p.d.matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => +m[2]))));
     const bare = draw(monthly({ size: [300, 160] }));

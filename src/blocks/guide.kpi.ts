@@ -30,8 +30,9 @@
       case 'first': return values[0];
       case 'sum': return values.reduce((a, b) => a + b, 0);
       case 'mean': return values.reduce((a, b) => a + b, 0) / values.length;
-      case 'min': return Math.min(...values);
-      case 'max': return Math.max(...values);
+      // a loop, not Math.min(...values): spreading a long series overflows the call stack
+      case 'min': return values.reduce((a, b) => (b < a ? b : a));
+      case 'max': return values.reduce((a, b) => (b > a ? b : a));
       default: return values[values.length - 1];
     }
   }
@@ -65,7 +66,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'kpi',
-    version: 1,
+    version: 2,
     doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.',
     params: {
       field: { kind: 'field', required: true, doc: 'The numeric field the figure comes from.' },

@@ -19,6 +19,7 @@
 //   dryRun  true (default): every chart is built once in a sandbox with a fake DOM before anything is written, so problems that
 //           only show up when a chart is drawn (a bad color, a failing transform) stop the page like a spec error, and
 //           warnings (unsorted data left alone by decimate, an interaction that cannot work) are reported; false = skip
+//   drawTimeout  ms one chart may take in that trial run (default 10000); past it the chart is a spec error, not a hang
 //   baseDir folder that csvFile paths are relative to (the command line uses the folder of the page json)
 //   compress 'auto' (default) | true | false. Datasets are stored as base64(gzip(JSON)) when that is worth it ('auto': big and
 //           at least 25% smaller), always (true) or never (false). Already-encoded datasets are passed through untouched.
@@ -240,6 +241,7 @@ function compose(opts) {
   });
   // 3b: build every chart once, the way a page would, in a sandbox with a fake DOM
   if (options.dryRun !== false) {
+    const drawTimeout = typeof options.drawTimeout === 'number' && options.drawTimeout > 0 ? options.drawTimeout : 10000;
     sandbox.document = createDocument();
     sandbox.getComputedStyle = () => ({ position: 'static' });
     sandbox.setTimeout = () => 0;
@@ -251,11 +253,19 @@ function compose(opts) {
       const mark = captured.length;
       let found = [];
       try {
-        const handle = BC.chart(new El('div', sandbox.document), spec);
-        found = plain(Array.from(handle.diagnostics));
-        handle.destroy();
+        // run inside the sandbox, under its timeout: a block stuck in a loop on this data stops the build with an error
+        // instead of hanging the composer (and the agent waiting for it) forever
+        sandbox.__bcTrial = () => {
+          const handle = BC.chart(new El('div', sandbox.document), spec);
+          found = plain(Array.from(handle.diagnostics));
+          handle.destroy();
+        };
+        vm.runInContext('__bcTrial()', sandbox, { timeout: drawTimeout });
       } catch (e) {
-        found = [{ level: 'error', path: '', message: e.message }];
+        const stuck = e && e.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT';
+        found = [{ level: 'error', path: '', message: stuck ? `did not finish drawing in ${drawTimeout / 1000} s: a block is stuck on this data or spec` : e.message }];
+      } finally {
+        delete sandbox.__bcTrial;
       }
       const said = new Set(found.map((d) => `[blockcharts] ${d.path || '(spec)'}: ${d.message}`));
       for (const c of captured.slice(mark)) {

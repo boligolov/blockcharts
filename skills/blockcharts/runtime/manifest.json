@@ -1,7 +1,7 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 26312,
+    "bytes": 26355,
     "version": "0.1.0"
   },
   "blocks": {
@@ -77,8 +77,8 @@
     },
     "scale.time": {
       "file": "blocks/scale.time.js",
-      "bytes": 2197,
-      "version": 1,
+      "bytes": 2750,
+      "version": 2,
       "requires": [],
       "closure": [
         "scale.time"
@@ -90,7 +90,7 @@
           "doc": "Extra room around the data extent, as a fraction of its span."
         }
       },
-      "doc": "Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates. Ticks snap to calendar units (seconds … years)."
+      "doc": "Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates. Ticks snap to calendar units (seconds … years). Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it."
     },
     "transform.aggregate": {
       "file": "blocks/transform.aggregate.js",
@@ -1106,8 +1106,8 @@
     },
     "guide.kpi": {
       "file": "blocks/guide.kpi.js",
-      "bytes": 2852,
-      "version": 1,
+      "bytes": 2872,
+      "version": 2,
       "requires": [],
       "closure": [
         "guide.kpi"
@@ -1371,8 +1371,8 @@
     },
     "interaction.zoom": {
       "file": "blocks/interaction.zoom.js",
-      "bytes": 2830,
-      "version": 2,
+      "bytes": 3010,
+      "version": 3,
       "requires": [],
       "closure": [
         "interaction.zoom"
@@ -1409,7 +1409,7 @@
           "doc": "How far in you can go, as a multiple of the full domain."
         }
       },
-      "doc": "Wheel zoom around the cursor, drag to pan, double-click to reset. Works on continuous scales (linear, time) by changing their view through setView; the layout stays frozen."
+      "doc": "Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, time) by changing their view through setView; the layout stays frozen."
     },
     "interaction.zoom-controls": {
       "file": "blocks/interaction.zoom-controls.js",

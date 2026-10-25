@@ -2737,4 +2737,65 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const [z0, z1] = h2.getView().x;
     assert(Math.abs((z1 - z0) - (b1 - b0) / 2) < 1, 'maxZoom stops the zoom at half the domain');
   });
+
+  test('scale.time: dates out of range and a domain that does not parse give an error, not an endless tick loop', () => {
+    const mk = (sources, spec) => BC.get('scale.time').create({ type: 'time', ...spec }, { name: 'x', sources, range: [0, 600] });
+    // nanoseconds since 1970 (a common pipeline slip) are far past the last date a Date can hold
+    assert.throws(() => mk([Float64Array.of(1.7e18, 1.7e18 + 3.6e12)]), /outside the range of dates.*milliseconds/);
+    assert.throws(() => mk([['2024-01-01']], { domain: ['Jan 2024?', 'oops'] }), /scale\.time: domain/);
+    // a few rows out of range among good ones are left out like any value that is not a date
+    const s = mk([Float64Array.of(Date.UTC(2024, 0, 1), 9e15, Date.UTC(2024, 11, 31))]);
+    assert.deepStrictEqual(s.baseDomain(), [Date.UTC(2024, 0, 1), Date.UTC(2024, 11, 31)]);
+    assert(!isFinite(s(9e15)), 'an out-of-range value maps to nothing');
+    // a view that does not parse (setView from a page script) draws no ticks instead of hanging
+    s.setDomain(['nope', 'nope']);
+    assert.deepStrictEqual(s.ticks(6), []);
+    s.setDomain(null);
+    assert(s.ticks(6).length > 0);
+    const host = new FakeNode('div');
+    const h = BC.chart(host, { data: 'series', scales: { x: { type: 'time', domain: ['x', 'y'] }, y: { type: 'linear' } }, guides: [{ type: 'axis', scale: 'x' }], marks: [{ type: 'line', x: 't', y: 'v' }] });
+    assert(h.diagnostics.some((d) => d.level === 'error' && /scale\.time: domain/.test(d.message)), JSON.stringify(h.diagnostics));
+  });
+
+  test('line: unsorted rows with missing x are still joined in x order', () => {
+    const rows = [];
+    for (let i = 0; i < 60; i++) rows.push({ x: (i * 37) % 60, y: i });
+    for (const k of [5, 17, 29, 41]) rows[k].x = null;
+    BC.data('unsortedGaps', rows);
+    const host = new FakeNode('div');
+    BC.chart(host, { data: 'unsortedGaps', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 'x', y: 'y' }] });
+    const d = svgOf(host).match(/<path d="([^"]+)"/)[1];
+    const xs = [...d.matchAll(/[ML]([\d.]+) /g)].map((m) => +m[1]);
+    assert.strictEqual(xs.length, 56, 'every row with an x is drawn');
+    assert(xs.every((x, i) => i === 0 || x >= xs[i - 1]), 'x never goes back');
+    assert.strictEqual(count(d, /M/g), 1, 'a row without x is not a gap in the line: it has no place on it');
+  });
+
+  test('zoom + brush: a shift-drag selects and does not pan the chart at the same time', async () => {
+    const host = new FakeNode('div');
+    const h = BC.chart(host, lineSpec({ interaction: [{ type: 'probe2' }, { type: 'zoom' }, { type: 'brush' }] }));
+    const [b0, b1] = h.getView().x;
+    const start = [b0 + (b1 - b0) * 0.2, b0 + (b1 - b0) * 0.7];
+    h.setView('x', start);
+    await flush();
+    const lo = probed.scales.x.invert(200);
+    const hi = probed.scales.x.invert(400);
+    press(host, 200, 150);
+    host.children[0].fire('pointermove', { clientX: 300, clientY: 150, buttons: 1, shiftKey: true });
+    await flush();
+    host.children[0].fire('pointermove', { clientX: 400, clientY: 150, buttons: 1, shiftKey: true });
+    await flush();
+    assert.deepStrictEqual(h.getView().x, start, 'the view stays put while the box is drawn');
+    release(host, 400, 150);
+    await flush();
+    const [v0, v1] = h.getView().x;
+    assert(Math.abs(v0 - lo) < 1 && Math.abs(v1 - hi) < 1, `zoomed to what was under the box: ${v0} ${v1} vs ${lo} ${hi}`);
+    // a plain drag still pans
+    const before = h.getView().x;
+    host.children[0].fire('pointerdown', { button: 0, clientX: 300, clientY: 150, pointerId: 1 });
+    host.children[0].fire('pointermove', { clientX: 200, clientY: 150, buttons: 1 });
+    host.children[0].fire('pointerup', { clientX: 200, clientY: 150 });
+    await flush();
+    assert(h.getView().x[0] > before[0], 'without shift the drag is a pan');
+  });
 };

@@ -58,7 +58,7 @@ Version 1, 2.0 KB. Continuous color scale: numbers map to colors along `range` (
 
 ## scale.time
 
-Version 1, 2.1 KB. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates. Ticks snap to calendar units (seconds … years).
+Version 2, 2.7 KB. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates. Ticks snap to calendar units (seconds … years). Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -355,7 +355,7 @@ Version 1, 0.4 KB. Grid lines at the ticks of a positional scale (the same ticks
 
 ## guide.kpi
 
-Version 1, 2.8 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
+Version 2, 2.8 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -432,7 +432,7 @@ Version 6, 7.5 KB. Shows the datum under the pointer: a marker plus a card with 
 
 ## interaction.zoom
 
-Version 2, 2.8 KB. Wheel zoom around the cursor, drag to pan, double-click to reset. Works on continuous scales (linear, time) by changing their view through setView; the layout stays frozen.
+Version 3, 2.9 KB. Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, time) by changing their view through setView; the layout stays frozen.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
