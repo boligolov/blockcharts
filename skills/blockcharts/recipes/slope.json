@@ -1,0 +1,41 @@
+{
+  "title": "Slope chart",
+  "data": {
+    "nps": [
+      { "year": "2024", "region": "North", "score": 31 },
+      { "year": "2025", "region": "North", "score": 44 },
+      { "year": "2024", "region": "South", "score": 42 },
+      { "year": "2025", "region": "South", "score": 38 },
+      { "year": "2024", "region": "East", "score": 25 },
+      { "year": "2025", "region": "East", "score": 29 },
+      { "year": "2024", "region": "West", "score": 47 },
+      { "year": "2025", "region": "West", "score": 52 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Net Promoter Score by region, 2024 → 2025",
+      "note": "A slope chart: mark.line on a band x-scale joins each region's two values, mark.point marks the ends. The order of the domain is the order of the line, so name it when the rows may come in another order. End labels replace the legend; leave room for them on the right.",
+      "spec": {
+        "data": "nps",
+        "size": [480, 340],
+        "padding": { "right": 110 },
+        "scales": {
+          "x": { "type": "band", "domain": ["2024", "2025"], "paddingOuter": 0.25 },
+          "y": { "type": "linear", "zero": true, "nice": true },
+          "color": { "type": "color" }
+        },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" }
+        ],
+        "marks": [
+          { "type": "line", "x": "year", "y": "score", "color": "region", "label": "both" },
+          { "type": "point", "x": "year", "y": "score", "color": "region", "r": 4 }
+        ],
+        "interaction": [{ "type": "tooltip" }]
+      }
+    }
+  ]
+}

@@ -193,8 +193,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('validate: channel scale kinds of the new blocks, spec.view', () => {
-    const d = BC.validate({ data: 'cats', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 'k', y: 'v' }] });
-    assert(d.some((x) => x.path === 'marks[0].x' && /does not accept a "band" scale/.test(x.message)), JSON.stringify(d));
+    const d = BC.validate({ data: 'cats', scales: { x: { type: 'linear' }, y: { type: 'band' } }, marks: [{ type: 'line', x: 'v', y: 'k' }] });
+    assert(d.some((x) => x.path === 'marks[0].y' && /does not accept a "band" scale/.test(x.message)), JSON.stringify(d));
     const v = BC.validate({ ...barSpec(), view: { nope: [1, 2], y: 5 } });
     assert(v.some((x) => x.path === 'view.nope') && v.some((x) => x.path === 'view.y'));
   });
@@ -2903,5 +2903,64 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     host.children[0].fire('pointerup', { clientX: 200, clientY: 150 });
     await flush();
     assert(h.getView().x[0] > before[0], 'without shift the drag is a pan');
+  });
+
+  // rows deliberately out of order, one row with a category the domain does not list, one with no category
+  BC.data('slope', [
+    { when: 'After', team: 'A', v: 7 }, { when: 'Before', team: 'A', v: 3 }, { when: 'Before', team: 'B', v: 6 },
+    { when: 'After', team: 'B', v: 4 }, { when: 'Later', team: 'B', v: 9 }, { when: null, team: 'A', v: 1 },
+  ]);
+  const slopeSpec = (mark, extra) => ({
+    data: 'slope',
+    scales: { x: { type: 'band', domain: ['Before', 'After'] }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
+    marks: [{ type: 'line', x: 'when', y: 'v', color: 'team', ...mark }],
+    interaction: [{ type: 'probe2' }],
+    ...extra,
+  });
+  const vertices = (d) => [...d.matchAll(/[ML]([\d.-]+) ([\d.-]+)/g)].map((m) => ({ x: +m[1], y: +m[2] }));
+
+  test('mark.line on a band scale: points in the middle of their categories, joined in domain order', () => {
+    const host = new FakeNode('div');
+    const h = BC.chart(host, slopeSpec());
+    assert.deepStrictEqual(h.diagnostics, []);
+    const mid = (c) => probed.scales.x(c) + probed.scales.x.bandwidth / 2;
+    const paths = [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
+    assert.strictEqual(paths.length, 2, 'one line per team');
+    for (const p of paths) {
+      assert.strictEqual(p.length, 2, `a category outside the domain and a row without one draw nothing: ${JSON.stringify(p)}`);
+      assert(Math.abs(p[0].x - mid('Before')) < 0.01 && Math.abs(p[1].x - mid('After')) < 0.01, `centered in the bands: ${JSON.stringify(p)} vs ${mid('Before')} ${mid('After')}`);
+    }
+    const a = paths[0];
+    assert(a[1].y < a[0].y, 'A goes up from Before (3) to After (7) although its After row comes first');
+    assert(!/NaN/.test(svgOf(host)));
+  });
+
+  test('mark.line on a band scale: end labels, the tooltip between categories, a window of categories, and area', async () => {
+    const host = new FakeNode('div');
+    BC.chart(host, slopeSpec({ label: 'name' }, { padding: { right: 80 }, interaction: [{ type: 'probe2' }, { type: 'tooltip' }] }));
+    const mid = (c) => probed.scales.x(c) + probed.scales.x.bandwidth / 2;
+    const labels = [...layer(svgOf(host), 'marks').matchAll(/<text x="([\d.-]+)"[^>]*>([^<]+)</g)].map((m) => ({ x: +m[1], text: m[2] }));
+    assert.deepStrictEqual(labels.map((l) => l.text).sort(), ['A', 'B']);
+    assert(labels.every((l) => Math.abs(l.x - (mid('After') + 8)) < 0.01), `labels next to the last point: ${JSON.stringify(labels)}`);
+
+    const [a] = [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
+    const t = 0.5;
+    await hover(host, a[0].x + (a[1].x - a[0].x) * t, a[0].y + (a[1].y - a[0].y) * t);
+    assert.strictEqual(tipOf(host).style.display, 'block', 'the line is found halfway between two categories');
+
+    // zoomed to one category: no segment reaches into the hidden one
+    const one = new FakeNode('div');
+    const h1 = BC.chart(one, slopeSpec({}, { view: { x: ['After'] } }));
+    assert.deepStrictEqual(h1.diagnostics, []);
+    const zoomed = [...layer(svgOf(one), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
+    assert(zoomed.every((p) => p.length === 1 && Math.abs(p[0].x - mid('After')) < 0.01), JSON.stringify(zoomed));
+    assert(!/NaN/.test(svgOf(one)));
+
+    const area = new FakeNode('div');
+    const ha = BC.chart(area, slopeSpec({ type: 'area' }));
+    assert.deepStrictEqual(ha.diagnostics, []);
+    const shapes = [...layer(svgOf(area), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
+    assert.strictEqual(shapes.length, 2);
+    for (const s of shapes) assert(s.every((v) => Math.abs(v.x - mid('Before')) < 0.01 || Math.abs(v.x - mid('After')) < 0.01), `area vertices centered: ${JSON.stringify(s)}`);
   });
 };

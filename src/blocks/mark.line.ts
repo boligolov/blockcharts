@@ -8,11 +8,19 @@
 
   interface EndLabel { x: number; y: number; text: string; color: string; owner: number }
 
+  /** x of each row in px: on a band scale, the middle of its band (a category axis), so the line joins the categories in
+   *  their domain order. */
+  function xsOf(spec: BC.MarkSpec, ctx: BC.ChartCtx): ArrayLike<number> {
+    const cx = ctx.channel(spec, 'x');
+    const half = cx.scale && cx.scale.bandwidth !== undefined ? cx.scale.bandwidth / 2 : 0;
+    return half ? Array.from(cx.mapped, (v: number) => v + half) : cx.mapped;
+  }
+
   /** The end labels one line mark asks for: one per series, at its last point drawn (inside the plot when zoomed). */
   function endsOf(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number): EndLabel[] {
     const mode = spec.label === 'name' || spec.label === 'value' || spec.label === 'both' ? spec.label : 'none';
     if (mode === 'none') return [];
-    const xs = ctx.channel(spec, 'x').mapped;
+    const xs = xsOf(spec, ctx);
     const yc = ctx.channel(spec, 'y');
     const ys = yc.mapped;
     const colorCh = spec.color !== undefined ? ctx.channel(spec, 'color') : null;
@@ -105,8 +113,8 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 7,
-    doc: 'A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them.',
+    version: 8,
+    doc: 'A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.',
     params: {
       group: { kind: 'field', doc: 'Field whose distinct values become separate lines (long-format data).' },
       stroke: { kind: 'string', doc: 'Any CSS color. Default: theme color by line index.' },
@@ -119,12 +127,12 @@
       name: { kind: 'string', doc: 'The end label of a line that is not split into series (default: the y field).' },
     },
     channels: {
-      x: { required: true, scales: ['linear', 'time'] },
+      x: { required: true, scales: ['linear', 'time', 'band'] },
       y: { required: true, scales: ['linear', 'time'] },
       color: { scales: ['color'], doc: 'One line per distinct value of the field, colored by a color scale.' },
     },
     render(spec, ctx, index) {
-      const xs = ctx.channel(spec, 'x').mapped;
+      const xs = xsOf(spec, ctx);
       const ys = ctx.channel(spec, 'y').mapped;
       const colorCh = spec.color !== undefined ? ctx.channel(spec, 'color') : null;
       const grouped = typeof spec.group === 'string' || !!(colorCh && colorCh.field);
@@ -180,7 +188,7 @@
       return out;
     },
     pick(spec, ctx, _index, px, py) {
-      const xs = ctx.channel(spec, 'x').mapped;
+      const xs = xsOf(spec, ctx);
       const ys = ctx.channel(spec, 'y').mapped;
       const colorCh = spec.color !== undefined ? ctx.channel(spec, 'color') : null;
       let best: BC.Pick | null = null;

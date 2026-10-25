@@ -486,8 +486,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 3085,
-      "version": 3,
+      "bytes": 3186,
+      "version": 4,
       "requires": [],
       "closure": [
         "mark.area"
@@ -536,7 +536,8 @@
           "required": true,
           "scales": [
             "linear",
-            "time"
+            "time",
+            "band"
           ]
         },
         "y": {
@@ -561,7 +562,7 @@
           "doc": "One area per distinct value of the field, colored by a color scale."
         }
       },
-      "doc": "A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: \"smooth\"` matches a smooth line."
+      "doc": "A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: \"smooth\"` matches a smooth line. x also takes a band scale, as on mark.line."
     },
     "mark.boxplot": {
       "file": "blocks/mark.boxplot.js",
@@ -661,8 +662,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 4284,
-      "version": 7,
+      "bytes": 4387,
+      "version": 8,
       "requires": [],
       "closure": [
         "mark.line"
@@ -722,7 +723,8 @@
           "required": true,
           "scales": [
             "linear",
-            "time"
+            "time",
+            "band"
           ]
         },
         "y": {
@@ -739,7 +741,7 @@
           "doc": "One line per distinct value of the field, colored by a color scale."
         }
       },
-      "doc": "A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: \"smooth\"` draws a smooth curve that still passes through every point and never overshoots between two of them."
+      "doc": "A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: \"smooth\"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods."
     },
     "mark.point": {
       "file": "blocks/mark.point.js",

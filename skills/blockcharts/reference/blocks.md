@@ -193,11 +193,11 @@ Version 1, 2.9 KB. Pie and donut chart: one slice per row, its angle proportiona
 
 ## mark.area
 
-Version 3, 3.0 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line.
+Version 4, 3.1 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
-| `x` | **required** | `linear`, `time` |  |
+| `x` | **required** | `linear`, `time`, `band` |  |
 | `y` | **required** | `linear`, `time` |  |
 | `y2` | optional | `linear`, `time` | uses the scale of `y` unless told otherwise. Lower edge of the band. |
 | `color` | optional | `color` | One area per distinct value of the field, colored by a color scale. |
@@ -236,11 +236,11 @@ Version 1, 2.6 KB. A box (q1 to q3), a line across it at the median, and whisker
 
 ## mark.line
 
-Version 7, 4.2 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them.
+Version 8, 4.3 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
-| `x` | **required** | `linear`, `time` |  |
+| `x` | **required** | `linear`, `time`, `band` |  |
 | `y` | **required** | `linear`, `time` |  |
 | `color` | optional | `color` | One line per distinct value of the field, colored by a color scale. |
 

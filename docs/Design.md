@@ -807,6 +807,11 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   lines than were measured and the last one fell off the card on a phone (a test reproduces it). The categorical row
   legend had the same defect and packs the same way since `guide.legend` v7; a line starts at the plot's left edge
   and moves left only when it would run past the chart. Recipe `bubble`; `scale.size` is in the `full` kit.
+- **Lines over categories**: `mark.line` v8 and `mark.area` v4 take a band scale on x. A point sits in the middle of
+  its band, as on `mark.point` and `mark.text`, and the rows of a series are joined in the order of the band domain
+  (the series sort is by pixel, and bands run left to right in domain order). A category outside the domain, or
+  outside a zoomed window of categories, has no x and breaks the line like a missing value. End labels and the
+  tooltip use the same centered x. Recipe `slope` (two years per region, end labels instead of a legend).
 
 ## Next steps
 

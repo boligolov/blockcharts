@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.3.1"
+  version: "0.4.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -58,7 +58,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Scales are declared once and given names.** `x` and `y` are the horizontal and vertical positions by convention. Every other name (`color`, `y2`, ...) is yours to choose.
 
-**Marks read data through channels.** `"x": "region"` means "the field `region`, on the scale named `x`". Spelled out: `{"field": "units", "scale": "y2"}`. A constant: `{"value": 5}`. A channel that names a scale you did not declare is an error. The scale's type must suit the mark (a `line` needs `linear` or `time` on x and y, a `rect` also accepts `band`).
+**Marks read data through channels.** `"x": "region"` means "the field `region`, on the scale named `x`". Spelled out: `{"field": "units", "scale": "y2"}`. A constant: `{"value": 5}`. A channel that names a scale you did not declare is an error. The scale's type must suit the mark (a `line` needs `linear` or `time` on y, and also takes `band` on x for categories in order; a `rect` accepts `band` on either).
 
 **Guides are attached to scales, not marks**: `{"type":"axis","scale":"y"}`. Two marks on the same scales share one axis. A second axis on the same orientation needs `position` (`"right"`, `"top"`, ...). Guides that take space on a side (axis, legend) stack outward in the order you list them.
 
@@ -129,6 +129,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | Rank categories without the visual weight of full bars | `recipes/dotplot.json` |
 | Spread and outliers of raw samples per category | `recipes/boxplot.json` |
 | Trends of several series, with zoom | `recipes/lines-by-series.json` |
+| How each item changed between two points (before and after, two years) | `recipes/slope.json` |
 | Two numeric variables, groups by color | `recipes/scatter-groups.json` |
 | Two numeric variables and a third as the size of each bubble | `recipes/bubble.json` |
 | Two measures with different units | `recipes/dual-axis.json` |

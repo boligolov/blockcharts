@@ -64,8 +64,11 @@
     const baseline = typeof spec.baseline === 'number' ? spec.baseline : 0;
     // toBottom: down to the bottom edge of the plot, whatever value is there (a sparkline whose axis does not start at 0)
     const basePx = y2.raw.length ? NaN : spec.toBottom === true ? ctx.plot.y + ctx.plot.h : y.scale ? y.scale(baseline) : NaN;
+    // on a band scale the points sit in the middle of their categories, as on mark.line
+    const cx = ctx.channel(spec, 'x');
+    const half = cx.scale && cx.scale.bandwidth !== undefined ? cx.scale.bandwidth / 2 : 0;
     return {
-      xs: ctx.channel(spec, 'x').mapped,
+      xs: half ? Array.from(cx.mapped, (v: number) => v + half) : cx.mapped,
       top: y.mapped,
       bottom: (i: number): number => (y2.raw.length ? y2.mapped[i] : basePx),
     };
@@ -74,8 +77,8 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 3,
-    doc: 'A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line.',
+    version: 4,
+    doc: 'A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.',
     params: {
       baseline: { kind: 'number', default: 0, doc: 'Where the area starts when there is no y2. Keep it inside the scale domain.' },
       group: { kind: 'field', doc: 'Field whose distinct values become separate areas.' },
@@ -86,7 +89,7 @@
       curve: { kind: 'enum', values: ['linear', 'smooth'], default: 'linear', doc: 'Same as mark.line: "smooth" is a monotone curve through the points.' },
     },
     channels: {
-      x: { required: true, scales: ['linear', 'time'] },
+      x: { required: true, scales: ['linear', 'time', 'band'] },
       y: { required: true, scales: ['linear', 'time'] },
       y2: { scales: ['linear', 'time'], sharesScale: 'y', doc: 'Lower edge of the band.' },
       color: { scales: ['color'], doc: 'One area per distinct value of the field, colored by a color scale.' },
