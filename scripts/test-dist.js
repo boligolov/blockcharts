@@ -296,6 +296,15 @@ test('minified release: a doc cut that changes anything else is refused, not shi
   assert.throws(() => stripDocs('x.js', "BC.define({ role: 'mark', type: 'x', version: 1, doc: 'ok' }); throw new Error('boom');"), /does not run/);
 });
 
+test('README: the table of blocks lists every block there is, and only those', () => {
+  const readme = fs.readFileSync(path.join(repo, 'README.md'), 'utf8');
+  const listed = [];
+  for (const m of readme.matchAll(/^\| (scale|transform|mark|guide|interaction|renderer) \| (.+) \|$/gm)) {
+    for (const t of m[2].matchAll(/`([\w-]+)`/g)) listed.push(m[1] + '.' + t[1]);
+  }
+  assert.deepStrictEqual(listed.slice().sort(), Object.keys(manifest.blocks).sort());
+});
+
 (async () => {
   for (const [name, fn] of queue) {
     try { await fn(); passed++; console.log('ok  ', name); }

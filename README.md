@@ -103,7 +103,7 @@ Datasets can be rows, `{"columns": {...}}`, `{"csv": "text"}`, or `{"csvFile": "
 
 A dashboard is the same file with a grid: `"layout": {"columns": 4}` and a `span` per chart (KPI tiles `span: 1`, a trend `span: 3`); `title` and `subtitle` head the page. Every chart sits in a card; on a phone the cards stack.
 
-Ready-made pages to copy live in `skills/blockcharts/recipes/`: an executive dashboard (KPI tiles in a grid), waterfall, funnel, bullet, treemap, bar, stacked and grouped bars, dot plot, boxplot, lines with zoom, scatter, dual axis, 100% stacked area, histogram, heatmap, pie, long series, and a CSV report with aggregation and currency formatting.
+Ready-made pages to copy live in `skills/blockcharts/recipes/`: an executive dashboard (KPI tiles in a grid), waterfall, funnel, bullet, treemap, bar, stacked and grouped bars, dot plot, boxplot, lines with zoom, a slope chart, a moving average and running totals, scatter, bubbles, dual axis, 100% stacked area, histogram, heatmap, pie, long series, and a CSV report with aggregation and currency formatting.
 
 #### 2. Kits: core + blocks in one file
 
@@ -202,8 +202,8 @@ Scales are declared once and named. Marks read data through channels (`"x": "reg
 
 | Role | Blocks |
 | --- | --- |
-| scale | `linear`, `time`, `band`, `color`, `sequential` |
-| transform | `stack`, `bin`, `decimate`, `aggregate`, `quartiles`, `waterfall`, `funnel`, `treemap` |
+| scale | `linear`, `time`, `band`, `color`, `sequential`, `size` |
+| transform | `stack`, `bin`, `decimate`, `aggregate`, `quartiles`, `waterfall`, `funnel`, `treemap`, `window` |
 | mark | `point`, `line`, `rect`, `area`, `text`, `arc`, `boxplot`, `rule` |
 | guide | `axis`, `grid`, `legend`, `kpi` |
 | interaction | `zoom`, `zoom-controls`, `tooltip`, `crosshair`, `legend-filter`, `brush`, `animate` |

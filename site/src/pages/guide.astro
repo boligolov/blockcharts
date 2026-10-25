@@ -1,11 +1,13 @@
 ---
 import Base from '../layouts/Base.astro';
 import Snippet from '../components/Snippet.astro';
-import { baseUrl, kb, loadRelease, scriptTag } from '../lib/site.mjs';
+import { baseUrl, kb, loadBlocks, loadRelease, scriptTag } from '../lib/site.mjs';
 
 const base = baseUrl(import.meta.env.BASE_URL);
 const release = loadRelease();
 const kits = Object.entries(release.kits);
+const typesOf = (role: string) => Object.keys(loadBlocks().blocks).filter((n) => n.startsWith(role + '.')).map((n) => n.slice(role.length + 1).replace('-', ' '));
+const list = (names: string[]) => names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
 const basic = release.kits.basic;
 
 const specExample = `{
@@ -40,8 +42,8 @@ const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha38
     <li><b>Scales</b> are declared once and named: <code>x</code> and <code>y</code> by convention, anything else is yours (<code>color</code>, <code>y2</code>, …). A chart can have several scales in one direction, which is how dual axes work.</li>
     <li><b>Marks</b> read data through <i>channels</i>: <code>"x": "region"</code> means the field <code>region</code> on the scale named <code>x</code>.</li>
     <li><b>Guides</b> (axis, grid, legend) attach to scales, not marks, so two marks on the same scales share one axis.</li>
-    <li><b>Transforms</b> prepare the data first: stack, bin, aggregate, decimate.</li>
-    <li><b>Interactions</b> are zoom, brush, legend filter and tooltip.</li>
+    <li><b>Transforms</b> prepare the data first: {typesOf('transform').join(', ')}.</li>
+    <li><b>Interactions</b> are {list(typesOf('interaction'))}.</li>
     <li>A block is named by its role and type; <code>{'{"type": "rect"}'}</code> in <code>marks</code> is <code>mark.rect</code>. <a href={`${base}blocks/`}>All blocks and their parameters.</a></li>
   </ul>
 

@@ -22,7 +22,7 @@ const recipe = (name: string) => {
 };
 
 const heroRecipe = recipe('executive-dashboard');
-const galleryNames = ['waterfall', 'funnel', 'treemap', 'bullet', 'grouped-bar', 'lines-by-series'];
+const galleryNames = ['waterfall', 'funnel', 'treemap', 'bullet', 'grouped-bar', 'lines-by-series', 'moving-average', 'slope', 'bubble'];
 const gallery = galleryNames.map(recipe);
 const { lake, charts } = lakeOf([heroRecipe, ...gallery]);
 
