@@ -19,6 +19,17 @@ async function checkSite(siteDir, options) {
   const stats = { pages: 0, links: 0, charts: 0 };
   if (!fs.existsSync(root)) return { problems: [`${root} not found: run npm run site first`], stats };
 
+  // the sources: Vite's dependency scan takes every <script src="..."> in the text of an .astro file for an import — also one
+  // inside a string meant as a snippet — and the dev server fails on a path it cannot resolve. Snippets use scriptTag().
+  const sources = path.join(repo, 'site', 'src');
+  if (fs.existsSync(sources)) {
+    for (const f of walk(sources).filter((n) => n.endsWith('.astro'))) {
+      for (const m of fs.readFileSync(f, 'utf8').matchAll(/<script\b([^>]*)\bsrc=["'`]/g)) {
+        if (!/\bis:inline\b/.test(m[1])) problems.push(`${path.relative(repo, f)}: a literal <script src="..."> in the source breaks the dev server's dependency scan; build it with scriptTag() from lib/site.mjs`);
+      }
+    }
+  }
+
   const html = walk(root).filter((f) => f.endsWith('.html'));
   const idsOf = new Map();
   const textOf = new Map();

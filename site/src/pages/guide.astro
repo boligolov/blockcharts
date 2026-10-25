@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import Snippet from '../components/Snippet.astro';
-import { baseUrl, kb, loadRelease } from '../lib/site.mjs';
+import { baseUrl, kb, loadRelease, scriptTag } from '../lib/site.mjs';
 
 const base = baseUrl(import.meta.env.BASE_URL);
 const release = loadRelease();
@@ -27,9 +27,7 @@ const formatExample = `{ "style": "currency", "currency": "EUR", "maximumFractio
 const shell = `npm install
 npm run build && npm run manifest
 node scripts/compose.js skills/blockcharts/recipes/report-from-csv.json report.html`;
-const integrity = `<script src="release/kits/basic.js"
-        integrity="${basic.js.sha384}"
-        crossorigin="anonymous"></script>`;
+const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha384, crossorigin: 'anonymous' }, true);
 ---
 <Base title="Guide" nav="guide" version={release.version} description="How a chart spec works, how to feed data, and which files to ship.">
   <h1>Guide</h1>

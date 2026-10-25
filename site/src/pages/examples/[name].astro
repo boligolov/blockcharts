@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Snippet from '../../components/Snippet.astro';
-import { baseUrl, blocksNeeded, jsonForScript, kb, kitFor, loadRecipes, loadRelease, loadReportSizes } from '../../lib/site.mjs';
+import { baseUrl, blocksNeeded, jsonForScript, kb, kitFor, loadRecipes, loadRelease, loadReportSizes, scriptTag } from '../../lib/site.mjs';
 
 export function getStaticPaths() {
   return loadRecipes().map((r) => ({ params: { name: r.name }, props: { recipe: r } }));
@@ -16,7 +16,7 @@ const reportBytes = loadReportSizes()[recipe.name];
 
 // what a reader copies: the kit from a CDN, the data, and every chart of the example
 const embedded = [
-  `<script src="https://cdn.example.com/blockcharts/${release.version}/kits/${kitName}.js"></script>`,
+  scriptTag(`https://cdn.example.com/blockcharts/${release.version}/kits/${kitName}.js`),
   '',
   '<script type="application/json" id="bc-data">',
   JSON.stringify(recipe.data),

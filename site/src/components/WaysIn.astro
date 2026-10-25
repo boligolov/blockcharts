@@ -1,7 +1,7 @@
 ---
 // The four ways in. The skill is the main one; the other three are the same built files for people who write pages.
 import Highlight from './Highlight.astro';
-import { baseUrl, kb } from '../lib/site.mjs';
+import { baseUrl, kb, scriptTag } from '../lib/site.mjs';
 
 interface Props { basicGzip: number; loaderBytes: number; version: string }
 const { basicGzip, loaderBytes, version } = Astro.props;
@@ -32,7 +32,7 @@ const ways = [
     title: 'Loader',
     for_: 'For sites with many different charts',
     body: `A ${kb(loaderBytes)} script finds the charts on a page and fetches only the blocks they use, with SRI hashes from the release manifest.`,
-    code: `<script src=".../${version}/loader.js" data-auto></script>`, lang: 'html',
+    code: scriptTag(`.../${version}/loader.js`, { 'data-auto': true }), lang: 'html',
     href: `${base}embed/loader/`, more: 'Try the loader',
   },
 ];

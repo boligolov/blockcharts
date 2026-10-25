@@ -119,3 +119,15 @@ export function loadPageCode() {
   const blocks = Object.entries(m.blocks).map(([name, b]) => ({ name, bytes: b.bytes }));
   return { core: { bytes: core.length, gzip: zlib.gzipSync(core, { level: 9 }).length }, blocks, all: core.length + blocks.reduce((n, b) => n + b.bytes, 0) };
 }
+
+/**
+ * The HTML of a script tag, for the snippets a page shows (not for scripts it runs). It is built here, in a plain module,
+ * because Vite's dependency scan reads every <script src> it finds in the text of an .astro file — also one inside a
+ * string — and fails the dev server on a path it cannot resolve (a relative release/..., a placeholder .../loader.js).
+ * `lines` puts each attribute on its own line, indented.
+ */
+export function scriptTag(src, attrs = {}, lines = false) {
+  const parts = [`src="${src}"`, ...Object.entries(attrs).map(([k, v]) => (v === true ? k : `${k}="${v}"`))];
+  const sep = lines ? '\n        ' : ' ';
+  return '<' + 'script ' + parts.join(sep) + '></' + 'script>';
+}
