@@ -361,6 +361,29 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(radius(draw(spec(280)).svg) < radius(draw({ ...spec(280), guides: [] }).svg), 'the wrapped legend takes its room from the plot');
   });
 
+  test('guide.legend: a row legend measured before other guides take their room still fits in what it measured', () => {
+    // the bottom legend measures itself first; the titled axis and the column legend on the right then narrow the plot.
+    // Packed by the plot, render wrapped into more lines than measure had counted, and the last fell off the chart.
+    const spec = (w) => ({
+      data: 'many', size: [w, 300],
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
+      guides: [
+        { type: 'legend', scale: 'color', position: 'bottom' },
+        { type: 'axis', scale: 'y', title: 'Visits, thousands' },
+        { type: 'legend', scale: 'color', position: 'right' },
+      ],
+      marks: [{ type: 'rect', x: 'c', y: 'v', color: 'c' }],
+    });
+    for (const w of [300, 360, 420, 520]) {
+      const { svg, h } = draw(spec(w));
+      assert.deepStrictEqual(h.diagnostics, []);
+      const all = [...svg.matchAll(/<g class="bc-legend-item"[^>]*><rect x="([\d.]+)" y="([\d.]+)"/g)].map((m) => ({ x: +m[1], y: +m[2] }));
+      const row = all.slice(0, 6); // the bottom legend is drawn first
+      assert(row.every((i) => i.y + 10 <= 300), `${w}: every line of the row is inside the chart: ${JSON.stringify(row)}`);
+      assert(row.every((i) => i.x >= 0 && i.x < w), `${w}: and nothing runs off the side`);
+    }
+  });
+
   test('mark.area toBottom: fills to the bottom of the plot when the axis does not start at 0', () => {
     const { svg } = draw(monthly({ size: [300, 150], scales: { x: { type: 'time' }, y: { type: 'linear' } }, marks: [{ type: 'area', x: 'm', y: 'rev', toBottom: true }] }));
     const ys = [...paths(layer(svg, 'marks'))[0].d.matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => +m[2]);

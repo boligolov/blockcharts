@@ -805,7 +805,8 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   size, a column at the side or a row that wraps. The row is packed by the chart's width, not the plot's: `measure`
   sees the plot before the axes and other legends take their room, so packing by the plot made render wrap into more
   lines than were measured and the last one fell off the card on a phone (a test reproduces it). The categorical row
-  legend still packs by the plot and may have the same edge case. Recipe `bubble`; `scale.size` is in the `full` kit.
+  legend had the same defect and packs the same way since `guide.legend` v7; a line starts at the plot's left edge
+  and moves left only when it would run past the chart. Recipe `bubble`; `scale.size` is in the `full` kit.
 
 ## Next steps
 

@@ -1213,8 +1213,8 @@
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",
-      "bytes": 4306,
-      "version": 6,
+      "bytes": 4374,
+      "version": 7,
       "requires": [],
       "closure": [
         "guide.legend"

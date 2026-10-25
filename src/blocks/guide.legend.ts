@@ -26,7 +26,7 @@
   }
   const SIZE_STROKE = 'var(--bc-label, var(--bc-text, #888))';
   const sizeWidth = (s: Sized) => 2 * s.r + GAP + s.w;
-  /** The width a row key is packed into. Not the plot's: measure sees the plot before the axes take their room and render
+  /** The width a row legend (categories or a size key) is packed into. Not the plot's: measure sees the plot before the axes take their room and render
    *  after, so the two would wrap differently and the last line would fall outside the room measured. The chart's width
    *  is the same for both. */
   const rowRoom = (ctx: BC.ChartCtx) => Math.max(1, ctx.size.w - 2 * PAD);
@@ -73,7 +73,7 @@
   const ITEM_GAP = 14; // between two items of a row
   const itemWidth = (it: Item) => SWATCH + GAP + it.w;
 
-  /** Items of a row legend packed into lines no wider than the plot: a long legend wraps instead of running off. */
+  /** Items of a row legend packed into lines no wider than `width` (see rowRoom): a long legend wraps instead of running off. */
   function linesOf(items: Item[], width: number): Item[][] {
     const lines: Item[][] = [];
     let line: Item[] = [];
@@ -99,7 +99,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 6,
+    version: 7,
     doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
       scale: { kind: 'scale', required: true, doc: 'A color, sequential or size scale.' },
@@ -126,7 +126,7 @@
         return out;
       }
       const items = itemsOf(scale, ctx);
-      out[side] = !items.length ? 0 : column ? SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD : linesOf(items, ctx.plot.w).length * ROW + PAD;
+      out[side] = !items.length ? 0 : column ? SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD : linesOf(items, rowRoom(ctx)).length * ROW + PAD;
       return out;
     },
     render(spec, ctx, offset) {
@@ -213,10 +213,10 @@
         const left = side === 'right' ? x + w + offset.right : x - offset.left - width;
         items.forEach((it, i) => put(left + PAD, y + 4 + i * ROW, it));
       } else {
-        const lines = linesOf(items, w);
+        const lines = linesOf(items, rowRoom(ctx));
         const top = side === 'top' ? y - offset.top - (lines.length * ROW + PAD) : y + h + offset.bottom + PAD / 2;
         lines.forEach((line, k) => {
-          let cx = x;
+          let cx = Math.max(PAD, Math.min(x, ctx.size.w - PAD - line.reduce((sum, it, j) => sum + (j ? ITEM_GAP : 0) + itemWidth(it), 0)));
           for (const it of line) {
             put(cx, top + k * ROW, it);
             cx += itemWidth(it) + ITEM_GAP;
