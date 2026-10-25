@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.2.1"
+  version: "0.3.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -130,6 +130,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | Spread and outliers of raw samples per category | `recipes/boxplot.json` |
 | Trends of several series, with zoom | `recipes/lines-by-series.json` |
 | Two numeric variables, groups by color | `recipes/scatter-groups.json` |
+| Two numeric variables and a third as the size of each bubble | `recipes/bubble.json` |
 | Two measures with different units | `recipes/dual-axis.json` |
 | Shares over time | `recipes/stacked-area-100.json` |
 | How values of one variable are spread | `recipes/histogram.json` |

@@ -1,0 +1,54 @@
+{
+  "title": "Product portfolio",
+  "subtitle": "Growth against margin; the area of a bubble is the revenue",
+  "data": {
+    "products": [
+      { "product": "Atlas", "segment": "Enterprise", "growth": 0.18, "margin": 0.42, "revenue": 48.2 },
+      { "product": "Beacon", "segment": "Enterprise", "growth": 0.07, "margin": 0.51, "revenue": 71.5 },
+      { "product": "Cobalt", "segment": "Enterprise", "growth": -0.03, "margin": 0.38, "revenue": 36.9 },
+      { "product": "Delta", "segment": "SMB", "growth": 0.31, "margin": 0.22, "revenue": 12.4 },
+      { "product": "Ember", "segment": "SMB", "growth": 0.24, "margin": 0.27, "revenue": 18.8 },
+      { "product": "Flint", "segment": "SMB", "growth": 0.12, "margin": 0.19, "revenue": 9.6 },
+      { "product": "Garnet", "segment": "SMB", "growth": -0.08, "margin": 0.15, "revenue": 6.1 },
+      { "product": "Harbor", "segment": "Consumer", "growth": 0.42, "margin": 0.08, "revenue": 4.3 },
+      { "product": "Iris", "segment": "Consumer", "growth": 0.15, "margin": 0.12, "revenue": 22.7 },
+      { "product": "Juniper", "segment": "Consumer", "growth": 0.02, "margin": 0.17, "revenue": 29.4 },
+      { "product": "Kestrel", "segment": "Consumer", "growth": 0.27, "margin": 0.31, "revenue": 15.2 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Where the revenue grows, and what it earns",
+      "note": "mark.point with a `size` channel on a scale.size: the area of each circle, not its radius, follows the value, so a product twice the revenue is a bubble twice the area. Big bubbles are drawn first, so small ones stay visible on top; an outline in the card color and some transparency separate the overlaps. The size key is a guide.legend on the size scale.",
+      "spec": {
+        "data": "products",
+        "size": [640, 420],
+        "scales": {
+          "x": { "type": "linear", "padding": 0.1 },
+          "y": { "type": "linear", "padding": 0.1, "zero": true },
+          "size": { "type": "size", "range": [3, 30] },
+          "color": { "type": "color" }
+        },
+        "guides": [
+          { "type": "grid", "scale": "x" },
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x", "format": "percent", "title": "Revenue growth, year on year" },
+          { "type": "axis", "scale": "y", "format": "percent", "title": "Operating margin" },
+          { "type": "legend", "scale": "color" },
+          { "type": "legend", "scale": "size", "position": "bottom", "format": { "prefix": "$", "suffix": "M" } }
+        ],
+        "marks": [
+          { "type": "point", "x": "growth", "y": "margin", "size": "revenue", "color": "segment", "opacity": 0.75, "stroke": "var(--bc-tooltip-bg, #fff)" }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": ["product", "segment", "growth", "margin", "revenue"],
+            "formats": { "growth": "percent", "margin": "percent", "revenue": { "prefix": "$", "suffix": "M", "maximumFractionDigits": 1 } }
+          },
+          { "type": "legend-filter" }
+        ]
+      }
+    }
+  ]
+}

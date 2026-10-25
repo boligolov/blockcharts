@@ -364,7 +364,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     logged.error.length = 0;
     const host = new FakeNode('div');
     const h = BC.chart(host, ptSpec([{ type: 'legend', scale: 'x' }]));
-    assert(h.diagnostics.some((d) => d.path === 'guides[2]' && /needs a color scale/.test(d.message)), JSON.stringify(h.diagnostics));
+    assert(h.diagnostics.some((d) => d.path === 'guides[2]' && /needs a color, sequential or size scale/.test(d.message)), JSON.stringify(h.diagnostics));
     assert.strictEqual(count(svgOf(host), /<circle /g), 6);
     logged.error.length = 0;
   });
@@ -2769,6 +2769,112 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(xs.length, 56, 'every row with an x is drawn');
     assert(xs.every((x, i) => i === 0 || x >= xs[i - 1]), 'x never goes back');
     assert.strictEqual(count(d, /M/g), 1, 'a row without x is not a gap in the line: it has no place on it');
+  });
+
+  // ── bubbles: scale.size + mark.point size + a size legend ──
+  test('scale.size: area follows the value from 0, bad values have no size, ranges and domains are checked', () => {
+    const mk = (sources, spec) => BC.get('scale.size').create({ type: 'size', ...spec }, { name: 'size', sources, range: spec && spec.range ? spec.range : [] });
+    const s = mk([Float64Array.of(10, 40, 100)], { range: [0, 20] });
+    assert.deepStrictEqual(s.domain(), [0, 100], 'zero by default');
+    assert(Math.abs(s(100) ** 2 / s(25) ** 2 - 4) < 1e-9, 'four times the value, four times the area');
+    assert.strictEqual(s(100), 20);
+    for (const bad of [NaN, -5, null, 'x', Infinity]) assert(Number.isNaN(s(bad)), `no size for ${bad}`);
+    assert.strictEqual(s(1000), 20, 'past the domain: the largest size');
+    const def = mk([Float64Array.of(10, 40)]);
+    assert.deepStrictEqual(def.range(), [2, 24], 'default radii');
+    assert.strictEqual(def(0), 2);
+    assert.deepStrictEqual(mk([Float64Array.of(10, 40)], { zero: false }).domain(), [10, 40]);
+    assert.deepStrictEqual(mk([Float64Array.of(7, 7)], { zero: false }).domain(), [0, 14], 'one value: a middle-sized circle');
+    assert.deepStrictEqual(mk([['a', null, -3]]).domain(), [0, 1], 'nothing to size: a default domain, no NaN');
+    assert.throws(() => mk([[1]], { range: [20, 5] }), /scale\.size: range/);
+    assert.throws(() => mk([[1]], { range: ['big', 5] }), /scale\.size: range/);
+    assert.throws(() => mk([[1]], { domain: [5, 5] }), /scale\.size: domain/);
+    assert.throws(() => mk([[1]], { domain: [-1, 5] }), /scale\.size: domain/);
+    assert.deepStrictEqual(s.ticks(3).map((t) => t.value), [50, 100], 'round values for a key, no zero circle');
+    assert(s.ticks(3).every((t) => t.pos === s(t.value)));
+  });
+
+  BC.data('bubbleRows', [
+    { gdp: 10, life: 70, pop: 100, c: 'A' }, { gdp: 20, life: 75, pop: 4, c: 'B' }, { gdp: 20.2, life: 75.1, pop: 1, c: 'C' },
+    { gdp: 30, life: 80, pop: null, c: 'D' }, { gdp: 40, life: 82, pop: -2, c: 'E' }, { gdp: 21, life: 75.5, pop: 400, c: 'F' },
+  ]);
+  const bubbleSpec = (extra) => ({
+    data: 'bubbleRows',
+    scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'size', range: [0, 30] } },
+    marks: [{ type: 'point', x: 'gdp', y: 'life', size: 'pop', opacity: 0.7, stroke: '#fff' }],
+    ...extra,
+  });
+  const bubblesIn = (svg) => [...svg.matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)" r="([\d.-]+)"[^>]*data-bc-row="(\d+)"/g)].map((m) => ({ x: +m[1], y: +m[2], r: +m[3], row: +m[4] }));
+
+  test('bubble: radius per row from the size scale, the biggest drawn first, rows without a size left out', () => {
+    const host = new FakeNode('div');
+    const h = BC.chart(host, bubbleSpec());
+    assert.deepStrictEqual(h.diagnostics, []);
+    const c = bubblesIn(layer(svgOf(host), 'marks'));
+    assert.deepStrictEqual(c.map((b) => b.row), [5, 0, 1, 2], 'by size, descending; null and negative sizes not drawn');
+    assert.strictEqual(c[0].r, 30);
+    assert(Math.abs((c[1].r / c[0].r) ** 2 - 100 / 400) < 1e-9, 'area ratio = value ratio');
+    assert(/stroke="#fff"/.test(svgOf(host)));
+    const plain = new FakeNode('div');
+    BC.chart(plain, { ...bubbleSpec(), marks: [{ type: 'point', x: 'gdp', y: 'life', r: 5 }] });
+    assert.deepStrictEqual(bubblesIn(layer(svgOf(plain), 'marks')).map((b) => [b.row, b.r]), [[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5]], 'without size: data order, the constant r');
+  });
+
+  test('bubble: validation of the size channel, and the tooltip picks the small bubble on top of a big one', async () => {
+    const wrong = BC.validate({ ...bubbleSpec(), scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'linear' } } });
+    assert(wrong.some((d) => d.path === 'marks[0].size' && /does not accept a "linear" scale/.test(d.message)), JSON.stringify(wrong));
+    const badRange = BC.chart(new FakeNode('div'), bubbleSpec({ scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'size', range: [9, 1] } } }));
+    assert(badRange.diagnostics.some((d) => d.level === 'error' && /scale\.size: range/.test(d.message)));
+
+    const host = new FakeNode('div');
+    BC.chart(host, bubbleSpec({ interaction: [{ type: 'tooltip', fields: ['c'] }] }));
+    const c = bubblesIn(layer(svgOf(host), 'marks'));
+    const big = c.find((b) => b.row === 5);
+    const small = c.find((b) => b.row === 2);
+    assert(Math.hypot(big.x - small.x, big.y - small.y) < big.r, 'the small bubble sits inside the big one');
+    const said = () => (tipOf(host).serialize().match(/>([A-F])</) || [])[1];
+    await hover(host, small.x, small.y);
+    assert.strictEqual(said(), 'C', 'the small one, drawn on top, answers');
+    await hover(host, big.x - big.r + 2, big.y);
+    assert.strictEqual(said(), 'F', 'inside the big one, away from the others: the big one');
+  });
+
+  test('legend of a size scale: circles of the key values with labels, room taken on its side, format applies', () => {
+    const bare = new FakeNode('div');
+    BC.chart(bare, bubbleSpec());
+    const host = new FakeNode('div');
+    const h = BC.chart(host, bubbleSpec({ guides: [{ type: 'legend', scale: 'size', format: { suffix: ' M' } }] }));
+    assert.deepStrictEqual(h.diagnostics, []);
+    const axes = layer(svgOf(host), 'axes');
+    // domain [0, 400] on radii [0, 30]: keys at 100, 200, 300, 400, each circle with the area of its value
+    const keys = [...axes.matchAll(/<circle [^>]*r="([\d.]+)"[^>]*class="bc-legend-size"/g)].map((m) => +m[1]);
+    assert.deepStrictEqual(keys.map((r) => +r.toFixed(2)), [100, 200, 300, 400].map((v) => +(30 * Math.sqrt(v / 400)).toFixed(2)));
+    for (const label of ['100 M', '200 M', '300 M', '400 M']) assert(axes.includes(`>${label}<`), label);
+    // A (gdp 10) and F (gdp 21) are two fixed points of the data: the distance between them shrinks with the plot
+    const span = (svg) => { const b = bubblesIn(layer(svg, 'marks')); return b.find((p) => p.row === 5).x - b.find((p) => p.row === 0).x; };
+    assert(span(svgOf(host)) < span(svgOf(bare)) * 0.9, `the key takes room on the right; the plot is narrower: ${span(svgOf(host))} vs ${span(svgOf(bare))}`);
+    // a row at the bottom: each label right after its own circle, and on a narrow chart the row wraps instead of running off
+    for (const width of [260, 300]) {
+      const narrow = new FakeNode('div');
+      // as in the recipe: axis titles and a color legend on the right take room after the size key has measured itself
+      const hn = BC.chart(narrow, bubbleSpec({
+        size: [width, 420],
+        scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'size', range: [0, 30] }, color: { type: 'color' } },
+        marks: [{ type: 'point', x: 'gdp', y: 'life', size: 'pop', color: 'c' }],
+        guides: [{ type: 'axis', scale: 'x', title: 'Growth' }, { type: 'axis', scale: 'y', title: 'Margin' }, { type: 'legend', scale: 'color' }, { type: 'legend', scale: 'size', position: 'bottom' }],
+      }));
+      assert.deepStrictEqual(hn.diagnostics, []);
+      const keyRow = [...svgOf(narrow).matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"[^>]*class="bc-legend-size"[^>]*><\/circle><text x="([\d.]+)"/g)]
+        .map((m) => ({ cx: +m[1], cy: +m[2], r: +m[3], tx: +m[4] }));
+      assert.strictEqual(keyRow.length, 4);
+      assert(keyRow.every((k) => Math.abs(k.tx - (k.cx + k.r + 6)) < 1e-6), 'a label sits just past its own circle');
+      assert(new Set(keyRow.map((k) => k.cy)).size > 1, `${width}: the key wraps onto a second line`);
+      assert(keyRow.every((k) => k.cx - k.r >= 0 && k.cx + k.r <= width), `${width}: and stays inside the chart`);
+      // the axes take their room after the legend measured itself: the wrap must not depend on it
+      assert(keyRow.every((k) => k.cy + k.r <= 420), `${width}: the last line is inside the room it measured: ${JSON.stringify(keyRow)}`);
+      const plotBottom = Math.max(...bubblesIn(layer(svgOf(narrow), 'marks')).map((b) => b.y));
+      assert(keyRow.every((k) => k.cy - k.r > plotBottom), 'below the plot');
+    }
   });
 
   test('zoom + brush: a shift-drag selects and does not pan the chart at the same time', async () => {

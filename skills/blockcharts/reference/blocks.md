@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-34 blocks: `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.funnel`, `transform.quartiles`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+35 blocks: `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.funnel`, `transform.quartiles`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -21,7 +21,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 | chart | `padding` | `{top, right, bottom, left}` in drawing units, default 16 each |
 | chart | `transforms`, `scales`, `guides`, `marks`, `interaction` | lists of blocks (`scales` is an object of named scales) |
 | chart | `view` | starting zoom: `{"x": [from, to]}` (dates as ISO strings or milliseconds) |
-| scale | `type` | the scale block: `band`, `color`, `linear`, `sequential`, `time` |
+| scale | `type` | the scale block: `band`, `color`, `linear`, `sequential`, `size`, `time` |
 | scale | `domain` | fixed domain instead of the inferred one: `[min, max]` for linear and time, a list of values for band and color |
 | scale | `range` | `"width"` or `"height"` (the default of `x` and `y`), or an explicit list, e.g. colors for a color scale |
 | scale | `field` | an extra field to include when inferring the domain |
@@ -55,6 +55,14 @@ Version 2, 1.4 KB. Continuous numeric scale. Domain is inferred from bound chann
 ## scale.sequential
 
 Version 1, 2.0 KB. Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`.
+
+## scale.size
+
+Version 1, 1.6 KB. Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `zero` | boolean | `true` | Start the domain at 0, so areas are proportional to the values. false: the smallest value gets the smallest radius (shows differences, overstates ratios). |
 
 ## scale.time
 
@@ -250,19 +258,21 @@ Version 7, 4.2 KB. A line per series: one path however many points. Rows are joi
 
 ## mark.point
 
-Version 6, 1.4 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot).
+Version 7, 1.8 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
 | `x` | **required** | `linear`, `time`, `band` |  |
 | `y` | **required** | `linear`, `time`, `band` |  |
 | `color` | optional | `color`, `sequential` | Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn. |
+| `size` | optional | `size` | Radius per row from a scale.size (a bubble chart); rows without a size (missing or negative) are not drawn. |
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `r` | number | `3` | Radius in px. |
+| `r` | number | `3` | Radius in px (when there is no `size` channel). |
 | `fill` | string |  | Any CSS color. Default: theme color by mark index. |
-| `opacity` | number | `1` |  |
+| `opacity` | number | `1` | Bubbles overlap: 0.7 lets the ones behind show through. |
+| `stroke` | string |  | Outline color; bubbles read better with the card color as one ("var(--bc-tooltip-bg, #fff)", which follows the dark theme). |
 
 ## mark.rect
 
@@ -372,13 +382,13 @@ Version 2, 2.8 KB. A key figure as the heading of a chart: a label, the value in
 
 ## guide.legend
 
-Version 5, 2.8 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels. On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
+Version 6, 4.2 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `scale` | scale, **required** |  | A color or sequential scale. |
+| `scale` | scale, **required** |  | A color, sequential or size scale. |
 | `position` | one of `top`, `right`, `bottom`, `left` | `"right"` |  |
-| `format` | any |  | How to write the labels of a color bar (a `sequential` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`. |
+| `format` | any |  | How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`. |
 
 ## interaction.animate
 

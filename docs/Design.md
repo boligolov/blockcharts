@@ -788,6 +788,25 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   with no width known (a server, the composer's dry run, the tests) nothing changes.
 - **Table** stays in ROADMAP, much later.
 
+## Review fixes and bubbles (2026-10-25)
+
+- **Fixes found by a review** (each reproduced first, then a failing test): the tick loops of `scale.time` ran forever
+  on a NaN bound — numbers past the range of dates (nanoseconds) or a `domain` that does not parse — and hung the page
+  and the composer; now such numbers are not times (an error with the fix when none is a date), a bad domain is an
+  error, the loops stop on NaN and at 1000 ticks. The composer's trial run of each chart now runs inside the `vm` under
+  `drawTimeout` (10 s), so any stuck block is a spec error, not a hang. `interaction.zoom` v3 leaves a drag with the
+  brush's modifier to the brush (both moved at once and the selection landed elsewhere — confirmed in real Chrome).
+  `guide.kpi` min/max no longer spread a long array (stack overflow at 300,000 rows). Rows without x sort last when a
+  series is ordered (a NaN in the comparator scrambled the line).
+- **Bubbles**: `scale.size` maps a number to a radius so that the **area** follows the value (r² linear between the two
+  radii of `range`, domain from 0 by default, no size for missing or negative values). `mark.point` v7 takes a `size`
+  channel on it, draws the biggest first so small bubbles stay on top, and its pick prefers the circle the pointer is
+  in that is drawn last; `stroke` outlines them. `guide.legend` v6 draws a size key: round values as circles of their
+  size, a column at the side or a row that wraps. The row is packed by the chart's width, not the plot's: `measure`
+  sees the plot before the axes and other legends take their room, so packing by the plot made render wrap into more
+  lines than were measured and the last one fell off the card on a phone (a test reproduces it). The categorical row
+  legend still packs by the plot and may have the same edge case. Recipe `bubble`; `scale.size` is in the `full` kit.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

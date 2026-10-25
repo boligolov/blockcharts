@@ -14,8 +14,38 @@
 
   function scaleOf(spec: BC.GuideSpec, ctx: BC.ChartCtx): BC.Scale {
     const scale = spec.scale ? ctx.scales[spec.scale] : undefined;
-    if (!scale || (scale.kind !== 'color' && scale.kind !== 'sequential')) throw new Error('guide.legend needs a color scale');
+    if (!scale || (scale.kind !== 'color' && scale.kind !== 'sequential' && scale.kind !== 'size')) throw new Error('guide.legend needs a color, sequential or size scale');
     return scale;
+  }
+
+  /** A size legend: a few round values as circles of their size, each with its label (pos = the radius). */
+  interface Sized { label: string; r: number; w: number }
+  function sizesOf(scale: BC.Scale, spec: BC.GuideSpec, ctx: BC.ChartCtx): Sized[] {
+    const ticks = barTicks(scale, spec, 3).filter((t) => isFinite(t.pos) && t.pos > 0);
+    return ticks.map((t) => ({ label: t.label, r: t.pos, w: ctx.measure(t.label, FONT).w }));
+  }
+  const SIZE_STROKE = 'var(--bc-label, var(--bc-text, #888))';
+  const sizeWidth = (s: Sized) => 2 * s.r + GAP + s.w;
+  /** The width a row key is packed into. Not the plot's: measure sees the plot before the axes take their room and render
+   *  after, so the two would wrap differently and the last line would fall outside the room measured. The chart's width
+   *  is the same for both. */
+  const rowRoom = (ctx: BC.ChartCtx) => Math.max(1, ctx.size.w - 2 * PAD);
+  /** A row key packed into lines no wider than the plot (a phone), each as tall as its biggest circle. */
+  function sizeLines(sizes: Sized[], width: number): { items: Sized[]; h: number }[] {
+    const lines: { items: Sized[]; h: number }[] = [];
+    let used = 0;
+    for (const s of sizes) {
+      const last = lines[lines.length - 1];
+      if (!last || (last.items.length && used + ITEM_GAP + sizeWidth(s) > width)) {
+        lines.push({ items: [s], h: Math.max(2 * s.r, ROW) + 4 });
+        used = sizeWidth(s);
+      } else {
+        last.items.push(s);
+        last.h = Math.max(last.h, Math.max(2 * s.r, ROW) + 4);
+        used += ITEM_GAP + sizeWidth(s);
+      }
+    }
+    return lines;
   }
 
   /** Every category of the scale, also the ones a filter has hidden, so they can be switched back on. */
@@ -29,8 +59,8 @@
   }
 
   /** Labels of a color bar, written the way `format` says. */
-  function barTicks(scale: BC.Scale, spec: BC.GuideSpec): BC.Tick[] {
-    const ticks = scale.ticks ? scale.ticks(4) : [];
+  function barTicks(scale: BC.Scale, spec: BC.GuideSpec, count = 4): BC.Tick[] {
+    const ticks = scale.ticks ? scale.ticks(count) : [];
     if (spec.format === undefined) return ticks;
     const write = BC.formatter(spec.format as BC.FormatSpec | string, 'number');
     return ticks.map((t) => ({ value: t.value, pos: t.pos, label: write(t.value) }));
@@ -69,18 +99,26 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 5,
-    doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels. On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
+    version: 6,
+    doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
-      scale: { kind: 'scale', required: true, doc: 'A color or sequential scale.' },
+      scale: { kind: 'scale', required: true, doc: 'A color, sequential or size scale.' },
       position: { kind: 'enum', values: ['top', 'right', 'bottom', 'left'], default: 'right' },
-      format: { kind: 'any', doc: 'How to write the labels of a color bar (a `sequential` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`.' },
+      format: { kind: 'any', doc: 'How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`.' },
     },
     measure(spec, ctx) {
       const side = sideOf(spec);
       const scale = scaleOf(spec, ctx);
       const column = isColumn(side);
       const out: Partial<BC.Insets> = {};
+      if (scale.kind === 'size') {
+        const sizes = sizesOf(scale, spec, ctx);
+        const rMax = sizes.reduce((m, s) => Math.max(m, s.r), 0);
+        out[side] = !sizes.length ? 0 : column
+          ? 2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0) + 2 * PAD
+          : sizeLines(sizes, rowRoom(ctx)).reduce((sum, l) => sum + l.h, 0) + PAD;
+        return out;
+      }
       if (scale.kind === 'sequential') {
         const labels = barTicks(scale, spec);
         const widest = labels.reduce((m, t) => Math.max(m, ctx.measure(t.label, FONT).w), 0);
@@ -97,6 +135,40 @@
       const column = isColumn(side);
       const { x, y, w, h } = ctx.plot;
       const prims: BC.Prim[] = [];
+
+      if (scale.kind === 'size') {
+        const sizes = sizesOf(scale, spec, ctx);
+        const rMax = sizes.reduce((m, s) => Math.max(m, s.r), 0);
+        const circle = (cx: number, cy: number, s: Sized, labelX: number) => {
+          prims.push({ type: 'circle', cx, cy, r: s.r, style: { fill: 'none', stroke: SIZE_STROKE, strokeWidth: 1 }, cls: 'bc-legend-size' });
+          prims.push({ type: 'text', x: labelX, y: cy, text: s.label, size: FONT, baseline: 'middle', style: { fill: TEXT } });
+        };
+        if (column) {
+          const width = 2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0) + 2 * PAD;
+          const left = (side === 'right' ? x + w + offset.right : x - offset.left - width) + PAD;
+          // stacked downwards on one center line, each in a slot as tall as the circle (never shorter than a line of
+          // text); the labels line up past the biggest circle
+          let top = y + 4;
+          for (const s of sizes) {
+            const slot = Math.max(2 * s.r, ROW) + 4;
+            circle(left + rMax, top + slot / 2, s, left + 2 * rMax + GAP);
+            top += slot;
+          }
+        } else {
+          // left to right, each label right after its own circle; lines wrap on a narrow plot
+          const lines = sizeLines(sizes, rowRoom(ctx));
+          let top = side === 'top' ? y - offset.top - (lines.reduce((sum, l) => sum + l.h, 0) + PAD) : y + h + offset.bottom + PAD / 2;
+          for (const line of lines) {
+            let cx = Math.max(PAD, Math.min(x, ctx.size.w - PAD - line.items.reduce((sum, s, k) => sum + (k ? ITEM_GAP : 0) + sizeWidth(s), 0)));
+            for (const s of line.items) {
+              circle(cx + s.r, top + line.h / 2, s, cx + 2 * s.r + GAP);
+              cx += sizeWidth(s) + ITEM_GAP;
+            }
+            top += line.h;
+          }
+        }
+        return { axes: prims };
+      }
 
       if (scale.kind === 'sequential') {
         const [d0, d1] = scale.domain() as number[];

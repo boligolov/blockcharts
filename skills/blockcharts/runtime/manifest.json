@@ -75,6 +75,23 @@
       "params": {},
       "doc": "Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`."
     },
+    "scale.size": {
+      "file": "blocks/scale.size.js",
+      "bytes": 1651,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "scale.size"
+      ],
+      "params": {
+        "zero": {
+          "kind": "boolean",
+          "default": true,
+          "doc": "Start the domain at 0, so areas are proportional to the values. false: the smallest value gets the smallest radius (shows differences, overstates ratios)."
+        }
+      },
+      "doc": "Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale."
+    },
     "scale.time": {
       "file": "blocks/scale.time.js",
       "bytes": 2750,
@@ -726,8 +743,8 @@
     },
     "mark.point": {
       "file": "blocks/mark.point.js",
-      "bytes": 1443,
-      "version": 6,
+      "bytes": 1861,
+      "version": 7,
       "requires": [],
       "closure": [
         "mark.point"
@@ -736,7 +753,7 @@
         "r": {
           "kind": "number",
           "default": 3,
-          "doc": "Radius in px."
+          "doc": "Radius in px (when there is no `size` channel)."
         },
         "fill": {
           "kind": "string",
@@ -744,7 +761,12 @@
         },
         "opacity": {
           "kind": "number",
-          "default": 1
+          "default": 1,
+          "doc": "Bubbles overlap: 0.7 lets the ones behind show through."
+        },
+        "stroke": {
+          "kind": "string",
+          "doc": "Outline color; bubbles read better with the card color as one (\"var(--bc-tooltip-bg, #fff)\", which follows the dark theme)."
         }
       },
       "channels": {
@@ -770,9 +792,15 @@
             "sequential"
           ],
           "doc": "Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn."
+        },
+        "size": {
+          "scales": [
+            "size"
+          ],
+          "doc": "Radius per row from a scale.size (a bubble chart); rows without a size (missing or negative) are not drawn."
         }
       },
-      "doc": "One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot)."
+      "doc": "One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top."
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",
@@ -1185,8 +1213,8 @@
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",
-      "bytes": 2884,
-      "version": 5,
+      "bytes": 4306,
+      "version": 6,
       "requires": [],
       "closure": [
         "guide.legend"
@@ -1195,7 +1223,7 @@
         "scale": {
           "kind": "scale",
           "required": true,
-          "doc": "A color or sequential scale."
+          "doc": "A color, sequential or size scale."
         },
         "position": {
           "kind": "enum",
@@ -1209,10 +1237,10 @@
         },
         "format": {
           "kind": "any",
-          "doc": "How to write the labels of a color bar (a `sequential` scale): a preset (\"percent\", \"compact\", ...) or an object of Intl options; see guide.axis `format`."
+          "doc": "How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset (\"percent\", \"compact\", ...) or an object of Intl options; see guide.axis `format`."
         }
       },
-      "doc": "Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels. On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it."
+      "doc": "Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it."
     },
     "interaction.animate": {
       "file": "blocks/interaction.animate.js",
