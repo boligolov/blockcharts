@@ -148,10 +148,11 @@ The package ships the minified files of `release/` (kits, blocks, loader, manife
 import BC from 'blockcharts';                    // the full kit, typed
 import BC from 'blockcharts/kits/basic.mjs';     // a smaller kit
 import manifest from 'blockcharts/manifest.json' with { type: 'json' };
+const BC = require('blockcharts');               // CommonJS: the same full kit
 // <script src="node_modules/blockcharts/kits/timeseries.js"> or through a CDN: unpkg / jsdelivr serve the same files
 ```
 
-Every kit has a `.d.mts`; `blockcharts/bc.d.ts` declares the global `BC` and every spec type. `npm pack` and `npm publish` build the release first (`prepack`).
+Every kit has a `.d.mts` (and a `.d.ts` for `require`); `blockcharts/bc.d.ts` declares the global `BC` and every spec type. `npm pack` and `npm publish` build the release first (`prepack`).
 
 #### 3. The loader: separate files, fetched on demand
 

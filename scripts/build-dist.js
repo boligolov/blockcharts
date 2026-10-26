@@ -19,6 +19,9 @@ const NAME = /^[a-z][a-z0-9-]*$/;
 
 class ReleaseError extends Error {}
 
+/** The end of a kit's .js: under Node (require) the kit returns the runtime it put in the global scope. */
+const CJS_EXPORT = "if (typeof module === 'object' && module && typeof module.exports === 'object') module.exports = globalThis.BC;\n";
+
 const sri = (buf) => 'sha384-' + crypto.createHash('sha384').update(buf).digest('base64');
 const describe = (file, buf) => ({ file, bytes: buf.length, gzip: zlib.gzipSync(buf, { level: 9 }).length, sha384: sri(buf) });
 
@@ -103,10 +106,13 @@ function buildRelease(options) {
     release.kits[name] = {
       doc: kits[name].doc,
       blocks,
-      js: put(`kits/${name}.js`, Buffer.from(banner + body + '\n')),
+      // a classic script that is also what require() returns: in a browser there is no `module`, so the last line does nothing
+      js: put(`kits/${name}.js`, Buffer.from(banner + body + '\n' + CJS_EXPORT)),
       mjs: put(`kits/${name}.mjs`, Buffer.from(banner + body + '\nexport default globalThis.BC;\n')),
       // what TypeScript sees when a kit is imported as a module: the runtime, typed by bc.d.ts
       dts: put(`kits/${name}.d.mts`, Buffer.from('/// <reference path="../bc.d.ts" />\ndeclare const runtime: BC.Runtime;\nexport default runtime;\n')),
+      // ... and when it is required
+      cts: put(`kits/${name}.d.ts`, Buffer.from('/// <reference path="../bc.d.ts" />\ndeclare const runtime: BC.Runtime;\nexport = runtime;\n')),
     };
   }
   fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(release, null, 2) + '\n');

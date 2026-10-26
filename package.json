@@ -26,13 +26,19 @@
   "type": "commonjs",
   "main": "./release/kits/full.js",
   "module": "./release/kits/full.mjs",
-  "types": "./release/bc.d.ts",
+  "types": "./release/kits/full.d.ts",
   "unpkg": "./release/kits/full.js",
   "jsdelivr": "./release/kits/full.js",
   "exports": {
     ".": {
-      "types": "./release/kits/full.d.mts",
-      "import": "./release/kits/full.mjs",
+      "import": {
+        "types": "./release/kits/full.d.mts",
+        "default": "./release/kits/full.mjs"
+      },
+      "require": {
+        "types": "./release/kits/full.d.ts",
+        "default": "./release/kits/full.js"
+      },
       "default": "./release/kits/full.js"
     },
     "./kits/*": "./release/kits/*",

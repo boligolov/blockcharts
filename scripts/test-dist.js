@@ -43,9 +43,9 @@ test('release: every part is a file of its own, and the manifest describes each 
   assert.strictEqual(release.version, manifest.core.version);
   const listed = new Set(['manifest.json', release.core.file, release.loader.file, release.types.file]);
   for (const b of Object.values(release.blocks)) listed.add(b.file);
-  for (const k of Object.values(release.kits)) { listed.add(k.js.file); listed.add(k.mjs.file); listed.add(k.dts.file); }
+  for (const k of Object.values(release.kits)) { listed.add(k.js.file); listed.add(k.mjs.file); listed.add(k.dts.file); listed.add(k.cts.file); }
   assert.deepStrictEqual(files(out).map((f) => f.split(path.sep).join('/')), Array.from(listed).sort(), 'nothing missing, nothing unexplained');
-  const entries = [release.core, release.loader, release.types, ...Object.values(release.blocks), ...Object.values(release.kits).flatMap((k) => [k.js, k.mjs, k.dts])];
+  const entries = [release.core, release.loader, release.types, ...Object.values(release.blocks), ...Object.values(release.kits).flatMap((k) => [k.js, k.mjs, k.dts, k.cts])];
   for (const e of entries) {
     const buf = read(e.file);
     assert.strictEqual(e.bytes, buf.length, e.file);
@@ -94,6 +94,30 @@ test('kit: an ES module gives BC as its default export and needs nothing around 
   assert.strictEqual(mod.default, globalThis.BC);
   assert.deepStrictEqual(Array.from(mod.default.blocks()).sort(), release.kits.basic.blocks.slice().sort());
   delete globalThis.BC;
+});
+
+test('kit: require() returns BC, a browser with an element called "module" is not fooled, and package.json routes require to it', () => {
+  delete globalThis.BC;
+  const file = path.join(out, 'kits', 'basic.js');
+  delete require.cache[file];
+  const BC = require(file);
+  assert.strictEqual(BC, globalThis.BC, 'what require() returns is the runtime');
+  assert.strictEqual(typeof BC.chart, 'function');
+  delete globalThis.BC;
+  // window.module is an element when the page has id="module"; it has no exports, so the line does nothing
+  const sb = classic('kits/basic.js', { module: { tagName: 'DIV' } });
+  assert.strictEqual(typeof sb.BC.chart, 'function');
+  assert.strictEqual(sb.module.exports, undefined);
+  assert(read('kits/basic.d.ts').toString().includes('export = runtime;'), 'typed for require');
+  const pkg = JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8'));
+  const main = pkg.exports['.'];
+  assert.strictEqual(main.require.default, './release/kits/full.js');
+  assert.strictEqual(main.require.types, './release/kits/full.d.ts');
+  assert.strictEqual(main.import.default, './release/kits/full.mjs');
+  assert.strictEqual(main.import.types, './release/kits/full.d.mts');
+  for (const target of [main.require.default, main.require.types, main.import.default, main.import.types, pkg.main, pkg.module, pkg.types]) {
+    assert(fs.existsSync(path.join(out, path.relative('./release', target))), `${target} is built`);
+  }
 });
 
 test('kit: a page kit holds exactly what one page uses, and that page validates on it', () => {
