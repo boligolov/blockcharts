@@ -25,7 +25,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'point',
-    version: 7,
+    version: 8,
     doc: 'One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top.',
     params: {
       r: { kind: 'number', default: 3, doc: 'Radius in px (when there is no `size` channel).' },
@@ -42,8 +42,8 @@
     render(spec, ctx, index) {
       const cx = ctx.channel(spec, 'x');
       const cy = ctx.channel(spec, 'y');
-      const halfX = cx.scale && cx.scale.bandwidth !== undefined ? cx.scale.bandwidth / 2 : 0;
-      const halfY = cy.scale && cy.scale.bandwidth !== undefined ? cy.scale.bandwidth / 2 : 0;
+      const halfX = cx.half;
+      const halfY = cy.half;
       const radius = radii(spec, ctx);
       const fill = typeof spec.fill === 'string' ? spec.fill : ctx.color(index);
       const opacity = typeof spec.opacity === 'number' ? spec.opacity : undefined;
@@ -64,8 +64,8 @@
     pick(spec, ctx, _index, px, py) {
       const cx = ctx.channel(spec, 'x');
       const cy = ctx.channel(spec, 'y');
-      const halfX = cx.scale && cx.scale.bandwidth !== undefined ? cx.scale.bandwidth / 2 : 0;
-      const halfY = cy.scale && cy.scale.bandwidth !== undefined ? cy.scale.bandwidth / 2 : 0;
+      const halfX = cx.half;
+      const halfY = cy.half;
       const radius = radii(spec, ctx);
       const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
       // the circle drawn last that the pointer is in wins (it is on top); otherwise the one whose edge is nearest

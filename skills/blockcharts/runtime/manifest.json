@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 26365,
+    "bytes": 26428,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 20809,
+        "bytes": 20872,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 17824,
+        "bytes": 17887,
         "off": [
           "CHECKS",
           "DECODE"
@@ -574,8 +574,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2361,
-      "version": 5,
+      "bytes": 2311,
+      "version": 6,
       "requires": [
         "lib.curve"
       ],
@@ -753,8 +753,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3562,
-      "version": 9,
+      "bytes": 3513,
+      "version": 10,
       "requires": [
         "lib.curve"
       ],
@@ -839,8 +839,8 @@
     },
     "mark.point": {
       "file": "blocks/mark.point.js",
-      "bytes": 1861,
-      "version": 7,
+      "bytes": 1657,
+      "version": 8,
       "requires": [],
       "closure": [
         "mark.point"
@@ -985,8 +985,8 @@
     },
     "mark.rule": {
       "file": "blocks/mark.rule.js",
-      "bytes": 2361,
-      "version": 1,
+      "bytes": 2403,
+      "version": 2,
       "requires": [],
       "closure": [
         "mark.rule"
@@ -1060,8 +1060,8 @@
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 3825,
-      "version": 3,
+      "bytes": 3723,
+      "version": 4,
       "requires": [],
       "closure": [
         "mark.text"
@@ -1434,8 +1434,8 @@
     },
     "interaction.crosshair": {
       "file": "blocks/interaction.crosshair.js",
-      "bytes": 2438,
-      "version": 1,
+      "bytes": 2396,
+      "version": 2,
       "requires": [],
       "closure": [
         "interaction.crosshair"

@@ -16,7 +16,7 @@
         if (!scale) return null;
         const px = scale(o.value);
         const mapped = new Array(n).fill(px);
-        return { raw: new Array(n).fill(o.value), mapped, scale };
+        return { raw: new Array(n).fill(o.value), mapped, scale, half: scale.bandwidth !== undefined ? scale.bandwidth / 2 : 0 };
       }
       return ctx.channel(spec, name);
     };
@@ -54,7 +54,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rule',
-    version: 1,
+    version: 2,
     doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale — keep it inside the scale domain); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.',
     params: {
       stroke: { kind: 'string', doc: 'Any CSS color. Default: the theme text color.' },

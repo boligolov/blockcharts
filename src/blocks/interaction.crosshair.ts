@@ -7,7 +7,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'crosshair',
-    version: 1,
+    version: 2,
     doc: 'A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. Works with or without the tooltip.',
     params: {
       snap: { kind: 'enum', values: ['lines', 'all', 'off'], default: 'lines', doc: 'What the line jumps to: the nearest point of a line or area ("lines"), of any mark ("all"), or nothing (it follows the pointer).' },
@@ -49,7 +49,7 @@
             const cx = live.channel(mark, 'x');
             if (!cx.scale) continue;
             xs = cx.mapped;
-            half = cx.scale.bandwidth !== undefined ? cx.scale.bandwidth / 2 : 0;
+            half = cx.half;
             const cy = live.channel(mark, 'y');
             if (cy.scale) ys = cy.mapped;
           } catch (e) {

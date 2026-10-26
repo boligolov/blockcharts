@@ -801,16 +801,16 @@
         let result: BC.ChannelData;
         if (!ref) {
           if (cdef && cdef.required) throw new Error(`mark.${mark.type}: channel "${name}" is required`);
-          result = { raw: [], mapped: [] };
+          result = { raw: [], mapped: [], half: 0 };
         } else if (ref.field === undefined) {
           const fill = new Array(table.length);
           for (let i = 0; i < fill.length; i++) fill[i] = ref.value;
-          result = { raw: fill, mapped: fill };
+          result = { raw: fill, mapped: fill, half: 0 };
         } else {
           const raw = table.columns[ref.field];
           const scale = ref.scale !== undefined ? scales[ref.scale] : undefined;
           if (!scale) {
-            result = { field: ref.field, raw, mapped: raw };
+            result = { field: ref.field, raw, mapped: raw, half: 0 };
           } else {
             const n = table.length;
             const { from, to } = ctx.rows(mark);
@@ -818,7 +818,7 @@
             // rows outside the visible window are not mapped (NaN); marks read only from..to
             const mapped: ArrayLike<any> = typeof first === 'number' ? new Float64Array(n).fill(NaN) : new Array(n);
             for (let i = from; i < to; i++) (mapped as any)[i] = scale(raw[i]);
-            result = { field: ref.field, scale, raw, mapped };
+            result = { field: ref.field, scale, raw, mapped, half: scale.bandwidth !== undefined ? scale.bandwidth / 2 : 0 };
           }
         }
         return (byName[name] = result);

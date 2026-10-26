@@ -844,6 +844,8 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   on a page. The first is `lib.curve` (1.0 KB), the straight or monotone path that `mark.line` v9 and `mark.area` v5
   each carried (0.8 KB apiece): a page with a line alone pays 0.2 KB more, one with a line and an area 0.6 KB less, and
   the curve is written once. All 24 recipes draw byte-identical marks before and after (compared in Chrome).
+  The middle of a band is now one field of the channel, `ChannelData.half` (half the bandwidth, 0 on other scales),
+  instead of the same expression in point, text, line, area, rule and crosshair.
 
 ## Next steps
 

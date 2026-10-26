@@ -12,8 +12,7 @@
    *  their domain order. */
   function xsOf(spec: BC.MarkSpec, ctx: BC.ChartCtx): ArrayLike<number> {
     const cx = ctx.channel(spec, 'x');
-    const half = cx.scale && cx.scale.bandwidth !== undefined ? cx.scale.bandwidth / 2 : 0;
-    return half ? Array.from(cx.mapped, (v: number) => v + half) : cx.mapped;
+    return cx.half ? Array.from(cx.mapped, (v: number) => v + cx.half) : cx.mapped;
   }
 
   /** The end labels one line mark asks for: one per series, at its last point drawn (inside the plot when zoomed). */
@@ -61,7 +60,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 9,
+    version: 10,
     requires: ['lib.curve'],
     doc: 'A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.',
     params: {

@@ -257,6 +257,8 @@ declare namespace BC {
     readonly raw: Column;
     /** `scale(raw[i])`; for constants, the constant itself. Marks read this. */
     readonly mapped: ArrayLike<any>;
+    /** Half the band of a band scale, 0 for any other: `mapped[i] + half` is the middle of the row's band. */
+    readonly half: number;
   }
 
   interface ChartCtx {

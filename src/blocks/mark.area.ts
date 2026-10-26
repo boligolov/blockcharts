@@ -14,9 +14,8 @@
     const basePx = y2.raw.length ? NaN : spec.toBottom === true ? ctx.plot.y + ctx.plot.h : y.scale ? y.scale(baseline) : NaN;
     // on a band scale the points sit in the middle of their categories, as on mark.line
     const cx = ctx.channel(spec, 'x');
-    const half = cx.scale && cx.scale.bandwidth !== undefined ? cx.scale.bandwidth / 2 : 0;
     return {
-      xs: half ? Array.from(cx.mapped, (v: number) => v + half) : cx.mapped,
+      xs: cx.half ? Array.from(cx.mapped, (v: number) => v + cx.half) : cx.mapped,
       top: y.mapped,
       bottom: (i: number): number => (y2.raw.length ? y2.mapped[i] : basePx),
     };
@@ -25,7 +24,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 5,
+    version: 6,
     requires: ['lib.curve'],
     doc: 'A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.',
     params: {

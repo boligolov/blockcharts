@@ -212,7 +212,7 @@ Version 1, 2.9 KB. Pie and donut chart: one slice per row, its angle proportiona
 
 ## mark.area
 
-Version 5, 2.3 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.
+Version 6, 2.3 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.
 
 Needs: `lib.curve`.
 
@@ -257,7 +257,7 @@ Version 1, 2.6 KB. A box (q1 to q3), a line across it at the median, and whisker
 
 ## mark.line
 
-Version 9, 3.5 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
+Version 10, 3.4 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
 
 Needs: `lib.curve`.
 
@@ -281,7 +281,7 @@ Needs: `lib.curve`.
 
 ## mark.point
 
-Version 7, 1.8 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top.
+Version 8, 1.6 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -321,7 +321,7 @@ Version 8, 2.3 KB. Rectangles. On a band scale a channel spans the band; on a co
 
 ## mark.rule
 
-Version 1, 2.3 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale — keep it inside the scale domain); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.
+Version 2, 2.3 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale — keep it inside the scale domain); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -342,7 +342,7 @@ Version 1, 2.3 KB. Lines at values: a target, a threshold, an average, the targe
 
 ## mark.text
 
-Version 3, 3.7 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap). A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
+Version 4, 3.6 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap). A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -439,7 +439,7 @@ Version 2, 3.9 KB. Drag a rectangle over the plot to zoom to it: on the scales i
 
 ## interaction.crosshair
 
-Version 1, 2.4 KB. A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. Works with or without the tooltip.
+Version 2, 2.3 KB. A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. Works with or without the tooltip.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
