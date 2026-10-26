@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.10.0"
+  version: "0.11.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -102,7 +102,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Values across orders of magnitude**: `{"type": "log"}` as a scale (instead of `linear`) when values span several powers of ten (from 1K to 10M) or when growth rates matter: steady growth becomes a straight line. Only positive values are drawn (zero and negatives are left out and break a line); do not give it `zero`. Ticks are powers of ten, compact unless the axis has a `format`. Bars on a log scale are rarely right; prefer lines and points. See `recipes/log-scale.json`.
 
-**Numbers and dates as text**: axis (`format`), tooltip (`formats`), `mark.text` (`format`) and the color-bar legend (`format`) take a preset (`"percent"` for 0..1 values, `"compact"`, `"integer"`, `"year"`, `"month"`, `"day"`, `"date"`, `"datetime"`) or an object of Intl options: `{"style": "currency", "currency": "EUR", "maximumFractionDigits": 0}`, `{"maximumFractionDigits": 1, "suffix": " kg"}`, `{"month": "short", "year": "2-digit"}`; `"locale"` (default en-US) changes the language. An axis takes `"title": "Revenue, USD"` (it makes room by itself). A stacked chart with `normalize: true` has values 0..1: give its y axis `"format": "percent"`. On a heatmap, give the text mark `"on": "<the cell's color field>"` and the label turns light or dark to stay readable.
+**Numbers and dates as text**: axis (`format`), tooltip (`formats`), `mark.text` (`format`) and the color-bar legend (`format`) take a preset (`"percent"` for 0..1 values, `"compact"`, `"integer"`, `"year"`, `"quarter"` (Q2 2024), `"month"`, `"day"`, `"date"`, `"datetime"`) or an object of Intl options: `{"style": "currency", "currency": "EUR", "maximumFractionDigits": 0}`, `{"maximumFractionDigits": 1, "suffix": " kg"}`, `{"month": "short", "year": "2-digit"}`; `"locale"` (default en-US) changes the language. On a band axis the format writes categories that are dates or numbers (text stays as it is): months or quarters from `aggregate` come out as ISO dates, so give that axis `"format": "month"` or `"quarter"`, and the same in the tooltip `formats`. An axis takes `"title": "Revenue, USD"` (it makes room by itself). A stacked chart with `normalize: true` has values 0..1: give its y axis `"format": "percent"`. On a heatmap, give the text mark `"on": "<the cell's color field>"` and the label turns light or dark to stay readable.
 
 **Survey / Likert answers**: count with `aggregate` (`groupby` question and answer, `count`), stack with `normalize: true`, put the question on the band scale and format the axis as percent.
 

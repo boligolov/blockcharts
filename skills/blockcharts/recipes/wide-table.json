@@ -1,5 +1,5 @@
 {
-  "title": "Series in columns (a wide table)",
+  "title": "Wide table",
   "data": {
     "sales": [
       {
@@ -171,8 +171,8 @@
       }
     },
     {
-      "title": "Total per month, split by channel",
-      "note": "After fold the long table works with every other transform: stack piles the channels up month by month, and an area per channel shows how the total is made.",
+      "title": "Total per quarter, split by channel",
+      "note": "After fold the long table works with every other transform: aggregate sums the months of each quarter per channel, and stack piles the channels up. The quarter is the date it starts on; the axis writes it with the \"quarter\" format.",
       "spec": {
         "data": "sales",
         "size": [
@@ -191,15 +191,33 @@
             "value": "revenue"
           },
           {
+            "type": "aggregate",
+            "groupby": [
+              {
+                "field": "month",
+                "unit": "quarter",
+                "as": "quarter"
+              },
+              "channel"
+            ],
+            "measures": [
+              {
+                "op": "sum",
+                "field": "revenue",
+                "as": "revenue"
+              }
+            ]
+          },
+          {
             "type": "stack",
             "field": "revenue",
-            "by": "month",
+            "by": "quarter",
             "group": "channel"
           }
         ],
         "scales": {
           "x": {
-            "type": "time"
+            "type": "band"
           },
           "y": {
             "type": "linear",
@@ -218,7 +236,7 @@
           {
             "type": "axis",
             "scale": "x",
-            "format": "month"
+            "format": "quarter"
           },
           {
             "type": "axis",
@@ -238,8 +256,8 @@
         ],
         "marks": [
           {
-            "type": "area",
-            "x": "month",
+            "type": "rect",
+            "x": "quarter",
             "y": "revenue1",
             "y2": "revenue0",
             "color": "channel"
@@ -252,7 +270,7 @@
           {
             "type": "tooltip",
             "fields": [
-              "month",
+              "quarter",
               "channel",
               "revenue"
             ],
@@ -263,7 +281,7 @@
                 "notation": "compact",
                 "maximumFractionDigits": 0
               },
-              "month": "month"
+              "quarter": "quarter"
             }
           }
         ]

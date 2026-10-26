@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 26428,
+    "bytes": 26555,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 20872,
+        "bytes": 20999,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 17887,
+        "bytes": 18014,
         "off": [
           "CHECKS",
           "DECODE"
@@ -1368,8 +1368,8 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 3283,
-      "version": 7,
+      "bytes": 3313,
+      "version": 8,
       "requires": [],
       "closure": [
         "guide.axis"
@@ -1394,7 +1394,7 @@
         },
         "format": {
           "kind": "any",
-          "doc": "How to write the tick labels of a linear, log or time scale: a preset (\"percent\", \"compact\", \"integer\", \"year\", \"month\", \"day\", \"date\", \"datetime\") or an object of Intl options, e.g. { \"style\": \"currency\", \"currency\": \"USD\", \"maximumFractionDigits\": 0 } or { \"month\": \"short\", \"year\": \"2-digit\" }. Also \"locale\" (default \"en-US\"), \"prefix\" and \"suffix\"."
+          "doc": "How to write the tick labels: numbers and dates on a linear, log or time scale, and on a band scale categories that are dates (\"2024-04-01\" from an aggregate by quarter) or numbers; text categories stay as they are. A preset (\"percent\", \"compact\", \"integer\", \"year\", \"quarter\" (Q2 2024), \"month\", \"day\", \"date\", \"datetime\") or an object of Intl options, e.g. { \"style\": \"currency\", \"currency\": \"USD\", \"maximumFractionDigits\": 0 } or { \"month\": \"short\", \"year\": \"2-digit\" }. Also \"locale\" (default \"en-US\"), \"prefix\" and \"suffix\"."
         },
         "line": {
           "kind": "enum",

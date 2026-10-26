@@ -421,14 +421,14 @@ Version 5, 3.7 KB. A text label per row at (x, y): value labels on bars, annotat
 
 ## guide.axis
 
-Version 7, 3.2 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines.
+Version 8, 3.2 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `scale` | scale, **required** |  |  |
 | `position` | one of `top`, `right`, `bottom`, `left` |  |  |
 | `title` | string |  | Text that names the axis (with its unit, for example "Revenue, USD"). Rotated on a vertical axis. |
-| `format` | any |  | How to write the tick labels of a linear, log or time scale: a preset ("percent", "compact", "integer", "year", "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix". |
+| `format` | any |  | How to write the tick labels: numbers and dates on a linear, log or time scale, and on a band scale categories that are dates ("2024-04-01" from an aggregate by quarter) or numbers; text categories stay as they are. A preset ("percent", "compact", "integer", "year", "quarter" (Q2 2024), "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix". |
 | `line` | one of `auto`, `on`, `off` | `"auto"` | The axis line. "auto": drawn along a horizontal axis (the baseline bars stand on), left out on a vertical one, where grid lines do the job. |
 | `ticks` | boolean | `false` | Small tick marks at the labels. |
 

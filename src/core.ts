@@ -1235,6 +1235,7 @@
     compact: { kind: 'number', notation: 'compact', maximumFractionDigits: 1 },
     integer: { kind: 'number', maximumFractionDigits: 0 },
     year: { kind: 'date', year: 'numeric' },
+    quarter: { kind: 'date', year: 'numeric' },
     month: { kind: 'date', month: 'short', year: 'numeric' },
     day: { kind: 'date', month: 'short', day: 'numeric' },
     date: { kind: 'date', dateStyle: 'medium' },
@@ -1252,7 +1253,9 @@
     } else {
       throw new Error('a format is a preset name or an object of Intl options');
     }
-    const key = (kind || '') + '|' + JSON.stringify(o);
+    // Intl has no quarters: the preset writes the year with Intl and puts "Q1".."Q4" before it
+    const quarter = o === PRESETS.quarter;
+    const key = (kind || '') + '|' + (quarter ? 'quarter' : JSON.stringify(o));
     const known = formatters.get(key);
     if (known) return known;
 
@@ -1276,7 +1279,7 @@
         text = typeof v === 'number' && isFinite(v) ? nf.format(v) : String(v);
       } else {
         const ms = typeof v === 'number' ? v : typeof v === 'string' ? Date.parse(v) : v && typeof (v as Date).getTime === 'function' ? (v as Date).getTime() : NaN;
-        text = isFinite(ms) ? (df as Intl.DateTimeFormat).format(ms) : String(v);
+        text = isFinite(ms) ? (quarter ? 'Q' + (Math.floor(new Date(ms).getUTCMonth() / 3) + 1) + ' ' : '') + (df as Intl.DateTimeFormat).format(ms) : String(v);
       }
       return (prefix || '') + text + (suffix || '');
     };

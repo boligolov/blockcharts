@@ -876,6 +876,11 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   per unit, in thousands) is one or two of these in a row. A side that is not a number, a division by zero and an
   overflow are NaN. `as` may replace `a` or `b`, never another column. Recipe `calculated-field` (profit as bars,
   margin as a line); in every kit but `full`, which has it anyway.
+- **Formats on a band axis, and quarters**: an aggregate by month or quarter gives ISO dates, and a band axis wrote
+  them as they are ("2024-04-01"). guide.axis v8 passes band categories through the format too, without forcing a
+  kind: the core formatter already leaves what is not a date (or not a number) unchanged, so text categories stay.
+  Intl has no quarters, so the core has a `quarter` preset: "Q2 " before the year Intl writes, in UTC. It has its own
+  cache key; built on the `year` options, it would otherwise share that preset's formatter.
 
 ## Next steps
 

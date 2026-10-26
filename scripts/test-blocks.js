@@ -2490,6 +2490,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('BC.formatter: dates are UTC whatever the machine says, and a fixed locale reads the same everywhere', () => {
     assert.strictEqual(BC.formatter('year')('2024-03-05'), '2024');
     assert.strictEqual(BC.formatter('month')('2024-03-05'), 'Mar 2024');
+    assert.strictEqual(BC.formatter('quarter')('2024-03-31T23:59:00Z'), 'Q1 2024', 'quarters in UTC');
+    assert.strictEqual(BC.formatter('quarter')(new Date(Date.UTC(2023, 9, 1))), 'Q4 2023');
+    assert.strictEqual(BC.formatter('quarter')('2024-04-01'), 'Q2 2024');
+    assert.strictEqual(BC.formatter('quarter')('soon'), 'soon', 'not a date: left as it is, no "Q"');
+    assert.strictEqual(BC.formatter('quarter')(null), '');
+    assert.notStrictEqual(BC.formatter('quarter'), BC.formatter('year'), 'not mistaken for the year preset it is built on');
+    assert.strictEqual(BC.formatter('year')('2024-04-01'), '2024');
     assert.strictEqual(BC.formatter('day')('2024-03-05T23:30:00Z'), 'Mar 5', 'late in the day UTC is still that day');
     assert.strictEqual(BC.formatter('date')(Date.UTC(2024, 2, 5)), 'Mar 5, 2024');
     assert.strictEqual(BC.formatter('date')(new Date(Date.UTC(2024, 2, 5))), 'Mar 5, 2024', 'Date objects too');
@@ -2508,7 +2515,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(BC.formatter('integer')(Infinity), 'Infinity');
     assert.strictEqual(BC.formatter('percent'), BC.formatter('percent'), 'cached');
     assert.notStrictEqual(BC.formatter('percent'), BC.formatter('percent', 'number') && BC.formatter({ style: 'percent' }));
-    assert.throws(() => BC.formatter('bogus'), /unknown format "bogus" \(presets: percent, compact, integer, year, month, day, date, datetime; or an object of Intl options\)/);
+    assert.throws(() => BC.formatter('bogus'), /unknown format "bogus" \(presets: percent, compact, integer, year, quarter, month, day, date, datetime; or an object of Intl options\)/);
     assert.throws(() => BC.formatter(5), /preset name or an object/);
     assert.throws(() => BC.formatter(['a']), /preset name or an object/);
     assert.throws(() => BC.formatter(null), /preset name or an object/);
@@ -2551,7 +2558,18 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     const cats = new FakeNode('div');
     BC.chart(cats, { ...formatSpec([]), guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x', format: 'percent' }] });
-    assert.deepStrictEqual(xLabels(svgOf(cats)).map((l) => l.text), ['a', 'b', 'c', 'd'], 'a category axis has nothing to format');
+    assert.deepStrictEqual(xLabels(svgOf(cats)).map((l) => l.text), ['a', 'b', 'c', 'd'], 'text categories have nothing to format');
+
+    // categories that are dates (the ISO start of each quarter from an aggregate) or numbers do take the format
+    BC.data('byQuarter', ['2024-01-01', '2024-04-01', '2024-07-01', '2024-10-01', 'Later'].map((q, i) => ({ q, n: 2020 + i, v: i + 1 })));
+    const band = (x, format) => {
+      const host = new FakeNode('div');
+      BC.chart(host, { data: 'byQuarter', size: [800, 200], scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } }, guides: [{ type: 'axis', scale: 'x', format }], marks: [{ type: 'rect', x, y: 'v' }] });
+      return xLabels(svgOf(host)).map((l) => l.text);
+    };
+    assert.deepStrictEqual(band('q', 'quarter'), ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024', 'Later'], 'a date category is written as a date; one that is not a date stays');
+    assert.deepStrictEqual(band('q', { month: 'short', year: '2-digit' }), ['Jan 24', 'Apr 24', 'Jul 24', 'Oct 24', 'Later']);
+    assert.deepStrictEqual(band('n', { prefix: 'FY', useGrouping: false }), ['FY2020', 'FY2021', 'FY2022', 'FY2023', 'FY2024'], 'number categories take a number format');
     const width = (host) => bottomAxisEnd(svgOf(host));
     const wide = new FakeNode('div'), narrow = new FakeNode('div');
     BC.chart(wide, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', format: { style: 'currency', currency: 'USD', minimumFractionDigits: 2 } }]));
