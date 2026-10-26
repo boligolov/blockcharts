@@ -3064,4 +3064,83 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const ys = paths[1].map((p) => p.y);
     assert(Math.max(...ys) - Math.min(...ys) < 0.01, 'a weekly pattern averages out to a flat line');
   });
+
+  BC.data('wideLabels', ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((k, i) => ({ k, v: (i + 1) * 100, label: i === 3 ? '$34K' : '-$891.6K' })));
+  const labelled = (size, extra) => ({
+    data: 'wideLabels', size, padding: { top: 20, right: 10, bottom: 10, left: 10 },
+    scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+    marks: [{ type: 'rect', x: 'k', y: 'v' }, { type: 'text', x: 'k', y: 'v', text: 'label', baseline: 'auto', dy: -4, weight: 600, ...extra }],
+    interaction: [{ type: 'probe2' }],
+  });
+  const fontOf = (l) => +/font-size="([\d.]+)"/.exec(l.attrs)[1];
+
+  test('mark.text on a band scale: labels that would run into each other shrink together, and go when even minSize does not fit', () => {
+    const wide = new FakeNode('div');
+    BC.chart(wide, labelled([800, 200]));
+    assert.deepStrictEqual(texts(layer(svgOf(wide), 'marks')).map(fontOf), [11, 11, 11, 11, 11, 11, 11], 'room enough: nothing changes');
+
+    const narrow = new FakeNode('div');
+    const h = BC.chart(narrow, labelled([340, 200]));
+    assert.deepStrictEqual(h.diagnostics, []);
+    const step = Math.abs(probed.scales.x('b') - probed.scales.x('a'));
+    const ls = texts(layer(svgOf(narrow), 'marks'));
+    assert.strictEqual(ls.length, 7, 'every label is still there');
+    const sizes = [...new Set(ls.map(fontOf))];
+    assert.strictEqual(sizes.length, 1, `one size for the whole row, the short label too: ${sizes}`);
+    assert(sizes[0] >= 8 && sizes[0] < 11, String(sizes[0]));
+    // Inter at weight 600 is about 0.52 em per character of these labels (measured in Chrome)
+    assert(sizes[0] * 0.52 * '-$891.6K'.length <= step, `a label fits its step: ${sizes[0]} px in ${step} px`);
+
+    const tiny = new FakeNode('div');
+    BC.chart(tiny, labelled([220, 200]));
+    assert.deepStrictEqual(texts(layer(svgOf(tiny), 'marks')).map((l) => l.text), ['$34K'], 'only the label that fits at minSize is left');
+    const strict = new FakeNode('div');
+    BC.chart(strict, labelled([340, 200], { minSize: 11 }));
+    assert.deepStrictEqual(texts(layer(svgOf(strict), 'marks')).map((l) => [l.text, fontOf(l)]), [['$34K', 11]], 'minSize = size: never smaller, only what fits');
+    const turned = new FakeNode('div');
+    BC.chart(turned, labelled([340, 200], { rotate: -90 }));
+    assert.deepStrictEqual(texts(layer(svgOf(turned), 'marks')).map(fontOf), [11, 11, 11, 11, 11, 11, 11], 'a rotated label is left to the author');
+    assert(BC.validate(labelled([340, 200], { minSize: 'x' })).some((d) => /minSize/.test(d.path)), 'minSize must be a number');
+    for (const bad of [0, -3, 40]) {
+      const host = new FakeNode('div');
+      BC.chart(host, labelled([340, 200], { minSize: bad }));
+      const got = texts(layer(svgOf(host), 'marks')).map(fontOf);
+      assert(got.length && got.every((s) => s >= 8 && s <= 11), `minSize ${bad}: ${got}`);
+    }
+  });
+
+  BC.data('cells', [
+    { x0: 0, x1: 0.6, y0: 0, y1: 1, name: 'Enterprise' },
+    { x0: 0.6, x1: 0.68, y0: 0.5, y1: 1, name: 'Starter' },
+    { x0: 0.68, x1: 0.7, y0: 0.5, y1: 1, name: 'Tiny' },
+    { x0: 0.7, x1: 1, y0: 0.5, y1: 0, name: 'Below' },
+    { x0: 0.7, x1: null, y0: 0.2, y1: 0.45, name: 'NoBox' },
+  ]);
+  test('mark.text with x2 / y2: a label fits its cell with dx / dy on both sides, shrinks if it must, and goes if it cannot', () => {
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      data: 'cells', size: [600, 300], padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      scales: { x: { type: 'linear', domain: [0, 1] }, y: { type: 'linear', domain: [0, 1] } },
+      marks: [{ type: 'text', x: 'x0', x2: 'x1', y: 'y1', y2: 'y0', text: 'name', anchor: 'start', baseline: 'hanging', dx: 8, dy: 8, size: 12 }],
+    });
+    assert.deepStrictEqual(h.diagnostics, []);
+    const got = Object.fromEntries(texts(layer(svgOf(host), 'marks')).map((l) => [l.text, fontOf(l)]));
+    assert.strictEqual(got.Enterprise, 12, 'a big cell keeps the size');
+    // Starter: a 48 px wide cell, 32 px inside the margins; about 0.47 em a character in Chrome
+    assert(got.Starter >= 8 && got.Starter < 12 && got.Starter * 0.47 * 7 <= 32, `shrunk to fit: ${got.Starter}`);
+    assert(!('Tiny' in got), 'a 12 px wide cell has no room for a label');
+    assert(!('Below' in got), 'y2 above y: hanging from the bottom edge, the label would fall out of its cell');
+    assert.strictEqual(got.NoBox, 12, 'a row without x2 is not boxed in that direction');
+
+    const flat = new FakeNode('div');
+    BC.chart(flat, {
+      data: 'cells', size: [600, 20], padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      scales: { x: { type: 'linear', domain: [0, 1] }, y: { type: 'linear', domain: [0, 1] } },
+      marks: [{ type: 'text', x: 'x0', x2: 'x1', y: 'y1', y2: 'y0', text: 'name', anchor: 'start', baseline: 'hanging', dx: 8, dy: 8, size: 12 }],
+    });
+    assert(!texts(layer(svgOf(flat), 'marks')).some((l) => l.text === 'Enterprise'), 'a 20 px tall cell less 2 × 8 px of margin has no room for a line');
+
+    const v = BC.validate({ data: 'cells', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'text', x: 'name', x2: 'name', y: 'y0', text: 'name' }] });
+    assert(v.some((d) => d.path === 'marks[0].x2'), JSON.stringify(v));
+  });
 };

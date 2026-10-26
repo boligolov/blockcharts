@@ -1,6 +1,6 @@
 {
   "name": "blockcharts",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Build interactive HTML dashboards and chart reports as one self-contained file: Claude writes a JSON description, a composer checks it against the data and ships only the chart code the page uses.",
   "author": {
     "name": "Alexander Lisin",

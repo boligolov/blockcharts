@@ -32,7 +32,7 @@
         ],
         "marks": [
           { "type": "rect", "x": "item", "y": "value1", "y2": "value0", "color": "step", "radius": 3 },
-          { "type": "text", "x": "item", "y": "top", "text": "amount", "format": { "style": "currency", "currency": "USD", "notation": "compact", "maximumFractionDigits": 1 }, "baseline": "auto", "dy": -6, "weight": 600 }
+          { "type": "text", "x": "item", "y": "top", "text": "amount", "format": { "style": "currency", "currency": "USD", "notation": "compact", "maximumFractionDigits": 0 }, "baseline": "auto", "dy": -6, "weight": 600 }
         ],
         "interaction": [{ "type": "tooltip", "fields": ["amount", "value1"], "formats": { "amount": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }, "value1": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } } }]
       }

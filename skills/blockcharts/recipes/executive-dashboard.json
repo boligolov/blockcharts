@@ -647,7 +647,7 @@
               "style": "currency",
               "currency": "USD",
               "notation": "compact",
-              "maximumFractionDigits": 1
+              "maximumFractionDigits": 0
             },
             "baseline": "auto",
             "dy": -6,

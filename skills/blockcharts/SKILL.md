@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.5.0"
+  version: "0.5.1"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -74,7 +74,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Pie and donut**: `mark.arc` with `"value": "<numeric field>"` and `"color": "<category field>"`. It needs no x or y scale, only the color scale (and its legend). `innerRadius` makes a donut, `label: "percent"` writes percentages, `sort: "desc"` puts the biggest slice first. Use it for a handful of parts of one whole; prefer bars for more than about six categories.
 
-**Text labels**: `mark.text` writes a label at (x, y) from a field: `{"type": "text", "x": "region", "y": "total", "text": "total", "baseline": "auto", "dy": -5}` puts the value above a bar. `decimals` fixes the number of decimals; `format` writes it as currency, percent and so on (see below).
+**Text labels**: `mark.text` writes a label at (x, y) from a field: `{"type": "text", "x": "region", "y": "total", "text": "total", "baseline": "auto", "dy": -5}` puts the value above a bar. `decimals` fixes the number of decimals; `format` writes it as currency, percent and so on (see below). Labels over a row of categories never run into each other: when they are wider than a category they all get smaller together, down to `minSize` (8), and a label that does not fit even then is left out. With many bars or a narrow chart, keep values short (`"notation": "compact", "maximumFractionDigits": 0`) and leave the exact figure to the tooltip. A label inside a shape takes `x2` / `y2`, the other corner of the shape, and stays inside it the same way.
 
 **Horizontal bars**: put the band scale on `y` and the linear scale on `x` and swap the channels (`"x": "total", "y": "region"`); categories read from the top.
 
@@ -106,7 +106,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Targets and thresholds**: `mark.rule` draws lines at values. `{"type": "rule", "y": {"value": 50000}, "dash": [4, 4], "label": "Target"}` is a horizontal line at 50 000 on the y scale (keep it inside the domain). On a band scale it becomes a short tick across the band: a bullet chart is three grey `rect` bands, a slim `rect` of the result (`thickness: 0.36`) and a `rule` of the target. See `recipes/bullet.json`.
 
-**Treemap**: `transform.treemap` (`field` = size, `group` = block, `name` = label, `aspect` = plot width / height) writes x0, x1, y0, y1 in 0..1 and `label`. Draw a `rect` (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with `domain: [0, 1]`, no axes, colored by the group; a `text` of `label` at (x0, y1) with `on` set to the color field. See `recipes/treemap.json`.
+**Treemap**: `transform.treemap` (`field` = size, `group` = block, `name` = label, `aspect` = plot width / height) writes x0, x1, y0, y1 in 0..1 and `label`. Draw a `rect` (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with `domain: [0, 1]`, no axes, colored by the group; a `text` of `label` at (x0, y1) with `x2` = x1, `y2` = y0 (so a label that does not fit its cell shrinks or is left out) and `on` set to the color field. See `recipes/treemap.json`.
 
 **The dashboard look**: charts already come with quiet axes, a card tooltip and a calm palette. What makes them look finished:
 - A line with a soft area under it: an `area` with `fade: true` and a `line` on top, both with the same explicit color (`"fill"`/`"stroke"`: `"var(--bc-c0, #3a6fe4)"`), `curve: "smooth"` on both. Without an explicit color, each mark takes the next palette color.

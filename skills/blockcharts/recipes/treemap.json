@@ -32,7 +32,7 @@
         "guides": [{ "type": "legend", "scale": "color", "position": "bottom" }],
         "marks": [
           { "type": "rect", "x": "x0", "x2": "x1", "y": "y1", "y2": "y0", "color": "region", "radius": 3 },
-          { "type": "text", "x": "x0", "y": "y1", "text": "label", "on": "region", "anchor": "start", "baseline": "hanging", "dx": 8, "dy": 8, "size": 12, "weight": 600 }
+          { "type": "text", "x": "x0", "x2": "x1", "y": "y1", "y2": "y0", "text": "label", "on": "region", "anchor": "start", "baseline": "hanging", "dx": 8, "dy": 8, "size": 12, "weight": 600 }
         ],
         "interaction": [{ "type": "tooltip", "fields": ["region", "product", "revenue"], "formats": { "revenue": { "style": "currency", "currency": "USD", "notation": "compact", "maximumFractionDigits": 1 } } }]
       }

@@ -819,6 +819,14 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   for min and max — so a wide window on a long series costs the same as a narrow one (a direct computation took 32 s
   on a 10,000-row window over 100,000 rows; a test holds it under 2 s). Recipe `moving-average`; in the
   `timeseries` and `dashboard` kits.
+- **Labels that fit** (`mark.text` v3): the gallery card of the waterfall wrote its figures over each other and the
+  treemap cut "Starter" at its cell edge. A label centered in a band now has the step to the next category as its room;
+  with `x2` / `y2` it has the box to the other corner, less `dx` / `dy` on the far side too. A label that does not
+  fit shrinks, down to `minSize` (8), and is left out below it; the labels of a row of categories share one size (the
+  smallest), cells keep their own. Widths come from a per-character table of Inter widths measured in Chrome (0.44 to
+  0.55 em for usual labels), a little over the real ones: `ctx.measure()` assumes 0.6 em for every character so that
+  layout never clips, and with it the waterfall kept 2 labels of 7 on a phone. The waterfall recipes write whole
+  thousands (`$892K`) and leave the exact figure to the tooltip.
 
 ## Next steps
 

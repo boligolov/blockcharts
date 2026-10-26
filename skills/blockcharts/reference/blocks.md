@@ -334,12 +334,14 @@ Version 1, 2.3 KB. Lines at values: a target, a threshold, an average, the targe
 
 ## mark.text
 
-Version 2, 2.3 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color.
+Version 3, 3.7 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap). A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
 | `x` | **required** | `linear`, `time`, `band` |  |
 | `y` | **required** | `linear`, `time`, `band` |  |
+| `x2` | optional | `linear`, `time` | uses the scale of `x` unless told otherwise. The other side of the box the label has to fit in (with y2: the cell it labels). |
+| `y2` | optional | `linear`, `time` | uses the scale of `y` unless told otherwise. The other side of the box the label has to fit in, vertically. |
 | `text` | **required** | none (a plain field) | Field with the text to show. |
 | `color` | optional | `color`, `sequential` | Text color per row, from a color scale. |
 | `on` | optional | `color`, `sequential` | uses the scale of `color` unless told otherwise. The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. Rows with no such color get no text. |
@@ -356,6 +358,7 @@ Version 2, 2.3 KB. A text label per row at (x, y): value labels on bars, annotat
 | `decimals` | number |  | Fixed number of decimals for numeric text. |
 | `format` | any |  | How to write numbers (and dates): a preset ("percent", "compact", "integer", "date", ...) or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }; also "locale", "prefix", "suffix". Overrides `decimals`. |
 | `fill` | string |  | Any CSS color. Default: the theme text color. |
+| `minSize` | number | `8` | The smallest font size a label that does not fit may shrink to; a label that would need less is not drawn. Set it to `size` to never shrink. |
 
 ## guide.axis
 
