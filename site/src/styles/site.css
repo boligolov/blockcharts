@@ -79,7 +79,17 @@ button.theme:hover { color: var(--fg); border-color: var(--line-strong); }
 button.theme svg { width: 18px; height: 18px; }
 button.theme [data-icon] { display: none; }
 button.theme[data-mode="auto"] [data-icon="auto"], button.theme[data-mode="light"] [data-icon="light"], button.theme[data-mode="dark"] [data-icon="dark"] { display: block; }
-@media (max-width: 860px) { header.site nav { display: none; } .brand { margin-right: auto; } }
+/* the same links in a drop-down on small screens */
+details.menu { display: none; position: relative; }
+details.menu summary { list-style: none; display: inline-grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 8px; cursor: pointer; }
+details.menu summary::-webkit-details-marker { display: none; }
+details.menu summary svg { width: 18px; height: 18px; }
+details.menu[open] summary { color: var(--fg); border-color: var(--line-strong); }
+header.site details.menu nav { display: flex; flex-direction: column; gap: 0; margin: 0; position: absolute; right: 0; top: 44px; min-width: 200px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+header.site details.menu nav a { padding: 10px 12px; border-bottom: 0; border-radius: 6px; }
+header.site details.menu nav a:hover, header.site details.menu nav a[aria-current="page"] { background: var(--bg); color: var(--fg); }
+@media (max-width: 860px) { header.site .wrap > nav { display: none; } .brand { margin-right: auto; } details.menu { display: block; } }
+@media (max-width: 400px) { header.site .wrap { gap: 12px; } .header-actions { gap: 6px; } }
 
 /* ---- buttons ---- */
 .btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 10px; font: 600 15px/1 var(--font); text-decoration: none; border: 1px solid transparent; cursor: pointer; white-space: nowrap; }

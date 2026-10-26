@@ -47,9 +47,6 @@ const canonical = new URL(Astro.url.pathname, SITE).href;
       <div class="wrap">
         <a class="brand" href={base}><Logo /> blockcharts</a>
         <nav aria-label="Main">
-          {landing && <a href="#install">Install</a>}
-          {landing && <a href="#blocks-inside">How it’s light</a>}
-          {landing && <a href="#customize">Customize</a>}
           {links.map(([label, href, key]) => <a href={base + href} aria-current={key === nav ? 'page' : undefined}>{label}</a>)}
           <a href={REPO}>GitHub</a>
         </nav>
@@ -59,7 +56,14 @@ const canonical = new URL(Astro.url.pathname, SITE).href;
             <svg data-icon="light" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="3.5" /><path d="M10 2v1.8M10 16.2V18M2 10h1.8M16.2 10H18M4.3 4.3l1.3 1.3M14.4 14.4l1.3 1.3M4.3 15.7l1.3-1.3M14.4 5.6l1.3-1.3" /></svg>
             <svg data-icon="dark" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M16 12.5A6.5 6.5 0 0 1 7.5 4a6.5 6.5 0 1 0 8.5 8.5z" /></svg>
           </button>
-          {landing ? <a class="btn btn-primary btn-small" href="#install">Get the skill</a> : <a class="btn btn-secondary btn-small" href={`${base}#install`}>Get the skill</a>}
+          <a class="btn btn-primary btn-small" href={`${base}#install`}>Get the skill</a>
+          <details class="menu">
+            <summary aria-label="Menu"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3.5 6h13M3.5 10h13M3.5 14h13" /></svg></summary>
+            <nav aria-label="Main, small screens">
+              {links.map(([label, href, key]) => <a href={base + href} aria-current={key === nav ? 'page' : undefined}>{label}</a>)}
+              <a href={REPO}>GitHub</a>
+            </nav>
+          </details>
         </div>
       </div>
     </header>
@@ -100,6 +104,13 @@ const canonical = new URL(Astro.url.pathname, SITE).href;
           var show = function () { var m = get(); button.setAttribute('data-mode', m); button.setAttribute('aria-label', LABEL[m] || LABEL.auto); button.title = LABEL[m] || LABEL.auto; };
           show();
           button.addEventListener('click', function () { var next = order[(order.indexOf(get()) + 1) % 3]; set(next); apply(next); show(); });
+        }
+        // the small-screen menu closes on a click outside it, on Escape, and when a link in it is followed
+        var menu = document.querySelector('details.menu');
+        if (menu) {
+          document.addEventListener('click', function (e) { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+          document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && menu.open) { menu.open = false; menu.querySelector('summary').focus(); } });
+          menu.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', function () { menu.open = false; }); });
         }
         // copy buttons: the text is in data-copy, or in the <pre><code> next to the button
         document.querySelectorAll('button.copy').forEach(function (b) {
