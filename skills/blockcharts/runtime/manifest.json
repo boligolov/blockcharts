@@ -256,6 +256,33 @@
       },
       "doc": "Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them."
     },
+    "transform.fold": {
+      "file": "blocks/transform.fold.js",
+      "bytes": 1530,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "transform.fold"
+      ],
+      "params": {
+        "fields": {
+          "kind": "list",
+          "required": true,
+          "doc": "Columns to fold into rows, in the order of the series."
+        },
+        "key": {
+          "kind": "string",
+          "default": "key",
+          "doc": "Name of the new column with the folded field's name."
+        },
+        "value": {
+          "kind": "string",
+          "default": "value",
+          "doc": "Name of the new column with its value."
+        }
+      },
+      "doc": "Turns a wide table (one column per series: month, online, retail) into a long one (month, key, value): every row becomes one row per field of `fields`, with the field's name in `key` and its value in `value`, so the series can be colored, stacked or grouped by `key`. The other columns are repeated on each new row; the folded columns stay too. Rows keep their order, and the fields theirs within each row."
+    },
     "transform.funnel": {
       "file": "blocks/transform.funnel.js",
       "bytes": 1040,

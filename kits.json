@@ -19,7 +19,7 @@
     ]
   },
   "timeseries": {
-    "doc": "Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation and moving averages; also the canvas renderer for very large series.",
+    "doc": "Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables and moving averages; also the canvas renderer for very large series.",
     "blocks": [
       "scale.linear",
       "scale.time",
@@ -37,6 +37,7 @@
       "interaction.legend-filter",
       "transform.decimate",
       "transform.aggregate",
+      "transform.fold",
       "transform.window",
       "transform.stack",
       "renderer.svg",
@@ -65,6 +66,7 @@
       "transform.stack",
       "transform.bin",
       "transform.aggregate",
+      "transform.fold",
       "transform.quartiles",
       "renderer.svg",
       "transform.waterfall",
@@ -81,6 +83,7 @@
       "scale.band",
       "scale.color",
       "transform.aggregate",
+      "transform.fold",
       "transform.window",
       "transform.waterfall",
       "transform.funnel",

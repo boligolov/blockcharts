@@ -43,7 +43,7 @@ Blocks are split by **role**, not by chart type.
 | Role | Examples |
 |---|---|
 | scale | linear, log, time, band, color |
-| transform | stack, bin, aggregate, window |
+| transform | stack, bin, aggregate, window, fold |
 | mark | line, area, point, rect, arc, text |
 | guide | axis, grid, legend |
 | interaction | tooltip, hover, zoom |
@@ -846,6 +846,12 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   the curve is written once. All 24 recipes draw byte-identical marks before and after (compared in Chrome).
   The middle of a band is now one field of the channel, `ChannelData.half` (half the bandwidth, 0 on other scales),
   instead of the same expression in point, text, line, area, rule and crosshair.
+- **`transform.fold`**: a wide table (a column per series, as spreadsheets export it) becomes a long one: every row
+  turns into one row per field of `fields`, the field's name in `key` and its value in `value`, the other columns
+  repeated. The folded columns stay, as in Vega-Lite's fold, so validation only adds two names (`outputs`) and needs
+  no new notion of dropped columns. New names that clash with a column are an error rather than an overwrite. Numbers
+  stay a typed column. Recipe `wide-table` (lines per channel, then fold + stack as areas); in the `timeseries`,
+  `composition` and `dashboard` kits.
 
 ## Next steps
 

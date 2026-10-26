@@ -1,0 +1,273 @@
+{
+  "title": "Series in columns (a wide table)",
+  "data": {
+    "sales": [
+      {
+        "month": "2024-01-01",
+        "Online": 42000,
+        "Retail": 68000,
+        "Partners": 18000
+      },
+      {
+        "month": "2024-02-01",
+        "Online": 45000,
+        "Retail": 64000,
+        "Partners": 19000
+      },
+      {
+        "month": "2024-03-01",
+        "Online": 51000,
+        "Retail": 66000,
+        "Partners": 21000
+      },
+      {
+        "month": "2024-04-01",
+        "Online": 49000,
+        "Retail": 70000,
+        "Partners": 24000
+      },
+      {
+        "month": "2024-05-01",
+        "Online": 56000,
+        "Retail": 69000,
+        "Partners": 26000
+      },
+      {
+        "month": "2024-06-01",
+        "Online": 61000,
+        "Retail": 72000,
+        "Partners": 25000
+      },
+      {
+        "month": "2024-07-01",
+        "Online": 58000,
+        "Retail": 67000,
+        "Partners": 28000
+      },
+      {
+        "month": "2024-08-01",
+        "Online": 63000,
+        "Retail": 65000,
+        "Partners": 31000
+      },
+      {
+        "month": "2024-09-01",
+        "Online": 70000,
+        "Retail": 71000,
+        "Partners": 33000
+      },
+      {
+        "month": "2024-10-01",
+        "Online": 74000,
+        "Retail": 73000,
+        "Partners": 34000
+      },
+      {
+        "month": "2024-11-01",
+        "Online": 88000,
+        "Retail": 84000,
+        "Partners": 38000
+      },
+      {
+        "month": "2024-12-01",
+        "Online": 102000,
+        "Retail": 96000,
+        "Partners": 41000
+      }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Revenue per channel",
+      "note": "The table has one column per channel, as exported from a spreadsheet. transform.fold turns each row into one row per channel, with the column name in \"channel\" and its number in \"revenue\", so one line mark colored by channel draws all three. No need to reshape the data by hand.",
+      "spec": {
+        "data": "sales",
+        "size": [
+          680,
+          300
+        ],
+        "transforms": [
+          {
+            "type": "fold",
+            "fields": [
+              "Online",
+              "Retail",
+              "Partners"
+            ],
+            "key": "channel",
+            "value": "revenue"
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "time"
+          },
+          "y": {
+            "type": "linear",
+            "zero": true,
+            "nice": true
+          },
+          "color": {
+            "type": "color"
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x",
+            "format": "month"
+          },
+          {
+            "type": "axis",
+            "scale": "y",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 0
+            }
+          },
+          {
+            "type": "legend",
+            "scale": "color",
+            "position": "top"
+          }
+        ],
+        "marks": [
+          {
+            "type": "line",
+            "x": "month",
+            "y": "revenue",
+            "color": "channel",
+            "strokeWidth": 2
+          }
+        ],
+        "interaction": [
+          {
+            "type": "legend-filter"
+          },
+          {
+            "type": "tooltip",
+            "fields": [
+              "month",
+              "channel",
+              "revenue"
+            ],
+            "formats": {
+              "revenue": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 0
+              },
+              "month": "month"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "title": "Total per month, split by channel",
+      "note": "After fold the long table works with every other transform: stack piles the channels up month by month, and an area per channel shows how the total is made.",
+      "spec": {
+        "data": "sales",
+        "size": [
+          680,
+          300
+        ],
+        "transforms": [
+          {
+            "type": "fold",
+            "fields": [
+              "Online",
+              "Retail",
+              "Partners"
+            ],
+            "key": "channel",
+            "value": "revenue"
+          },
+          {
+            "type": "stack",
+            "field": "revenue",
+            "by": "month",
+            "group": "channel"
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "time"
+          },
+          "y": {
+            "type": "linear",
+            "zero": true,
+            "nice": true
+          },
+          "color": {
+            "type": "color"
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x",
+            "format": "month"
+          },
+          {
+            "type": "axis",
+            "scale": "y",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 0
+            }
+          },
+          {
+            "type": "legend",
+            "scale": "color",
+            "position": "top"
+          }
+        ],
+        "marks": [
+          {
+            "type": "area",
+            "x": "month",
+            "y": "revenue1",
+            "y2": "revenue0",
+            "color": "channel"
+          }
+        ],
+        "interaction": [
+          {
+            "type": "legend-filter"
+          },
+          {
+            "type": "tooltip",
+            "fields": [
+              "month",
+              "channel",
+              "revenue"
+            ],
+            "formats": {
+              "revenue": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 0
+              },
+              "month": "month"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

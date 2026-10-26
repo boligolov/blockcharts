@@ -3065,6 +3065,74 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(Math.max(...ys) - Math.min(...ys) < 0.01, 'a weekly pattern averages out to a flat line');
   });
 
+  const fold = (cols, spec) => BC.get('transform.fold').apply(T(cols), { type: 'fold', ...spec });
+  const plain = (t) => Object.fromEntries(Object.entries(t.columns).map(([k, c]) => [k, Array.from(c)]));
+
+  test('transform.fold: a wide table becomes a long one, one row per field, the other columns repeated', () => {
+    const t = fold({ month: ['Jan', 'Feb'], online: Float64Array.from([10, 20]), retail: Float64Array.from([5, NaN]) }, { fields: ['online', 'retail'] });
+    assert.strictEqual(t.length, 4);
+    assert.deepStrictEqual(plain(t), {
+      month: ['Jan', 'Jan', 'Feb', 'Feb'],
+      online: [10, 10, 20, 20],
+      retail: [5, 5, NaN, NaN],
+      key: ['online', 'retail', 'online', 'retail'],
+      value: [10, 5, 20, NaN],
+    });
+    assert(t.columns.value instanceof Float64Array, 'numbers stay a typed column');
+    assert(t.columns.online instanceof Float64Array);
+    const named = fold({ m: [1], a: ['x'], b: [2] }, { fields: ['b', 'a'], key: 'channel', value: 'sales' });
+    assert.deepStrictEqual(plain(named), { m: [1, 1], a: ['x', 'x'], b: [2, 2], channel: ['b', 'a'], sales: [2, 'x'] }, 'the order of fields, not of columns; mixed values stay as they are');
+    assert(!(named.columns.sales instanceof Float64Array), 'a column of text is not forced into numbers');
+    assert.deepStrictEqual(BC.get('transform.fold').outputs({ fields: ['a'] }), ['key', 'value']);
+    assert.deepStrictEqual(BC.get('transform.fold').outputs({ fields: ['a'], key: 'k', value: 'v' }), ['k', 'v']);
+  });
+
+  test('transform.fold: hostile input — bad params are clear errors, clashing names, an empty table, a wide one stays fast', () => {
+    const cols = { m: ['a', 'b'], x: [1, 2], y: [3, 4] };
+    for (const fields of [undefined, [], 'x', [1], ['']]) assert.throws(() => fold(cols, { fields }), /"fields" must be a list/, JSON.stringify(fields));
+    assert.throws(() => fold(cols, { fields: ['x', 'nope'] }), /unknown field "nope"/);
+    assert.throws(() => fold(cols, { fields: ['x', 'x'] }), /"x" is listed twice/);
+    assert.throws(() => fold(cols, { fields: ['x'], key: 'm' }), /"m" is already a column/);
+    assert.throws(() => fold(cols, { fields: ['x'], value: 'y' }), /"y" is already a column/);
+    assert.throws(() => fold(cols, { fields: ['x'], key: 'v', value: 'v' }), /both "v"/);
+    assert.throws(() => fold(cols, { fields: ['x'], key: '' }), /"key" must be a column name/);
+    assert.throws(() => fold(cols, { fields: ['x'], value: 3 }), /"value" must be a column name/);
+    assert.throws(() => fold(cols, { fields: ['constructor'] }), /unknown field "constructor"/, 'not fooled by Object.prototype');
+    assert.deepStrictEqual(Object.keys(cols), ['m', 'x', 'y'], 'the input table is untouched');
+    const empty = fold({ x: [], y: [] }, { fields: ['x', 'y'] });
+    assert.strictEqual(empty.length, 0);
+    assert.deepStrictEqual(Object.keys(empty.columns), ['x', 'y', 'key', 'value']);
+
+    const n = 20000;
+    const wide = { day: Array.from({ length: n }, (_, i) => i) };
+    for (let j = 0; j < 50; j++) wide['s' + j] = Float64Array.from({ length: n }, (_, i) => i * j);
+    const t0 = Date.now();
+    const t = fold(wide, { fields: Object.keys(wide).slice(1) });
+    assert(Date.now() - t0 < 3000, `folding 50 columns of 20,000 rows took ${Date.now() - t0} ms`);
+    assert.strictEqual(t.length, n * 50);
+    assert.strictEqual(t.columns.value[n * 50 - 1], (n - 1) * 49);
+    assert.strictEqual(t.columns.key[n * 50 - 1], 's49');
+  });
+
+  test('transform.fold: series from a wide table drawn as colored lines, its columns known to validate', () => {
+    BC.data('wideSales', [{ month: '2024-01-01', online: 10, retail: 30 }, { month: '2024-02-01', online: 20, retail: 25 }, { month: '2024-03-01', online: 35, retail: 20 }]);
+    const spec = {
+      data: 'wideSales',
+      transforms: [{ type: 'fold', fields: ['online', 'retail'], key: 'channel', value: 'sales' }],
+      scales: { x: { type: 'time' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
+      marks: [{ type: 'line', x: 'month', y: 'sales', color: 'channel' }],
+    };
+    assert.deepStrictEqual(BC.validate(spec), []);
+    const bad = BC.validate({ ...spec, marks: [{ type: 'line', x: 'month', y: 'value', color: 'channel' }] });
+    assert(bad.some((d) => /unknown field "value"/.test(d.message)), JSON.stringify(bad));
+    const host = new FakeNode('div');
+    const h = BC.chart(host, spec);
+    assert.deepStrictEqual(h.diagnostics, []);
+    const paths = [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
+    assert.deepStrictEqual(paths.map((p) => p.length), [3, 3], 'one line per folded field');
+    assert(paths[0][2].y < paths[0][0].y && paths[1][2].y > paths[1][0].y, 'online rises, retail falls');
+  });
+
   BC.data('wideLabels', ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((k, i) => ({ k, v: (i + 1) * 100, label: i === 3 ? '$34K' : '-$891.6K' })));
   const labelled = (size, extra) => ({
     data: 'wideLabels', size, padding: { top: 20, right: 10, bottom: 10, left: 10 },

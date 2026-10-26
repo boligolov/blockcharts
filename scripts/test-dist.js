@@ -271,7 +271,10 @@ test('minified release: smaller than the source by a wide margin, and only the d
   const plainBytes = Buffer.byteLength([manifest.core.file, ...Object.values(manifest.blocks).map((b) => b.file)].map((f) => fs.readFileSync(path.join(distDir, f), 'utf8')).join('\n'));
   assert(full.js.bytes < plainBytes * 0.5, `${full.js.bytes} vs ${plainBytes}`);
   assert(!/\bdoc:/.test(read('kits/full.js').toString()), 'no doc strings in the released code');
-  assert(read('kits/full.js').toString().split('\n').length < 120, 'a few lines, not a line per statement');
+  // a block is a line or two (its own, plus newlines inside template strings); a line per statement would be thousands
+  const lines = read('kits/full.js').toString().split('\n').length;
+  const blocks = Object.keys(manifest.blocks).length;
+  assert(lines < blocks * 4, `a few lines per block, not a line per statement: ${lines} lines for ${blocks} blocks`);
   const shape = (src, file) => {
     const defs = [];
     vm.runInNewContext(src, { BC: { define: (d) => defs.push(d) } }, { filename: file });

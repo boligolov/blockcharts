@@ -41,7 +41,7 @@ named `<role>.<type>`:
 | role | job | examples |
 |---|---|---|
 | `scale` | maps values to positions, colors or sizes | `linear`, `time`, `band`, `color`, `sequential`, `size` |
-| `transform` | reshapes rows before drawing | `aggregate`, `stack`, `bin`, `quartiles`, `decimate`, `window`, `waterfall`, `funnel`, `treemap` |
+| `transform` | reshapes rows before drawing | `aggregate`, `stack`, `bin`, `quartiles`, `decimate`, `window`, `waterfall`, `funnel`, `treemap`, `fold` |
 | `mark` | draws rows | `rect`, `line`, `area`, `point`, `text`, `arc`, `boxplot`, `rule` |
 | `guide` | explains a scale or the chart | `axis`, `grid`, `legend`, `kpi` |
 | `interaction` | lets the reader explore | `tooltip`, `crosshair`, `zoom`, `brush`, `legend-filter`, `zoom-controls`, `animate` |

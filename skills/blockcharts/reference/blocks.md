@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-37 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.funnel`, `transform.quartiles`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+38 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.fold`, `transform.funnel`, `transform.quartiles`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -113,6 +113,16 @@ Version 2, 3.4 KB. Level of detail for long lines: keeps only the rows that can 
 | `group` | field |  | Decimate every series (value of this field) on its own. |
 | `buckets` | number |  | Pixel columns to split the plot width into. Default: one per px of plot width. |
 | `threshold` | number | `4` | Decimate only when the window holds more than `threshold` rows per column. |
+
+## transform.fold
+
+Version 1, 1.5 KB. Turns a wide table (one column per series: month, online, retail) into a long one (month, key, value): every row becomes one row per field of `fields`, with the field's name in `key` and its value in `value`, so the series can be colored, stacked or grouped by `key`. The other columns are repeated on each new row; the folded columns stay too. Rows keep their order, and the fields theirs within each row.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `fields` | list, **required** |  | Columns to fold into rows, in the order of the series. |
+| `key` | string | `"key"` | Name of the new column with the folded field's name. |
+| `value` | string | `"value"` | Name of the new column with its value. |
 
 ## transform.funnel
 

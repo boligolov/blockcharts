@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.6.2"
+  version: "0.7.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -94,6 +94,8 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Moving averages, running totals, change**: `{"type": "window", "field": "sales", "op": "mean", "size": 7, "sort": "day", "as": "avg7"}` adds a column and keeps every row. `op`: `mean` / `sum` / `min` / `max` over the last `size` rows (`align: "center"` for a centered window), `cumsum` a running total, `diff` and `pctChange` the change from the previous row (pctChange is a fraction; write it with the `percent` format). Always give `sort` (the x field) unless the rows are already in order, and `group` for one result per series. The first `size - 1` rows of a series get no value (`partial: true` computes them from fewer rows). Draw the new column as another line over the raw one. To smooth monthly totals, put `aggregate` first and `window` after it. See `recipes/moving-average.json`.
 
+**Series in columns (a wide table)**: when the data has one column per series (`month, Online, Retail, Partners`), add `{"type": "fold", "fields": ["Online", "Retail", "Partners"], "key": "channel", "value": "revenue"}` first in `transforms`: each row becomes one row per field, with the column name in `channel` and its number in `revenue`. Then color, stack, dodge or aggregate by `channel` as with long data. Do not reshape the data by hand. See `recipes/wide-table.json`.
+
 **Numbers and dates as text**: axis (`format`), tooltip (`formats`), `mark.text` (`format`) and the color-bar legend (`format`) take a preset (`"percent"` for 0..1 values, `"compact"`, `"integer"`, `"year"`, `"month"`, `"day"`, `"date"`, `"datetime"`) or an object of Intl options: `{"style": "currency", "currency": "EUR", "maximumFractionDigits": 0}`, `{"maximumFractionDigits": 1, "suffix": " kg"}`, `{"month": "short", "year": "2-digit"}`; `"locale"` (default en-US) changes the language. An axis takes `"title": "Revenue, USD"` (it makes room by itself). A stacked chart with `normalize: true` has values 0..1: give its y axis `"format": "percent"`. On a heatmap, give the text mark `"on": "<the cell's color field>"` and the label turns light or dark to stay readable.
 
 **Survey / Likert answers**: count with `aggregate` (`groupby` question and answer, `count`), stack with `normalize: true`, put the question on the band scale and format the axis as percent.
@@ -131,6 +133,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | Rank categories without the visual weight of full bars | `recipes/dotplot.json` |
 | Spread and outliers of raw samples per category | `recipes/boxplot.json` |
 | Trends of several series, with zoom | `recipes/lines-by-series.json` |
+| Data with one column per series (a wide spreadsheet table) | `recipes/wide-table.json` |
 | A moving average over noisy daily values; a running total per series | `recipes/moving-average.json` |
 | How each item changed between two points (before and after, two years) | `recipes/slope.json` |
 | Two numeric variables, groups by color | `recipes/scatter-groups.json` |
