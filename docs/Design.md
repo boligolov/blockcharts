@@ -43,7 +43,7 @@ Blocks are split by **role**, not by chart type.
 | Role | Examples |
 |---|---|
 | scale | linear, log, time, band, color |
-| transform | stack, bin, aggregate, window, fold |
+| transform | stack, bin, aggregate, window, fold, filter, sort |
 | mark | line, area, point, rect, arc, text |
 | guide | axis, grid, legend |
 | interaction | tooltip, hover, zoom |
@@ -852,6 +852,13 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   no new notion of dropped columns. New names that clash with a column are an error rather than an overwrite. Numbers
   stay a typed column. Recipe `wide-table` (lines per channel, then fold + stack as areas); in the `timeseries`,
   `composition` and `dashboard` kits.
+- **`transform.filter`** and **`transform.sort`**: rows kept by a test, and rows put in order (with `limit`, the
+  top N; with `group`, the top N of each group), without going through `aggregate`, whose `sort` / `limit` work on
+  groups only. A filter compares like with like: numbers with numbers, dates with dates (a Date or an ISO string,
+  "2024-02" included), text with text; a row of another kind or with no value never passes, so `"!="` does not let
+  missing values through. Equality is by kind too: 1 is not "1", a Date equals the ISO string of its time. A band
+  scale takes its categories in row order, so a sorted table gives ranked bars. Both keep every column (`outputs`
+  is empty). Recipe `top-n`; in the `timeseries`, `composition` and `dashboard` kits.
 
 ## Next steps
 

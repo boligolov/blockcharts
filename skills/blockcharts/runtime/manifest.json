@@ -256,6 +256,43 @@
       },
       "doc": "Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them."
     },
+    "transform.filter": {
+      "file": "blocks/transform.filter.js",
+      "bytes": 2364,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "transform.filter"
+      ],
+      "params": {
+        "field": {
+          "kind": "field",
+          "required": true,
+          "doc": "Field to test."
+        },
+        "op": {
+          "kind": "enum",
+          "values": [
+            "==",
+            "!=",
+            "<",
+            "<=",
+            ">",
+            ">=",
+            "in",
+            "notIn",
+            "valid"
+          ],
+          "default": "==",
+          "doc": "== | != | < | <= | > | >= | in | notIn | valid."
+        },
+        "value": {
+          "kind": "any",
+          "doc": "What to compare with; a list for in / notIn; none for valid."
+        }
+      },
+      "doc": "Keeps the rows whose `field` passes a test and drops the others: `==`, `!=`, `<`, `<=`, `>`, `>=` against `value` (a number, a string, or a date as \"2024-03-01\"), `in` / `notIn` a list of values, `valid` (the field has a value). Numbers compare with numbers, dates with dates (a Date or an ISO date string), text with text; a missing value never passes. Several filters in a row all apply. Rows keep their order; columns stay as they are."
+    },
     "transform.fold": {
       "file": "blocks/transform.fold.js",
       "bytes": 1530,
@@ -339,6 +376,40 @@
         }
       },
       "doc": "The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row."
+    },
+    "transform.sort": {
+      "file": "blocks/transform.sort.js",
+      "bytes": 1750,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "transform.sort"
+      ],
+      "params": {
+        "field": {
+          "kind": "field",
+          "required": true,
+          "doc": "Field to sort by."
+        },
+        "order": {
+          "kind": "enum",
+          "values": [
+            "asc",
+            "desc"
+          ],
+          "default": "asc",
+          "doc": "Direction."
+        },
+        "limit": {
+          "kind": "number",
+          "doc": "Keep only the first N rows (of each group with `group`)."
+        },
+        "group": {
+          "kind": "field",
+          "doc": "Field that splits the rows: each group sorted and limited on its own."
+        }
+      },
+      "doc": "Puts the rows in the order of `field` (`order` \"asc\" or \"desc\"), and with `limit` keeps only the first N: the top 10 products is `field` revenue, `order` \"desc\", `limit` 10. With `group` the order and the limit apply within each group (the top 3 per region), and the groups follow each other in order of first appearance. A band scale lists its categories in row order, so this also orders the bars. Missing values go last either way; numbers come before text when a field mixes them; ties keep data order. Columns stay as they are."
     },
     "transform.stack": {
       "file": "blocks/transform.stack.js",

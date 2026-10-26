@@ -1,0 +1,474 @@
+{
+  "title": "Top N: filter and sort the rows",
+  "data": {
+    "products": [
+      {
+        "year": 2023,
+        "product": "Atlas desk",
+        "revenue": 210000
+      },
+      {
+        "year": 2024,
+        "product": "Atlas desk",
+        "revenue": 260000
+      },
+      {
+        "year": 2023,
+        "product": "Birch chair",
+        "revenue": 180000
+      },
+      {
+        "year": 2024,
+        "product": "Birch chair",
+        "revenue": 150000
+      },
+      {
+        "year": 2023,
+        "product": "Cove lamp",
+        "revenue": 95000
+      },
+      {
+        "year": 2024,
+        "product": "Cove lamp",
+        "revenue": 120000
+      },
+      {
+        "year": 2023,
+        "product": "Dune sofa",
+        "revenue": 320000
+      },
+      {
+        "year": 2024,
+        "product": "Dune sofa",
+        "revenue": 380000
+      },
+      {
+        "year": 2023,
+        "product": "Echo shelf",
+        "revenue": 140000
+      },
+      {
+        "year": 2024,
+        "product": "Echo shelf",
+        "revenue": 175000
+      },
+      {
+        "year": 2023,
+        "product": "Fern rug",
+        "revenue": 75000
+      },
+      {
+        "year": 2024,
+        "product": "Fern rug",
+        "revenue": 90000
+      },
+      {
+        "year": 2023,
+        "product": "Glen table",
+        "revenue": 260000
+      },
+      {
+        "year": 2024,
+        "product": "Glen table",
+        "revenue": 240000
+      },
+      {
+        "year": 2023,
+        "product": "Haven bed",
+        "revenue": 300000
+      },
+      {
+        "year": 2024,
+        "product": "Haven bed",
+        "revenue": 345000
+      },
+      {
+        "year": 2023,
+        "product": "Iris mirror",
+        "revenue": 60000
+      },
+      {
+        "year": 2024,
+        "product": "Iris mirror",
+        "revenue": 85000
+      },
+      {
+        "year": 2023,
+        "product": "Juno stool",
+        "revenue": 45000
+      },
+      {
+        "year": 2024,
+        "product": "Juno stool",
+        "revenue": 40000
+      },
+      {
+        "year": 2023,
+        "product": "Kite bench",
+        "revenue": 110000
+      },
+      {
+        "year": 2024,
+        "product": "Kite bench",
+        "revenue": 165000
+      },
+      {
+        "year": 2023,
+        "product": "Loft cabinet",
+        "revenue": 150000
+      },
+      {
+        "year": 2024,
+        "product": "Loft cabinet",
+        "revenue": 130000
+      }
+    ],
+    "regions": [
+      {
+        "region": "North",
+        "product": "Atlas desk",
+        "revenue": 20000
+      },
+      {
+        "region": "North",
+        "product": "Birch chair",
+        "revenue": 60000
+      },
+      {
+        "region": "North",
+        "product": "Cove lamp",
+        "revenue": 48000
+      },
+      {
+        "region": "North",
+        "product": "Dune sofa",
+        "revenue": 24000
+      },
+      {
+        "region": "North",
+        "product": "Echo shelf",
+        "revenue": 97000
+      },
+      {
+        "region": "North",
+        "product": "Fern rug",
+        "revenue": 57000
+      },
+      {
+        "region": "North",
+        "product": "Glen table",
+        "revenue": 67000
+      },
+      {
+        "region": "North",
+        "product": "Haven bed",
+        "revenue": 62000
+      },
+      {
+        "region": "South",
+        "product": "Atlas desk",
+        "revenue": 63000
+      },
+      {
+        "region": "South",
+        "product": "Birch chair",
+        "revenue": 45000
+      },
+      {
+        "region": "South",
+        "product": "Cove lamp",
+        "revenue": 40000
+      },
+      {
+        "region": "South",
+        "product": "Dune sofa",
+        "revenue": 84000
+      },
+      {
+        "region": "South",
+        "product": "Echo shelf",
+        "revenue": 33000
+      },
+      {
+        "region": "South",
+        "product": "Fern rug",
+        "revenue": 54000
+      },
+      {
+        "region": "South",
+        "product": "Glen table",
+        "revenue": 73000
+      },
+      {
+        "region": "South",
+        "product": "Haven bed",
+        "revenue": 94000
+      },
+      {
+        "region": "East",
+        "product": "Atlas desk",
+        "revenue": 54000
+      },
+      {
+        "region": "East",
+        "product": "Birch chair",
+        "revenue": 28000
+      },
+      {
+        "region": "East",
+        "product": "Cove lamp",
+        "revenue": 40000
+      },
+      {
+        "region": "East",
+        "product": "Dune sofa",
+        "revenue": 86000
+      },
+      {
+        "region": "East",
+        "product": "Echo shelf",
+        "revenue": 73000
+      },
+      {
+        "region": "East",
+        "product": "Fern rug",
+        "revenue": 70000
+      },
+      {
+        "region": "East",
+        "product": "Glen table",
+        "revenue": 63000
+      },
+      {
+        "region": "East",
+        "product": "Haven bed",
+        "revenue": 41000
+      },
+      {
+        "region": "West",
+        "product": "Atlas desk",
+        "revenue": 48000
+      },
+      {
+        "region": "West",
+        "product": "Birch chair",
+        "revenue": 92000
+      },
+      {
+        "region": "West",
+        "product": "Cove lamp",
+        "revenue": 21000
+      },
+      {
+        "region": "West",
+        "product": "Dune sofa",
+        "revenue": 37000
+      },
+      {
+        "region": "West",
+        "product": "Echo shelf",
+        "revenue": 72000
+      },
+      {
+        "region": "West",
+        "product": "Fern rug",
+        "revenue": 84000
+      },
+      {
+        "region": "West",
+        "product": "Glen table",
+        "revenue": 21000
+      },
+      {
+        "region": "West",
+        "product": "Haven bed",
+        "revenue": 55000
+      }
+    ]
+  },
+  "charts": [
+    {
+      "title": "The eight best-selling products of 2024",
+      "note": "transform.filter keeps the rows of 2024; transform.sort orders them by revenue, highest first, and limit keeps eight. A band scale lists its categories in row order, so the bars come out ranked. No aggregate is needed when the rows are already one per product.",
+      "spec": {
+        "data": "products",
+        "size": [
+          640,
+          320
+        ],
+        "padding": {
+          "right": 56
+        },
+        "transforms": [
+          {
+            "type": "filter",
+            "field": "year",
+            "value": 2024
+          },
+          {
+            "type": "sort",
+            "field": "revenue",
+            "order": "desc",
+            "limit": 8
+          }
+        ],
+        "scales": {
+          "y": {
+            "type": "band"
+          },
+          "x": {
+            "type": "linear",
+            "zero": true,
+            "nice": true
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "x"
+          },
+          {
+            "type": "axis",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 0
+            }
+          }
+        ],
+        "marks": [
+          {
+            "type": "rect",
+            "y": "product",
+            "x": "revenue",
+            "radius": 2
+          },
+          {
+            "type": "text",
+            "y": "product",
+            "x": "revenue",
+            "text": "revenue",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 0
+            },
+            "anchor": "start",
+            "dx": 6
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "product",
+              "revenue"
+            ],
+            "formats": {
+              "revenue": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "title": "The best product in each region",
+      "note": "With group, sort ranks the rows of each region on their own and limit 1 keeps the top one; regions stay in the order they first appear. The product name is written on its bar.",
+      "spec": {
+        "data": "regions",
+        "size": [
+          640,
+          220
+        ],
+        "padding": {
+          "right": 56
+        },
+        "transforms": [
+          {
+            "type": "sort",
+            "field": "revenue",
+            "order": "desc",
+            "limit": 1,
+            "group": "region"
+          }
+        ],
+        "scales": {
+          "y": {
+            "type": "band"
+          },
+          "x": {
+            "type": "linear",
+            "zero": true,
+            "nice": true
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "x"
+          },
+          {
+            "type": "axis",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 0
+            }
+          }
+        ],
+        "marks": [
+          {
+            "type": "rect",
+            "y": "region",
+            "x": "revenue",
+            "radius": 2
+          },
+          {
+            "type": "text",
+            "y": "region",
+            "x": "revenue",
+            "text": "product",
+            "anchor": "start",
+            "dx": 6
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "region",
+              "product",
+              "revenue"
+            ],
+            "formats": {
+              "revenue": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 0
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

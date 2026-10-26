@@ -3133,6 +3133,98 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(paths[0][2].y < paths[0][0].y && paths[1][2].y > paths[1][0].y, 'online rises, retail falls');
   });
 
+  const filt = (cols, spec) => plain(BC.get('transform.filter').apply(T(cols), { type: 'filter', ...spec }));
+  const srt = (cols, spec) => plain(BC.get('transform.sort').apply(T(cols), { type: 'sort', ...spec }));
+
+  test('transform.filter: numbers with numbers, dates with dates, text with text; a missing value never passes', () => {
+    const cols = { k: ['a', 'b', 'c', 'd', 'e'], v: Float64Array.from([5, NaN, 12, -3, 12]) };
+    assert.deepStrictEqual(filt(cols, { field: 'v', op: '>', value: 4 }), { k: ['a', 'c', 'e'], v: [5, 12, 12] });
+    assert.deepStrictEqual(filt(cols, { field: 'v', value: 12 }).k, ['c', 'e'], '"==" by default');
+    assert.deepStrictEqual(filt(cols, { field: 'v', op: '!=', value: 12 }).k, ['a', 'd'], 'missing is not "different"');
+    assert.deepStrictEqual(filt(cols, { field: 'v', op: 'valid' }).k, ['a', 'c', 'd', 'e']);
+    assert.deepStrictEqual(filt(cols, { field: 'k', op: 'in', value: ['e', 'a', 'zz'] }).k, ['a', 'e'], 'rows keep their order');
+    assert.deepStrictEqual(filt(cols, { field: 'k', op: 'notIn', value: ['a'] }).k, ['b', 'c', 'd', 'e']);
+    assert(BC.get('transform.filter').apply(T(cols), { type: 'filter', field: 'v', op: 'valid' }).columns.v instanceof Float64Array, 'numbers stay typed');
+
+    const days = { d: ['2024-01-15', '2024-03-01', new Date(Date.UTC(2024, 5, 1)), '2024-02', null, 'soon'], n: [1, 2, 3, 4, 5, 6] };
+    assert.deepStrictEqual(filt(days, { field: 'd', op: '>=', value: '2024-02-01' }).n, [2, 3, 4], 'ISO strings and Dates as dates; "2024-02" is February');
+    assert.deepStrictEqual(filt(days, { field: 'd', op: '<', value: '2024-03' }).n, [1, 4]);
+    assert.deepStrictEqual(filt(days, { field: 'd', value: '2024-06-01' }).n, [3], 'a Date equals the ISO string of its time');
+    assert.deepStrictEqual(filt(days, { field: 'd', op: 'in', value: ['2024-06-01', 'soon'] }).n, [3, 6]);
+
+    const mixed = { v: [10, '10', 2, 'b', true, 1e3] };
+    assert.deepStrictEqual(filt(mixed, { field: 'v', op: '>', value: 5 }).v, [10, 1e3], 'text is not a number');
+    assert.deepStrictEqual(filt(mixed, { field: 'v', op: '>', value: 'a' }).v, ['b'], 'text with text');
+    assert.deepStrictEqual(filt(mixed, { field: 'v', value: 10 }).v, [10], '1 is not "1"');
+    assert.deepStrictEqual(filt({ y: [1, 3e12] }, { field: 'y', op: '>', value: '2024-01-01' }).y, [], 'a number is not a date');
+    assert.deepStrictEqual(filt(mixed, { field: 'v', value: true }).v, [true]);
+  });
+
+  test('transform.filter: hostile input — bad params are clear errors, nothing left is an empty table', () => {
+    const cols = { v: [1, 2] };
+    assert.throws(() => filt(cols, { field: 'nope', op: 'valid' }), /unknown field "nope"/);
+    assert.throws(() => filt(cols, { field: 'constructor', op: 'valid' }), /unknown field "constructor"/);
+    assert.throws(() => filt(cols, { op: 'valid' }), /"field"/);
+    assert.throws(() => filt(cols, { field: 'v', op: '=~', value: 1 }), /"op" must be one of/);
+    assert.throws(() => filt(cols, { field: 'v', op: '>' }), /needs "value"/);
+    for (const value of [null, {}, [1], NaN, Infinity]) assert.throws(() => filt(cols, { field: 'v', op: '>', value }), /"value"/, String(value));
+    assert.throws(() => filt(cols, { field: 'v', op: '>', value: '' }), /empty/);
+    assert.throws(() => filt(cols, { field: 'v', op: '<', value: true }), /not true \/ false/);
+    assert.throws(() => filt(cols, { field: 'v', op: 'in', value: 1 }), /a list of values/);
+    assert.throws(() => filt(cols, { field: 'v', op: 'valid', value: 1 }), /takes no "value"/);
+    assert.deepStrictEqual(filt(cols, { field: 'v', op: '>', value: 99 }), { v: [] });
+    assert.deepStrictEqual(BC.get('transform.filter').outputs({ field: 'v' }), []);
+  });
+
+  test('transform.sort: order, top N, top N per group; missing last, mixed values, ties in data order', () => {
+    const cols = { p: ['a', 'b', 'c', 'd', 'e', 'f'], r: ['N', 'S', 'N', 'S', 'N', null], v: Float64Array.from([3, 9, NaN, 4, 7, 1]) };
+    assert.deepStrictEqual(srt(cols, { field: 'v' }).p, ['f', 'a', 'd', 'e', 'b', 'c']);
+    assert.deepStrictEqual(srt(cols, { field: 'v', order: 'desc' }).p, ['b', 'e', 'd', 'a', 'f', 'c'], 'missing last, descending too');
+    assert.deepStrictEqual(srt(cols, { field: 'v', order: 'desc', limit: 2 }), { p: ['b', 'e'], r: ['S', 'N'], v: [9, 7] });
+    assert.deepStrictEqual(srt(cols, { field: 'v', order: 'desc', limit: 1, group: 'r' }).p, ['e', 'b', 'f'], 'the best of each group, groups in first-seen order');
+    assert.deepStrictEqual(srt(cols, { field: 'v', limit: 0 }).p, []);
+    assert.deepStrictEqual(srt({ k: [2, 'b', 1, 'a', 2], i: [0, 1, 2, 3, 4] }, { field: 'k' }).i, [2, 0, 4, 3, 1], 'numbers first, ties keep data order');
+    assert.deepStrictEqual(srt({ d: [new Date(3000), new Date(1000), new Date(NaN)], i: [0, 1, 2] }, { field: 'd' }).i, [1, 0, 2], 'dates by time, an invalid one missing');
+    assert.deepStrictEqual(srt({ v: [] }, { field: 'v', limit: 3 }), { v: [] });
+  });
+
+  test('transform.sort: hostile input — bad params are clear errors; a long table stays fast', () => {
+    const cols = { v: [1, 2], g: ['x', 'y'] };
+    assert.throws(() => srt(cols, { field: 'nope' }), /unknown field "nope"/);
+    assert.throws(() => srt(cols, { field: 'v', group: 'nope' }), /unknown field "nope"/);
+    assert.throws(() => srt(cols, { field: 'v', group: 'toString' }), /unknown field "toString"/);
+    assert.throws(() => srt(cols, {}), /"field"/);
+    assert.throws(() => srt(cols, { field: 'v', order: 'down' }), /"order"/);
+    for (const limit of [-1, 2.5, '3', NaN]) assert.throws(() => srt(cols, { field: 'v', limit }), /"limit"/, String(limit));
+    const n = 200000;
+    const big = Float64Array.from({ length: n }, (_, i) => (i * 7919) % n);
+    const t0 = Date.now();
+    const t = BC.get('transform.sort').apply(T({ v: big, g: Array.from({ length: n }, (_, i) => 'g' + (i % 100)) }), { type: 'sort', field: 'v', order: 'desc', limit: 3, group: 'g' });
+    assert(Date.now() - t0 < 3000, `sorting 200,000 rows took ${Date.now() - t0} ms`);
+    assert.strictEqual(t.length, 300);
+  });
+
+  test('transform.filter and sort: the top five of one year as bars, best first, columns known to validate', () => {
+    const products = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    BC.data('productSales', [
+      ...products.map((p, i) => ({ year: 2023, product: p, revenue: 100 + i })),
+      ...products.map((p, i) => ({ year: 2024, product: p, revenue: [50, 90, 10, 70, 30, 80, 60][i] })),
+    ]);
+    const spec = {
+      data: 'productSales',
+      transforms: [{ type: 'filter', field: 'year', value: 2024 }, { type: 'sort', field: 'revenue', order: 'desc', limit: 5 }],
+      scales: { y: { type: 'band' }, x: { type: 'linear', zero: true } },
+      marks: [{ type: 'rect', y: 'product', x: 'revenue' }],
+      interaction: [{ type: 'probe2' }],
+    };
+    assert.deepStrictEqual(BC.validate(spec), []);
+    const bad = BC.validate({ ...spec, transforms: [{ type: 'filter', field: 'yaer', value: 2024 }] });
+    assert(bad.some((d) => /unknown field "yaer"/.test(d.message)), JSON.stringify(bad));
+    const h = BC.chart(new FakeNode('div'), spec);
+    assert.deepStrictEqual(h.diagnostics, []);
+    assert.deepStrictEqual(probed.scales.y.domain(), ['B', 'F', 'D', 'G', 'A'], 'the bands are the top five, best first');
+  });
+
   BC.data('wideLabels', ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((k, i) => ({ k, v: (i + 1) * 100, label: i === 3 ? '$34K' : '-$891.6K' })));
   const labelled = (size, extra) => ({
     data: 'wideLabels', size, padding: { top: 20, right: 10, bottom: 10, left: 10 },

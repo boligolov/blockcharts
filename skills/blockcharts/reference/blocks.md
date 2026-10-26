@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-38 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.fold`, `transform.funnel`, `transform.quartiles`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+40 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -114,6 +114,16 @@ Version 2, 3.4 KB. Level of detail for long lines: keeps only the rows that can 
 | `buckets` | number |  | Pixel columns to split the plot width into. Default: one per px of plot width. |
 | `threshold` | number | `4` | Decimate only when the window holds more than `threshold` rows per column. |
 
+## transform.filter
+
+Version 1, 2.3 KB. Keeps the rows whose `field` passes a test and drops the others: `==`, `!=`, `<`, `<=`, `>`, `>=` against `value` (a number, a string, or a date as "2024-03-01"), `in` / `notIn` a list of values, `valid` (the field has a value). Numbers compare with numbers, dates with dates (a Date or an ISO date string), text with text; a missing value never passes. Several filters in a row all apply. Rows keep their order; columns stay as they are.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `field` | field, **required** |  | Field to test. |
+| `op` | one of `==`, `!=`, `<`, `<=`, `>`, `>=`, `in`, `notIn`, `valid` | `"=="` | == \| != \| < \| <= \| > \| >= \| in \| notIn \| valid. |
+| `value` | any |  | What to compare with; a list for in / notIn; none for valid. |
+
 ## transform.fold
 
 Version 1, 1.5 KB. Turns a wide table (one column per series: month, online, retail) into a long one (month, key, value): every row becomes one row per field of `fields`, with the field's name in `key` and its value in `value`, so the series can be colored, stacked or grouped by `key`. The other columns are repeated on each new row; the folded columns stay too. Rows keep their order, and the fields theirs within each row.
@@ -144,6 +154,17 @@ Version 1, 2.1 KB. The five-number summary of `field` (min/max here mean the Tuk
 | `field` | field, **required** |  | Numeric field to summarize (the raw sample values). Missing and non-numeric values are ignored. |
 | `group` | field |  | A separate summary per value of this field (the boxplot's category axis). A missing value is a group of its own, like transform.aggregate. Default: one summary. |
 | `outliers` | boolean | `true` | true: whiskers stop at 1.5x IQR, points further out become their own "value" row. false: whiskers stretch to the true min/max, no outlier rows. |
+
+## transform.sort
+
+Version 1, 1.7 KB. Puts the rows in the order of `field` (`order` "asc" or "desc"), and with `limit` keeps only the first N: the top 10 products is `field` revenue, `order` "desc", `limit` 10. With `group` the order and the limit apply within each group (the top 3 per region), and the groups follow each other in order of first appearance. A band scale lists its categories in row order, so this also orders the bars. Missing values go last either way; numbers come before text when a field mixes them; ties keep data order. Columns stay as they are.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `field` | field, **required** |  | Field to sort by. |
+| `order` | one of `asc`, `desc` | `"asc"` | Direction. |
+| `limit` | number |  | Keep only the first N rows (of each group with `group`). |
+| `group` | field |  | Field that splits the rows: each group sorted and limited on its own. |
 
 ## transform.stack
 
