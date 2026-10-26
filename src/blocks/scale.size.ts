@@ -8,10 +8,33 @@
     return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * pow;
   }
 
+  /** More ticks than any axis can show: a guard against a span the arithmetic cannot step through. */
+  const MAX_TICKS = 1000;
+
+  /** Round values between the two ends of a domain, smallest first, whichever way the domain runs. None for a domain
+   *  that has no length (a view zoomed to one value) or is not made of numbers: an empty axis, not an exception. */
+  function roundTicks(d0: number, d1: number, count: number): { value: number; label: string }[] {
+    const lo = Math.min(d0, d1);
+    const hi = Math.max(d0, d1);
+    const out: { value: number; label: string }[] = [];
+    if (!(isFinite(lo) && isFinite(hi) && hi > lo)) return out;
+    const step = niceStep(hi - lo, count);
+    if (!(step > 0 && isFinite(step))) return out;
+    // toFixed takes at most 100 digits
+    const decimals = Math.min(100, Math.max(0, -Math.floor(Math.log10(step))));
+    const first = Math.ceil(lo / step - 1e-9);
+    const last = Math.floor(hi / step + 1e-9);
+    for (let i = first; i <= last && out.length < MAX_TICKS; i++) {
+      const value = +(i * step).toFixed(decimals);
+      out.push({ value, label: value.toFixed(decimals) });
+    }
+    return out;
+  }
+
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'size',
-    version: 1,
+    version: 2,
     doc: 'Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.',
     params: {
       zero: { kind: 'boolean', default: true, doc: 'Start the domain at 0, so areas are proportional to the values. false: the smallest value gets the smallest radius (shows differences, overstates ratios).' },
@@ -80,17 +103,8 @@
         },
         // a few round values inside the domain, for a legend; pos is the radius
         ticks: {
-          value: (approxCount: number = 3): BC.Tick[] => {
-            const step = niceStep(d1 - d0, approxCount);
-            const decimals = Math.max(0, -Math.floor(Math.log10(step)));
-            const out: BC.Tick[] = [];
-            for (let i = Math.ceil(d0 / step - 1e-9); i <= Math.floor(d1 / step + 1e-9) && out.length < 50; i++) {
-              const value = +(i * step).toFixed(decimals);
-              if (value <= 0) continue; // a circle of nothing says nothing
-              out.push({ value, pos: scale(value) as number, label: value.toFixed(decimals) });
-            }
-            return out;
-          },
+          // a circle of nothing says nothing: no tick at 0
+          value: (approxCount: number = 3): BC.Tick[] => roundTicks(d0, d1, approxCount).filter((t) => t.value > 0).slice(0, 50).map((t) => ({ ...t, pos: scale(t.value) as number })),
         },
       });
       return scale;

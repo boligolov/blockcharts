@@ -1,4 +1,21 @@
 (function () {
+  function fail(message: string): never {
+    throw new Error('transform.treemap: ' + message);
+  }
+
+  /** The fields it reads must exist, and the columns it writes must not replace one of the data's own (except those in
+   *  `keep`, which the new column stands for) nor each other: a silent overwrite changes what another mark reads. */
+  function checkColumns(table: BC.Table, reads: [string, unknown][], writes: [string, string][], keep: unknown[]): void {
+    const has = (f: string) => Object.prototype.hasOwnProperty.call(table.columns, f);
+    for (const [param, f] of reads) if (f !== undefined && (typeof f !== 'string' || !has(f))) fail(`unknown field "${String(f)}" in "${param}"`);
+    const seen: Record<string, string> = {};
+    for (const [param, name] of writes) {
+      if (seen[name]) fail(`"${seen[name]}" and "${param}" both name the new column "${name}"`);
+      seen[name] = param;
+      if (has(name) && keep.indexOf(name) < 0) fail(`"${name}" is already a column of the data: give the new one another name with "${param}"`);
+    }
+  }
+
   interface Box { x: number; y: number; w: number; h: number }
   interface Item { i: number; v: number }
 
@@ -72,7 +89,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'treemap',
-    version: 1,
+    version: 2,
     doc: 'A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.',
     params: {
       field: { kind: 'field', required: true, doc: 'The size of each cell (positive numbers; others are left out).' },
@@ -90,6 +107,7 @@
     },
     apply(table, spec) {
       const n = names(spec);
+      checkColumns(table, [['field', spec.field], ['group', spec.group], ['name', spec.name]], [['as[0]', n.x0], ['as[1]', n.x1], ['as[2]', n.y0], ['as[3]', n.y1], ['labelAs', n.label]], [spec.name]);
       const values = table.columns[String(spec.field)] || [];
       const groups = typeof spec.group === 'string' ? table.columns[spec.group] : undefined;
       const labels = typeof spec.name === 'string' ? table.columns[spec.name] : undefined;

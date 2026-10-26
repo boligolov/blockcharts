@@ -66,13 +66,13 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'kpi',
-    version: 2,
+    version: 3,
     doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.',
     params: {
       field: { kind: 'field', required: true, doc: 'The numeric field the figure comes from.' },
       label: { kind: 'string', doc: 'What the figure is ("Revenue", "Active users"), above it.' },
       aggregate: { kind: 'enum', values: AGGREGATES, default: 'last', doc: 'How the rows make one number: the last row (the latest period, in data order), the first, or the sum, mean, min, max or count of the field.' },
-      compare: { kind: 'enum', values: ['previous', 'first', 'none'], doc: 'What the change is measured against: the row before the last ("previous", the default with aggregate "last"), the first row ("first": change over the period), or nothing.' },
+      compare: { kind: 'enum', values: ['previous', 'first', 'none'], doc: 'What the change is measured against: the row before the last ("previous", the default with aggregate "last"), the first row ("first": change over the period), or nothing. "previous" and "first" compare single rows, so they go with aggregate "last" only; a sum or a mean is compared through `against`.' },
       against: { kind: 'field', doc: 'Compare with another field instead, aggregated the same way (a target, the same period last year).' },
       delta: { kind: 'enum', values: ['percent', 'absolute'], default: 'percent', doc: 'The change as a percentage of the comparison, or as a difference written with `format`.' },
       better: { kind: 'enum', values: ['up', 'down'], default: 'up', doc: 'Which way is good: "down" for costs, churn, response times.' },
@@ -81,6 +81,11 @@
       size: { kind: 'number', default: VALUE_SIZE, doc: 'Font size of the value, px.' },
     },
     measure(spec) {
+      // compare compares single rows; next to a sum or a mean that is a change against one row, which means nothing
+      const how = typeof spec.aggregate === 'string' ? spec.aggregate : 'last';
+      if ((spec.compare === 'previous' || spec.compare === 'first') && how !== 'last' && typeof spec.against !== 'string') {
+        throw new Error(`guide.kpi: compare "${spec.compare}" compares one row with another, so it needs aggregate "last" (not "${how}"); to compare a ${how} with something, give "against" a field`);
+      }
       return { top: height(spec) };
     },
     render(spec, ctx, offset) {

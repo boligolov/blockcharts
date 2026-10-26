@@ -229,6 +229,7 @@ test('interaction: attach gets a live context, cleanup runs on update/destroy', 
 require('./test-blocks.js')({ test, FakeNode, svgOf, count, axisStarts, logged, flush, dist });
 require('./test-data.js')({ test, FakeNode, svgOf, count, axisStarts, logged, flush, dist });
 require('./test-business.js')({ test, FakeNode, svgOf, count, flush });
+require('./test-edges.js')({ test, FakeNode, svgOf, count, logged, flush });
 
 (async () => {
   for (const [name, fn] of queue) {
