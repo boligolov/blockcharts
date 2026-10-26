@@ -3,7 +3,7 @@
 const vm = require('vm');
 const { El, createDocument, FakePath2D } = require('./fake-dom.js');
 
-function runPage(html, codeOverride) {
+function runPage(html, codeOverride, globals) {
   const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)].map((m) => ({ attrs: m[1], text: m[2] }));
   const code = codeOverride === undefined ? scripts.filter((s) => !s.attrs.includes('application/json')) : [{ attrs: '', text: codeOverride }];
   const dataEl = scripts.find((s) => s.attrs.includes('id="bc-data"'));
@@ -22,6 +22,7 @@ function runPage(html, codeOverride) {
     Path2D: FakePath2D, document: doc, console: { warn() {}, error: (...a) => errors.push(a.join(' ')), log() {} }, setTimeout() {}, getComputedStyle: () => ({ position: 'static' }),
     // what a browser provides for encoded datasets
     atob, Blob, DecompressionStream, TextDecoder,
+    ...globals,
   };
   vm.createContext(sandbox);
   for (const s of code) vm.runInContext(s.text, sandbox);

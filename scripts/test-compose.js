@@ -163,6 +163,14 @@ test('compose: unknown blocks, bad specs and bad input are ComposeErrors with th
   assert.doesNotThrow(() => compose({ data: DATA, charts: [{ ...bars(), marks: [{ type: 'rect', x: 'k', y: 'ghost' }] }], allowErrors: true }), 'allowErrors ships the page anyway');
 });
 
+test('compose: a chart id is a plain name, used once, and never the id of the data', () => {
+  failsWith(() => compose({ data: DATA, charts: [{ ...bars(), id: 'sales' }, { ...scatter(), id: 'sales' }] }), /charts\[1\]\.id "sales" is also the id of charts\[0\]/);
+  failsWith(() => compose({ data: DATA, charts: [{ ...bars(), id: 'bc-data' }] }), /charts\[0\]\.id "bc-data" is the id of the page's data/);
+  for (const bad of ['', '1st', 'a b', 'x"><script>', 5]) failsWith(() => compose({ data: DATA, charts: [{ ...bars(), id: bad }] }), /charts\[0\]\.id must be a name/);
+  const r = compose({ data: DATA, charts: [{ ...bars(), id: 'sales-2024' }, { ...scatter(), id: 'Mix_1' }] });
+  assert.strictEqual(runPage(r.html).handles.length, 2);
+});
+
 test('compose: warnings do not stop the page, unused data is reported', () => {
   const r = compose({ data: { ...DATA, spare: [{ a: 1 }] }, charts: [{ ...bars(), marks: [{ type: 'rect', x: 'k', y: 'v', shade: 'red' }] }] });
   assert(r.diagnostics.some((d) => d.level === 'warn' && d.path === 'charts[0].marks[0].shade'));
@@ -272,6 +280,17 @@ test('compose: a page carries the core without checks, and the decoder only when
   assert.strictEqual(broken.core, 'core.js');
   const runBroken = runPage(broken.html);
   assert(runBroken.handles[0].diagnostics.some((d) => /nope/.test(d.message)), 'the page itself reports the error');
+});
+
+test('compose: a page whose data cannot be decoded in this browser says why, though its core has no checks', async () => {
+  const r = compose({ data: { ...DATA, big: BIG }, charts: [bars(), bigSpec()] });
+  assert.strictEqual(r.core, 'core.composed.js', 'the lean core with the decoder');
+  const run = runPage(r.html, undefined, { DecompressionStream: undefined });
+  for (const h of run.handles) await h.ready;
+  const h = run.handles[1];
+  assert(h.diagnostics.some((d) => d.level === 'error' && d.path === 'data' && /no DecompressionStream/.test(d.message)), JSON.stringify(h.diagnostics));
+  assert(!run.errors.some((e) => /Cannot read properties/.test(e)), 'no TypeError from drawing a dataset that is not there: ' + run.errors.join('\n'));
+  assert(countTags(run.handles[0].host.children[0], 'rect') > 0, 'the chart on plain data still draws');
 });
 
 test('compose: "auto" does not compress when the decoder would cost more than gzip saves', () => {
