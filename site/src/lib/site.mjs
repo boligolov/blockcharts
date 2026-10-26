@@ -10,6 +10,9 @@ const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const { resolveDataset, jsonForScript, escapeText } = require(path.join(repo, 'scripts', 'compose.js'));
 const { embedPages } = require(path.join(repo, 'scripts', 'site-demos.js'));
 
+/** The roles of blocks, in the order a page loads them. */
+export const { ROLES } = require(path.join(repo, 'scripts', 'build-manifest.js'));
+
 export { jsonForScript, embedPages };
 export const esc = escapeText;
 export const kb = (n) => (n / 1024).toFixed(1) + ' KB';

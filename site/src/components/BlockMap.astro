@@ -1,12 +1,13 @@
 ---
 // Every block of the release, grouped by role, with the ones the hero report carries lit up: the whole idea of the
 // library in one picture. The list and the sizes come from the release manifest; "used" from the composer.
-import { kb } from '../lib/site.mjs';
+import { kb, ROLES } from '../lib/site.mjs';
 
 interface Props { blocks: { name: string; bytes: number }[]; used: string[]; coreBytes: number; file: string }
 const { blocks, used, coreBytes, file } = Astro.props;
-const roles = ['scale', 'transform', 'mark', 'guide', 'interaction', 'renderer'];
-const byRole = roles.map((role) => ({ role, blocks: blocks.filter((b) => b.name.startsWith(role + '.')) }));
+const stray = blocks.filter((b) => !ROLES.includes(b.name.split('.')[0]));
+if (stray.length) throw new Error(`BlockMap: blocks of no known role: ${stray.map((b) => b.name).join(', ')}`);
+const byRole = ROLES.map((role) => ({ role, blocks: blocks.filter((b) => b.name.startsWith(role + '.')) }));
 const usedBytes = coreBytes + blocks.filter((b) => used.includes(b.name)).reduce((n, b) => n + b.bytes, 0);
 const allBytes = coreBytes + blocks.reduce((n, b) => n + b.bytes, 0);
 const left = blocks.length - used.length;
