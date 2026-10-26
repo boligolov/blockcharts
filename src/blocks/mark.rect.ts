@@ -1,5 +1,5 @@
 (function () {
-  const KINDS = ['band', 'linear', 'time'];
+  const KINDS = ['band', 'linear', 'log', 'time'];
 
   interface Dodge {
     col: BC.Column;
@@ -23,6 +23,12 @@
     return { col, order, padding };
   }
 
+  /** Where the baseline is in pixels; one the scale has no place for (0 on a log scale) is the bottom of the domain. */
+  function baseAt(scale: BC.Scale, baseline: number): number {
+    const px = scale(baseline) as number;
+    return isFinite(px) ? px : (scale(Math.min(...(scale.domain() as number[]))) as number);
+  }
+
   /** Start and size of the rectangle along one axis, in pixels, or null when the row has no valid extent. On the
    *  band-scale axis, `dodge` (if given) splits the band into one equal, gapped sub-band per distinct dodge value —
    *  a row whose dodge value never appeared among the visible rows (nullish) has no extent, like a missing channel. */
@@ -32,7 +38,7 @@
     const end = ctx.channel(spec, name + '2');
     const bw = main.scale ? main.scale.bandwidth : undefined;
     // Without a second channel a continuous axis grows from the baseline (bars).
-    const base = !end.raw.length && bw === undefined && main.scale ? main.scale(baseline) : NaN;
+    const base = !end.raw.length && bw === undefined && main.scale ? baseAt(main.scale, baseline) : NaN;
     return (i: number): [number, number] | null => {
       const a = main.mapped[i];
       let start: number, size: number;
@@ -62,7 +68,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rect',
-    version: 8,
+    version: 9,
     doc: 'Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field).',
     params: {
       baseline: { kind: 'number', default: 0, doc: 'Where bars start on a continuous axis without a second channel. Keep it inside the scale domain (scale `zero: true` for 0).' },
@@ -75,8 +81,8 @@
     channels: {
       x: { required: true, scales: KINDS },
       y: { required: true, scales: KINDS },
-      x2: { scales: ['linear', 'time'], sharesScale: 'x', doc: 'Other end of the rectangle along x.' },
-      y2: { scales: ['linear', 'time'], sharesScale: 'y', doc: 'Other end of the rectangle along y.' },
+      x2: { scales: ['linear', 'log', 'time'], sharesScale: 'x', doc: 'Other end of the rectangle along x.' },
+      y2: { scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Other end of the rectangle along y.' },
       color: { scales: ['color', 'sequential'], doc: 'Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn.' },
       dodge: { unscaled: true, doc: 'Field that splits the band-scale axis into side-by-side bars, one per distinct value (grouped bar). Usually the same field as `color`. One distinct value (or none) draws a plain bar, unchanged.' },
     },

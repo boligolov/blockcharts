@@ -28,7 +28,7 @@
     const ticks = ctx.ticks(spec.scale as string);
     if (spec.format === undefined) return ticks;
     const kind = ctx.scales[spec.scale as string].kind;
-    if (kind !== 'linear' && kind !== 'time') return ticks;
+    if (kind !== 'linear' && kind !== 'log' && kind !== 'time') return ticks;
     const write = BC.formatter(spec.format as BC.FormatSpec | string, kind === 'time' ? 'date' : 'number');
     return ticks.map((t) => ({ value: t.value, pos: t.pos, label: write(t.value) }));
   }
@@ -57,13 +57,13 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 6,
+    version: 7,
     doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines.',
     params: {
       scale: { kind: 'scale', required: true },
       position: { kind: 'enum', values: ['top', 'right', 'bottom', 'left'] },
       title: { kind: 'string', doc: 'Text that names the axis (with its unit, for example "Revenue, USD"). Rotated on a vertical axis.' },
-      format: { kind: 'any', doc: 'How to write the tick labels of a linear or time scale: a preset ("percent", "compact", "integer", "year", "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix".' },
+      format: { kind: 'any', doc: 'How to write the tick labels of a linear, log or time scale: a preset ("percent", "compact", "integer", "year", "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix".' },
       line: { kind: 'enum', values: ['auto', 'on', 'off'], default: 'auto', doc: 'The axis line. "auto": drawn along a horizontal axis (the baseline bars stand on), left out on a vertical one, where grid lines do the job.' },
       ticks: { kind: 'boolean', default: false, doc: 'Small tick marks at the labels.' },
     },

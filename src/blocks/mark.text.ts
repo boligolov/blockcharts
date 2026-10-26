@@ -49,7 +49,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'text',
-    version: 4,
+    version: 5,
     doc: 'A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell\'s color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap). A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.',
     params: {
       size: { kind: 'number', default: 11, doc: 'Font size in px.' },
@@ -65,10 +65,10 @@
       minSize: { kind: 'number', default: 8, doc: 'The smallest font size a label that does not fit may shrink to; a label that would need less is not drawn. Set it to `size` to never shrink.' },
     },
     channels: {
-      x: { required: true, scales: ['linear', 'time', 'band'] },
-      y: { required: true, scales: ['linear', 'time', 'band'] },
-      x2: { scales: ['linear', 'time'], sharesScale: 'x', doc: 'The other side of the box the label has to fit in (with y2: the cell it labels).' },
-      y2: { scales: ['linear', 'time'], sharesScale: 'y', doc: 'The other side of the box the label has to fit in, vertically.' },
+      x: { required: true, scales: ['linear', 'log', 'time', 'band'] },
+      y: { required: true, scales: ['linear', 'log', 'time', 'band'] },
+      x2: { scales: ['linear', 'log', 'time'], sharesScale: 'x', doc: 'The other side of the box the label has to fit in (with y2: the cell it labels).' },
+      y2: { scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'The other side of the box the label has to fit in, vertically.' },
       text: { required: true, unscaled: true, doc: 'Field with the text to show.' },
       color: { scales: ['color', 'sequential'], doc: 'Text color per row, from a color scale.' },
       on: { scales: ['color', 'sequential'], sharesScale: 'color', doc: 'The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. Rows with no such color get no text.' },

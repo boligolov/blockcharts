@@ -91,6 +91,23 @@
       },
       "doc": "Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values."
     },
+    "scale.log": {
+      "file": "blocks/scale.log.js",
+      "bytes": 1697,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "scale.log"
+      ],
+      "params": {
+        "nice": {
+          "kind": "boolean",
+          "default": true,
+          "doc": "Extend the inferred domain to whole powers of ten."
+        }
+      },
+      "doc": "Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain."
+    },
     "scale.sequential": {
       "file": "blocks/scale.sequential.js",
       "bytes": 2078,
@@ -672,8 +689,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2311,
-      "version": 6,
+      "bytes": 2408,
+      "version": 7,
       "requires": [
         "lib.curve"
       ],
@@ -725,6 +742,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time",
             "band"
           ]
@@ -733,12 +751,14 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time"
           ]
         },
         "y2": {
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "y",
@@ -755,8 +775,8 @@
     },
     "mark.boxplot": {
       "file": "blocks/mark.boxplot.js",
-      "bytes": 2698,
-      "version": 1,
+      "bytes": 2734,
+      "version": 2,
       "requires": [],
       "closure": [
         "mark.boxplot"
@@ -791,6 +811,7 @@
           "scales": [
             "band",
             "linear",
+            "log",
             "time"
           ]
         },
@@ -798,6 +819,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "y",
@@ -807,6 +829,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "y",
@@ -816,6 +839,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "y",
@@ -825,6 +849,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "y",
@@ -834,6 +859,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "y",
@@ -851,8 +877,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3513,
-      "version": 10,
+      "bytes": 3525,
+      "version": 11,
       "requires": [
         "lib.curve"
       ],
@@ -915,6 +941,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time",
             "band"
           ]
@@ -923,6 +950,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time"
           ]
         },
@@ -937,8 +965,8 @@
     },
     "mark.point": {
       "file": "blocks/mark.point.js",
-      "bytes": 1657,
-      "version": 8,
+      "bytes": 1669,
+      "version": 9,
       "requires": [],
       "closure": [
         "mark.point"
@@ -968,6 +996,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time",
             "band"
           ]
@@ -976,6 +1005,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time",
             "band"
           ]
@@ -998,8 +1028,8 @@
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",
-      "bytes": 2352,
-      "version": 8,
+      "bytes": 2449,
+      "version": 9,
       "requires": [],
       "closure": [
         "mark.rect"
@@ -1040,6 +1070,7 @@
           "scales": [
             "band",
             "linear",
+            "log",
             "time"
           ]
         },
@@ -1048,12 +1079,14 @@
           "scales": [
             "band",
             "linear",
+            "log",
             "time"
           ]
         },
         "x2": {
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "x",
@@ -1062,6 +1095,7 @@
         "y2": {
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "y",
@@ -1083,8 +1117,8 @@
     },
     "mark.rule": {
       "file": "blocks/mark.rule.js",
-      "bytes": 2403,
-      "version": 2,
+      "bytes": 2421,
+      "version": 3,
       "requires": [],
       "closure": [
         "mark.rule"
@@ -1121,6 +1155,7 @@
           "scales": [
             "band",
             "linear",
+            "log",
             "time"
           ]
         },
@@ -1128,12 +1163,14 @@
           "scales": [
             "band",
             "linear",
+            "log",
             "time"
           ]
         },
         "x2": {
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "x",
@@ -1142,6 +1179,7 @@
         "y2": {
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "y",
@@ -1158,8 +1196,8 @@
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 3723,
-      "version": 4,
+      "bytes": 3747,
+      "version": 5,
       "requires": [],
       "closure": [
         "mark.text"
@@ -1232,6 +1270,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time",
             "band"
           ]
@@ -1240,6 +1279,7 @@
           "required": true,
           "scales": [
             "linear",
+            "log",
             "time",
             "band"
           ]
@@ -1247,6 +1287,7 @@
         "x2": {
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "x",
@@ -1255,6 +1296,7 @@
         "y2": {
           "scales": [
             "linear",
+            "log",
             "time"
           ],
           "sharesScale": "y",
@@ -1285,8 +1327,8 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 3272,
-      "version": 6,
+      "bytes": 3283,
+      "version": 7,
       "requires": [],
       "closure": [
         "guide.axis"
@@ -1311,7 +1353,7 @@
         },
         "format": {
           "kind": "any",
-          "doc": "How to write the tick labels of a linear or time scale: a preset (\"percent\", \"compact\", \"integer\", \"year\", \"month\", \"day\", \"date\", \"datetime\") or an object of Intl options, e.g. { \"style\": \"currency\", \"currency\": \"USD\", \"maximumFractionDigits\": 0 } or { \"month\": \"short\", \"year\": \"2-digit\" }. Also \"locale\" (default \"en-US\"), \"prefix\" and \"suffix\"."
+          "doc": "How to write the tick labels of a linear, log or time scale: a preset (\"percent\", \"compact\", \"integer\", \"year\", \"month\", \"day\", \"date\", \"datetime\") or an object of Intl options, e.g. { \"style\": \"currency\", \"currency\": \"USD\", \"maximumFractionDigits\": 0 } or { \"month\": \"short\", \"year\": \"2-digit\" }. Also \"locale\" (default \"en-US\"), \"prefix\" and \"suffix\"."
         },
         "line": {
           "kind": "enum",
@@ -1614,8 +1656,8 @@
     },
     "interaction.zoom": {
       "file": "blocks/interaction.zoom.js",
-      "bytes": 3010,
-      "version": 3,
+      "bytes": 3159,
+      "version": 4,
       "requires": [],
       "closure": [
         "interaction.zoom"
@@ -1652,12 +1694,12 @@
           "doc": "How far in you can go, as a multiple of the full domain."
         }
       },
-      "doc": "Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, time) by changing their view through setView; the layout stays frozen."
+      "doc": "Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen."
     },
     "interaction.zoom-controls": {
       "file": "blocks/interaction.zoom-controls.js",
-      "bytes": 2462,
-      "version": 1,
+      "bytes": 2554,
+      "version": 2,
       "requires": [],
       "closure": [
         "interaction.zoom-controls"

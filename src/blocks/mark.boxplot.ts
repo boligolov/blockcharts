@@ -4,7 +4,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'boxplot',
-    version: 1,
+    version: 2,
     doc: 'A box (q1 to q3), a line across it at the median, and whiskers out to low/high — the usual shape for transform.quartiles\' output. `x` is the category (a band scale, one box per category) or a plain position on a continuous one; the five value channels share the scale of `y` by default. Outliers are not drawn by this mark: transform.quartiles reports them as their own rows (only `value` set, the others NaN), meant for a plain mark.point layered on top reading the same `x` and `value`.',
     params: {
       width: { kind: 'number', default: 0.6, doc: 'Box width: a fraction (0-1) of the category band, or, off a band scale, a fixed number of px.' },
@@ -14,12 +14,12 @@
       opacity: { kind: 'number', default: 1 },
     },
     channels: {
-      x: { required: true, scales: ['band', 'linear', 'time'] },
-      low: { required: true, scales: ['linear', 'time'], sharesScale: 'y', doc: 'Bottom of the lower whisker.' },
-      q1: { required: true, scales: ['linear', 'time'], sharesScale: 'y', doc: 'Bottom of the box (25th percentile).' },
-      median: { required: true, scales: ['linear', 'time'], sharesScale: 'y', doc: 'Line drawn across the box.' },
-      q3: { required: true, scales: ['linear', 'time'], sharesScale: 'y', doc: 'Top of the box (75th percentile).' },
-      high: { required: true, scales: ['linear', 'time'], sharesScale: 'y', doc: 'Top of the upper whisker.' },
+      x: { required: true, scales: ['band', 'linear', 'log', 'time'] },
+      low: { required: true, scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Bottom of the lower whisker.' },
+      q1: { required: true, scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Bottom of the box (25th percentile).' },
+      median: { required: true, scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Line drawn across the box.' },
+      q3: { required: true, scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Top of the box (75th percentile).' },
+      high: { required: true, scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Top of the upper whisker.' },
       color: { scales: ['color', 'sequential'], doc: 'Box and whisker color per row, from a color scale; rows the scale gives no color are not drawn.' },
     },
     render(spec, ctx, index) {

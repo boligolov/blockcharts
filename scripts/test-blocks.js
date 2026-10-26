@@ -3225,6 +3225,104 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(probed.scales.y.domain(), ['B', 'F', 'D', 'G', 'A'], 'the bands are the top five, best first');
   });
 
+  const logOf = (sources, spec = {}, range = [0, 300]) => BC.get('scale.log').create({ type: 'log', ...spec }, { name: 'y', sources, range });
+
+  test('scale.log: equal ratios are equal steps; the domain from positive values, nice to powers of ten; ticks and labels', () => {
+    const s = logOf([Float64Array.of(3, 0, -5, NaN, 4200)]);
+    assert.deepStrictEqual(s.domain(), [1, 10000], 'zero, negatives and NaN do not count; nice to powers of ten');
+    assert.strictEqual(s.kind, 'log');
+    assert.strictEqual(s(1), 0);
+    assert.strictEqual(s(100), 150);
+    assert.strictEqual(s(10000), 300);
+    assert(Number.isNaN(s(0)) && Number.isNaN(s(-1)), 'no place for zero and negatives');
+    assert(Math.abs(s.invert(s(42)) - 42) < 1e-9, 'invert');
+    assert.deepStrictEqual(s.ticks(6).map((t) => t.label), ['1', '10', '100', '1K', '10K'], 'four decades: the powers of ten');
+    assert.deepStrictEqual(logOf([[2, 90]]).ticks(6).map((t) => t.value), [1, 2, 5, 10, 20, 50, 100], 'two decades: 1, 2, 5 of each');
+    assert.deepStrictEqual(logOf([[1, 1e12]]).ticks(6).map((t) => t.label), ['1', '100', '10K', '1M', '100M', '10B', '1T'], 'many decades: every other one');
+    assert.deepStrictEqual(logOf([[0.002, 0.3]]).ticks(6).map((t) => t.label), ['0.001', '0.003', '0.01', '0.03', '0.1', '0.3', '1'], 'three decades: 1 and 3 of each');
+    assert.deepStrictEqual(logOf([[20, 80]], { nice: false }).ticks(6).map((t) => t.value), [20, 50], 'inside one decade');
+    assert.deepStrictEqual(logOf([[30, 40]], { nice: false }).ticks(6).map((t) => t.value), [30, 40], 'no round value inside: the two ends');
+    assert.deepStrictEqual(logOf([[5, 5]]).domain(), [0.1, 100], 'one value: a decade either side, then nice');
+    assert.deepStrictEqual(logOf([[0, -3]]).domain(), [1, 10], 'nothing positive: a default decade');
+    const r = logOf([[1, 1000]], {}, [300, 0]);
+    assert.strictEqual(r(1), 300, 'a vertical range runs bottom to top');
+    r.setDomain([10, 100]);
+    assert.strictEqual(r(10), 300);
+    r.setDomain(null);
+    assert.deepStrictEqual(r.domain(), [1, 1000]);
+  });
+
+  test('scale.log: hostile input — a domain with zero or less is a clear error, odd values are left out', () => {
+    for (const domain of [[0, 100], [-1, 10], [1, Infinity], ['a', 10]]) assert.throws(() => logOf([[1, 2]], { domain }), /scale\.log: the domain must be two positive numbers/, JSON.stringify(domain));
+    assert.deepStrictEqual(logOf([['100', 'x', null, Infinity, 50, true]]).domain(), [1, 1000], 'only finite positive numbers: 50 alone, a decade either side');
+    assert.deepStrictEqual(logOf([[]]).domain(), [1, 10]);
+  });
+
+  test('scale.log: a line breaks at zero, bars start at the bottom of the domain, the axis takes a format', () => {
+    BC.data('logData', [{ k: 'a', v: 10 }, { k: 'b', v: 1000 }, { k: 'c', v: 0 }, { k: 'd', v: 100000 }, { k: 'e', v: 100 }]);
+    const base = { data: 'logData', size: [300, 220], padding: { top: 10, right: 10, bottom: 30, left: 50 }, scales: { x: { type: 'band' }, y: { type: 'log' } } };
+    const lineSpec = { ...base, guides: [{ type: 'axis', scale: 'y', format: { style: 'currency', currency: 'USD', notation: 'compact' } }], marks: [{ type: 'line', x: 'k', y: 'v' }] };
+    assert.deepStrictEqual(BC.validate(lineSpec), []);
+    const host = new FakeNode('div');
+    const h = BC.chart(host, lineSpec);
+    assert.deepStrictEqual(h.diagnostics, []);
+    const svg = svgOf(host);
+    const paths = [...layer(svg, 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => m[1]);
+    assert.strictEqual(paths.join('').split('M').length - 1, 2, 'two pieces: the zero breaks the line');
+    const ys = paths.flatMap((d) => vertices(d)).map((p) => p.y);
+    // rows a 10, b 1000 | d 100000, e 100: equal ratios are equal steps, and 100 sits halfway between 10 and 1000
+    assert(Math.abs((ys[0] - ys[1]) - (ys[1] - ys[2])) < 0.01, JSON.stringify(ys));
+    assert(Math.abs(ys[3] - (ys[0] + ys[1]) / 2) < 0.01, JSON.stringify(ys));
+    assert.deepStrictEqual(texts(svg).map((t) => t.text).filter((t) => t.startsWith('$')), ['$10', '$100', '$1K', '$10K', '$100K'], 'the axis format writes the log ticks');
+
+    const barHost = new FakeNode('div');
+    const hb = BC.chart(barHost, { ...base, marks: [{ type: 'rect', x: 'k', y: 'v' }] });
+    assert.deepStrictEqual(hb.diagnostics, []);
+    const bars = rects(layer(svgOf(barHost), 'marks')).filter((b) => b.h > 0);
+    assert.strictEqual(bars.length, 3, 'no bar for zero; the 10 at the bottom of the domain has no height');
+    const bottom = 10 + (220 - 10 - 30);
+    for (const b of bars) assert(Math.abs(b.y + b.h - bottom) < 0.01, `every bar stands on the bottom of the plot: ${JSON.stringify(b)}`);
+    // b 1000, d 100000, e 100: two, four and one decade above the 10 at the bottom
+    assert(Math.abs(bars[1].h - 2 * bars[0].h) < 0.01 && Math.abs(bars[0].h - 2 * bars[2].h) < 0.01, JSON.stringify(bars));
+
+    const areaHost = new FakeNode('div');
+    assert.deepStrictEqual(BC.chart(areaHost, { ...base, marks: [{ type: 'area', x: 'k', y: 'v' }] }).diagnostics, []);
+    const edge = [...layer(svgOf(areaHost), 'marks').matchAll(/<path d="([^"]+)"/g)].flatMap((m) => vertices(m[1])).map((p) => p.y);
+    assert(edge.length && edge.every((y) => Number.isFinite(y) && y <= bottom + 0.01), `an area fills down to the bottom of the plot: ${edge}`);
+    assert(edge.filter((y) => Math.abs(y - bottom) < 0.01).length >= 2, 'its lower edge is the bottom of the domain');
+  });
+
+  test('scale.log with zoom and zoom-controls: steps are even on the screen, the value under the cursor stays put', async () => {
+    BC.data('logPts', [1, 10, 100, 1000, 10000].map((x) => ({ x, y: x })));
+    const spec = (interaction) => ({ data: 'logPts', size: [640, 400], padding: { top: 0, right: 0, bottom: 0, left: 0 }, scales: { x: { type: 'log' }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'x', y: 'y' }], interaction });
+    const host = new FakeNode('div');
+    const h = BC.chart(host, spec([{ type: 'zoom', wheel: 'always' }]));
+    assert.deepStrictEqual(h.diagnostics, []);
+    const root = host.children[0];
+    // the fake root is 640 x 400 like the chart, so (320, 200) is the middle of the plot: 100 on a domain of 1 to 10,000
+    root.fire('wheel', { clientX: 320, clientY: 200, deltaY: -500 });
+    await flush();
+    const [z0, z1] = h.getView().x;
+    assert(z0 > 1 && z1 < 10000 && z1 / z0 < 1e4 * 0.5, `zoomed in: ${z0}, ${z1}`);
+    assert(Math.abs(Math.sqrt(z0 * z1) - 100) < 1e-6, `100 stays under the cursor, in the middle of the view: ${z0}, ${z1}`);
+    root.fire('pointerdown', { button: 0, clientX: 320, clientY: 200, pointerId: 1 });
+    root.fire('pointermove', { clientX: 220, clientY: 200 });
+    root.fire('pointerup', {});
+    await flush();
+    const [p0, p1] = h.getView().x;
+    assert(Math.abs(p1 / p0 - z1 / z0) < 1e-6 && p0 > z0, 'panning keeps the ratio of the ends');
+    for (let i = 0; i < 20; i++) root.fire('wheel', { clientX: 320, clientY: 200, deltaY: 800 });
+    await flush();
+    assert.deepStrictEqual(h.getView().x, [1, 10000], 'zoomed out: back to the full domain, never below it');
+
+    const host2 = new FakeNode('div');
+    const h2 = BC.chart(host2, spec([{ type: 'zoom-controls' }]));
+    clickBtn(controlsOf(host2).children[2]);
+    await flush();
+    const [c0, c1] = h2.getView().x;
+    assert(Math.abs(Math.sqrt(c0 * c1) - 100) < 1e-6 && c0 > 1, `"+" zooms around the middle of the screen: ${c0}, ${c1}`);
+  });
+
   BC.data('wideLabels', ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((k, i) => ({ k, v: (i + 1) * 100, label: i === 3 ? '$34K' : '-$891.6K' })));
   const labelled = (size, extra) => ({
     data: 'wideLabels', size, padding: { top: 20, right: 10, bottom: 10, left: 10 },

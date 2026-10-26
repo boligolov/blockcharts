@@ -60,7 +60,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 10,
+    version: 11,
     requires: ['lib.curve'],
     doc: 'A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.',
     params: {
@@ -75,8 +75,8 @@
       name: { kind: 'string', doc: 'The end label of a line that is not split into series (default: the y field).' },
     },
     channels: {
-      x: { required: true, scales: ['linear', 'time', 'band'] },
-      y: { required: true, scales: ['linear', 'time'] },
+      x: { required: true, scales: ['linear', 'log', 'time', 'band'] },
+      y: { required: true, scales: ['linear', 'log', 'time'] },
       color: { scales: ['color'], doc: 'One line per distinct value of the field, colored by a color scale.' },
     },
     render(spec, ctx, index) {

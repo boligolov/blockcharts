@@ -4,8 +4,8 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'zoom',
-    version: 3,
-    doc: 'Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, time) by changing their view through setView; the layout stays frozen.',
+    version: 4,
+    doc: 'Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen.',
     params: {
       scales: { kind: 'list', default: ['x'], doc: 'Names of the scales to control.' },
       wheel: { kind: 'enum', values: ['ctrl', 'always', 'off'], default: 'ctrl', doc: '"ctrl": Ctrl/Cmd + wheel (and trackpad pinch) zooms, so the page still scrolls; "always": plain wheel zooms.' },
@@ -45,10 +45,17 @@
         return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
       };
       const coord = (name: string, p: { x: number; y: number }) => (live.orientation(name) === 'horizontal' ? p.x : p.y);
-      const base = (name: string): Pair => live.scales[name].baseDomain() as Pair;
+      // zoom and pan are even on the screen: on a log scale the arithmetic below runs on the logarithms of the values
+      const isLog = (name: string) => live.scales[name].kind === 'log';
+      const to = (name: string, v: unknown) => (isLog(name) ? Math.log10(Number(v)) : Number(v));
+      const from = (name: string, v: number) => (isLog(name) ? Math.pow(10, v) : v);
+      const base = (name: string): Pair => {
+        const d = live.scales[name].baseDomain();
+        return [to(name, d[0]), to(name, d[1])];
+      };
       const current = (name: string): Pair => {
         const v = live.getView()[name] as Pair;
-        return [Number(v[0]), Number(v[1])];
+        return [to(name, v[0]), to(name, v[1])];
       };
 
       /** Shift a domain back inside the full one; a view that covers everything is no view. */
@@ -66,7 +73,7 @@
           d0 -= d1 - b1;
           d1 = b1;
         }
-        live.setView(name, [d0, d1]);
+        live.setView(name, [from(name, d0), from(name, d1)]);
       };
 
       const onWheel = (ev: WheelEvent) => {

@@ -25,7 +25,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'point',
-    version: 8,
+    version: 9,
     doc: 'One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top.',
     params: {
       r: { kind: 'number', default: 3, doc: 'Radius in px (when there is no `size` channel).' },
@@ -34,8 +34,8 @@
       stroke: { kind: 'string', doc: 'Outline color; bubbles read better with the card color as one ("var(--bc-tooltip-bg, #fff)", which follows the dark theme).' },
     },
     channels: {
-      x: { required: true, scales: ['linear', 'time', 'band'] },
-      y: { required: true, scales: ['linear', 'time', 'band'] },
+      x: { required: true, scales: ['linear', 'log', 'time', 'band'] },
+      y: { required: true, scales: ['linear', 'log', 'time', 'band'] },
       color: { scales: ['color', 'sequential'], doc: 'Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn.' },
       size: { scales: ['size'], doc: 'Radius per row from a scale.size (a bubble chart); rows without a size (missing or negative) are not drawn.' },
     },

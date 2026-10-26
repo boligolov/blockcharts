@@ -1,0 +1,766 @@
+{
+  "title": "Log scale: values across orders of magnitude",
+  "data": {
+    "mau": [
+      {
+        "month": "2022-01-01",
+        "product": "Atlas",
+        "users": 1200
+      },
+      {
+        "month": "2022-02-01",
+        "product": "Atlas",
+        "users": 1315
+      },
+      {
+        "month": "2022-03-01",
+        "product": "Atlas",
+        "users": 1552
+      },
+      {
+        "month": "2022-04-01",
+        "product": "Atlas",
+        "users": 1856
+      },
+      {
+        "month": "2022-05-01",
+        "product": "Atlas",
+        "users": 2104
+      },
+      {
+        "month": "2022-06-01",
+        "product": "Atlas",
+        "users": 2484
+      },
+      {
+        "month": "2022-07-01",
+        "product": "Atlas",
+        "users": 2753
+      },
+      {
+        "month": "2022-08-01",
+        "product": "Atlas",
+        "users": 3100
+      },
+      {
+        "month": "2022-09-01",
+        "product": "Atlas",
+        "users": 3554
+      },
+      {
+        "month": "2022-10-01",
+        "product": "Atlas",
+        "users": 4076
+      },
+      {
+        "month": "2022-11-01",
+        "product": "Atlas",
+        "users": 4818
+      },
+      {
+        "month": "2022-12-01",
+        "product": "Atlas",
+        "users": 5847
+      },
+      {
+        "month": "2023-01-01",
+        "product": "Atlas",
+        "users": 6855
+      },
+      {
+        "month": "2023-02-01",
+        "product": "Atlas",
+        "users": 7649
+      },
+      {
+        "month": "2023-03-01",
+        "product": "Atlas",
+        "users": 8552
+      },
+      {
+        "month": "2023-04-01",
+        "product": "Atlas",
+        "users": 9666
+      },
+      {
+        "month": "2023-05-01",
+        "product": "Atlas",
+        "users": 11396
+      },
+      {
+        "month": "2023-06-01",
+        "product": "Atlas",
+        "users": 13009
+      },
+      {
+        "month": "2023-07-01",
+        "product": "Atlas",
+        "users": 14322
+      },
+      {
+        "month": "2023-08-01",
+        "product": "Atlas",
+        "users": 17378
+      },
+      {
+        "month": "2023-09-01",
+        "product": "Atlas",
+        "users": 19790
+      },
+      {
+        "month": "2023-10-01",
+        "product": "Atlas",
+        "users": 21912
+      },
+      {
+        "month": "2023-11-01",
+        "product": "Atlas",
+        "users": 25232
+      },
+      {
+        "month": "2023-12-01",
+        "product": "Atlas",
+        "users": 30706
+      },
+      {
+        "month": "2024-01-01",
+        "product": "Atlas",
+        "users": 36217
+      },
+      {
+        "month": "2024-02-01",
+        "product": "Atlas",
+        "users": 40764
+      },
+      {
+        "month": "2024-03-01",
+        "product": "Atlas",
+        "users": 47988
+      },
+      {
+        "month": "2024-04-01",
+        "product": "Atlas",
+        "users": 55420
+      },
+      {
+        "month": "2024-05-01",
+        "product": "Atlas",
+        "users": 62653
+      },
+      {
+        "month": "2024-06-01",
+        "product": "Atlas",
+        "users": 69309
+      },
+      {
+        "month": "2024-07-01",
+        "product": "Atlas",
+        "users": 80451
+      },
+      {
+        "month": "2024-08-01",
+        "product": "Atlas",
+        "users": 93855
+      },
+      {
+        "month": "2024-09-01",
+        "product": "Atlas",
+        "users": 112607
+      },
+      {
+        "month": "2024-10-01",
+        "product": "Atlas",
+        "users": 127919
+      },
+      {
+        "month": "2024-11-01",
+        "product": "Atlas",
+        "users": 144085
+      },
+      {
+        "month": "2024-12-01",
+        "product": "Atlas",
+        "users": 170465
+      },
+      {
+        "month": "2022-01-01",
+        "product": "Beacon",
+        "users": 40000
+      },
+      {
+        "month": "2022-02-01",
+        "product": "Beacon",
+        "users": 41753
+      },
+      {
+        "month": "2022-03-01",
+        "product": "Beacon",
+        "users": 44824
+      },
+      {
+        "month": "2022-04-01",
+        "product": "Beacon",
+        "users": 48493
+      },
+      {
+        "month": "2022-05-01",
+        "product": "Beacon",
+        "users": 52163
+      },
+      {
+        "month": "2022-06-01",
+        "product": "Beacon",
+        "users": 54629
+      },
+      {
+        "month": "2022-07-01",
+        "product": "Beacon",
+        "users": 58989
+      },
+      {
+        "month": "2022-08-01",
+        "product": "Beacon",
+        "users": 62850
+      },
+      {
+        "month": "2022-09-01",
+        "product": "Beacon",
+        "users": 67425
+      },
+      {
+        "month": "2022-10-01",
+        "product": "Beacon",
+        "users": 70686
+      },
+      {
+        "month": "2022-11-01",
+        "product": "Beacon",
+        "users": 74464
+      },
+      {
+        "month": "2022-12-01",
+        "product": "Beacon",
+        "users": 77710
+      },
+      {
+        "month": "2023-01-01",
+        "product": "Beacon",
+        "users": 82088
+      },
+      {
+        "month": "2023-02-01",
+        "product": "Beacon",
+        "users": 86475
+      },
+      {
+        "month": "2023-03-01",
+        "product": "Beacon",
+        "users": 90344
+      },
+      {
+        "month": "2023-04-01",
+        "product": "Beacon",
+        "users": 97206
+      },
+      {
+        "month": "2023-05-01",
+        "product": "Beacon",
+        "users": 102519
+      },
+      {
+        "month": "2023-06-01",
+        "product": "Beacon",
+        "users": 107139
+      },
+      {
+        "month": "2023-07-01",
+        "product": "Beacon",
+        "users": 112923
+      },
+      {
+        "month": "2023-08-01",
+        "product": "Beacon",
+        "users": 121304
+      },
+      {
+        "month": "2023-09-01",
+        "product": "Beacon",
+        "users": 130519
+      },
+      {
+        "month": "2023-10-01",
+        "product": "Beacon",
+        "users": 137927
+      },
+      {
+        "month": "2023-11-01",
+        "product": "Beacon",
+        "users": 146125
+      },
+      {
+        "month": "2023-12-01",
+        "product": "Beacon",
+        "users": 155216
+      },
+      {
+        "month": "2024-01-01",
+        "product": "Beacon",
+        "users": 163060
+      },
+      {
+        "month": "2024-02-01",
+        "product": "Beacon",
+        "users": 173025
+      },
+      {
+        "month": "2024-03-01",
+        "product": "Beacon",
+        "users": 183595
+      },
+      {
+        "month": "2024-04-01",
+        "product": "Beacon",
+        "users": 195328
+      },
+      {
+        "month": "2024-05-01",
+        "product": "Beacon",
+        "users": 207940
+      },
+      {
+        "month": "2024-06-01",
+        "product": "Beacon",
+        "users": 224741
+      },
+      {
+        "month": "2024-07-01",
+        "product": "Beacon",
+        "users": 237900
+      },
+      {
+        "month": "2024-08-01",
+        "product": "Beacon",
+        "users": 250241
+      },
+      {
+        "month": "2024-09-01",
+        "product": "Beacon",
+        "users": 264699
+      },
+      {
+        "month": "2024-10-01",
+        "product": "Beacon",
+        "users": 283615
+      },
+      {
+        "month": "2024-11-01",
+        "product": "Beacon",
+        "users": 298845
+      },
+      {
+        "month": "2024-12-01",
+        "product": "Beacon",
+        "users": 316827
+      },
+      {
+        "month": "2022-01-01",
+        "product": "Cirrus",
+        "users": 900000
+      },
+      {
+        "month": "2022-02-01",
+        "product": "Cirrus",
+        "users": 912262
+      },
+      {
+        "month": "2022-03-01",
+        "product": "Cirrus",
+        "users": 926703
+      },
+      {
+        "month": "2022-04-01",
+        "product": "Cirrus",
+        "users": 942257
+      },
+      {
+        "month": "2022-05-01",
+        "product": "Cirrus",
+        "users": 954381
+      },
+      {
+        "month": "2022-06-01",
+        "product": "Cirrus",
+        "users": 971043
+      },
+      {
+        "month": "2022-07-01",
+        "product": "Cirrus",
+        "users": 982701
+      },
+      {
+        "month": "2022-08-01",
+        "product": "Cirrus",
+        "users": 1001068
+      },
+      {
+        "month": "2022-09-01",
+        "product": "Cirrus",
+        "users": 1020301
+      },
+      {
+        "month": "2022-10-01",
+        "product": "Cirrus",
+        "users": 1031187
+      },
+      {
+        "month": "2022-11-01",
+        "product": "Cirrus",
+        "users": 1048224
+      },
+      {
+        "month": "2022-12-01",
+        "product": "Cirrus",
+        "users": 1058656
+      },
+      {
+        "month": "2023-01-01",
+        "product": "Cirrus",
+        "users": 1073802
+      },
+      {
+        "month": "2023-02-01",
+        "product": "Cirrus",
+        "users": 1087864
+      },
+      {
+        "month": "2023-03-01",
+        "product": "Cirrus",
+        "users": 1099583
+      },
+      {
+        "month": "2023-04-01",
+        "product": "Cirrus",
+        "users": 1118466
+      },
+      {
+        "month": "2023-05-01",
+        "product": "Cirrus",
+        "users": 1136949
+      },
+      {
+        "month": "2023-06-01",
+        "product": "Cirrus",
+        "users": 1160788
+      },
+      {
+        "month": "2023-07-01",
+        "product": "Cirrus",
+        "users": 1177404
+      },
+      {
+        "month": "2023-08-01",
+        "product": "Cirrus",
+        "users": 1190345
+      },
+      {
+        "month": "2023-09-01",
+        "product": "Cirrus",
+        "users": 1208652
+      },
+      {
+        "month": "2023-10-01",
+        "product": "Cirrus",
+        "users": 1230481
+      },
+      {
+        "month": "2023-11-01",
+        "product": "Cirrus",
+        "users": 1249919
+      },
+      {
+        "month": "2023-12-01",
+        "product": "Cirrus",
+        "users": 1275500
+      },
+      {
+        "month": "2024-01-01",
+        "product": "Cirrus",
+        "users": 1290499
+      },
+      {
+        "month": "2024-02-01",
+        "product": "Cirrus",
+        "users": 1303049
+      },
+      {
+        "month": "2024-03-01",
+        "product": "Cirrus",
+        "users": 1318022
+      },
+      {
+        "month": "2024-04-01",
+        "product": "Cirrus",
+        "users": 1335366
+      },
+      {
+        "month": "2024-05-01",
+        "product": "Cirrus",
+        "users": 1348617
+      },
+      {
+        "month": "2024-06-01",
+        "product": "Cirrus",
+        "users": 1371865
+      },
+      {
+        "month": "2024-07-01",
+        "product": "Cirrus",
+        "users": 1389802
+      },
+      {
+        "month": "2024-08-01",
+        "product": "Cirrus",
+        "users": 1409583
+      },
+      {
+        "month": "2024-09-01",
+        "product": "Cirrus",
+        "users": 1437351
+      },
+      {
+        "month": "2024-10-01",
+        "product": "Cirrus",
+        "users": 1463544
+      },
+      {
+        "month": "2024-11-01",
+        "product": "Cirrus",
+        "users": 1491790
+      },
+      {
+        "month": "2024-12-01",
+        "product": "Cirrus",
+        "users": 1505431
+      }
+    ],
+    "companies": [
+      {
+        "company": "Northwind",
+        "employees": 12,
+        "revenue": 1400000,
+        "sector": "Software"
+      },
+      {
+        "company": "Pinecrest",
+        "employees": 48,
+        "revenue": 7900000,
+        "sector": "Retail"
+      },
+      {
+        "company": "Bluefin",
+        "employees": 230,
+        "revenue": 31000000,
+        "sector": "Industry"
+      },
+      {
+        "company": "Corvid",
+        "employees": 1100,
+        "revenue": 190000000,
+        "sector": "Software"
+      },
+      {
+        "company": "Halcyon",
+        "employees": 5200,
+        "revenue": 1100000000,
+        "sector": "Retail"
+      },
+      {
+        "company": "Ironleaf",
+        "employees": 35,
+        "revenue": 2200000,
+        "sector": "Industry"
+      },
+      {
+        "company": "Juniper",
+        "employees": 640,
+        "revenue": 64000000,
+        "sector": "Software"
+      },
+      {
+        "company": "Kestrel",
+        "employees": 18000,
+        "revenue": 4600000000,
+        "sector": "Retail"
+      },
+      {
+        "company": "Larkspur",
+        "employees": 3,
+        "revenue": 210000,
+        "sector": "Industry"
+      },
+      {
+        "company": "Meridian",
+        "employees": 150,
+        "revenue": 40000000,
+        "sector": "Software"
+      },
+      {
+        "company": "Nimbus",
+        "employees": 2600,
+        "revenue": 280000000,
+        "sector": "Retail"
+      },
+      {
+        "company": "Orchard",
+        "employees": 80,
+        "revenue": 25000000,
+        "sector": "Industry"
+      }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Monthly active users of three products",
+      "note": "On a log scale (scale.log) equal ratios are equal steps, so steady growth is a straight line and its slope is the growth rate: Atlas grows fastest although it is still the smallest. On a linear scale the two small products would lie flat on the bottom.",
+      "spec": {
+        "data": "mau",
+        "size": [
+          680,
+          320
+        ],
+        "scales": {
+          "x": {
+            "type": "time"
+          },
+          "y": {
+            "type": "log"
+          },
+          "color": {
+            "type": "color"
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x",
+            "format": "month"
+          },
+          {
+            "type": "axis",
+            "scale": "y"
+          },
+          {
+            "type": "legend",
+            "scale": "color",
+            "position": "top"
+          }
+        ],
+        "marks": [
+          {
+            "type": "line",
+            "x": "month",
+            "y": "users",
+            "color": "product",
+            "strokeWidth": 2
+          }
+        ],
+        "interaction": [
+          {
+            "type": "legend-filter"
+          },
+          {
+            "type": "tooltip",
+            "formats": {
+              "users": "integer",
+              "month": "month"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "title": "Revenue and headcount of twelve companies",
+      "note": "Both axes are logarithmic: from 3 to 18,000 employees and from $210K to $4.6B of revenue, every company has room. The axis format writes the ticks as currency; without it they are compact (1K, 1M).",
+      "spec": {
+        "data": "companies",
+        "size": [
+          680,
+          340
+        ],
+        "scales": {
+          "x": {
+            "type": "log"
+          },
+          "y": {
+            "type": "log"
+          },
+          "color": {
+            "type": "color"
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "x"
+          },
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x",
+            "title": "Employees"
+          },
+          {
+            "type": "axis",
+            "scale": "y",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact"
+            }
+          },
+          {
+            "type": "legend",
+            "scale": "color",
+            "position": "top"
+          }
+        ],
+        "marks": [
+          {
+            "type": "point",
+            "x": "employees",
+            "y": "revenue",
+            "color": "sector",
+            "r": 5,
+            "opacity": 0.9
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "company",
+              "sector",
+              "employees",
+              "revenue"
+            ],
+            "formats": {
+              "employees": "integer",
+              "revenue": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

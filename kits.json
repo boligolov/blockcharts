@@ -1,8 +1,9 @@
 {
   "basic": {
-    "doc": "Bars, lines, points and areas on linear, time and band scales, with axes, grid, legend and tooltip.",
+    "doc": "Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend and tooltip.",
     "blocks": [
       "scale.linear",
+      "scale.log",
       "scale.time",
       "scale.band",
       "scale.color",
@@ -22,6 +23,7 @@
     "doc": "Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables and moving averages; also the canvas renderer for very large series.",
     "blocks": [
       "scale.linear",
+      "scale.log",
       "scale.time",
       "scale.color",
       "mark.line",

@@ -859,6 +859,17 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   missing values through. Equality is by kind too: 1 is not "1", a Date equals the ISO string of its time. A band
   scale takes its categories in row order, so a sorted table gives ranked bars. Both keep every column (`outputs`
   is empty). Recipe `top-n`; in the `timeseries`, `composition` and `dashboard` kits.
+- **`scale.log`**: a block of its own rather than an option of `scale.linear`, so a page without it does not carry
+  it; marks accept the kind `log` wherever they accept `linear` (point v9, line v11, area v7, rect v9, rule v3, text
+  v5, boxplot v2). Zero and negatives have no place on it: the scale returns NaN, so a line breaks and a point or
+  bar is left out, and the inferred domain comes from the positive values (`nice` to powers of ten). A bar or area
+  without a second channel would start at 0; a baseline the scale has no place for is now the bottom of the domain.
+  Ticks: 1-2-5 per decade when few, 1-3 when more, then every k-th power so the count stays near the asked one;
+  labels compact (1K, 1M) unless the axis has a `format` (guide.axis v7 formats log ticks as numbers). The brush
+  reads values through `invert` and needed nothing. Zoom and the zoom buttons did their arithmetic in values, so a wheel
+  step at 3K employees jumped the view to 50K (seen in Chrome); on a log scale they now work on the logarithms
+  (zoom v4, zoom-controls v2), and the value under the cursor stays there. Recipe `log-scale`; in the `basic` and
+  `timeseries` kits.
 
 ## Next steps
 

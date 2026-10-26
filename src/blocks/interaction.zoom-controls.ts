@@ -4,7 +4,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'zoom-controls',
-    version: 1,
+    version: 2,
     doc: 'A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).',
     params: {
       scales: { kind: 'list', default: ['x'], doc: 'Names of the scales to control, the same as interaction.zoom and interaction.brush. Default ["x"] — set it to match whichever scales those use, so "100%" undoes everything they did.' },
@@ -43,10 +43,16 @@
       const zoomBy = (factor: number) => {
         for (const name of zoomable) {
           const scale = live.scales[name];
-          const [b0, b1] = scale.baseDomain() as Pair;
+          // steps are even on the screen: on a log scale this runs on the logarithms of the values
+          const log = scale.kind === 'log';
+          const to = (x: unknown) => (log ? Math.log10(Number(x)) : Number(x));
+          const from = (x: number) => (log ? Math.pow(10, x) : x);
+          const b = scale.baseDomain();
+          const b0 = to(b[0]);
+          const b1 = to(b[1]);
           const v = live.getView()[name] as Pair;
-          const d0 = Number(v[0]);
-          const d1 = Number(v[1]);
+          const d0 = to(v[0]);
+          const d1 = to(v[1]);
           const mid = (d0 + d1) / 2;
           const span = Math.min(b1 - b0, Math.max((b1 - b0) / maxZoom, (d1 - d0) * factor));
           let n0 = mid - span / 2;
@@ -59,7 +65,7 @@
             n0 -= n1 - b1;
             n1 = b1;
           }
-          live.setView(name, span >= (b1 - b0) * (1 - 1e-9) ? null : [n0, n1]);
+          live.setView(name, span >= (b1 - b0) * (1 - 1e-9) ? null : [from(n0), from(n1)]);
         }
         refit();
       };

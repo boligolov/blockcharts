@@ -113,7 +113,7 @@ test('validate: catches dangling scale, missing block, unknown field, bad params
   s.marks.push({ type: 'point', x: 'month' });
   s.guides.push({ type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'middle' });
   s.guides.push({ type: 'axis' });
-  s.scales.z = { type: 'log' };
+  s.scales.z = { type: 'symlog' };
   const d = BC.validate(s);
   const has = (level, p, re) => assert(d.some((x) => x.level === level && x.path === p && re.test(x.message)), `${level} ${p} ${re}\n${JSON.stringify(d, null, 1)}`);
   has('error', 'marks[2].y', /scale "nope" is not declared/);
@@ -124,7 +124,7 @@ test('validate: catches dangling scale, missing block, unknown field, bad params
   has('error', 'marks[5].y', /requires channel "y"/);
   has('error', 'guides[3].position', /one of: top, right, bottom, left/);
   has('error', 'guides[4].scale', /axis requires "scale"/);
-  has('error', 'scales.z.type', /"scale.log" is not loaded/);
+  has('error', 'scales.z.type', /"scale.symlog" is not loaded/);
 });
 
 test('validate: never throws on garbage', () => {
@@ -134,10 +134,10 @@ test('validate: never throws on garbage', () => {
 });
 
 test('validate: transitive requires and channel scale kinds', () => {
-  BC.define({ role: 'mark', type: 'needy', version: 1, requires: ['scale.log'], channels: { x: { required: true, scales: ['log'] } }, render: () => [] });
+  BC.define({ role: 'mark', type: 'needy', version: 1, requires: ['scale.symlog'], channels: { x: { required: true, scales: ['symlog'] } }, render: () => [] });
   const d = BC.validate({ data: 'sales', scales: { x: { type: 'linear' } }, marks: [{ type: 'needy', x: 'month' }] });
-  assert(d.some((x) => /mark\.needy requires scale\.log/.test(x.message)));
-  assert(d.some((x) => x.path === 'marks[0].x' && /does not accept a "linear" scale \(accepts: log\)/.test(x.message)));
+  assert(d.some((x) => /mark\.needy requires scale\.symlog/.test(x.message)));
+  assert(d.some((x) => x.path === 'marks[0].x' && /does not accept a "linear" scale \(accepts: symlog\)/.test(x.message)));
 });
 
 test('chart: dual-axis renders every point, no NaN', () => {

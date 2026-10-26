@@ -1,5 +1,5 @@
 (function () {
-  const KINDS = ['band', 'linear', 'time'];
+  const KINDS = ['band', 'linear', 'log', 'time'];
   const r2 = (v: number) => Math.round(v * 100) / 100;
 
   /** The segment a row draws, in px, or null. A channel on a band scale spans (a share of) the band; a continuous channel
@@ -54,7 +54,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rule',
-    version: 2,
+    version: 3,
     doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale — keep it inside the scale domain); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.',
     params: {
       stroke: { kind: 'string', doc: 'Any CSS color. Default: the theme text color.' },
@@ -67,8 +67,8 @@
     channels: {
       x: { scales: KINDS },
       y: { scales: KINDS },
-      x2: { scales: ['linear', 'time'], sharesScale: 'x', doc: 'Other end along x.' },
-      y2: { scales: ['linear', 'time'], sharesScale: 'y', doc: 'Other end along y.' },
+      x2: { scales: ['linear', 'log', 'time'], sharesScale: 'x', doc: 'Other end along x.' },
+      y2: { scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Other end along y.' },
       color: { scales: ['color'], doc: 'Line color per row, from a color scale.' },
     },
     render(spec, ctx, index) {

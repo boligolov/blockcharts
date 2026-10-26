@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-40 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+41 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -21,7 +21,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 | chart | `padding` | `{top, right, bottom, left}` in drawing units, default 16 each |
 | chart | `transforms`, `scales`, `guides`, `marks`, `interaction` | lists of blocks (`scales` is an object of named scales) |
 | chart | `view` | starting zoom: `{"x": [from, to]}` (dates as ISO strings or milliseconds) |
-| scale | `type` | the scale block: `band`, `color`, `linear`, `sequential`, `size`, `time` |
+| scale | `type` | the scale block: `band`, `color`, `linear`, `log`, `sequential`, `size`, `time` |
 | scale | `domain` | fixed domain instead of the inferred one: `[min, max]` for linear and time, a list of values for band and color |
 | scale | `range` | `"width"` or `"height"` (the default of `x` and `y`), or an explicit list, e.g. colors for a color scale |
 | scale | `field` | an extra field to include when inferring the domain |
@@ -55,6 +55,14 @@ Version 2, 1.4 KB. Continuous numeric scale. Domain is inferred from bound chann
 | `nice` | boolean | `true` | Extend the inferred domain to round tick values. |
 | `zero` | boolean | `false` | Include 0 in the inferred domain (bars need it). |
 | `padding` | number | `0` | Extra room around the data extent, as a fraction of its span (0.05 keeps edge points off the axes). |
+
+## scale.log
+
+Version 1, 1.7 KB. Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `nice` | boolean | `true` | Extend the inferred domain to whole powers of ten. |
 
 ## scale.sequential
 
@@ -243,15 +251,15 @@ Version 1, 2.9 KB. Pie and donut chart: one slice per row, its angle proportiona
 
 ## mark.area
 
-Version 6, 2.3 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.
+Version 7, 2.4 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.
 
 Needs: `lib.curve`.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
-| `x` | **required** | `linear`, `time`, `band` |  |
-| `y` | **required** | `linear`, `time` |  |
-| `y2` | optional | `linear`, `time` | uses the scale of `y` unless told otherwise. Lower edge of the band. |
+| `x` | **required** | `linear`, `log`, `time`, `band` |  |
+| `y` | **required** | `linear`, `log`, `time` |  |
+| `y2` | optional | `linear`, `log`, `time` | uses the scale of `y` unless told otherwise. Lower edge of the band. |
 | `color` | optional | `color` | One area per distinct value of the field, colored by a color scale. |
 
 | Parameter | Type | Default | Notes |
@@ -266,16 +274,16 @@ Needs: `lib.curve`.
 
 ## mark.boxplot
 
-Version 1, 2.6 KB. A box (q1 to q3), a line across it at the median, and whiskers out to low/high — the usual shape for transform.quartiles' output. `x` is the category (a band scale, one box per category) or a plain position on a continuous one; the five value channels share the scale of `y` by default. Outliers are not drawn by this mark: transform.quartiles reports them as their own rows (only `value` set, the others NaN), meant for a plain mark.point layered on top reading the same `x` and `value`.
+Version 2, 2.7 KB. A box (q1 to q3), a line across it at the median, and whiskers out to low/high — the usual shape for transform.quartiles' output. `x` is the category (a band scale, one box per category) or a plain position on a continuous one; the five value channels share the scale of `y` by default. Outliers are not drawn by this mark: transform.quartiles reports them as their own rows (only `value` set, the others NaN), meant for a plain mark.point layered on top reading the same `x` and `value`.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
-| `x` | **required** | `band`, `linear`, `time` |  |
-| `low` | **required** | `linear`, `time` | uses the scale of `y` unless told otherwise. Bottom of the lower whisker. |
-| `q1` | **required** | `linear`, `time` | uses the scale of `y` unless told otherwise. Bottom of the box (25th percentile). |
-| `median` | **required** | `linear`, `time` | uses the scale of `y` unless told otherwise. Line drawn across the box. |
-| `q3` | **required** | `linear`, `time` | uses the scale of `y` unless told otherwise. Top of the box (75th percentile). |
-| `high` | **required** | `linear`, `time` | uses the scale of `y` unless told otherwise. Top of the upper whisker. |
+| `x` | **required** | `band`, `linear`, `log`, `time` |  |
+| `low` | **required** | `linear`, `log`, `time` | uses the scale of `y` unless told otherwise. Bottom of the lower whisker. |
+| `q1` | **required** | `linear`, `log`, `time` | uses the scale of `y` unless told otherwise. Bottom of the box (25th percentile). |
+| `median` | **required** | `linear`, `log`, `time` | uses the scale of `y` unless told otherwise. Line drawn across the box. |
+| `q3` | **required** | `linear`, `log`, `time` | uses the scale of `y` unless told otherwise. Top of the box (75th percentile). |
+| `high` | **required** | `linear`, `log`, `time` | uses the scale of `y` unless told otherwise. Top of the upper whisker. |
 | `color` | optional | `color`, `sequential` | Box and whisker color per row, from a color scale; rows the scale gives no color are not drawn. |
 
 | Parameter | Type | Default | Notes |
@@ -288,14 +296,14 @@ Version 1, 2.6 KB. A box (q1 to q3), a line across it at the median, and whisker
 
 ## mark.line
 
-Version 10, 3.4 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
+Version 11, 3.4 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
 
 Needs: `lib.curve`.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
-| `x` | **required** | `linear`, `time`, `band` |  |
-| `y` | **required** | `linear`, `time` |  |
+| `x` | **required** | `linear`, `log`, `time`, `band` |  |
+| `y` | **required** | `linear`, `log`, `time` |  |
 | `color` | optional | `color` | One line per distinct value of the field, colored by a color scale. |
 
 | Parameter | Type | Default | Notes |
@@ -312,12 +320,12 @@ Needs: `lib.curve`.
 
 ## mark.point
 
-Version 8, 1.6 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top.
+Version 9, 1.6 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
-| `x` | **required** | `linear`, `time`, `band` |  |
-| `y` | **required** | `linear`, `time`, `band` |  |
+| `x` | **required** | `linear`, `log`, `time`, `band` |  |
+| `y` | **required** | `linear`, `log`, `time`, `band` |  |
 | `color` | optional | `color`, `sequential` | Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn. |
 | `size` | optional | `size` | Radius per row from a scale.size (a bubble chart); rows without a size (missing or negative) are not drawn. |
 
@@ -330,14 +338,14 @@ Version 8, 1.6 KB. One circle per row. Channels x and y, optional color (a field
 
 ## mark.rect
 
-Version 8, 2.3 KB. Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field).
+Version 9, 2.4 KB. Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field).
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
-| `x` | **required** | `band`, `linear`, `time` |  |
-| `y` | **required** | `band`, `linear`, `time` |  |
-| `x2` | optional | `linear`, `time` | uses the scale of `x` unless told otherwise. Other end of the rectangle along x. |
-| `y2` | optional | `linear`, `time` | uses the scale of `y` unless told otherwise. Other end of the rectangle along y. |
+| `x` | **required** | `band`, `linear`, `log`, `time` |  |
+| `y` | **required** | `band`, `linear`, `log`, `time` |  |
+| `x2` | optional | `linear`, `log`, `time` | uses the scale of `x` unless told otherwise. Other end of the rectangle along x. |
+| `y2` | optional | `linear`, `log`, `time` | uses the scale of `y` unless told otherwise. Other end of the rectangle along y. |
 | `color` | optional | `color`, `sequential` | Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn. |
 | `dodge` | optional | none (a plain field) | Field that splits the band-scale axis into side-by-side bars, one per distinct value (grouped bar). Usually the same field as `color`. One distinct value (or none) draws a plain bar, unchanged. |
 
@@ -352,14 +360,14 @@ Version 8, 2.3 KB. Rectangles. On a band scale a channel spans the band; on a co
 
 ## mark.rule
 
-Version 2, 2.3 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale — keep it inside the scale domain); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.
+Version 3, 2.4 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale — keep it inside the scale domain); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
-| `x` | optional | `band`, `linear`, `time` |  |
-| `y` | optional | `band`, `linear`, `time` |  |
-| `x2` | optional | `linear`, `time` | uses the scale of `x` unless told otherwise. Other end along x. |
-| `y2` | optional | `linear`, `time` | uses the scale of `y` unless told otherwise. Other end along y. |
+| `x` | optional | `band`, `linear`, `log`, `time` |  |
+| `y` | optional | `band`, `linear`, `log`, `time` |  |
+| `x2` | optional | `linear`, `log`, `time` | uses the scale of `x` unless told otherwise. Other end along x. |
+| `y2` | optional | `linear`, `log`, `time` | uses the scale of `y` unless told otherwise. Other end along y. |
 | `color` | optional | `color` | Line color per row, from a color scale. |
 
 | Parameter | Type | Default | Notes |
@@ -373,14 +381,14 @@ Version 2, 2.3 KB. Lines at values: a target, a threshold, an average, the targe
 
 ## mark.text
 
-Version 4, 3.6 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap). A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
+Version 5, 3.7 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap). A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
-| `x` | **required** | `linear`, `time`, `band` |  |
-| `y` | **required** | `linear`, `time`, `band` |  |
-| `x2` | optional | `linear`, `time` | uses the scale of `x` unless told otherwise. The other side of the box the label has to fit in (with y2: the cell it labels). |
-| `y2` | optional | `linear`, `time` | uses the scale of `y` unless told otherwise. The other side of the box the label has to fit in, vertically. |
+| `x` | **required** | `linear`, `log`, `time`, `band` |  |
+| `y` | **required** | `linear`, `log`, `time`, `band` |  |
+| `x2` | optional | `linear`, `log`, `time` | uses the scale of `x` unless told otherwise. The other side of the box the label has to fit in (with y2: the cell it labels). |
+| `y2` | optional | `linear`, `log`, `time` | uses the scale of `y` unless told otherwise. The other side of the box the label has to fit in, vertically. |
 | `text` | **required** | none (a plain field) | Field with the text to show. |
 | `color` | optional | `color`, `sequential` | Text color per row, from a color scale. |
 | `on` | optional | `color`, `sequential` | uses the scale of `color` unless told otherwise. The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. Rows with no such color get no text. |
@@ -401,14 +409,14 @@ Version 4, 3.6 KB. A text label per row at (x, y): value labels on bars, annotat
 
 ## guide.axis
 
-Version 6, 3.2 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines.
+Version 7, 3.2 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `scale` | scale, **required** |  |  |
 | `position` | one of `top`, `right`, `bottom`, `left` |  |  |
 | `title` | string |  | Text that names the axis (with its unit, for example "Revenue, USD"). Rotated on a vertical axis. |
-| `format` | any |  | How to write the tick labels of a linear or time scale: a preset ("percent", "compact", "integer", "year", "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix". |
+| `format` | any |  | How to write the tick labels of a linear, log or time scale: a preset ("percent", "compact", "integer", "year", "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix". |
 | `line` | one of `auto`, `on`, `off` | `"auto"` | The axis line. "auto": drawn along a horizontal axis (the baseline bars stand on), left out on a vertical one, where grid lines do the job. |
 | `ticks` | boolean | `false` | Small tick marks at the labels. |
 
@@ -499,7 +507,7 @@ Version 6, 7.5 KB. Shows the datum under the pointer: a marker plus a card with 
 
 ## interaction.zoom
 
-Version 3, 2.9 KB. Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, time) by changing their view through setView; the layout stays frozen.
+Version 4, 3.1 KB. Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -511,7 +519,7 @@ Version 3, 2.9 KB. Wheel zoom around the cursor, drag to pan, double-click to re
 
 ## interaction.zoom-controls
 
-Version 1, 2.4 KB. A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).
+Version 2, 2.5 KB. A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |

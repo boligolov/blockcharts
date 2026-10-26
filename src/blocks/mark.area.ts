@@ -5,13 +5,19 @@
   /** The path through the points, from lib.curve (shared with mark.line); listed in `requires`, so it is on the page. */
   const through: Through = (px, py, smooth, back) => ((BC.get('lib.curve') as BC.LibDef).exports.through as Through)(px, py, smooth, back);
 
+  /** Where the baseline is in pixels; one the scale has no place for (0 on a log scale) is the bottom of the domain. */
+  function baseAt(scale: BC.Scale, baseline: number): number {
+    const px = scale(baseline) as number;
+    return isFinite(px) ? px : (scale(Math.min(...(scale.domain() as number[]))) as number);
+  }
+
   /** Per-row edges of the band: top = y, bottom = y2 (or the baseline). */
   function edges(spec: BC.MarkSpec, ctx: BC.ChartCtx) {
     const y = ctx.channel(spec, 'y');
     const y2 = ctx.channel(spec, 'y2');
     const baseline = typeof spec.baseline === 'number' ? spec.baseline : 0;
     // toBottom: down to the bottom edge of the plot, whatever value is there (a sparkline whose axis does not start at 0)
-    const basePx = y2.raw.length ? NaN : spec.toBottom === true ? ctx.plot.y + ctx.plot.h : y.scale ? y.scale(baseline) : NaN;
+    const basePx = y2.raw.length ? NaN : spec.toBottom === true ? ctx.plot.y + ctx.plot.h : y.scale ? baseAt(y.scale, baseline) : NaN;
     // on a band scale the points sit in the middle of their categories, as on mark.line
     const cx = ctx.channel(spec, 'x');
     return {
@@ -24,7 +30,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 6,
+    version: 7,
     requires: ['lib.curve'],
     doc: 'A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.',
     params: {
@@ -37,9 +43,9 @@
       curve: { kind: 'enum', values: ['linear', 'smooth'], default: 'linear', doc: 'Same as mark.line: "smooth" is a monotone curve through the points.' },
     },
     channels: {
-      x: { required: true, scales: ['linear', 'time', 'band'] },
-      y: { required: true, scales: ['linear', 'time'] },
-      y2: { scales: ['linear', 'time'], sharesScale: 'y', doc: 'Lower edge of the band.' },
+      x: { required: true, scales: ['linear', 'log', 'time', 'band'] },
+      y: { required: true, scales: ['linear', 'log', 'time'] },
+      y2: { scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Lower edge of the band.' },
       color: { scales: ['color'], doc: 'One area per distinct value of the field, colored by a color scale.' },
     },
     render(spec, ctx, index) {
