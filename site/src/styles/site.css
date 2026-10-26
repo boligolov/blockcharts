@@ -264,6 +264,18 @@ th { color: var(--muted); font-weight: 600; white-space: nowrap; }
 details { margin: 8px 0; }
 summary { cursor: pointer; color: var(--muted); }
 .block { border-top: 1px solid var(--line); padding-top: 4px; }
+.sizes td.n, .sizes th.n { text-align: right; white-space: nowrap; }
+.sizes tr.group th { padding-top: 18px; font-family: var(--mono); color: var(--fg); }
+.sizes tr.group th a { color: inherit; text-decoration: none; }
+.sizes tfoot th, .sizes tfoot td { border-bottom: 0; border-top: 2px solid var(--line-strong); }
+.sizes-wrap { overflow-x: auto; margin: 8px 0 16px; }
+table.sizes { display: table; margin: 0; }
+.sizes .sum { display: none; }
+@media (max-width: 620px) {
+  .sizes .what { display: none; }
+  .sizes .sum { display: block; margin-top: 4px; font-size: 13px; color: var(--muted); }
+  .sizes th, .sizes td { padding: 8px 6px; }
+}
 .block h3 { font-family: var(--mono); font-size: 16px; }
 .theme-warm { --bc-text: #5b3a1e; --bc-axis: #b08968; --bc-grid: #f0e2d0; --bc-c0: #c1440e; --bc-c1: #e29a3b; --bc-c2: #7a4e2d; background: #fff8ee; }
 .theme-mono { --bc-text: #111; --bc-axis: #555; --bc-grid: #ddd; --bc-c0: #111; --bc-c1: #666; --bc-c2: #aaa; background: #fff; color: #111; }

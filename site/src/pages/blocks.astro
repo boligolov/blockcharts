@@ -1,27 +1,121 @@
 ---
 import Base from '../layouts/Base.astro';
-import { kb, loadBlocks, loadRelease } from '../lib/site.mjs';
+import { kb, loadBlocks, loadRelease, loadSizes, ROLES } from '../lib/site.mjs';
 
 const manifest = loadBlocks();
 const release = loadRelease();
+const sizes = loadSizes();
 const roles = {
+  lib: 'Code that two blocks share. A spec never names one; a block that needs it lists it in <code>requires</code>, and the composer brings it along.',
   scale: 'Map data to positions or colors. Declared once per chart under <code>scales</code>, by name.',
   transform: 'Prepare the dataset before anything is drawn (<code>transforms</code>).',
   mark: 'Draw one thing per row (<code>marks</code>). They read fields through channels.',
   guide: 'Axes, grids and legends, attached to scales (<code>guides</code>).',
   interaction: 'What the reader can do with the chart (<code>interaction</code>).',
-  renderer: 'Turns the drawing instructions into output. There is one: SVG.',
+  renderer: 'Turns the drawing instructions into output: SVG by default, canvas for tens of thousands of points.',
 };
+// the roles come from the manifest builder; a role without its text here (or a text for a role that is gone) fails the build
+for (const role of ROLES) if (!roles[role]) throw new Error(`blocks page: no text for the role "${role}"`);
+for (const role of Object.keys(roles)) if (ROLES.indexOf(role) < 0) throw new Error(`blocks page: "${role}" is not a role`);
+
+// what each block does, in a line; every block needs one, and one for a block that does not exist fails the build too
+const summary = {
+  'lib.curve': 'The path of a line: straight segments, or a smooth curve that never overshoots. Shared by line and area.',
+  'scale.linear': 'Numbers to positions, with round ticks.',
+  'scale.log': 'Numbers across orders of magnitude; steady growth is a straight line.',
+  'scale.time': 'Dates to positions, ticks in days, months or years (UTC).',
+  'scale.band': 'One band per category: the axis of bar charts.',
+  'scale.color': 'A color per category, from the theme palette.',
+  'scale.sequential': 'Numbers to a color ramp: heatmaps.',
+  'scale.size': 'Numbers to circle sizes, by area: bubble charts.',
+  'transform.aggregate': 'Group-by: sum, mean, count and more per group; dates by month or quarter; top N groups.',
+  'transform.window': 'Moving averages, running totals, change from the previous row.',
+  'transform.stack': 'Stacks series on top of each other, or to 100%.',
+  'transform.bin': 'Counts values in equal bins: histograms.',
+  'transform.quartiles': 'The five-number summary of each group: box plots.',
+  'transform.decimate': 'Thins long series without losing a peak; redone at every zoom.',
+  'transform.waterfall': 'Increases, decreases and subtotals of a bridge chart.',
+  'transform.funnel': 'Stage widths and conversion rates of a funnel.',
+  'transform.treemap': 'Lays out the rectangles of a treemap.',
+  'transform.fold': 'A wide table (a column per series) becomes a long one.',
+  'transform.filter': 'Keeps the rows that pass a test: numbers, dates, text, lists.',
+  'transform.sort': 'Orders rows and keeps the top N, also per group.',
+  'transform.calculate': 'A new column from two numbers: a margin, a gap to plan.',
+  'mark.rect': 'Rectangles: bars, grouped bars, ranges, heatmap cells.',
+  'mark.line': 'A line per series, with optional end labels.',
+  'mark.area': 'Filled areas, stacked or not.',
+  'mark.point': 'Dots and bubbles.',
+  'mark.text': 'Value labels that shrink, or step aside, when they do not fit.',
+  'mark.arc': 'Pie and donut slices.',
+  'mark.rule': 'Target and threshold lines; the target tick of a bullet chart.',
+  'mark.boxplot': 'Box and whiskers.',
+  'guide.axis': 'Axes: formatted labels, a title, long categories wrapped.',
+  'guide.grid': 'Grid lines at the ticks.',
+  'guide.legend': 'Legends: categories, a color bar, bubble sizes.',
+  'guide.kpi': 'A KPI tile: the figure, its change, a sparkline.',
+  'interaction.tooltip': 'The values under the pointer.',
+  'interaction.zoom': 'Wheel zoom, drag to pan, double-click to reset.',
+  'interaction.zoom-controls': 'Buttons: 100%, minus, plus.',
+  'interaction.brush': 'Drag a range to zoom to it.',
+  'interaction.crosshair': 'A line that follows the pointer across all series.',
+  'interaction.legend-filter': 'Click a legend item to hide or show its series.',
+  'interaction.animate': 'Draws the chart in once, when it first appears.',
+  'renderer.svg': 'Draws into SVG: sharp, selectable, prints well. The default.',
+  'renderer.canvas': 'Draws into a canvas, for tens of thousands of points.',
+};
+for (const b of sizes.blocks) if (!summary[b.name]) throw new Error(`blocks page: no summary for ${b.name}`);
+for (const name of Object.keys(summary)) if (!sizes.blocks.some((b) => b.name === name)) throw new Error(`blocks page: a summary for ${name}, which is not a block`);
+const coreUse = {
+  core: 'Kits and hand-written pages: checks every spec, decodes compressed data.',
+  'core.composed': 'A report with compressed data: the composer has run the checks already.',
+  'core.composed-plain': 'A report with plain data: no checks, no decoder. Most reports.',
+};
+for (const c of sizes.core) if (!coreUse[c.name]) throw new Error(`blocks page: no text for ${c.name}`);
+const totals = sizes.blocks.reduce((t, b) => ({ source: t.source + b.source, min: t.min + b.min, gzip: t.gzip + b.gzip }), { source: 0, min: 0, gzip: 0 });
 const kind = (d) => (d.kind === 'enum' ? (d.values || []).map((v) => `"${v}"`).join(' | ') : d.kind);
 const scalesOf = (d) => (d.unscaled ? 'a plain field' : d.scales ? d.scales.join(', ') : 'any');
 const total = Object.keys(manifest.blocks).length;
+const k = (n) => (n / 1024).toFixed(1);
 ---
 <Base title="Blocks" nav="blocks" version={release.version} description="Every block, parameter and channel.">
   <h1>Blocks</h1>
-  <p class="lead">{total} blocks in {Object.keys(roles).length} roles. This page is generated from the code: a parameter that does not exist here does not exist.</p>
-  <p>{Object.keys(roles).map((role, i) => <>{i ? ' · ' : ''}<a href={`#${role}`}>{role}</a></>)}</p>
+  <p class="lead">{total} blocks in {ROLES.length} roles. This page is generated from the code: a parameter that does not exist here does not exist.</p>
+  <p><a href="#sizes">What each block weighs</a> · {ROLES.map((role, i) => <>{i ? ' · ' : ''}<a href={`#${role}`}>{role}</a></>)}</p>
 
-  {Object.entries(roles).map(([role, about]) => (
+  <h2 id="sizes">What each block weighs</h2>
+  <p>A report carries the core and only the blocks its charts use. <b>Source</b> is the TypeScript file with its comments and docs. <b>Minified</b> is what goes into the HTML file of a report: the weight that counts, since the file is opened as it is. <b>gzip</b> is the minified file compressed, what a CDN sends for a kit; inside one page the blocks compress better together. Sizes in KB.</p>
+
+  <h3>The core: one per page</h3>
+  <div class="sizes-wrap"><table class="sizes">
+    <thead><tr><th>Core</th><th class="what">When</th><th class="n">Source</th><th class="n">Minified</th><th class="n">gzip</th></tr></thead>
+    <tbody>
+      {sizes.core.map((c) => (
+        <tr><td><code>{c.name}</code><div class="sum">{coreUse[c.name]}</div></td><td class="what">{coreUse[c.name]}</td><td class="n num">{k(c.source)}</td><td class="n num"><b>{k(c.min)}</b></td><td class="n num">{k(c.gzip)}</td></tr>
+      ))}
+    </tbody>
+  </table></div>
+
+  <h3>The blocks: only the ones a page uses</h3>
+  <div class="sizes-wrap"><table class="sizes">
+    <thead><tr><th>Block</th><th class="what">What it does</th><th class="n">Source</th><th class="n">Minified</th><th class="n">gzip</th></tr></thead>
+    <tbody>
+      {ROLES.map((role) => (
+        <>
+          <tr class="group"><th colspan="5"><a href={`#${role}`}>{role}</a></th></tr>
+          {sizes.blocks.filter((b) => b.role === role).map((b) => (
+            <tr>
+              <td><a href={`#${b.name}`}><code>{b.name}</code></a><div class="sum">{summary[b.name]}</div></td>
+              <td class="what">{summary[b.name]}{b.requires.length > 0 && <span class="muted"> Needs {b.requires.join(', ')}.</span>}</td>
+              <td class="n num">{k(b.source)}</td><td class="n num"><b>{k(b.min)}</b></td><td class="n num">{k(b.gzip)}</td>
+            </tr>
+          ))}
+        </>
+      ))}
+    </tbody>
+    <tfoot><tr><th>All {sizes.blocks.length} blocks</th><td class="what"></td><td class="n num">{k(totals.source)}</td><td class="n num"><b>{k(totals.min)}</b></td><td class="n num">{k(totals.gzip)}</td></tr></tfoot>
+  </table></div>
+
+  {ROLES.map((role) => [role, roles[role]]).map(([role, about]) => (
     <>
       <h2 id={role}>{role}</h2>
       <p set:html={about} />

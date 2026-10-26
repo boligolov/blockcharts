@@ -126,6 +126,25 @@ export function loadPageCode() {
 }
 
 /**
+ * What each piece weighs: the TypeScript source (with its comments and docs), the minified file a page carries,
+ * and that file gzipped (what a CDN sends; inside one page the blocks compress better together). The core comes in
+ * the variants the composer picks from (minify.js).
+ */
+export function loadSizes() {
+  const zlib = require('node:zlib');
+  const dir = path.join(repo, 'dist', 'min');
+  const m = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+  const sizes = (file, src) => {
+    const min = fs.readFileSync(path.join(dir, file));
+    return { source: fs.statSync(path.join(repo, 'src', src)).size, min: min.length, gzip: zlib.gzipSync(min, { level: 9 }).length };
+  };
+  const core = [{ name: 'core', ...sizes(m.core.file, 'core.ts') }];
+  for (const [name, v] of Object.entries(m.core.variants || {})) core.push({ name: `core.${name}`, off: v.off, ...sizes(v.file, 'core.ts') });
+  const blocks = Object.entries(m.blocks).map(([name, b]) => ({ name, role: name.split('.')[0], version: b.version, requires: b.requires, ...sizes(b.file, `blocks/${name}.ts`) }));
+  return { core, blocks };
+}
+
+/**
  * The HTML of a script tag, for the snippets a page shows (not for scripts it runs). It is built here, in a plain module,
  * because Vite's dependency scan reads every <script src> it finds in the text of an .astro file — also one inside a
  * string — and fails the dev server on a path it cannot resolve (a relative release/..., a placeholder .../loader.js).
