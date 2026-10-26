@@ -1,4 +1,10 @@
 (function () {
+  // Build switches. scripts/minify.js makes the cores a composed page carries by turning them off (the text of these two
+  // lines is what it looks for), and the minifier then drops the code only they reach. CHECKS: BC.validate and BC.needs,
+  // which the composer has already run on the very same specs and data. DECODE: gzip, base64 and binary columns, which
+  // only a page with encoded data needs. They come first: the minifier inlines a constant only up to the first early return.
+  const CHECKS = true;
+  const DECODE = true;
   const VERSION = '0.1.0';
   const g = globalThis as any;
 
@@ -83,7 +89,7 @@
   const isEncoded = (input: unknown): input is BC.EncodedDataset =>
     !!input && typeof input === 'object' && !Array.isArray(input) && typeof (input as { encoding?: unknown }).encoding === 'string';
 
-  function fromBase64(text: string): Uint8Array {
+  const fromBase64 = (DECODE ? function fromBase64(text: string): Uint8Array {
     const clean = text.replace(/\s+/g, '');
     if (clean.length % 4 === 1 || !/^[A-Za-z0-9+/]*={0,2}$/.test(clean)) throw new Error('the data is not valid base64');
     if (typeof atob !== 'function') throw new Error('this environment has no atob(), cannot decode base64');
@@ -91,9 +97,9 @@
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
-  }
+  } : undefined)!;
 
-  async function gunzip(bytes: Uint8Array, limit: number = MAX_DECODED_BYTES): Promise<Uint8Array> {
+  const gunzip = (DECODE ? async function gunzip(bytes: Uint8Array, limit: number = MAX_DECODED_BYTES): Promise<Uint8Array> {
     const DS = (globalThis as any).DecompressionStream;
     if (typeof DS !== 'function' || typeof Blob !== 'function') {
       throw new Error('this browser cannot decompress gzip data (no DecompressionStream); store the dataset as plain rows or "base64"');
@@ -125,7 +131,7 @@
       at += c.length;
     }
     return out;
-  }
+  } : undefined)!;
 
   // Binary columns: { dtype, encoding, data } inside `columns`: the raw little-endian values of a numeric column, base64 (and
   // gzip) encoded. Much smaller than JSON text for long series; always read as Float64 (NaN = missing for float types).
@@ -149,7 +155,7 @@
     return !!cols && typeof cols === 'object' && Object.keys(cols).some((k) => isBinaryColumn((cols as Record<string, unknown>)[k]));
   };
 
-  async function decodeBinaryColumn(name: string, col: BC.BinaryColumn, budget: { left: number }): Promise<Float64Array> {
+  const decodeBinaryColumn = (DECODE ? async function decodeBinaryColumn(name: string, col: BC.BinaryColumn, budget: { left: number }): Promise<Float64Array> {
     const t = DTYPES[col.dtype];
     if (!t) throw new Error(`column "${name}": unknown dtype "${col.dtype}" (use ${Object.keys(DTYPES).join(', ')})`);
     if (col.encoding !== 'base64' && col.encoding !== 'gzip+base64') throw new Error(`column "${name}": unknown encoding "${col.encoding}" (use "base64" or "gzip+base64")`);
@@ -176,19 +182,19 @@
       for (let i = 0; i < n; i++) out[i] = (view as any)[t.get](i * t.size, true);
     }
     return out;
-  }
+  } : undefined)!;
 
   /** Replaces the binary columns of a { columns } dataset with Float64Arrays. */
-  async function withBinaryColumns(json: unknown): Promise<unknown> {
+  const withBinaryColumns = (DECODE ? async function withBinaryColumns(json: unknown): Promise<unknown> {
     if (!hasBinaryColumns(json)) return json;
     const source = (json as { columns: Record<string, unknown> }).columns;
     const budget = { left: MAX_DECODED_BYTES };
     const columns: Record<string, unknown> = {};
     for (const k of Object.keys(source)) columns[k] = isBinaryColumn(source[k]) ? await decodeBinaryColumn(k, source[k] as BC.BinaryColumn, budget) : source[k];
     return { columns };
-  }
+  } : undefined)!;
 
-  async function decodeDataset(input: BC.EncodedDataset | { columns: Record<string, unknown> }): Promise<BC.Table> {
+  const decodeDataset = (DECODE ? async function decodeDataset(input: BC.EncodedDataset | { columns: Record<string, unknown> }): Promise<BC.Table> {
     if (!isEncoded(input)) return toTable((await withBinaryColumns(input)) as BC.DatasetInput);
     if (typeof input.data !== 'string') throw new Error('an encoded dataset needs a "data" string');
     if (input.encoding !== 'base64' && input.encoding !== 'gzip+base64') {
@@ -204,10 +210,11 @@
     }
     if (isEncoded(json)) throw new Error('an encoded dataset cannot contain another encoded dataset');
     return toTable((await withBinaryColumns(json)) as BC.DatasetInput);
-  }
+  } : undefined)!;
 
   function data(name: string, input: BC.DatasetInput): void {
     if (isEncoded(input) || hasBinaryColumns(input)) {
+      if (!DECODE) throw new Error(`dataset "${name}" is encoded, and this page was composed without the code that decodes data: compose it again`);
       failed.delete(name);
       // a later data() call for the same name wins even if this decode finishes after it
       const job: Promise<void> = decodeDataset(input as BC.EncodedDataset).then(
@@ -266,7 +273,7 @@
     return Array.isArray(r) ? r : [];
   }
 
-  function needs(spec: BC.ChartSpec): BC.BlockName[] {
+  const needs = (CHECKS ? function needs(spec: BC.ChartSpec): BC.BlockName[] {
     const out: BC.BlockName[] = [];
     const add = (role: BC.Role, s: unknown) => {
       const t = s && (s as BC.BlockSpec).type;
@@ -283,11 +290,11 @@
     if (Array.isArray(spec.interaction)) spec.interaction.forEach((s) => add('interaction', s));
     add('renderer', { type: spec.renderer || 'svg' });
     return out;
-  }
+  } : undefined)!;
 
   // ───────────────────────── validation ─────────────────────────
 
-  function validate(spec: BC.ChartSpec): BC.Diagnostic[] {
+  const validate = (CHECKS ? function validate(spec: BC.ChartSpec): BC.Diagnostic[] {
     const out: BC.Diagnostic[] = [];
     const err = (path: string, message: string) => out.push({ level: 'error', path, message });
     const warn = (path: string, message: string) => out.push({ level: 'warn', path, message });
@@ -479,7 +486,7 @@
     firstPath.forEach((path, name) => walk(name, path));
 
     return out;
-  }
+  } : undefined)!;
 
   // ───────────────────────── pipeline ─────────────────────────
 
@@ -1094,7 +1101,7 @@
         });
         return;
       }
-      checks = validate(current);
+      checks = CHECKS ? validate(current) : [];
       const carried = keptView;
       keptView = null;
       if (!checks.some((d) => d.level === 'error')) {
@@ -1288,6 +1295,7 @@
     defineFn: (name, fn) => { if (typeof fn !== 'function') throw new Error('BC.defineFn: ' + name + ' is not a function'); fns.set(name, fn); },
     getFn: (name) => fns.get(name),
     formatter,
+    // without CHECKS they are not there at all: a page script that calls them fails loudly instead of being told "no problems"
     needs,
     validate,
     chart,

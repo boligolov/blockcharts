@@ -33,6 +33,9 @@ const totalBlocks = code.blocks.length;
 const blockList = code.blocks;
 const blockRange: [number, number] = [Math.min(...blockList.map((b) => b.bytes)), Math.max(...blockList.map((b) => b.bytes))];
 const allBytes = code.all;
+// the block map adds up the core and the blocks of the hero report; it must say what the composer says that report carries
+const mapBytes = code.core.bytes + blockList.filter((b) => blocksOf.get('executive-dashboard').includes(b.name)).reduce((n, b) => n + b.bytes, 0);
+if (mapBytes !== sizes['executive-dashboard']) throw new Error(`the block map says ${mapBytes} bytes of code, the composed report has ${sizes['executive-dashboard']}`);
 const sizePages = [
   ['pie', 'A pie chart'],
   ['bar', 'A bar chart with labels'],

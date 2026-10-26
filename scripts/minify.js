@@ -40,6 +40,20 @@ function stripDocs(name, source) {
   return out;
 }
 
+/** The cores a composed page carries: the core with build switches turned off (see the top of src/core.ts). The composer has
+ *  already validated the page, so no composed page needs CHECKS; only one with encoded data needs DECODE. */
+const CORE_VARIANTS = { composed: ['CHECKS'], 'composed-plain': ['CHECKS', 'DECODE'] };
+
+function coreVariant(name, source, off) {
+  let text = source.toString('utf8');
+  for (const flag of off) {
+    const on = `const ${flag} = true;`;
+    if (text.split(on).length !== 2) throw new MinifyError(`cannot make ${name}: "${on}" is not in the core exactly once`);
+    text = text.replace(on, `const ${flag} = false;`);
+  }
+  return text;
+}
+
 /** Minified text of a block (docs cut first) or of the core / loader (isBlock false). */
 const shrink = (name, source, isBlock) => minify(name, isBlock ? stripDocs(name, source.toString('utf8')) : source) + '\n';
 
@@ -60,12 +74,20 @@ function buildMin(distDir, outDir) {
     return Buffer.byteLength(text);
   };
   manifest.core.bytes = write(manifest.core.file, false);
+  manifest.core.variants = {};
+  const coreSource = fs.readFileSync(path.join(dist, manifest.core.file));
+  for (const [variant, off] of Object.entries(CORE_VARIANTS)) {
+    const file = manifest.core.file.replace(/\.js$/, `.${variant}.js`);
+    const text = shrink(file, coreVariant(file, coreSource, off), false);
+    fs.writeFileSync(path.join(out, file), text);
+    manifest.core.variants[variant] = { file, bytes: Buffer.byteLength(text), off };
+  }
   for (const name of Object.keys(manifest.blocks)) manifest.blocks[name].bytes = write(manifest.blocks[name].file, true);
   fs.writeFileSync(path.join(out, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
   return manifest;
 }
 
-module.exports = { minify, stripDocs, shrink, buildMin, MinifyError };
+module.exports = { minify, stripDocs, shrink, buildMin, coreVariant, CORE_VARIANTS, MinifyError };
 
 if (require.main === module) {
   try {

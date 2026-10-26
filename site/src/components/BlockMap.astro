@@ -20,7 +20,7 @@ const left = blocks.length - used.length;
       tiny block, and the file carries only the ones its charts name: {kb(usedBytes)} of code instead of {kb(allBytes)}.
     </p>
     <div class="blockmap">
-      <div class="bm-core"><span class="bm-name">core</span><span class="bm-size num">{kb(coreBytes)}</span><span class="bm-note">loading, validation, the drawing pipeline — always there</span></div>
+      <div class="bm-core"><span class="bm-name">core</span><span class="bm-size num">{kb(coreBytes)}</span><span class="bm-note">data, layout, the drawing pipeline — always there (the checks run when the page is composed)</span></div>
       {byRole.map((g) => (
         <div class="bm-role">
           <span class="bm-role-name">{g.role}</span>

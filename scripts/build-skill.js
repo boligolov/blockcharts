@@ -147,8 +147,12 @@ function buildSkill(outDir, options) {
   fs.writeFileSync(path.join(out, 'reference', 'blocks.md'), renderReference(manifest));
   put('reference/blocks.md');
 
-  copyFile(path.join(dist, manifest.core.file), path.join(out, 'runtime', manifest.core.file));
-  put(`runtime/${manifest.core.file}`);
+  // the full core (the composer's sandbox, a page with errors) and the lean ones a composed page carries
+  const cores = [manifest.core.file].concat(Object.values(manifest.core.variants || {}).map((v) => v.file));
+  for (const file of cores) {
+    copyFile(path.join(dist, file), path.join(out, 'runtime', file));
+    put(`runtime/${file}`);
+  }
   copyFile(manifestFile, path.join(out, 'runtime', 'manifest.json'));
   put('runtime/manifest.json');
   for (const name of Object.keys(manifest.blocks)) {

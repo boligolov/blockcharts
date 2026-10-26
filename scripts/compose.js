@@ -4,7 +4,9 @@
 //   3. exactly those blocks are loaded and every spec is validated against the real data before anything is written;
 //   4. core + blocks + data + specs are inlined in a fixed order, so the same input gives byte-identical output.
 //
-// compose({ data, charts, title?, subtitle?, layout?, css?, before?, after?, include?, distDir?, allowErrors? }) -> { html, blocks, bytes, diagnostics, unusedData }
+// compose({ data, charts, title?, subtitle?, layout?, css?, before?, after?, include?, distDir?, allowErrors? }) -> { html, blocks, bytes, diagnostics, unusedData, compressed, core }
+//   core is the file of the core the page carries: a lean one without BC.validate / BC.needs (the composer has run them),
+//   and without the data decoder when no dataset is encoded; the full core when the page has errors to show.
 //   data    { name: rows | { columns } | { csv: "text" } | { csvFile: "file.csv" } }   the data lake. CSV: the first row names the
 //           columns; numbers are recognized per column, "", NA, null... are missing values; optional delimiter, nullValues and
 //           types ({ col: "string" }). csvFile is relative to `baseDir` and must stay inside it.
@@ -21,8 +23,9 @@
 //           warnings (unsorted data left alone by decimate, an interaction that cannot work) are reported; false = skip
 //   drawTimeout  ms one chart may take in that trial run (default 10000); past it the chart is a spec error, not a hang
 //   baseDir folder that csvFile paths are relative to (the command line uses the folder of the page json)
-//   compress 'auto' (default) | true | false. Datasets are stored as base64(gzip(JSON)) when that is worth it ('auto': big and
-//           at least 25% smaller), always (true) or never (false). Already-encoded datasets are passed through untouched.
+//   compress 'auto' (default) | true | false. Datasets are stored as base64(gzip(JSON)) when that is worth it ('auto': big,
+//           at least 25% smaller, and saving more than the decoder the page then carries), always (true) or never (false).
+//           Already-encoded datasets are passed through untouched.
 //
 // Specs must be plain JSON: a function in one (a tooltip `content`, say) would be silently dropped by JSON.stringify, so it is
 // refused; register it in a script (`after`) with BC.defineFn(name, fn) and put the name in the spec.
@@ -155,6 +158,17 @@ function plainDataset(name, input) {
     if (e instanceof ComposeError) throw e;
     throw new ComposeError(`data "${name}": ${e.message}`);
   }
+}
+
+/** Whether the core has to decode a stored dataset: the same tests as isEncoded / hasBinaryColumns in src/core.ts. */
+function needsDecoding(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  if (typeof v.encoding === 'string') return true;
+  const cols = v.columns;
+  return !!cols && typeof cols === 'object' && Object.keys(cols).some((k) => {
+    const c = cols[k];
+    return !!c && typeof c === 'object' && !Array.isArray(c) && !(c instanceof Float64Array) && typeof c.dtype === 'string';
+  });
 }
 
 function encodeDataset(input, mode) {
@@ -292,14 +306,30 @@ function compose(opts) {
   const usedDatasets = new Set(charts.map((c) => c.spec.data));
   const unusedData = Object.keys(data).filter((n) => !usedDatasets.has(n));
   const stored = {};
-  const compressed = [];
+  let compressed = [];
+  let saved = 0;
   for (const name of Object.keys(data)) {
     const r = encodeDataset(data[name], compress);
     stored[name] = r.value;
-    if (r.encoded) compressed.push(name);
+    if (r.encoded) {
+      compressed.push(name);
+      saved += JSON.stringify(data[name]).length - JSON.stringify(r.value).length;
+    }
+  }
+  // the core the page carries: every chart has been checked above, so the page needs no BC.validate, and it needs the
+  // decoder only for encoded data (CORE_VARIANTS in minify.js). A page composed with errors keeps the full core, which
+  // shows them on the page; so does one composed from a dist/ without the variants.
+  const variants = manifest.core.variants || {};
+  // 'auto' compresses only when that saves more than the decoder it brings along (nothing else here needs it)
+  const decoderBytes = variants.composed && variants['composed-plain'] ? variants.composed.bytes - variants['composed-plain'].bytes : 0;
+  if (compress === 'auto' && compressed.length && saved <= decoderBytes && !Object.keys(data).some((n) => needsDecoding(data[n]))) {
+    for (const name of compressed) stored[name] = data[name];
+    compressed = [];
   }
   const script = (code) => `<script>\n${code}\n</script>`;
-  const scripts = [read(manifest.core.file)].concat(blockNames.map((n) => read(manifest.blocks[n].file)));
+  const lean = errors.length ? undefined : variants[Object.values(stored).some(needsDecoding) ? 'composed' : 'composed-plain'];
+  const core = lean ? lean.file : manifest.core.file;
+  const scripts = [read(core)].concat(blockNames.map((n) => read(manifest.blocks[n].file)));
   const bytes = scripts.reduce((n, s) => n + Buffer.byteLength(s), 0);
 
   // every chart is a card in the grid; a card spans `span` columns (the whole row by default)
@@ -331,7 +361,7 @@ function compose(opts) {
     '',
   ].filter((s) => s !== '').join('\n');
 
-  return { html, blocks: blockNames, bytes, diagnostics, unusedData, compressed };
+  return { html, blocks: blockNames, bytes, diagnostics, unusedData, compressed, core };
 }
 
 module.exports = { compose, ComposeError, jsonForScript, escapeText, resolveDataset, DEFAULT_CSS };

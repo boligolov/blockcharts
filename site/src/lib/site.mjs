@@ -115,7 +115,9 @@ export function loadPageCode() {
   const zlib = require('node:zlib');
   const dir = path.join(repo, 'dist', 'min');
   const m = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
-  const core = fs.readFileSync(path.join(dir, m.core.file));
+  // the core a composed report carries: the composer has run the checks, and a report without encoded data has no decoder
+  const lean = m.core.variants && m.core.variants['composed-plain'];
+  const core = fs.readFileSync(path.join(dir, lean ? lean.file : m.core.file));
   const blocks = Object.entries(m.blocks).map(([name, b]) => ({ name, bytes: b.bytes }));
   return { core: { bytes: core.length, gzip: zlib.gzipSync(core, { level: 9 }).length }, blocks, all: core.length + blocks.reduce((n, b) => n + b.bytes, 0) };
 }

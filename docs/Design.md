@@ -827,6 +827,17 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   0.55 em for usual labels), a little over the real ones: `ctx.measure()` assumes 0.6 em for every character so that
   layout never clips, and with it the waterfall kept 2 labels of 7 on a phone. The waterfall recipes write whole
   thousands (`$892K`) and leave the exact figure to the tooltip.
+- **A lighter core for composed pages**: the core is half of a typical report, and two parts of it only matter
+  before the page exists. `BC.validate` / `BC.needs` (5.6 KB minified) run in the composer, on the same specs and
+  data; the decoder for gzip, base64 and binary columns (3 KB) only matters for encoded data. Two build switches at the
+  top of `src/core.ts` (`CHECKS`, `DECODE`) guard them, written as `const f = (FLAG ? function f() {...} : undefined)!`
+  so that the minifier drops the bodies when a switch is false (esbuild keeps an unused function declaration inside an
+  IIFE, and inlines a local constant only up to the first early return: the switches come first, and a test fails if
+  they move). `scripts/minify.js` writes `core.composed.js` (no checks, 20.8 KB) and `core.composed-plain.js` (neither,
+  17.8 KB) next to the full core (26.4 KB); the composer picks one per page, keeps the full core when a page is
+  composed with errors to show, and `compress: "auto"` now gzips only when that saves more than the decoder costs.
+  The 24 recipes are 13.5 % smaller (1423 KB -> 1231 KB); every one draws in Chrome on its lean core. Kits and the
+  loader keep the full core: a hand-written page needs the checks.
 
 ## Next steps
 

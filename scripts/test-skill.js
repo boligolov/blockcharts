@@ -176,6 +176,7 @@ for (const file of recipeFiles) {
     assert.deepStrictEqual(result.diagnostics, [], 'no errors and no warnings');
     assert.deepStrictEqual(result.unusedData, [], 'every dataset is used');
     assert(result.html.startsWith('<!doctype html>'));
+    assert(/^core\.composed(-plain)?\.js$/.test(result.core), `a lean core: ${result.core}`);
 
     const { handles, BC, errors } = runPage(result.html);
     assert.strictEqual(handles.length, page.charts.length);
@@ -186,6 +187,7 @@ for (const file of recipeFiles) {
     }
     await BC.ready();
     assert.deepStrictEqual(errors, [], 'nothing was reported to the console');
+    assert.strictEqual(BC.validate, undefined, 'the page does without the checks the composer has run');
   });
 }
 

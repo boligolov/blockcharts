@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.5.1"
+  version: "0.6.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -40,7 +40,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 - `charts`: each entry is a chart spec, or `{title, note, spec, span}` to get a heading and a sentence around it. Every chart sits in a card.
 - `title` and `subtitle`: the page heading and one line under it (the period, the scope, the unit: "FY2025 · all regions · USD").
 - `layout`: `{"columns": 4}` turns the page into a dashboard grid; each chart takes `span` columns (default: the whole row). Put KPI tiles first, `span: 1` each, then the charts (`span: 2` or `3`). On a phone every card takes the full width. Size a chart for its card: about 280 px wide per column.
-- Optional: `css` (extra stylesheet text), `compress` (`"auto"` by default: big datasets are stored gzipped, which you do not have to think about).
+- Optional: `css` (extra stylesheet text), `compress` (`"auto"` by default: big datasets are stored gzipped when that saves more than the decoder it adds, which you do not have to think about).
 
 ## Chart spec
 

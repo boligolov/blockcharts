@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const assert = require('assert');
 const { pathToFileURL } = require('url');
 const { buildRelease, ReleaseError } = require('./build-dist.js');
-const { stripDocs } = require('./minify.js');
+const { stripDocs, coreVariant, minify } = require('./minify.js');
 const { compose } = require('./compose.js');
 const { El, createDocument } = require('./fake-dom.js');
 const { countTags } = require('./run-page.js');
@@ -294,6 +294,26 @@ test('minified release: a doc cut that changes anything else is refused, not shi
   assert.throws(() => stripDocs('x.js', "(function(){ BC.define({ role: 'mark', type: 'x', version: 1, doc: 'a' + 'b', params: {} }); })();"), /does not run|more than the docs/);
   assert.throws(() => stripDocs('x.js', "(function(){ BC.define({ role: 'mark', type: 'x', version: 1, render() { return \"see doc: 'here'\"; } }); })();"), /more than the docs changed/);
   assert.throws(() => stripDocs('x.js', "BC.define({ role: 'mark', type: 'x', version: 1, doc: 'ok' }); throw new Error('boom');"), /does not run/);
+});
+
+test('core variants: smaller by what they leave out, and a switch that is missing or doubled stops the build', () => {
+  const min = JSON.parse(fs.readFileSync(path.join(distDir, 'min', 'manifest.json'), 'utf8'));
+  const { composed, 'composed-plain': plainCore } = min.core.variants;
+  assert(min.core.bytes - composed.bytes > 4000, `no checks: ${min.core.bytes} -> ${composed.bytes}`);
+  assert(composed.bytes - plainCore.bytes > 2000, `no decoder either: ${composed.bytes} -> ${plainCore.bytes}`);
+  const run = (file) => {
+    const sandbox = { console: { warn() {}, error() {} } };
+    vm.runInNewContext(fs.readFileSync(path.join(distDir, 'min', file), 'utf8'), sandbox);
+    return sandbox.BC;
+  };
+  assert.strictEqual(typeof run(min.core.file).validate, 'function');
+  assert.strictEqual(run(composed.file).validate, undefined);
+  const source = fs.readFileSync(path.join(distDir, 'core.js'), 'utf8');
+  assert.throws(() => coreVariant('x', source.replace('const CHECKS = true;', 'const CHECKS=true;'), ['CHECKS']), /not in the core exactly once/);
+  assert.throws(() => coreVariant('x', source + '\nconst DECODE = true;', ['DECODE']), /not in the core exactly once/);
+  // the switches must come before the first early return, or the minifier keeps the code they guard
+  const late = source.replace('const CHECKS = true;', '').replace("const VERSION = '0.1.0';", "if (globalThis.__x) return;\n    const CHECKS = true;\n    const VERSION = '0.1.0';");
+  assert(minify('x', coreVariant('x', late, ['CHECKS'])).length > composed.bytes + 4000, 'a switch after a return saves nothing: the test above guards that');
 });
 
 test('README: the table of blocks lists every block there is, and only those', () => {

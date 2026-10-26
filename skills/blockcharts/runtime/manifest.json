@@ -1,8 +1,25 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 26355,
-    "version": "0.1.0"
+    "bytes": 26359,
+    "version": "0.1.0",
+    "variants": {
+      "composed": {
+        "file": "core.composed.js",
+        "bytes": 20803,
+        "off": [
+          "CHECKS"
+        ]
+      },
+      "composed-plain": {
+        "file": "core.composed-plain.js",
+        "bytes": 17818,
+        "off": [
+          "CHECKS",
+          "DECODE"
+        ]
+      }
+    }
   },
   "blocks": {
     "scale.band": {

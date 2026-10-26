@@ -195,7 +195,10 @@ test('compose: big datasets are stored as base64(gzip), small ones stay readable
   assert.strictEqual(stored.big.encoding, 'gzip+base64');
   assert.deepStrictEqual(JSON.parse(zlib.gunzipSync(Buffer.from(stored.big.data, 'base64')).toString('utf8')), BIG, 'exactly the original rows');
   const plainPage = compose({ data: { ...DATA, big: BIG }, charts: [bars(), bigSpec()], compress: false });
-  assert(r.html.length < plainPage.html.length - 10000, 'the page is much smaller');
+  // smaller by what gzip saves on the data, less the decoder the compressed page carries (about 3 KB)
+  assert(r.html.length < plainPage.html.length - 6000, `the page is much smaller: ${r.html.length} vs ${plainPage.html.length}`);
+  assert.strictEqual(r.core, 'core.composed.js', 'with the decoder');
+  assert.strictEqual(plainPage.core, 'core.composed-plain.js', 'without it');
   assert.deepStrictEqual(plainPage.compressed, []);
   assert.deepStrictEqual(compose({ data: DATA, charts: [bars()], compress: true }).compressed, ['cats', 'pts'], 'true = everything');
   assert.strictEqual(compose({ data: { ...DATA, big: BIG }, charts: [bars(), bigSpec()] }).html, r.html, 'deterministic');
@@ -239,6 +242,50 @@ test('compose: the page with compressed data decodes it the way a browser does, 
   assert.strictEqual(countTags(handles[0].host.children[0], 'circle'), 400);
   assert.strictEqual(handles[0].diagnostics.length, 0, JSON.stringify(handles[0].diagnostics));
   assert.deepStrictEqual(errors, []);
+});
+
+// ── the core a page carries ──
+test('compose: a page carries the core without checks, and the decoder only when a dataset is encoded', async () => {
+  const plainPage = compose({ data: DATA, charts: [bars(), scatter()] });
+  assert.strictEqual(plainPage.core, 'core.composed-plain.js');
+  const run = runPage(plainPage.html);
+  for (const h of run.handles) await h.ready;
+  assert.strictEqual(countTags(run.handles[0].host.children[0], 'rect') > 0, true, 'it draws');
+  assert.strictEqual(run.BC.validate, undefined);
+  assert.strictEqual(run.BC.needs, undefined);
+  assert.deepStrictEqual(run.errors, []);
+  // the plain core cannot decode, and says so instead of drawing nothing
+  assert.throws(() => run.BC.data('late', { encoding: 'base64', data: 'e30=' }), /composed without the code that decodes data: compose it again/);
+
+  const encoded = { encoding: 'base64', data: Buffer.from(JSON.stringify(DATA.cats)).toString('base64') };
+  assert.strictEqual(compose({ data: { cats: encoded }, charts: [bars()] }).core, 'core.composed.js', 'an encoded dataset given as it is');
+  const binary = { columns: { k: ['a', 'b'], v: { dtype: 'float64', encoding: 'base64', data: Buffer.from(new Float64Array([3, 6]).buffer).toString('base64') } } };
+  const withBinary = compose({ data: { cats: binary }, charts: [bars()] });
+  assert.strictEqual(withBinary.core, 'core.composed.js', 'a binary column');
+  const runBinary = runPage(withBinary.html);
+  await runBinary.handles[0].ready;
+  await runBinary.BC.ready();
+  assert.strictEqual(countTags(runBinary.handles[0].host.children[0], 'rect'), 2);
+
+  // a page composed with errors keeps the checks, so it shows them
+  const broken = compose({ data: DATA, charts: [{ ...bars(), marks: [{ type: 'rect', x: 'k', y: 'nope' }] }], allowErrors: true });
+  assert.strictEqual(broken.core, 'core.js');
+  const runBroken = runPage(broken.html);
+  assert(runBroken.handles[0].diagnostics.some((d) => /nope/.test(d.message)), 'the page itself reports the error');
+});
+
+test('compose: "auto" does not compress when the decoder would cost more than gzip saves', () => {
+  // a little over the 2 KB threshold, and about half of it saved: less than the decoder
+  const rows = Array.from({ length: 90 }, (_, i) => ({ k: 'item ' + i, v: (i * 7919) % 1000 }));
+  const spec = { data: 'rows', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'rect', x: 'k', y: 'v' }] };
+  const r = compose({ data: { rows }, charts: [spec] });
+  assert.deepStrictEqual(r.compressed, [], 'not worth it');
+  assert.strictEqual(r.core, 'core.composed-plain.js');
+  assert.deepStrictEqual(storedData(r.html).rows, rows);
+  assert.deepStrictEqual(compose({ data: { rows }, charts: [spec], compress: true }).compressed, ['rows'], 'true still means always');
+  // once something has to be decoded anyway, the decoder is already paid for
+  const encoded = { encoding: 'base64', data: Buffer.from(JSON.stringify(DATA.cats)).toString('base64') };
+  assert.deepStrictEqual(compose({ data: { rows, cats: encoded }, charts: [spec, bars()] }).compressed, ['rows']);
 });
 
 // ── functions and other things JSON cannot carry ──

@@ -97,7 +97,7 @@ node scripts/compose.js skills/blockcharts/recipes/report-from-csv.json report.h
 }
 ```
 
-The composer works out which blocks the charts need, checks every spec against the data (unknown field, wrong scale type, ... each reported with its path in the JSON), builds each chart once in a sandbox to catch anything that only shows up when drawing, and writes the page. The same input always gives the same bytes. It writes nothing until every chart is valid.
+The composer works out which blocks the charts need, checks every spec against the data (unknown field, wrong scale type, ... each reported with its path in the JSON), builds each chart once in a sandbox to catch anything that only shows up when drawing, and writes the page. The same input always gives the same bytes. It writes nothing until every chart is valid. Because it has already checked everything, the page carries a lighter core without the checks (`BC.validate`, `BC.needs`), and without the data decoder unless a dataset is stored gzipped: about 8 KB less per report. The kits for your own pages keep the full core.
 
 Datasets can be rows, `{"columns": {...}}`, `{"csv": "text"}`, or `{"csvFile": "orders.csv"}` (next to `page.json`). Large datasets are stored gzipped automatically. For long numeric series from a pipeline, `scripts/encode-columns.js` stores columns as raw typed values (`{"columns": {"t": {"dtype": "float64", "encoding": "gzip+base64", "data": "..."}}}`): far smaller than JSON text, and never lossy unless you ask for `float32`.
 

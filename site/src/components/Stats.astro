@@ -20,7 +20,7 @@ const n = (b: number) => (b / 1024).toFixed(0);
     <p class="intro">Minified sizes of the code inside each composed page of the examples, next to everything blockcharts has. The data comes on top, gzipped when it is large.</p>
     <div class="stats">
       <div><div class="v">{blocks}</div><div class="l">blocks, one job each</div></div>
-      <div><div class="v num">{n(coreGzip)}<small>KB</small></div><div class="l">the core, gzipped ({kb(coreBytes)} minified)</div></div>
+      <div><div class="v num">{n(coreGzip)}<small>KB</small></div><div class="l">the core of a report, gzipped ({kb(coreBytes)} minified)</div></div>
       <div><div class="v num">{n(smallest)}<small>KB</small></div><div class="l">code in the smallest example report</div></div>
       <div><div class="v">0</div><div class="l">dependencies, and no network requests from a report</div></div>
     </div>
