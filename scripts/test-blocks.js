@@ -3225,6 +3225,54 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(probed.scales.y.domain(), ['B', 'F', 'D', 'G', 'A'], 'the bands are the top five, best first');
   });
 
+  const calc = (cols, spec) => BC.get('transform.calculate').apply(T(cols), { type: 'calculate', ...spec });
+
+  test('transform.calculate: two fields or a field and a constant; not a number or a division by zero is NaN', () => {
+    const cols = { profit: Float64Array.from([20, 5, NaN, 3]), revenue: [100, 0, 50, '30'], plan: Float64Array.from([90, 10, 40, 30]) };
+    assert.deepStrictEqual(nan(calc(cols, { a: 'profit', op: '/', b: 'revenue', as: 'margin' }).columns.margin), [0.2, 'nan', 'nan', 'nan'], 'by zero, NaN and text are missing');
+    assert.deepStrictEqual(nan(calc(cols, { a: 'revenue', op: '-', b: 'plan', as: 'gap' }).columns.gap), [10, -10, 10, 'nan']);
+    assert.deepStrictEqual(nan(calc(cols, { a: 'plan', op: '*', value: 1.5, as: 'x' }).columns.x), [135, 15, 60, 45]);
+    assert.deepStrictEqual(nan(calc(cols, { a: 'plan', op: '+', value: -10, as: 'x' }).columns.x), [80, 0, 30, 20]);
+    assert.deepStrictEqual(nan(calc(cols, { a: 'plan', op: '/', value: 0, as: 'x' }).columns.x), ['nan', 'nan', 'nan', 'nan'], 'divided by a constant zero');
+    assert.deepStrictEqual(nan(calc({ v: [1e308] }, { a: 'v', op: '*', value: 10, as: 'x' }).columns.x), ['nan'], 'an overflow is not Infinity');
+    const t = calc(cols, { a: 'plan', op: '/', value: 10, as: 'plan' });
+    assert.deepStrictEqual(nan(t.columns.plan), [9, 1, 4, 3], 'as = a replaces the column');
+    assert.deepStrictEqual(Array.from(cols.plan), [90, 10, 40, 30], 'the input table is untouched');
+    assert(t.columns.plan instanceof Float64Array);
+    assert.deepStrictEqual(Object.keys(calc(cols, { a: 'profit', op: '+', b: 'plan', as: 'sum' }).columns), ['profit', 'revenue', 'plan', 'sum']);
+    assert.deepStrictEqual(BC.get('transform.calculate').outputs({ a: 'x', op: '+', value: 1, as: 'y' }), ['y']);
+  });
+
+  test('transform.calculate: hostile input — bad params are clear errors', () => {
+    const cols = { a: [1], b: [2], c: [3] };
+    assert.throws(() => calc(cols, { a: 'a', op: '+', b: 'b' }), /"as" must name the new column/);
+    assert.throws(() => calc(cols, { a: 'a', op: '+', b: 'b', as: '' }), /"as"/);
+    assert.throws(() => calc(cols, { op: '+', b: 'b', as: 'x' }), /"a" must be/);
+    assert.throws(() => calc(cols, { a: 'nope', op: '+', b: 'b', as: 'x' }), /unknown field "nope"/);
+    assert.throws(() => calc(cols, { a: 'a', op: '+', b: 'hasOwnProperty', as: 'x' }), /unknown field "hasOwnProperty"/);
+    assert.throws(() => calc(cols, { a: 'a', op: '%', b: 'b', as: 'x' }), /"op" must be one of/);
+    assert.throws(() => calc(cols, { a: 'a', op: '+', as: 'x' }), /either "b" .* or "value"/);
+    assert.throws(() => calc(cols, { a: 'a', op: '+', b: 'b', value: 1, as: 'x' }), /not both/);
+    for (const value of ['2', NaN, Infinity, null]) assert.throws(() => calc(cols, { a: 'a', op: '+', value, as: 'x' }), /"value" must be a finite number|either "b"/, String(value));
+    assert.throws(() => calc(cols, { a: 'a', op: '+', b: 'b', as: 'c' }), /"c" is already a column/);
+    assert.strictEqual(calc({ a: [], b: [] }, { a: 'a', op: '+', b: 'b', as: 'x' }).length, 0);
+  });
+
+  test('transform.calculate: a margin drawn as percent, its column known to validate', () => {
+    BC.data('pnl', [{ q: 'Q1', revenue: 200, profit: 30 }, { q: 'Q2', revenue: 250, profit: 50 }]);
+    const spec = {
+      data: 'pnl',
+      transforms: [{ type: 'calculate', a: 'profit', op: '/', b: 'revenue', as: 'margin' }],
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'rect', x: 'q', y: 'margin' }],
+      interaction: [{ type: 'probe2' }],
+    };
+    assert.deepStrictEqual(BC.validate(spec), []);
+    assert(BC.validate({ ...spec, marks: [{ type: 'rect', x: 'q', y: 'margins' }] }).some((d) => /unknown field "margins"/.test(d.message)));
+    assert.deepStrictEqual(BC.chart(new FakeNode('div'), spec).diagnostics, []);
+    assert.deepStrictEqual(Array.from(probed.channel(probed.spec.marks[0], 'y').raw), [0.15, 0.2]);
+  });
+
   const logOf = (sources, spec = {}, range = [0, 300]) => BC.get('scale.log').create({ type: 'log', ...spec }, { name: 'y', sources, range });
 
   test('scale.log: equal ratios are equal steps; the domain from positive values, nice to powers of ten; ticks and labels', () => {

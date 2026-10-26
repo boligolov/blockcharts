@@ -43,7 +43,7 @@ Blocks are split by **role**, not by chart type.
 | Role | Examples |
 |---|---|
 | scale | linear, log, time, band, color |
-| transform | stack, bin, aggregate, window, fold, filter, sort |
+| transform | stack, bin, aggregate, window, fold, filter, sort, calculate |
 | mark | line, area, point, rect, arc, text |
 | guide | axis, grid, legend |
 | interaction | tooltip, hover, zoom |
@@ -870,6 +870,12 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   step at 3K employees jumped the view to 50K (seen in Chrome); on a log scale they now work on the logarithms
   (zoom v4, zoom-controls v2), and the value under the cursor stays there. Recipe `log-scale`; in the `basic` and
   `timeseries` kits.
+- **`transform.calculate`**: a column from two numbers of a row, `a op b` with `op` one of + - * / and `b` a field
+  or a constant `value`. Deliberately not an expression language: a spec stays data an agent writes and the
+  composer checks, nothing is evaluated, and every derived number a business report needs (margin, gap to plan,
+  per unit, in thousands) is one or two of these in a row. A side that is not a number, a division by zero and an
+  overflow are NaN. `as` may replace `a` or `b`, never another column. Recipe `calculated-field` (profit as bars,
+  margin as a line); in every kit but `full`, which has it anyway.
 
 ## Next steps
 

@@ -1,12 +1,13 @@
 {
   "basic": {
-    "doc": "Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend and tooltip.",
+    "doc": "Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend and tooltip, and fields calculated from the data.",
     "blocks": [
       "scale.linear",
       "scale.log",
       "scale.time",
       "scale.band",
       "scale.color",
+      "transform.calculate",
       "mark.rect",
       "mark.line",
       "mark.point",
@@ -42,6 +43,7 @@
       "transform.fold",
       "transform.filter",
       "transform.sort",
+      "transform.calculate",
       "transform.window",
       "transform.stack",
       "renderer.svg",
@@ -73,6 +75,7 @@
       "transform.fold",
       "transform.filter",
       "transform.sort",
+      "transform.calculate",
       "transform.quartiles",
       "renderer.svg",
       "transform.waterfall",
@@ -92,6 +95,7 @@
       "transform.fold",
       "transform.filter",
       "transform.sort",
+      "transform.calculate",
       "transform.window",
       "transform.waterfall",
       "transform.funnel",

@@ -1,0 +1,260 @@
+{
+  "title": "Calculated fields: profit and margin from revenue and cost",
+  "data": {
+    "pnl": [
+      {
+        "quarter": "Q1 2023",
+        "revenue": 410000,
+        "cost": 352000
+      },
+      {
+        "quarter": "Q2 2023",
+        "revenue": 452000,
+        "cost": 380000
+      },
+      {
+        "quarter": "Q3 2023",
+        "revenue": 488000,
+        "cost": 401000
+      },
+      {
+        "quarter": "Q4 2023",
+        "revenue": 560000,
+        "cost": 452000
+      },
+      {
+        "quarter": "Q1 2024",
+        "revenue": 530000,
+        "cost": 431000
+      },
+      {
+        "quarter": "Q2 2024",
+        "revenue": 590000,
+        "cost": 463000
+      },
+      {
+        "quarter": "Q3 2024",
+        "revenue": 640000,
+        "cost": 489000
+      },
+      {
+        "quarter": "Q4 2024",
+        "revenue": 735000,
+        "cost": 548000
+      }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Profit per quarter",
+      "note": "The data has revenue and cost only. transform.calculate subtracts one from the other into a new column, profit, which the bars and their labels use like any other field.",
+      "spec": {
+        "data": "pnl",
+        "size": [
+          680,
+          300
+        ],
+        "padding": {
+          "top": 24
+        },
+        "transforms": [
+          {
+            "type": "calculate",
+            "a": "revenue",
+            "op": "-",
+            "b": "cost",
+            "as": "profit"
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "band"
+          },
+          "y": {
+            "type": "linear",
+            "zero": true,
+            "nice": true
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x"
+          },
+          {
+            "type": "axis",
+            "scale": "y",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 0
+            }
+          }
+        ],
+        "marks": [
+          {
+            "type": "rect",
+            "x": "quarter",
+            "y": "profit",
+            "radius": 2
+          },
+          {
+            "type": "text",
+            "x": "quarter",
+            "y": "profit",
+            "text": "profit",
+            "format": {
+              "style": "currency",
+              "currency": "USD",
+              "notation": "compact",
+              "maximumFractionDigits": 0
+            },
+            "baseline": "auto",
+            "dy": -5
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "quarter",
+              "revenue",
+              "cost",
+              "profit"
+            ],
+            "formats": {
+              "revenue": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 0
+              },
+              "cost": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 0
+              },
+              "profit": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "title": "Margin per quarter",
+      "note": "Calculations chain: profit first, then margin = profit / revenue. A margin is a fraction (0.15), so the axis and the labels use the percent format.",
+      "spec": {
+        "data": "pnl",
+        "size": [
+          680,
+          280
+        ],
+        "padding": {
+          "top": 24
+        },
+        "transforms": [
+          {
+            "type": "calculate",
+            "a": "revenue",
+            "op": "-",
+            "b": "cost",
+            "as": "profit"
+          },
+          {
+            "type": "calculate",
+            "a": "profit",
+            "op": "/",
+            "b": "revenue",
+            "as": "margin"
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "band"
+          },
+          "y": {
+            "type": "linear",
+            "zero": true,
+            "nice": true
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x"
+          },
+          {
+            "type": "axis",
+            "scale": "y",
+            "format": "percent"
+          }
+        ],
+        "marks": [
+          {
+            "type": "line",
+            "x": "quarter",
+            "y": "margin",
+            "strokeWidth": 2.5,
+            "stroke": "var(--bc-c0, #3a6fe4)"
+          },
+          {
+            "type": "point",
+            "x": "quarter",
+            "y": "margin",
+            "r": 4,
+            "fill": "var(--bc-c0, #3a6fe4)"
+          },
+          {
+            "type": "text",
+            "x": "quarter",
+            "y": "margin",
+            "text": "margin",
+            "format": {
+              "style": "percent",
+              "maximumFractionDigits": 1
+            },
+            "baseline": "auto",
+            "dy": -10
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "quarter",
+              "profit",
+              "margin"
+            ],
+            "formats": {
+              "profit": {
+                "style": "currency",
+                "currency": "USD",
+                "notation": "compact",
+                "maximumFractionDigits": 0
+              },
+              "margin": {
+                "style": "percent",
+                "maximumFractionDigits": 1
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

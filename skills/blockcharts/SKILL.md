@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.9.0"
+  version: "0.10.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -94,6 +94,8 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Moving averages, running totals, change**: `{"type": "window", "field": "sales", "op": "mean", "size": 7, "sort": "day", "as": "avg7"}` adds a column and keeps every row. `op`: `mean` / `sum` / `min` / `max` over the last `size` rows (`align: "center"` for a centered window), `cumsum` a running total, `diff` and `pctChange` the change from the previous row (pctChange is a fraction; write it with the `percent` format). Always give `sort` (the x field) unless the rows are already in order, and `group` for one result per series. The first `size - 1` rows of a series get no value (`partial: true` computes them from fewer rows). Draw the new column as another line over the raw one. To smooth monthly totals, put `aggregate` first and `window` after it. See `recipes/moving-average.json`.
 
+**Numbers the data does not have**: `{"type": "calculate", "a": "revenue", "op": "-", "b": "cost", "as": "profit"}` adds a column per row; `op` is `+`, `-`, `*` or `/`, and `"value": 1000` replaces `b` with a constant (`"a": "revenue", "op": "/", "value": 1000, "as": "revenue"` to show thousands). Chain them: profit first, then `margin` = profit / revenue (write it with the `percent` format). Missing values and division by zero give no value. See `recipes/calculated-field.json`.
+
 **Keep some rows, rank them**: `{"type": "filter", "field": "year", "value": 2024}` keeps the rows that pass (`op`: `==` default, `!=`, `<`, `<=`, `>`, `>=` with a number, text or a date like "2024-03-01"; `in` / `notIn` with a list; `valid` drops rows without a value). Several filters all apply. `{"type": "sort", "field": "revenue", "order": "desc", "limit": 10}` orders the rows and keeps the top 10; add `"group": "region"` for the top N of each region. Bars on a band scale follow row order, so this ranks them. After `aggregate`, use its own `sort` / `limit`. See `recipes/top-n.json`.
 
 **Series in columns (a wide table)**: when the data has one column per series (`month, Online, Retail, Partners`), add `{"type": "fold", "fields": ["Online", "Retail", "Partners"], "key": "channel", "value": "revenue"}` first in `transforms`: each row becomes one row per field, with the column name in `channel` and its number in `revenue`. Then color, stack, dodge or aggregate by `channel` as with long data. Do not reshape the data by hand. See `recipes/wide-table.json`.
@@ -135,6 +137,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | Parts of a whole per category | `recipes/stacked-bar.json` |
 | Compare categories side by side within each group | `recipes/grouped-bar.json` |
 | The top N items (of one year, of each region), ranked | `recipes/top-n.json` |
+| A number computed from the columns (profit from revenue and cost, a margin) | `recipes/calculated-field.json` |
 | Rank categories without the visual weight of full bars | `recipes/dotplot.json` |
 | Spread and outliers of raw samples per category | `recipes/boxplot.json` |
 | Trends of several series, with zoom | `recipes/lines-by-series.json` |

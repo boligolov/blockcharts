@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-41 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+42 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.decimate`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -108,6 +108,18 @@ Version 2, 2.7 KB. Counts the values of `field` in equal-width bins with round e
 | `extent` | list |  | [min, max] to bin; values outside are ignored. Default: the range of the data. |
 | `group` | field |  | Count separately for every value of this field. |
 | `as` | list |  | Names of the three new columns: [start, end, count]. |
+
+## transform.calculate
+
+Version 1, 1.4 KB. A new column `as` from two numbers of each row: field `a` and field `b` (or a constant `value`), joined by `op` (+, -, *, /). A margin is profit / revenue; a gap is actual - plan; a price with tax is net * 1.2. A row where either side is not a number, or the division is by zero, gets NaN (drawn as missing). Rows and the other columns stay as they are; the new column can be used by any transform after it. `as` may be `a` or `b` itself to replace that column (revenue / 1000 in thousands); any other existing column is an error.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `a` | field, **required** |  | Numeric field on the left. |
+| `op` | one of `+`, `-`, `*`, `/`, **required** |  | + \| - \| * \| /. |
+| `b` | field |  | Numeric field on the right; or give `value`. |
+| `value` | number |  | A constant on the right instead of a field. |
+| `as` | string, **required** |  | Name of the new column. |
 
 ## transform.decimate
 
