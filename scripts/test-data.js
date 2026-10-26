@@ -301,4 +301,22 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     assert(/larger than 64 MB/.test(host.children[0].text), host.children[0].text);
     logged.error.length = 0;
   });
+
+  test('binary columns: the JSON around them and the columns share one budget', async () => {
+    // about 41 MB of JSON and 33 MB of columns: each under 64 MB, together over it
+    const n = 1024 * 1024;
+    const columns = { name: new Array(n).fill('x'.repeat(36)) };
+    const zeros = zlib.gzipSync(Buffer.alloc(n * 8)).toString('base64');
+    for (const c of ['a', 'b', 'c', 'd']) columns[c] = { dtype: 'float64', encoding: 'gzip+base64', data: zeros };
+    const json = Buffer.from(JSON.stringify({ columns }));
+    assert(json.length > 38 * n && json.length < 64 * n, 'the JSON alone fits: ' + json.length);
+    logged.error.length = 0;
+    BC.data('shared-bomb', { encoding: 'gzip+base64', data: zlib.gzipSync(json).toString('base64') });
+    await BC.ready();
+    const host = new FakeNode('div');
+    const h = BC.chart(host, line('shared-bomb'));
+    await h.ready;
+    assert(/larger than 64 MB/.test(host.children[0].text), host.children[0].text);
+    logged.error.length = 0;
+  });
 };

@@ -18,12 +18,11 @@
 
   const pad2 = (n: number) => (n < 10 ? '0' : '') + n;
 
-  /** Numbers are epoch milliseconds; strings are parsed as ISO dates (date-only = UTC midnight). */
+  /** Numbers are epoch milliseconds (the common case, read here without a call); strings and Dates are read by BC.time:
+   *  ISO dates and times, UTC unless they name an offset. */
   function toMs(v: unknown): number {
     if (typeof v === 'number') return Math.abs(v) <= MAX_MS ? v : NaN;
-    if (typeof v === 'string') return Date.parse(v);
-    if (v && typeof (v as Date).getTime === 'function') return (v as Date).getTime();
-    return NaN;
+    return BC.time(v);
   }
 
   function niceYears(span: number, count: number): number {
@@ -77,8 +76,8 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'time',
-    version: 2,
-    doc: 'Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates. Ticks snap to calendar units (seconds … years). Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.',
+    version: 3,
+    doc: 'Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years). Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.',
     params: {
       padding: { kind: 'number', default: 0, doc: 'Extra room around the data extent, as a fraction of its span.' },
     },

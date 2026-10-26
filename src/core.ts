@@ -24,7 +24,8 @@
   const pending = new Map<string, Promise<void>>();
   const failed = new Map<string, string>();
   const fns = new Map<string, (...args: any[]) => unknown>();
-  /** Decoded size limit: a few KB of gzip can expand to gigabytes, and the page would freeze or crash. */
+  /** Decoded size limit of one dataset, everything in it together (its JSON and its binary columns): a few KB of gzip can
+   *  expand to gigabytes, and the page would freeze or crash. */
   const MAX_DECODED_BYTES = 64 * 1024 * 1024;
 
   // ───────────────────────── registry ─────────────────────────
@@ -99,7 +100,8 @@
     return out;
   } : undefined)!;
 
-  const gunzip = (DECODE ? async function gunzip(bytes: Uint8Array, limit: number = MAX_DECODED_BYTES): Promise<Uint8Array> {
+  /** `limit` is what is left of the dataset's MAX_DECODED_BYTES. */
+  const gunzip = (DECODE ? async function gunzip(bytes: Uint8Array, limit: number): Promise<Uint8Array> {
     const DS = (globalThis as any).DecompressionStream;
     if (typeof DS !== 'function' || typeof Blob !== 'function') {
       throw new Error('this browser cannot decompress gzip data (no DecompressionStream); store the dataset as plain rows or "base64"');
@@ -170,7 +172,7 @@
     if (bytes.length % t.size !== 0) throw new Error(`column "${name}": ${bytes.length} bytes is not a whole number of ${col.dtype} values`);
     const n = bytes.length / t.size;
     budget.left -= n * 8;
-    if (budget.left < 0) throw new Error(`the decoded columns are larger than ${MAX_DECODED_BYTES / 1024 / 1024} MB, refusing to unpack them`);
+    if (budget.left < 0) throw new Error(`the decoded data is larger than ${MAX_DECODED_BYTES / 1024 / 1024} MB, refusing to unpack it`);
     const out = new Float64Array(n);
     if (LITTLE_ENDIAN) {
       // a view needs an aligned buffer; the bytes may sit anywhere inside a larger one
@@ -185,23 +187,25 @@
   } : undefined)!;
 
   /** Replaces the binary columns of a { columns } dataset with Float64Arrays. */
-  const withBinaryColumns = (DECODE ? async function withBinaryColumns(json: unknown): Promise<unknown> {
+  const withBinaryColumns = (DECODE ? async function withBinaryColumns(json: unknown, budget: { left: number }): Promise<unknown> {
     if (!hasBinaryColumns(json)) return json;
     const source = (json as { columns: Record<string, unknown> }).columns;
-    const budget = { left: MAX_DECODED_BYTES };
     const columns: Record<string, unknown> = {};
     for (const k of Object.keys(source)) columns[k] = isBinaryColumn(source[k]) ? await decodeBinaryColumn(k, source[k] as BC.BinaryColumn, budget) : source[k];
     return { columns };
   } : undefined)!;
 
   const decodeDataset = (DECODE ? async function decodeDataset(input: BC.EncodedDataset | { columns: Record<string, unknown> }): Promise<BC.Table> {
-    if (!isEncoded(input)) return toTable((await withBinaryColumns(input)) as BC.DatasetInput);
+    const budget = { left: MAX_DECODED_BYTES };
+    if (!isEncoded(input)) return toTable((await withBinaryColumns(input, budget)) as BC.DatasetInput);
     if (typeof input.data !== 'string') throw new Error('an encoded dataset needs a "data" string');
     if (input.encoding !== 'base64' && input.encoding !== 'gzip+base64') {
       throw new Error(`unknown encoding "${input.encoding}" (use "base64" or "gzip+base64")`);
     }
     let bytes = fromBase64(input.data);
-    if (input.encoding === 'gzip+base64') bytes = await gunzip(bytes);
+    if (input.encoding === 'gzip+base64') bytes = await gunzip(bytes, budget.left);
+    // the JSON and the binary columns inside it share one limit
+    budget.left -= bytes.length;
     let json: unknown;
     try {
       json = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -209,7 +213,7 @@
       throw new Error('the decoded data is not UTF-8 JSON: ' + (e instanceof Error ? e.message : String(e)));
     }
     if (isEncoded(json)) throw new Error('an encoded dataset cannot contain another encoded dataset');
-    return toTable((await withBinaryColumns(json)) as BC.DatasetInput);
+    return toTable((await withBinaryColumns(json, budget)) as BC.DatasetInput);
   } : undefined)!;
 
   function data(name: string, input: BC.DatasetInput): void {
@@ -273,6 +277,17 @@
     return Array.isArray(r) ? r : [];
   }
 
+  /** What is wrong with the dataset a spec names, or null. Also in a page composed without CHECKS: the composer has seen
+   *  the data, but a browser can still fail to decode it (no DecompressionStream), and the page has to say why. */
+  function dataProblem(spec: BC.ChartSpec): string | null {
+    const name = spec && typeof spec === 'object' ? spec.data : undefined;
+    if (typeof name !== 'string') return 'data must be the name of a dataset';
+    if (pending.has(name)) return `dataset "${name}" is still being decoded (await BC.ready())`;
+    if (failed.has(name)) return `dataset "${name}" could not be loaded: ${failed.get(name)}`;
+    if (!lake.has(name)) return `dataset "${name}" is not in the data lake`;
+    return null;
+  }
+
   const needs = (CHECKS ? function needs(spec: BC.ChartSpec): BC.BlockName[] {
     const out: BC.BlockName[] = [];
     const add = (role: BC.Role, s: unknown) => {
@@ -304,10 +319,8 @@
     }
 
     const table = typeof spec.data === 'string' && !pending.has(spec.data) ? lake.get(spec.data) : undefined;
-    if (typeof spec.data !== 'string') err('data', 'data must be the name of a dataset');
-    else if (pending.has(spec.data)) err('data', `dataset "${spec.data}" is still being decoded (await BC.ready())`);
-    else if (failed.has(spec.data)) err('data', `dataset "${spec.data}" could not be loaded: ${failed.get(spec.data)}`);
-    else if (!table) err('data', `dataset "${spec.data}" is not in the data lake`);
+    const problem = dataProblem(spec);
+    if (problem) err('data', problem);
     // Transforms add columns. Each declares them through `outputs`; one that does not makes the field list
     // unknowable before it runs, and field checks are skipped rather than guessed.
     // `stages[i]` = the columns that exist before transform i, and the last one after all of them; undefined = unknown.
@@ -588,6 +601,8 @@
     const channelCache = new Map<BC.MarkSpec, Record<string, BC.ChannelData>>();
     const tickCache = new Map<string, BC.Tick[]>();
     const rowsCache = new Map<BC.MarkSpec, { from: number; to: number }>();
+    /** Series per mark, for the xs they were split by: render and every pick of the frame ask for the same ones. */
+    const seriesCache = new Map<BC.MarkSpec, { xs: ArrayLike<number>; out: { key: unknown; rows: number[] }[] }>();
     const markDef = (m: BC.MarkSpec) => registry.get(`mark.${m.type}`) as BC.MarkDef;
     const view: Record<string, unknown[]> = {};
     const applyView = () => {
@@ -598,6 +613,7 @@
       channelCache.clear();
       tickCache.clear();
       rowsCache.clear();
+      seriesCache.clear();
     };
 
     for (const name of Object.keys(scaleSpecs)) {
@@ -763,6 +779,8 @@
         return r;
       },
       series(mark, xs) {
+        const known = seriesCache.get(mark);
+        if (known && known.xs === xs) return known.out;
         const colorCh = mark.color !== undefined ? ctx.channel(mark, 'color') : null;
         const field = typeof mark.group === 'string' ? mark.group : colorCh && colorCh.field;
         const groupCol = field ? table.columns[field] : undefined;
@@ -788,6 +806,7 @@
           if (!sorted) rows.sort((a, b) => (xs[a] !== xs[a] ? (xs[b] !== xs[b] ? 0 : 1) : xs[b] !== xs[b] ? -1 : xs[a] - xs[b]));
           out.push({ key, rows });
         });
+        seriesCache.set(mark, { xs, out });
         return out;
       },
       color: colorAt,
@@ -850,6 +869,7 @@
     channelCache.clear();
     tickCache.clear();
     rowsCache.clear();
+    seriesCache.clear();
 
     // 5 + 6: ticks are computed lazily through ctx.ticks; marks and guides emit primitives
     let list!: BC.DisplayList;
@@ -870,6 +890,7 @@
       channelCache.clear();
       tickCache.clear();
       rowsCache.clear();
+      seriesCache.clear();
       const layers: Record<BC.LayerName, BC.Prim[]> = { grid: [], marks: [], axes: [], overlay: [] };
       spec.marks.forEach((m, i) => {
         try {
@@ -905,7 +926,7 @@
     const rendered = renderer.render(list, host);
 
     // view changes: merged per frame; only stages 5-7 rerun
-    let pending = false;
+    let redrawQueued = false;
     const setView = (name: string, domain: unknown[] | null) => {
       if (!scales[name]) {
         console.warn(`[blockcharts] setView: unknown scale "${name}"`);
@@ -913,10 +934,10 @@
       }
       if (domain) view[name] = domain;
       else delete view[name];
-      if (pending) return;
-      pending = true;
+      if (redrawQueued) return;
+      redrawQueued = true;
       nextFrame(() => {
-        pending = false;
+        redrawQueued = false;
         if (disposed) return;
         try {
           applyView();
@@ -1054,6 +1075,13 @@
     host.appendChild(box);
   }
 
+  /** What a core without CHECKS still tells: a spec that is not one, and data the browser could not load. */
+  function leanChecks(spec: BC.ChartSpec): BC.Diagnostic[] {
+    if (!spec || typeof spec !== 'object') return [{ level: 'error', path: '', message: 'the spec must be an object' }];
+    const problem = dataProblem(spec);
+    return problem ? [{ level: 'error', path: 'data', message: problem }] : [];
+  }
+
   /** Narrowest width a chart is laid out at, px: below it, it scales down as a drawing. */
   const MIN_LAYOUT_WIDTH = 200;
 
@@ -1093,7 +1121,7 @@
     function start(mine: number): void {
       teardown();
       // a dataset that is still being decoded: show a placeholder and build when it has settled
-      const wait = typeof current.data === 'string' ? pending.get(current.data) : undefined;
+      const wait = current && typeof current.data === 'string' ? pending.get(current.data) : undefined;
       if (wait) {
         showLoading();
         wait.then(() => {
@@ -1101,7 +1129,7 @@
         });
         return;
       }
-      checks = CHECKS ? validate(current) : [];
+      checks = CHECKS ? validate(current) : leanChecks(current);
       const carried = keptView;
       keptView = null;
       if (!checks.some((d) => d.level === 'error')) {
@@ -1125,17 +1153,18 @@
 
     /** The width to lay the chart out at: the container's, when it is narrower than the chart's size; else null. */
     const widthFor = (s: BC.ChartSpec): number | null => {
-      if (!s || s.responsive === false) return null;
+      if (!s || typeof s !== 'object' || s.responsive === false) return null;
       const w = (host as { clientWidth?: unknown }).clientWidth;
       const design = Array.isArray(s.size) && typeof s.size[0] === 'number' ? s.size[0] : 640;
       if (typeof w !== 'number' || !isFinite(w) || w <= 0 || w >= design - 1) return null;
       return Math.max(MIN_LAYOUT_WIDTH, Math.round(w));
     };
-    // relayout when the container's width changes (a phone turned, a window resized), keeping the zoom
+    // relayout when the container's width changes (a phone turned, a window resized), keeping the zoom. Watched whatever
+    // the spec says: an update() may turn `responsive` on or off, and widthFor reads the spec of the moment.
     const G = globalThis as { ResizeObserver?: new (cb: () => void) => { observe(el: Element): void; disconnect(): void } };
     let observer: { disconnect(): void } | null = null;
     let queued = false;
-    if (typeof G.ResizeObserver === 'function' && spec.responsive !== false) {
+    if (typeof G.ResizeObserver === 'function') {
       const ro = new G.ResizeObserver(() => {
         if (queued || destroyed) return;
         queued = true;
@@ -1188,6 +1217,8 @@
   // ───────────────────────── mount ─────────────────────────
 
   const mounted = new WeakMap<Element, BC.ChartHandle>();
+  /** Elements mount() has drawn a chart in. */
+  const hosts = new WeakSet<Element>();
 
   function mount(root?: ParentNode): BC.ChartHandle[] {
     const scope: ParentNode = root || document;
@@ -1212,18 +1243,57 @@
         console.error('[blockcharts] chart spec is not valid JSON:', e);
         return;
       }
-      let host = spec && spec.id ? doc.getElementById(spec.id) : null;
+      const id = spec && typeof spec === 'object' && typeof spec.id === 'string' && spec.id ? spec.id : null;
+      let host = id ? doc.getElementById(id) : null;
+      // two specs with one id would draw into one element, the second wiping out the first: the second gets its own
+      if (host && hosts.has(host)) {
+        console.error(`[blockcharts] chart id "${id}" is used by another chart on the page; this one is drawn where its spec is`);
+        host = null;
+      } else if (host && /^script$/i.test(host.tagName || '')) {
+        host = null; // an id that names a script (the data, a spec) is no place to draw in
+      }
       if (!host) {
         host = doc.createElement('div');
-        if (spec && spec.id) host.id = spec.id;
+        if (id && !doc.getElementById(id)) host.id = id;
         host.className = 'bc-chart';
         if (el.parentNode) el.parentNode.insertBefore(host, el.nextSibling);
       }
-      const handle = chart(host, spec);
-      mounted.set(el, handle);
-      handles.push(handle);
+      // one chart that cannot be drawn never stops the others
+      try {
+        const handle = chart(host, spec);
+        hosts.add(host);
+        mounted.set(el, handle);
+        handles.push(handle);
+      } catch (e) {
+        console.error('[blockcharts] chart could not be mounted:', e);
+      }
     });
     return handles;
+  }
+
+  // ───────────────────────── times ─────────────────────────
+
+  /** The last moment a Date can hold, ms either side of 1970. A number past it is not a time (nanoseconds, say). */
+  const MAX_MS = 8.64e15;
+  // A date with a time of day: ECMAScript reads one without an offset as the reader's local time, unlike a plain date,
+  // which is UTC. Here both are UTC, so a report shows every reader the same hours. A space instead of the "T" (what CSV
+  // exports write) is not ECMAScript's format at all, and browsers disagree about it; it is read like the "T".
+  const DATE_TIME = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2}(?:[.,]\d+)?)?)\s*(Z|[+-]\d{2}(?::?\d{2})?)?$/i;
+
+  function time(v: unknown): number {
+    if (typeof v === 'number') return Math.abs(v) <= MAX_MS ? v : NaN;
+    if (typeof v === 'string') {
+      const s = v.trim();
+      const m = DATE_TIME.exec(s);
+      if (!m) return Date.parse(s);
+      const zone = m[3] === undefined ? 'Z' : m[3].length === 3 ? m[3] + ':00' : m[3].length === 5 ? m[3].slice(0, 3) + ':' + m[3].slice(3) : m[3];
+      return Date.parse(`${m[1]}T${m[2].replace(',', '.')}${zone.toUpperCase()}`);
+    }
+    if (v && typeof (v as Date).getTime === 'function') {
+      const ms = (v as Date).getTime();
+      return typeof ms === 'number' ? ms : NaN;
+    }
+    return NaN;
   }
 
   // ───────────────────────── formatting ─────────────────────────
@@ -1278,7 +1348,7 @@
       if (nf) {
         text = typeof v === 'number' && isFinite(v) ? nf.format(v) : String(v);
       } else {
-        const ms = typeof v === 'number' ? v : typeof v === 'string' ? Date.parse(v) : v && typeof (v as Date).getTime === 'function' ? (v as Date).getTime() : NaN;
+        const ms = time(v);
         text = isFinite(ms) ? (quarter ? 'Q' + (Math.floor(new Date(ms).getUTCMonth() / 3) + 1) + ' ' : '') + (df as Intl.DateTimeFormat).format(ms) : String(v);
       }
       return (prefix || '') + text + (suffix || '');
@@ -1298,6 +1368,7 @@
     defineFn: (name, fn) => { if (typeof fn !== 'function') throw new Error('BC.defineFn: ' + name + ' is not a function'); fns.set(name, fn); },
     getFn: (name) => fns.get(name),
     formatter,
+    time,
     // without CHECKS they are not there at all: a page script that calls them fails loudly instead of being told "no problems"
     needs,
     validate,

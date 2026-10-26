@@ -12,8 +12,15 @@
    *  their domain order. */
   function xsOf(spec: BC.MarkSpec, ctx: BC.ChartCtx): ArrayLike<number> {
     const cx = ctx.channel(spec, 'x');
-    return cx.half ? Array.from(cx.mapped, (v: number) => v + cx.half) : cx.mapped;
+    if (!cx.half) return cx.mapped;
+    // the same array for as long as the channel lasts (one redraw), so the series of the line are split only once
+    let xs = centered.get(cx);
+    if (!xs) centered.set(cx, (xs = Array.from(cx.mapped, (v: number) => v + cx.half)));
+    return xs;
   }
+  const centered = new WeakMap<BC.ChannelData, ArrayLike<number>>();
+  /** The rows of a series that have a point, per series (kept while the series is): a pointer move asks every frame. */
+  const drawable = new WeakMap<number[], number[]>();
 
   /** The end labels one line mark asks for: one per series, at its last point drawn (inside the plot when zoomed). */
   function endsOf(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number): EndLabel[] {
@@ -60,7 +67,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 11,
+    version: 12,
     requires: ['lib.curve'],
     doc: 'A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.',
     params: {
@@ -142,7 +149,8 @@
       let best: BC.Pick | null = null;
       for (const { rows } of ctx.series(spec, xs)) {
         if (colorCh && !colorCh.mapped[rows[0]]) continue;
-        const pts = rows.filter((i) => isFinite(xs[i]) && isFinite(ys[i]));
+        let pts = drawable.get(rows);
+        if (!pts) drawable.set(rows, (pts = rows.filter((i) => isFinite(xs[i]) && isFinite(ys[i]))));
         if (!pts.length || px < xs[pts[0]] - REACH || px > xs[pts[pts.length - 1]] + REACH) continue;
         // last vertex at or left of the pointer (binary search: pts are in x order)
         let lo = 0;

@@ -281,7 +281,8 @@ declare namespace BC {
      *  are NaN. */
     rows(mark: MarkSpec): { from: number; to: number };
     /** Rows of a mark split into series — by its `group` param or by the field of its `color` channel; no
-     *  such field = one series — each in x order (rows unsorted by `xs` are sorted). Lines and areas share it. */
+     *  such field = one series — each in x order (rows unsorted by `xs` are sorted). Lines and areas share it. The result
+     *  is kept until the next redraw for the same `xs` (a pointer move asks again on every frame), so it is read-only. */
     series(mark: MarkSpec, xs: ArrayLike<number>): { key: unknown; rows: number[] }[];
     /** Categorical color by index, from the theme (`--bc-c<N>`) with a built-in fallback palette. */
     color(index: number): string;
@@ -520,6 +521,10 @@ declare namespace BC {
     /** A function that writes values as the spec says (numbers, or dates in UTC). Missing values give "". Built once per
      *  spec and cached. An invalid spec throws an Error that says what is wrong. `kind` fixes number or date. */
     formatter(spec: string | FormatSpec, kind?: 'number' | 'date'): (value: unknown) => string;
+    /** The one way blockcharts reads a time: epoch milliseconds, a Date, or an ISO string, as epoch ms; NaN when it is not
+     *  one (a number past the range of dates is not a time). A string without an offset ("2024-03-01", "2024-03-01T09:00",
+     *  "2024-03-01 09:00") is UTC, like everything else, so every reader sees the same hours whatever their time zone. */
+    time(value: unknown): number;
     getFn(name: string): ((...args: any[]) => unknown) | undefined;
 
     /** Direct block names a spec uses (e.g. ["scale.time","mark.line","guide.axis","renderer.svg"]).

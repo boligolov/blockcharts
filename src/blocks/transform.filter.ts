@@ -14,7 +14,8 @@
     if (typeof v === 'number') return { kind: 'number', at: v };
     if (v instanceof Date) return { kind: 'date', at: v.getTime() };
     if (typeof v === 'string' && ISO.test(v)) {
-      const ms = Date.parse(v.length === 7 ? v + '-01' : v);
+      // BC.time: a time without an offset is UTC, as on a time scale, so "> 2024-03-01T09:00" means the same hour everywhere
+      const ms = BC.time(v.length === 7 ? v + '-01' : v);
       if (isFinite(ms)) return { kind: 'date', at: ms };
     }
     return typeof v === 'string' ? { kind: 'text', at: v } : null;
@@ -59,7 +60,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'filter',
-    version: 1,
+    version: 2,
     doc: 'Keeps the rows whose `field` passes a test and drops the others: `==`, `!=`, `<`, `<=`, `>`, `>=` against `value` (a number, a string, or a date as "2024-03-01"), `in` / `notIn` a list of values, `valid` (the field has a value). Numbers compare with numbers, dates with dates (a Date or an ISO date string), text with text; a missing value never passes. Several filters in a row all apply. Rows keep their order; columns stay as they are.',
     params: {
       field: { kind: 'field', required: true, doc: 'Field to test.' },

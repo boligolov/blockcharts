@@ -158,7 +158,7 @@ test('canvas: repaints when the container is resized or the color scheme changes
   w.doc.documentElement = new El('html', w.doc);
   const { host, h, ctx } = draw(w, bars({ responsive: false }));
   const canvas = host.children[0];
-  assert.strictEqual(observed, 1, 'the renderer watches the width (the core does not, with responsive: false)');
+  assert.strictEqual(observed, 2, 'the renderer watches the width, and so does the core, which an update() may make responsive again');
   assert.strictEqual(canvas.width, 300);
   const frames = () => ops(ctx.calls, 'clearRect').length;
   const before = frames();
@@ -176,7 +176,7 @@ test('canvas: repaints when the container is resized or the color scheme changes
 
   h.destroy();
   assert.strictEqual(host.children.length, 0, 'the canvas is gone');
-  assert.strictEqual(disconnected, 1);
+  assert.strictEqual(disconnected, 2, 'both observers stop');
   assert.strictEqual(mutationOff, 1);
   assert.strictEqual(media.listeners.length, 0);
   const n = frames();

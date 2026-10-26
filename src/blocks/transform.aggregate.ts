@@ -51,7 +51,8 @@
 
   /** The start of the calendar unit (UTC) a time falls in, as an ISO string; null when it is not a time. */
   function bucket(v: unknown, unit: string): string | null {
-    const ms = typeof v === 'number' ? v : typeof v === 'string' ? Date.parse(v) : v && typeof (v as Date).getTime === 'function' ? (v as Date).getTime() : NaN;
+    // read as everything else reads times: "2024-03-01T09:00" is 09:00 UTC, the same hour for every reader
+    const ms = BC.time(v);
     if (!isFinite(ms)) return null;
     const d = new Date(ms);
     const y = d.getUTCFullYear();

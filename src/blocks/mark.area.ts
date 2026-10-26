@@ -11,6 +11,10 @@
     return isFinite(px) ? px : (scale(Math.min(...(scale.domain() as number[]))) as number);
   }
 
+  const centered = new WeakMap<BC.ChannelData, ArrayLike<number>>();
+  /** The rows of a series that have both edges, per series (kept while the series is): a pointer move asks every frame. */
+  const drawable = new WeakMap<number[], number[]>();
+
   /** Per-row edges of the band: top = y, bottom = y2 (or the baseline). */
   function edges(spec: BC.MarkSpec, ctx: BC.ChartCtx) {
     const y = ctx.channel(spec, 'y');
@@ -20,8 +24,11 @@
     const basePx = y2.raw.length ? NaN : spec.toBottom === true ? ctx.plot.y + ctx.plot.h : y.scale ? baseAt(y.scale, baseline) : NaN;
     // on a band scale the points sit in the middle of their categories, as on mark.line
     const cx = ctx.channel(spec, 'x');
+    let xs: ArrayLike<number> | undefined = cx.half ? centered.get(cx) : cx.mapped;
+    // the same array for as long as the channel lasts (one redraw), so the series of the area are split only once
+    if (!xs) centered.set(cx, (xs = Array.from(cx.mapped, (v: number) => v + cx.half)));
     return {
-      xs: cx.half ? Array.from(cx.mapped, (v: number) => v + cx.half) : cx.mapped,
+      xs,
       top: y.mapped,
       bottom: (i: number): number => (y2.raw.length ? y2.mapped[i] : basePx),
     };
@@ -30,7 +37,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 7,
+    version: 8,
     requires: ['lib.curve'],
     doc: 'A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.',
     params: {
@@ -90,7 +97,8 @@
       let best: BC.Pick | null = null;
       for (const { rows } of ctx.series(spec, xs)) {
         if (colorCh && !colorCh.mapped[rows[0]]) continue;
-        const pts = rows.filter((i) => isFinite(xs[i]) && isFinite(top[i]) && isFinite(bottom(i)));
+        let pts = drawable.get(rows);
+        if (!pts) drawable.set(rows, (pts = rows.filter((i) => isFinite(xs[i]) && isFinite(top[i]) && isFinite(bottom(i)))));
         if (!pts.length || px < xs[pts[0]] || px > xs[pts[pts.length - 1]]) continue;
         let lo = 0;
         let hi = pts.length - 1;
