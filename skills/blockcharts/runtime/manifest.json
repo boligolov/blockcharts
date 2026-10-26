@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 26359,
+    "bytes": 26365,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 20803,
+        "bytes": 20809,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 17818,
+        "bytes": 17824,
         "off": [
           "CHECKS",
           "DECODE"
@@ -22,6 +22,16 @@
     }
   },
   "blocks": {
+    "lib.curve": {
+      "file": "blocks/lib.curve.js",
+      "bytes": 1040,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "lib.curve"
+      ],
+      "doc": "The path of a line through points, shared by mark.line and mark.area: straight segments, or a monotone cubic that passes through every point and never overshoots between two of them. `through(px, py, smooth, back)` returns the path commands after the first point; `back` walks the points from the last to the first. A spec never names it."
+    },
     "scale.band": {
       "file": "blocks/scale.band.js",
       "bytes": 1216,
@@ -564,10 +574,13 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 3186,
-      "version": 4,
-      "requires": [],
+      "bytes": 2361,
+      "version": 5,
+      "requires": [
+        "lib.curve"
+      ],
       "closure": [
+        "lib.curve",
         "mark.area"
       ],
       "params": {
@@ -740,10 +753,13 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 4387,
-      "version": 8,
-      "requires": [],
+      "bytes": 3562,
+      "version": 9,
+      "requires": [
+        "lib.curve"
+      ],
       "closure": [
+        "lib.curve",
         "mark.line"
       ],
       "params": {

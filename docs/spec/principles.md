@@ -1,6 +1,6 @@
 # blockcharts principles
 
-**Version 1.0.** blockcharts is a chart library cut into atoms. A page never carries the library: it carries
+**Version 1.1.** blockcharts is a chart library cut into atoms. A page never carries the library: it carries
 exactly the blocks its own charts need to be drawn, and nothing more. These principles say how that works
 and what follows from it, for a person writing a report, an agent writing one for them, and anyone writing
 a block or a composer.
@@ -40,19 +40,21 @@ named `<role>.<type>`:
 
 | role | job | examples |
 |---|---|---|
-| `scale` | maps values to positions or colors | `linear`, `time`, `band`, `color`, `sequential` |
-| `transform` | reshapes rows before drawing | `aggregate`, `stack`, `bin`, `quartiles`, `decimate`, `waterfall`, `funnel`, `treemap` |
+| `scale` | maps values to positions, colors or sizes | `linear`, `time`, `band`, `color`, `sequential`, `size` |
+| `transform` | reshapes rows before drawing | `aggregate`, `stack`, `bin`, `quartiles`, `decimate`, `window`, `waterfall`, `funnel`, `treemap` |
 | `mark` | draws rows | `rect`, `line`, `area`, `point`, `text`, `arc`, `boxplot`, `rule` |
 | `guide` | explains a scale or the chart | `axis`, `grid`, `legend`, `kpi` |
 | `interaction` | lets the reader explore | `tooltip`, `crosshair`, `zoom`, `brush`, `legend-filter`, `zoom-controls`, `animate` |
 | `renderer` | puts the picture on screen | `svg`, `canvas` |
+| `lib` | code other blocks share; a spec never names it | `curve` (the path of a line, for `line` and `area`) |
 
 A chart type is a **composition**: a bar chart is `band + linear + rect`, a heatmap `band + band + rect +
 sequential`, a histogram `bin + rect`, a pie `arc + color`, a waterfall `waterfall + rect`, a bullet chart
 `rect + rect + rule`, a KPI tile `kpi` over a `line`. A new kind of chart is usually a new recipe,
 not new code; when it does need code, that is one new block, and only pages that use it pay for it.
 
-Blocks talk to each other only through the core. Every block declares what it `requires`, its parameters
+Blocks talk to each other only through the core. Code two blocks would otherwise both carry is a `lib` block: they list
+it in `requires` and get it from the core, so a page that uses both carries it once. Every block declares what it `requires`, its parameters
 and its channels. Defining a block that is already there changes nothing (the first definition stays), so
 bundles can overlap without harm.
 

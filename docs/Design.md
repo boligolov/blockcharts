@@ -838,6 +838,12 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   composed with errors to show, and `compress: "auto"` now gzips only when that saves more than the decoder costs.
   The 24 recipes are 13.5 % smaller (1423 KB -> 1231 KB); every one draws in Chrome on its lean core. Kits and the
   loader keep the full core: a hand-written page needs the checks.
+- **`lib` blocks** (principles 1.1): code two blocks would otherwise both carry. A seventh role, never named by a spec
+  (`needs()` never asks for it, validation finds no `mark.curve`); a block lists it in `requires`, the manifest closure
+  brings it along, and the block reaches it through the core (`BC.get('lib.curve').exports`). Scripts put `lib` first
+  on a page. The first is `lib.curve` (1.0 KB), the straight or monotone path that `mark.line` v9 and `mark.area` v5
+  each carried (0.8 KB apiece): a page with a line alone pays 0.2 KB more, one with a line and an area 0.6 KB less, and
+  the curve is written once. All 24 recipes draw byte-identical marks before and after (compared in Chrome).
 
 ## Next steps
 

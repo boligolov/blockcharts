@@ -5,7 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const ROLES = ['scale', 'transform', 'mark', 'guide', 'interaction', 'renderer'];
+// lib (code other blocks share) first, so it is on a page before the blocks that use it
+const ROLES = ['lib', 'scale', 'transform', 'mark', 'guide', 'interaction', 'renderer'];
 const byRoleThenName = (a, b) => ROLES.indexOf(a.split('.')[0]) - ROLES.indexOf(b.split('.')[0]) || (a < b ? -1 : a > b ? 1 : 0);
 // A block is inlined into an HTML <script>; either of these would end the script or start a comment early.
 const UNSAFE_IN_SCRIPT = /<\/script|<!--/i;

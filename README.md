@@ -202,6 +202,7 @@ Scales are declared once and named. Marks read data through channels (`"x": "reg
 
 | Role | Blocks |
 | --- | --- |
+| lib | `curve` (code other blocks share; a spec never names it) |
 | scale | `linear`, `time`, `band`, `color`, `sequential`, `size` |
 | transform | `stack`, `bin`, `decimate`, `aggregate`, `quartiles`, `waterfall`, `funnel`, `treemap`, `window` |
 | mark | `point`, `line`, `rect`, `area`, `text`, `arc`, `boxplot`, `rule` |

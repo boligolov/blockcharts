@@ -318,7 +318,7 @@ declare namespace BC {
 
   // ───────────────────────── blocks ─────────────────────────
 
-  type Role = 'scale' | 'transform' | 'mark' | 'guide' | 'interaction' | 'renderer';
+  type Role = 'lib' | 'scale' | 'transform' | 'mark' | 'guide' | 'interaction' | 'renderer';
   /** `<role>.<type>`, e.g. "scale.linear", "mark.rect". Derived, never written by hand. */
   type BlockName = `${Role}.${string}`;
 
@@ -451,7 +451,14 @@ declare namespace BC {
     render(list: DisplayList, host: HTMLElement): Rendered;
   }
 
-  type BlockDef = ScaleDef | TransformDef | MarkDef | GuideDef | InteractionDef | RendererDef;
+  /** Code that other blocks share (a curve, say). A spec never names it; a block that uses it lists it in `requires`
+   *  and reaches it through the core: (BC.get('lib.curve') as LibDef).exports. */
+  interface LibDef extends BlockBase {
+    role: 'lib';
+    exports: Readonly<Record<string, unknown>>;
+  }
+
+  type BlockDef = LibDef | ScaleDef | TransformDef | MarkDef | GuideDef | InteractionDef | RendererDef;
 
   /** How to write a number or a date: a preset name ("percent", "compact", "integer", "year", "month", "day", "date",
    *  "datetime"), or an object of Intl.NumberFormat / Intl.DateTimeFormat options plus a few of our own. JSON-friendly on purpose. */

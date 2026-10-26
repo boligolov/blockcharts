@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-36 blocks: `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.funnel`, `transform.quartiles`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+37 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.decimate`, `transform.funnel`, `transform.quartiles`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -28,6 +28,10 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 | guide | `scale` | name of the scale the guide belongs to |
 | guide | `position` | `top`, `right`, `bottom` or `left`; the default follows the scale (height: left, width: bottom) |
 | mark | channels | `"field"`, `{"field": "f", "scale": "s"}` or `{"value": v}`; see each mark |
+
+## lib.curve
+
+Version 1, 1.0 KB. The path of a line through points, shared by mark.line and mark.area: straight segments, or a monotone cubic that passes through every point and never overshoots between two of them. `through(px, py, smooth, back)` returns the path commands after the first point; `back` walks the points from the last to the first. A spec never names it.
 
 ## scale.band
 
@@ -208,7 +212,9 @@ Version 1, 2.9 KB. Pie and donut chart: one slice per row, its angle proportiona
 
 ## mark.area
 
-Version 4, 3.1 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.
+Version 5, 2.3 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.
+
+Needs: `lib.curve`.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -251,7 +257,9 @@ Version 1, 2.6 KB. A box (q1 to q3), a line across it at the median, and whisker
 
 ## mark.line
 
-Version 8, 4.3 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
+Version 9, 3.5 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
+
+Needs: `lib.curve`.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |

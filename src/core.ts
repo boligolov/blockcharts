@@ -13,7 +13,7 @@
     return;
   }
 
-  const ROLES: readonly BC.Role[] = ['scale', 'transform', 'mark', 'guide', 'interaction', 'renderer'];
+  const ROLES: readonly BC.Role[] = ['lib', 'scale', 'transform', 'mark', 'guide', 'interaction', 'renderer'];
   const SIDES = ['top', 'right', 'bottom', 'left'] as const;
   const DEFAULT_PADDING: BC.Insets = { top: 16, right: 16, bottom: 16, left: 16 };
   const TITLE_HEIGHT = 24;

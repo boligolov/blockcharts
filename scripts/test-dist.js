@@ -316,10 +316,31 @@ test('core variants: smaller by what they leave out, and a switch that is missin
   assert(minify('x', coreVariant('x', late, ['CHECKS'])).length > composed.bytes + 4000, 'a switch after a return saves nothing: the test above guards that');
 });
 
+test('lib blocks: line and area share lib.curve, a page without it says so, and a spec cannot name it', () => {
+  const min = JSON.parse(fs.readFileSync(path.join(distDir, 'min', 'manifest.json'), 'utf8'));
+  for (const name of ['mark.line', 'mark.area']) assert(min.blocks[name].closure.includes('lib.curve'), `${name} pulls lib.curve in`);
+  const load = (names) => {
+    const sandbox = { console: { warn() {}, error() {} } };
+    vm.createContext(sandbox);
+    for (const f of [min.core.file].concat(names.map((n) => min.blocks[n].file))) vm.runInContext(fs.readFileSync(path.join(distDir, 'min', f), 'utf8'), sandbox);
+    return sandbox.BC;
+  };
+  const spec = { data: 'd', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 'x', y: 'y' }], renderer: 'svg' };
+  const without = load(['scale.linear', 'mark.line', 'renderer.svg']);
+  without.data('d', [{ x: 1, y: 1 }, { x: 2, y: 3 }]);
+  assert(without.validate(spec).some((d) => d.level === 'error' && /mark\.line requires lib\.curve, which is not loaded/.test(d.message)), JSON.stringify(without.validate(spec)));
+  const withLib = load(['lib.curve', 'scale.linear', 'mark.line', 'renderer.svg']);
+  withLib.data('d', [{ x: 1, y: 1 }, { x: 2, y: 3 }]);
+  assert.strictEqual(JSON.stringify(withLib.validate(spec)), "[]");
+  assert.deepStrictEqual(Array.from(withLib.needs(spec)).filter((n) => n.startsWith('lib.')), [], 'needs() never asks for a lib block itself');
+  const named = withLib.validate({ ...spec, marks: [{ type: 'curve', x: 'x', y: 'y' }] });
+  assert(named.some((d) => d.level === 'error' && /mark\.curve/.test(d.message)), 'a lib block is not a mark');
+});
+
 test('README: the table of blocks lists every block there is, and only those', () => {
   const readme = fs.readFileSync(path.join(repo, 'README.md'), 'utf8');
   const listed = [];
-  for (const m of readme.matchAll(/^\| (scale|transform|mark|guide|interaction|renderer) \| (.+) \|$/gm)) {
+  for (const m of readme.matchAll(/^\| (lib|scale|transform|mark|guide|interaction|renderer) \| (.+) \|$/gm)) {
     for (const t of m[2].matchAll(/`([\w-]+)`/g)) listed.push(m[1] + '.' + t[1]);
   }
   assert.deepStrictEqual(listed.slice().sort(), Object.keys(manifest.blocks).sort());
