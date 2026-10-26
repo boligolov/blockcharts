@@ -31,7 +31,19 @@ cd site && npm run dev                # develop (run npm run build and npm run m
 
 `scripts/site-prebuild.js` writes `public/release/`, `public/examples/`, `public/blockcharts.skill` and
 `src/data/reports.json` (all ignored by git). `scripts/check-site.js` then checks every link, script and anchor,
-and validates every chart on every page against that page's data.
+validates every chart on every page against that page's data, and checks what search engines read (below).
+
+## Search engines and link previews
+
+- Every page has its own title and description (70–200 characters, no markup), a canonical URL on
+  `SITE` (`scripts/site-prebuild.js`), Open Graph and Twitter tags, one h1, and JSON-LD: the project on the
+  landing page, breadcrumbs on the others.
+- `sitemap-index.xml` comes from `@astrojs/sitemap` and lists exactly the indexable pages; `public/robots.txt` names it.
+- A composed report (`examples/<name>.report.html`) is a download: `noindex`, with its example page as canonical.
+- The link-preview image, `public/og.png` (1200×630, committed), is a screenshot of the landing hero in Chrome.
+  Make it again when the hero changes: `npm run site && npm run og`.
+
+All of it is checked by `scripts/check-site.js`.
 
 ## Deploy
 

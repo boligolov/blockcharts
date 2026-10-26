@@ -26,7 +26,7 @@ const embedded = [
 ].join('\n').trimEnd();
 const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : embedded;
 ---
-<Base title={recipe.title} nav="examples" version={release.version} description={recipe.need}>
+<Base title={`${recipe.title}: chart example`} nav="examples" version={release.version} description={`${recipe.need}: a live chart, its JSON spec and a standalone ${kb(reportBytes)} HTML report.`}>
   <p class="muted"><a href={`${base}examples/`}>Examples</a> /</p>
   <h1>{recipe.title}</h1>
   <p class="lead">{recipe.need}.</p>

@@ -271,6 +271,7 @@ ${dataTag({ sales: sales.map((r) => ({ region: r.region, total: r.total })) })}
   pages.push({
     file: 'block.html',
     title: 'Your own block',
+    description: 'Write a chart block of your own: a small script that registers with BC.define, is named by type in the spec, and is carried only by the pages that use it.',
     lead: 'A block is a small classic script that registers itself with BC.define. The built-in ones are made exactly this way, so a block of your own is a first-class part of the chart: the spec names it by type, and only the pages that use it carry it.',
     sections: [
       {
@@ -409,6 +410,7 @@ ${forms.map(([label, value, what]) => `<tr><td>${label}</td><td>${kb(size(value)
   pages.push({
     file: 'canvas.html',
     title: 'Many points: the canvas renderer',
+    description: 'Draw tens of thousands of points: the same chart spec on one canvas instead of an SVG element per mark, with zoom and tooltips as before.',
     lead: 'An SVG chart makes a DOM element for every mark. Fine for thousands, slow for tens of thousands. Add <code>"renderer": "canvas"</code> to the spec and the same chart is drawn on one canvas.',
     sections: [
       {

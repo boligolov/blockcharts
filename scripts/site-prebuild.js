@@ -13,6 +13,15 @@ const { checkSkill, packSkill } = require('./build-skill.js');
 
 const repo = path.join(__dirname, '..');
 const site = path.join(repo, 'site');
+/** Where the site lives: canonical URLs, the sitemap, link previews. */
+const SITE = 'https://blockcharts.online';
+
+/** A composed report is a file to download and open, not a page to find: search engines are sent to its example page. */
+function forDownload(html, name) {
+  const head = '<meta name="robots" content="noindex">\n<link rel="canonical" href="' + SITE + '/examples/' + name + '/">\n';
+  if (html.split('</head>').length !== 2) throw new Error(`report ${name}: no single </head> to put the robots tag before`);
+  return html.replace('</head>', () => head + '</head>');
+}
 
 function prebuild() {
   const distDir = path.join(repo, 'dist');
@@ -36,7 +45,7 @@ function prebuild() {
       const name = f.replace(/\.json$/, '');
       const r = compose({ ...JSON.parse(fs.readFileSync(path.join(recipesDir, f), 'utf8')), baseDir: recipesDir });
       if (r.diagnostics.length) throw new Error(`recipe ${name} has diagnostics: ${JSON.stringify(r.diagnostics)}`);
-      fs.writeFileSync(path.join(reportsDir, `${name}.report.html`), r.html);
+      fs.writeFileSync(path.join(reportsDir, `${name}.report.html`), forDownload(r.html, name));
       sizes[name] = r.bytes;
     }
     fs.mkdirSync(path.join(site, 'src', 'data'), { recursive: true });
@@ -51,7 +60,7 @@ function prebuild() {
   }
 }
 
-module.exports = { prebuild };
+module.exports = { prebuild, forDownload, SITE };
 
 if (require.main === module) {
   try {

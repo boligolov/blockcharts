@@ -13,8 +13,6 @@ and the ways to ship it (composer, kits, loader, npm) serve it.
       `/plugin install blockcharts@blockcharts`) in a fresh Claude Code session, now that `main` is pushed.
 - [ ] **Deploy the site** to blockcharts.online (Cloudflare, see [site/README.md](site/README.md#deploy)), so that
       `blockcharts.online/blockcharts.skill` — the download the README and docs link to — exists.
-- [ ] **A link-preview image** (`og.png`, 1200×630) from a real hero screenshot; `Base.astro` has the Open Graph
-      tags but no image yet.
 
 ## Release
 

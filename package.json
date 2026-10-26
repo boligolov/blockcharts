@@ -59,12 +59,14 @@
     "page": "npm run build && npm run manifest && node scripts/page.js",
     "skill": "npm run build && npm run manifest && node scripts/build-skill.js",
     "release": "npm run build && npm run manifest && node scripts/build-dist.js",
+    "og": "node scripts/og-image.js",
     "site": "npm run build && npm run manifest && npm --prefix site run build && node scripts/check-site.js",
     "prepack": "npm run release"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
     "fflate": "^0.8.3",
+    "playwright-core": "^1.64.1",
     "typescript": "^7.0.2"
   }
 }

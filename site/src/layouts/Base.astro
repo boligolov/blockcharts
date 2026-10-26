@@ -1,7 +1,7 @@
 ---
 import '../styles/site.css';
 import Logo from '../components/Logo.astro';
-import { baseUrl, REPO, repoFile, SITE } from '../lib/site.mjs';
+import { baseUrl, jsonForScript, REPO, repoFile, SITE } from '../lib/site.mjs';
 
 interface Props {
   title: string;
@@ -21,6 +21,44 @@ const links = [
 ];
 const full = title === 'blockcharts' ? 'blockcharts — only the chart code your page needs' : `${title} · blockcharts`;
 const canonical = new URL(Astro.url.pathname, SITE).href;
+const home = new URL(base, SITE).href;
+// the link preview: a screenshot of the landing page (npm run og makes it)
+const image = new URL(`${base}og.png`, SITE).href;
+const imageAlt = 'blockcharts: an executive dashboard of KPI tiles and a revenue trend, drawn by the chart blocks it uses';
+
+// structured data for search engines: what the project is (on the landing page), and where a page sits (on the others)
+const section = Object.fromEntries(links.map(([label, href]) => [href.replace(/\/$/, ''), label]));
+const parts = Astro.url.pathname.slice(base.length).split('/').filter(Boolean);
+const crumbs = [{ name: 'blockcharts', url: home }];
+parts.forEach((p, i) => {
+  const last = i === parts.length - 1;
+  crumbs.push({ name: last ? title : section[p] || p, url: new URL(base + parts.slice(0, i + 1).join('/') + '/', SITE).href });
+});
+const jsonLd = landing
+  ? {
+      '@context': 'https://schema.org',
+      '@graph': [
+        { '@type': 'WebSite', name: 'blockcharts', url: home, description },
+        {
+          '@type': 'SoftwareApplication',
+          name: 'blockcharts',
+          url: home,
+          description,
+          applicationCategory: 'DeveloperApplication',
+          operatingSystem: 'Any: runs in a web browser; the composer needs Node.js 18 or later',
+          softwareVersion: version,
+          license: 'https://opensource.org/licenses/MIT',
+          offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+          image,
+          sameAs: [REPO],
+        },
+      ],
+    }
+  : {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.url })),
+    };
 ---
 <!doctype html>
 <html lang="en">
@@ -36,7 +74,20 @@ const canonical = new URL(Astro.url.pathname, SITE).href;
     <meta property="og:title" content={full} />
     {description && <meta property="og:description" content={description} />}
     <meta property="og:url" content={canonical} />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={imageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={full} />
+    {description && <meta name="twitter:description" content={description} />}
+    <meta name="twitter:image" content={image} />
+    <meta name="twitter:image:alt" content={imageAlt} />
+    <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0c1016" media="(prefers-color-scheme: dark)" />
+    <link rel="sitemap" href={`${base}sitemap-index.xml`} />
+    <script type="application/ld+json" is:inline set:html={jsonForScript(jsonLd)} />
     <script is:inline>
       // the chosen theme is applied before the first paint, so there is no flash
       try { var t = localStorage.getItem('bc-site-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}

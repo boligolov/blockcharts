@@ -77,7 +77,7 @@ const scalesOf = (d) => (d.unscaled ? 'a plain field' : d.scales ? d.scales.join
 const total = Object.keys(manifest.blocks).length;
 const k = (n) => (n / 1024).toFixed(1);
 ---
-<Base title="Blocks" nav="blocks" version={release.version} description="Every block, parameter and channel.">
+<Base title="Chart blocks: parameters, channels and sizes" nav="blocks" version={release.version} description="Every blockcharts block (scales, transforms, marks, axes, legends, interactions, renderers) with its parameters, channels and size in KB, minified and gzipped.">
   <h1>Blocks</h1>
   <p class="lead">{total} blocks in {ROLES.length} roles. This page is generated from the code: a parameter that does not exist here does not exist.</p>
   <p><a href="#sizes">What each block weighs</a> · {ROLES.map((role, i) => <>{i ? ' · ' : ''}<a href={`#${role}`}>{role}</a></>)}</p>

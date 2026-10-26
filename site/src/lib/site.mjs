@@ -87,8 +87,8 @@ export function blocksNeeded(recipe) {
 export const REPO = 'https://github.com/boligolov/blockcharts';
 export const repoFile = (p) => `${REPO}/blob/HEAD/${p}`;
 export const repoTree = (p) => `${REPO}/tree/HEAD/${p}`;
-/** Where the site lives, for canonical URLs and link previews. */
-export const SITE = 'https://blockcharts.online';
+/** Where the site lives, for canonical URLs and link previews (set in scripts/site-prebuild.js). */
+export const { SITE } = require(path.join(repo, 'scripts', 'site-prebuild.js'));
 
 /**
  * The three steps on the landing page, made by the real composer: the blocks a small spec needs, and the error it

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://blockcharts.online/sitemap-index.xml

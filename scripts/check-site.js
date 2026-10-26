@@ -1,9 +1,12 @@
 // Checks the built site (site/dist) without a browser: every link and script points at a file that exists, every #anchor exists,
-// and every chart spec on every page is valid against the data on that page, checked by the real core with the real kit.
+// every chart spec on every page is valid against the data on that page, checked by the real core with the real kit, and
+// every page has what search engines and link previews read (title, description, canonical, image, sitemap).
 //   node scripts/check-site.js [siteDir]      (default site/dist; SITE_BASE as when it was built)
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+
+const { SITE } = require('./site-prebuild.js');
 
 const repo = path.join(__dirname, '..');
 const unescapeHtml = (s) => s.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
@@ -45,6 +48,38 @@ async function checkSite(siteDir, options) {
   };
 
   // the release folder is the real kit: pages are checked against it
+  // what search engines and link previews read: a page is found by its own title and description, under one address;
+  // a composed report is a download, kept out of the index and pointed at its example page
+  const home = SITE + base;
+  const titles = new Map();
+  const indexable = new Set();
+  const attr = (text, re) => { const m = text.match(re); return m ? unescapeHtml(m[1]) : null; };
+  const seo = (rel, text) => {
+    const report = rel.match(/^examples\/([\w-]+)\.report\.html$/);
+    const canonical = attr(text, /<link rel="canonical" href="([^"]*)"/);
+    if (report) {
+      if (!/<meta name="robots" content="noindex">/.test(text)) problems.push(`${rel}: a report without noindex`);
+      if (canonical !== `${home}examples/${report[1]}/`) problems.push(`${rel}: canonical ${canonical}, not its example page`);
+      return;
+    }
+    const page = rel.replace(/(^|\/)index\.html$/, '$1');
+    if (canonical !== home + page) problems.push(`${rel}: canonical ${canonical}, not ${home + page}`);
+    else if (!/<meta name="robots" content="noindex/.test(text)) indexable.add(canonical);
+    if (!/^<!doctype html>\s*<html lang="[a-z]{2}/i.test(text)) problems.push(`${rel}: no lang on <html>`);
+    const title = attr(text, /<title>([^<]*)<\/title>/);
+    if (title && titles.has(title)) problems.push(`${rel}: the same title as ${titles.get(title)}`);
+    else if (title) titles.set(title, rel);
+    const description = attr(text, /<meta name="description" content="([^"]*)"/);
+    if (!description) problems.push(`${rel}: no description`);
+    else if (description.length < 70 || description.length > 200) problems.push(`${rel}: a description of ${description.length} characters (70–200 show well)`);
+    if (description && /[<>]/.test(description)) problems.push(`${rel}: markup in the description`);
+    const image = attr(text, /<meta property="og:image" content="([^"]*)"/);
+    if (!image || !image.startsWith(home) || !fileFor(image.slice(home.length))) problems.push(`${rel}: og:image ${image} is not a file of the site`);
+    const h1 = (text.match(/<h1[\s>]/g) || []).length;
+    if (h1 !== 1) problems.push(`${rel}: ${h1} h1 headings`);
+    for (const m of text.matchAll(/<img\b[^>]*>/g)) if (!/\balt="/.test(m[0])) problems.push(`${rel}: an image without alt`);
+  };
+
   const kitFile = path.join(root, 'release', 'kits', 'full.js');
   const kit = fs.existsSync(kitFile) ? fs.readFileSync(kitFile, 'utf8') : null;
   if (!kit) problems.push('release/kits/full.js is missing, so charts cannot be validated');
@@ -55,6 +90,7 @@ async function checkSite(siteDir, options) {
     stats.pages++;
     if (!/^<!doctype html>/i.test(text)) problems.push(`${rel}: no doctype`);
     if (!/<title>[^<]+<\/title>/.test(text)) problems.push(`${rel}: no title`);
+    seo(rel, text);
 
     for (const m of text.matchAll(/\b(?:href|src)="([^"]*)"/g)) {
       const url = unescapeHtml(m[1]);
@@ -100,6 +136,15 @@ async function checkSite(siteDir, options) {
       }
     });
   }
+
+  // the sitemap lists every page that may be indexed, and nothing else; robots.txt names it (it is read at the root only)
+  const maps = fs.existsSync(path.join(root, 'sitemap-index.xml')) ? walk(root).filter((f) => /[\\/]sitemap-\d+\.xml$/.test(f)) : [];
+  if (!maps.length) problems.push('no sitemap-index.xml with its sitemaps');
+  const listed = new Set(maps.flatMap((f) => [...fs.readFileSync(f, 'utf8').matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => unescapeHtml(m[1]))));
+  for (const u of indexable) if (!listed.has(u)) problems.push(`sitemap: ${u} is missing`);
+  for (const u of listed) if (!indexable.has(u)) problems.push(`sitemap: ${u} is not an indexable page`);
+  const robots = fs.existsSync(path.join(root, 'robots.txt')) ? fs.readFileSync(path.join(root, 'robots.txt'), 'utf8') : '';
+  if (base === '/' && !robots.includes(`Sitemap: ${home}sitemap-index.xml`)) problems.push(`robots.txt does not name ${home}sitemap-index.xml`);
   return { problems, stats };
 }
 

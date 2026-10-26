@@ -31,7 +31,7 @@ npm run build && npm run manifest
 node scripts/compose.js skills/blockcharts/recipes/report-from-csv.json report.html`;
 const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha384, crossorigin: 'anonymous' }, true);
 ---
-<Base title="Guide" nav="guide" version={release.version} description="How a chart spec works, how to feed data, and which files to ship.">
+<Base title="Guide: chart specs, data and files" nav="guide" version={release.version} description="How a blockcharts chart spec works (data, scales, transforms, marks, guides, interactions), how to feed it data, and which files a page needs to ship.">
   <h1>Guide</h1>
   <p class="lead">The ideas in one page: a chart is a JSON spec; blocks do the work; you pick how the code reaches the page.</p>
 
