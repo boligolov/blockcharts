@@ -17,8 +17,8 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 6,
-    doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. For a vertical line that follows the pointer, add interaction.crosshair.',
+    version: 7,
+    doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.',
     params: {
       fields: { kind: 'list', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
       formats: { kind: 'any', doc: 'How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits).' },
@@ -306,9 +306,13 @@
         tip.style.top = Math.max(0, top) + 'px';
       }
 
+      // A finger is down whenever it points (buttons is 1 from the first touch on), so for touch a press is the hover: a
+      // tap shows the datum, sliding the finger moves along the data, and the card stays after the finger lifts (which
+      // sends pointerleave) until the reader touches somewhere else. A page scroll that starts on the chart cancels it.
+      const isTouch = (ev: Event) => (ev as PointerEvent).pointerType === 'touch';
       const onMove = (ev: PointerEvent) => {
-        // dragging is a pan, not a hover
-        if (ev.buttons) {
+        // dragging with a mouse or a pen is a pan, not a hover
+        if (ev.buttons && !isTouch(ev)) {
           last = null;
           return hide();
         }
@@ -327,23 +331,33 @@
           }
         });
       };
-      const onLeave = () => {
+      const onCancel = () => {
         last = null;
         hide();
+      };
+      const onLeave = (ev: Event) => {
+        if (!isTouch(ev)) onCancel();
+      };
+      // a touch anywhere outside the chart puts the card away (with a mouse, leaving the chart already has)
+      const onOutside = (ev: Event) => {
+        const target = ev.target as Node | null;
+        if (isTouch(ev) && target && typeof host.contains === 'function' && !host.contains(target)) onCancel();
       };
 
       root.addEventListener('pointermove', onMove as EventListener);
       root.addEventListener('pointerdown', onMove as EventListener);
       root.addEventListener('pointerleave', onLeave);
-      root.addEventListener('pointercancel', onLeave);
-      root.addEventListener('wheel', onLeave);
+      root.addEventListener('pointercancel', onCancel);
+      root.addEventListener('wheel', onCancel);
+      if (typeof doc.addEventListener === 'function') doc.addEventListener('pointerdown', onOutside, true);
       live.cleanup(() => {
         disposed = true;
         root.removeEventListener('pointermove', onMove as EventListener);
         root.removeEventListener('pointerdown', onMove as EventListener);
         root.removeEventListener('pointerleave', onLeave);
-        root.removeEventListener('pointercancel', onLeave);
-        root.removeEventListener('wheel', onLeave);
+        root.removeEventListener('pointercancel', onCancel);
+        root.removeEventListener('wheel', onCancel);
+        if (typeof doc.removeEventListener === 'function') doc.removeEventListener('pointerdown', onOutside, true);
         for (const el of [tip, dot, highlight]) if (el.parentNode) el.parentNode.removeChild(el);
         releasePosition();
       });

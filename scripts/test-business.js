@@ -493,6 +493,34 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.strictEqual(hd.children.length, 0, 'destroy removes it');
   });
 
+  test('interaction.crosshair: a touch places the line and it stays after the finger lifts; a mouse press does not move it', async () => {
+    const host = new FakeNode('div');
+    host.contains = (n) => n === host || n === host.children[0];
+    const handle = BC.chart(host, monthly({ interaction: [{ type: 'crosshair' }] }));
+    const pts = [...paths(layer(svgOf(host), 'marks'))[0].d.matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => [+m[1], +m[2]]);
+    const cross = partOf(host, 'bc-crosshair');
+    const root = host.children[0];
+    root.fire('pointerdown', { pointerType: 'touch', buttons: 1, clientX: pts[2][0], clientY: pts[2][1] });
+    await flush();
+    assert.strictEqual(cross.style.display, 'block', 'a tap places it');
+    assert(near(parseFloat(cross.style.left), pts[2][0], 0.01));
+    root.fire('pointerleave', { pointerType: 'touch' });
+    assert.strictEqual(cross.style.display, 'block', 'it stays after the finger lifts');
+    root.fire('pointermove', { pointerType: 'touch', buttons: 1, clientX: pts[3][0], clientY: pts[3][1] });
+    await flush();
+    assert(near(parseFloat(cross.style.left), pts[3][0], 0.01), 'sliding the finger moves it');
+    root.fire('pointerdown', { pointerType: 'mouse', buttons: 1, clientX: pts[1][0], clientY: pts[1][1] });
+    await flush();
+    assert(near(parseFloat(cross.style.left), pts[3][0], 0.01), 'a mouse press leaves it where it is');
+    document.fire('pointerdown', { pointerType: 'touch', target: new FakeNode('div') });
+    assert.strictEqual(cross.style.display, 'none', 'a touch elsewhere puts it away');
+    root.fire('pointerdown', { pointerType: 'touch', buttons: 1, clientX: pts[2][0], clientY: pts[2][1] });
+    await flush();
+    root.fire('pointercancel', { pointerType: 'touch' });
+    assert.strictEqual(cross.style.display, 'none', 'a scroll cancels it');
+    handle.destroy();
+  });
+
   test('mark.line label: names and last values at the line ends, in their colors, pushed apart when they would overlap', () => {
     BC.data('close', [
       { t: '2024-01-01', v: 10, s: 'Alpha' }, { t: '2024-02-01', v: 20, s: 'Alpha' },

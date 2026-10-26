@@ -423,6 +423,35 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(tipOf(host).style.display, 'none', 'zooming hides it');
   });
 
+  test('interaction.tooltip: on a touch screen a tap shows the datum and the card stays after the finger lifts', async () => {
+    const host = new FakeNode('div');
+    host.contains = (n) => n === host || n === host.children[0];
+    const h = BC.chart(host, tipSpec());
+    const [c0] = circles(svgOf(host));
+    const root = host.children[0];
+    const touch = { pointerType: 'touch', buttons: 1, clientX: c0.x, clientY: c0.y };
+    root.fire('pointerdown', touch);
+    await flush();
+    assert.strictEqual(tipOf(host).style.display, 'block', 'a tap shows it (a finger down has buttons 1)');
+    root.fire('pointerleave', { pointerType: 'touch' });
+    assert.strictEqual(tipOf(host).style.display, 'block', 'lifting the finger keeps it');
+    document.fire('pointerdown', { pointerType: 'touch', target: root });
+    assert.strictEqual(tipOf(host).style.display, 'block', 'a touch on the chart itself does not put it away');
+    document.fire('pointerdown', { pointerType: 'touch', target: new FakeNode('div') });
+    assert.strictEqual(tipOf(host).style.display, 'none', 'a touch elsewhere on the page does');
+    root.fire('pointermove', touch);
+    await flush();
+    assert.strictEqual(tipOf(host).style.display, 'block', 'sliding the finger moves along the data');
+    root.fire('pointercancel', { pointerType: 'touch' });
+    assert.strictEqual(tipOf(host).style.display, 'none', 'a scroll that starts on the chart cancels it');
+    root.fire('pointermove', { ...touch, pointerType: 'pen' });
+    await flush();
+    assert.strictEqual(tipOf(host).style.display, 'none', 'a pressed pen is still a drag');
+    const listening = (document.listeners.pointerdown || []).length;
+    h.destroy();
+    assert.strictEqual((document.listeners.pointerdown || []).length, listening - 1, 'destroy removes the page listener');
+  });
+
   test('interaction.tooltip: moves within a frame are merged, the last position wins', async () => {
     const host = new FakeNode('div');
     BC.chart(host, tipSpec());

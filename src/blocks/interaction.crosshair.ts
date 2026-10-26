@@ -7,8 +7,8 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'crosshair',
-    version: 2,
-    doc: 'A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. Works with or without the tooltip.',
+    version: 3,
+    doc: 'A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. On a touch screen it follows a tap and the sliding finger, and stays until the reader touches somewhere else. Works with or without the tooltip.',
     params: {
       snap: { kind: 'enum', values: ['lines', 'all', 'off'], default: 'lines', doc: 'What the line jumps to: the nearest point of a line or area ("lines"), of any mark ("all"), or nothing (it follows the pointer).' },
       horizontal: { kind: 'boolean', default: false, doc: 'Also a horizontal line through the datum.' },
@@ -83,8 +83,10 @@
         Object.assign(vline.style, { left: r.left - hostBox.left + at.x * k + 'px', top: r.top - hostBox.top + p.y * k + 'px', height: p.h * k + 'px', display: 'block' });
         if (hline) Object.assign(hline.style, { top: r.top - hostBox.top + at.y * k + 'px', left: r.left - hostBox.left + p.x * k + 'px', width: p.w * k + 'px', display: 'block' });
       };
+      // a finger is down whenever it points, so for touch a press is the hover (as in interaction.tooltip)
+      const isTouch = (ev: Event) => (ev as PointerEvent).pointerType === 'touch';
       const onMove = (ev: PointerEvent) => {
-        if (ev.buttons) {
+        if (ev.buttons && !isTouch(ev)) {
           last = null;
           return hide();
         }
@@ -103,14 +105,36 @@
           }
         });
       };
+      const onCancel = () => {
+        last = null;
+        hide();
+      };
+      // lifting the finger sends pointerleave: the line stays where it was tapped
+      const onLeave = (ev: Event) => {
+        if (!isTouch(ev)) onCancel();
+      };
+      const onOutside = (ev: Event) => {
+        const target = ev.target as Node | null;
+        if (isTouch(ev) && target && typeof host.contains === 'function' && !host.contains(target)) onCancel();
+      };
+      // a mouse press keeps the line where it is; a touch is where the finger points
+      const onTap = (ev: PointerEvent) => {
+        if (isTouch(ev)) onMove(ev);
+      };
       root.addEventListener('pointermove', onMove as EventListener);
-      root.addEventListener('pointerleave', hide);
-      root.addEventListener('wheel', hide);
+      root.addEventListener('pointerdown', onTap as EventListener);
+      root.addEventListener('pointerleave', onLeave);
+      root.addEventListener('pointercancel', onCancel);
+      root.addEventListener('wheel', onCancel);
+      if (typeof doc.addEventListener === 'function') doc.addEventListener('pointerdown', onOutside, true);
       live.cleanup(() => {
         disposed = true;
         root.removeEventListener('pointermove', onMove as EventListener);
-        root.removeEventListener('pointerleave', hide);
-        root.removeEventListener('wheel', hide);
+        root.removeEventListener('pointerdown', onTap as EventListener);
+        root.removeEventListener('pointerleave', onLeave);
+        root.removeEventListener('pointercancel', onCancel);
+        root.removeEventListener('wheel', onCancel);
+        if (typeof doc.removeEventListener === 'function') doc.removeEventListener('pointerdown', onOutside, true);
         for (const el of [vline, hline]) if (el && el.parentNode) el.parentNode.removeChild(el);
         release();
       });
