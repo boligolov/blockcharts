@@ -206,6 +206,7 @@ function compose(opts) {
   if (layout !== undefined && (!layout || typeof layout !== 'object' || Array.isArray(layout))) throw new ComposeError('layout must be an object: { "columns": 4 }');
   const columns = layout && layout.columns !== undefined ? layout.columns : 1;
   if (!Number.isInteger(columns) || columns < 1 || columns > 12) throw new ComposeError('layout.columns must be a whole number from 1 to 12');
+  const ids = new Map();
   const charts = options.charts.map((c, i) => {
     const entry = c && c.spec ? c : { spec: c };
     if (entry.span !== undefined && (!Number.isInteger(entry.span) || entry.span < 1 || entry.span > columns)) {
@@ -214,6 +215,14 @@ function compose(opts) {
     if (!entry.spec || typeof entry.spec !== 'object') throw new ComposeError(`charts[${i}] is not a chart spec`);
     const bad = findUnserializable(entry.spec, `charts[${i}]`, []);
     if (bad) throw new ComposeError(`${bad.path} ${bad.why}`);
+    // the id is the element the chart is drawn in: two charts with one id would draw into one, the second wiping out the first
+    const id = entry.spec.id;
+    if (id !== undefined) {
+      if (typeof id !== 'string' || !/^[A-Za-z][\w-]*$/.test(id)) throw new ComposeError(`charts[${i}].id must be a name of letters, digits, "-" and "_", starting with a letter`);
+      if (id === 'bc-data') throw new ComposeError(`charts[${i}].id "bc-data" is the id of the page's data; choose another`);
+      if (ids.has(id)) throw new ComposeError(`charts[${i}].id "${id}" is also the id of charts[${ids.get(id)}]; every chart needs its own`);
+      ids.set(id, i);
+    }
     return entry;
   });
 

@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 26555,
+    "bytes": 27712,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 20999,
+        "bytes": 22438,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 18014,
+        "bytes": 19428,
         "off": [
           "CHECKS",
           "DECODE"
@@ -66,8 +66,8 @@
     },
     "scale.linear": {
       "file": "blocks/scale.linear.js",
-      "bytes": 1413,
-      "version": 2,
+      "bytes": 1880,
+      "version": 3,
       "requires": [],
       "closure": [
         "scale.linear"
@@ -89,7 +89,7 @@
           "doc": "Extra room around the data extent, as a fraction of its span (0.05 keeps edge points off the axes)."
         }
       },
-      "doc": "Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values."
+      "doc": "Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way."
     },
     "scale.log": {
       "file": "blocks/scale.log.js",
@@ -110,8 +110,8 @@
     },
     "scale.sequential": {
       "file": "blocks/scale.sequential.js",
-      "bytes": 2078,
-      "version": 1,
+      "bytes": 2293,
+      "version": 2,
       "requires": [],
       "closure": [
         "scale.sequential"
@@ -121,8 +121,8 @@
     },
     "scale.size": {
       "file": "blocks/scale.size.js",
-      "bytes": 1651,
-      "version": 1,
+      "bytes": 1880,
+      "version": 2,
       "requires": [],
       "closure": [
         "scale.size"
@@ -138,8 +138,8 @@
     },
     "scale.time": {
       "file": "blocks/scale.time.js",
-      "bytes": 2750,
-      "version": 2,
+      "bytes": 2684,
+      "version": 3,
       "requires": [],
       "closure": [
         "scale.time"
@@ -151,11 +151,11 @@
           "doc": "Extra room around the data extent, as a fraction of its span."
         }
       },
-      "doc": "Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates. Ticks snap to calendar units (seconds … years). Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it."
+      "doc": "Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset (\"2024-03-01\", \"2024-03-01T09:00\", \"2024-03-01 09:00\") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years). Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it."
     },
     "transform.aggregate": {
       "file": "blocks/transform.aggregate.js",
-      "bytes": 4961,
+      "bytes": 4870,
       "version": 1,
       "requires": [],
       "closure": [
@@ -316,8 +316,8 @@
     },
     "transform.filter": {
       "file": "blocks/transform.filter.js",
-      "bytes": 2364,
-      "version": 1,
+      "bytes": 2361,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.filter"
@@ -380,8 +380,8 @@
     },
     "transform.funnel": {
       "file": "blocks/transform.funnel.js",
-      "bytes": 1040,
-      "version": 1,
+      "bytes": 1600,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.funnel"
@@ -506,8 +506,8 @@
     },
     "transform.treemap": {
       "file": "blocks/transform.treemap.js",
-      "bytes": 2713,
-      "version": 1,
+      "bytes": 3321,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.treemap"
@@ -555,8 +555,8 @@
     },
     "transform.waterfall": {
       "file": "blocks/transform.waterfall.js",
-      "bytes": 1472,
-      "version": 1,
+      "bytes": 2075,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.waterfall"
@@ -730,8 +730,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2408,
-      "version": 7,
+      "bytes": 2495,
+      "version": 8,
       "requires": [
         "lib.curve"
       ],
@@ -918,8 +918,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3525,
-      "version": 11,
+      "bytes": 3622,
+      "version": 12,
       "requires": [
         "lib.curve"
       ],
@@ -1432,8 +1432,8 @@
     },
     "guide.kpi": {
       "file": "blocks/guide.kpi.js",
-      "bytes": 2872,
-      "version": 2,
+      "bytes": 3201,
+      "version": 3,
       "requires": [],
       "closure": [
         "guide.kpi"
@@ -1469,7 +1469,7 @@
             "first",
             "none"
           ],
-          "doc": "What the change is measured against: the row before the last (\"previous\", the default with aggregate \"last\"), the first row (\"first\": change over the period), or nothing."
+          "doc": "What the change is measured against: the row before the last (\"previous\", the default with aggregate \"last\"), the first row (\"first\": change over the period), or nothing. \"previous\" and \"first\" compare single rows, so they go with aggregate \"last\" only; a sum or a mean is compared through `against`."
         },
         "against": {
           "kind": "field",
@@ -1615,8 +1615,8 @@
     },
     "interaction.crosshair": {
       "file": "blocks/interaction.crosshair.js",
-      "bytes": 2396,
-      "version": 2,
+      "bytes": 2886,
+      "version": 3,
       "requires": [],
       "closure": [
         "interaction.crosshair"
@@ -1638,7 +1638,7 @@
           "doc": "Also a horizontal line through the datum."
         }
       },
-      "doc": "A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: \"all\"`); `snap: \"off\"` follows the pointer freely. Works with or without the tooltip."
+      "doc": "A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: \"all\"`); `snap: \"off\"` follows the pointer freely. On a touch screen it follows a tap and the sliding finger, and stays until the reader touches somewhere else. Works with or without the tooltip."
     },
     "interaction.legend-filter": {
       "file": "blocks/interaction.legend-filter.js",
@@ -1662,8 +1662,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 7663,
-      "version": 6,
+      "bytes": 7968,
+      "version": 7,
       "requires": [],
       "closure": [
         "interaction.tooltip"
@@ -1693,7 +1693,7 @@
           "doc": "\"dot\" draws a small circle at the point; \"box\" highlights the whole shape (used automatically for rect marks like bar/heatmap, where a dot would land on an edge); \"auto\" picks box when the mark reports its bounds and dot otherwise; \"none\" shows the tooltip text without a marker."
         }
       },
-      "doc": "Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. For a vertical line that follows the pointer, add interaction.crosshair."
+      "doc": "Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair."
     },
     "interaction.zoom": {
       "file": "blocks/interaction.zoom.js",
