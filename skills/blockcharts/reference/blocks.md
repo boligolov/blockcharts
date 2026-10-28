@@ -123,7 +123,7 @@ Version 1, 1.4 KB. A new column `as` from two numbers of each row: field `a` and
 
 ## transform.decimate
 
-Version 2, 3.4 KB. Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them.
+Version 3, 3.4 KB. Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -442,7 +442,7 @@ Version 1, 0.4 KB. Grid lines at the ticks of a positional scale (the same ticks
 
 ## guide.kpi
 
-Version 3, 3.1 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
+Version 4, 3.1 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -479,7 +479,7 @@ Version 1, 2.2 KB. Plays the chart in once, when it is first drawn: bars grow fr
 
 ## interaction.brush
 
-Version 2, 3.9 KB. Drag a rectangle over the plot to zoom to it: on the scales in `scales` (default x) the view becomes the selected range, on a category (band) scale the categories under the selection. Shift + drag by default, so it does not fight with the pan of interaction.zoom; Escape cancels while dragging, double-click resets. A drag shorter than `minSize` px is not a selection.
+Version 3, 4.0 KB. Drag a rectangle over the plot to zoom to it: on the scales in `scales` (default x) the view becomes the selected range, on a category (band) scale the categories under the selection. Shift + drag by default, so it does not fight with the pan of interaction.zoom; Escape cancels while dragging, double-click resets. A drag shorter than `minSize` px is not a selection.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -519,7 +519,7 @@ Version 7, 7.8 KB. Shows the datum under the pointer: a marker plus a card with 
 
 ## interaction.zoom
 
-Version 4, 3.1 KB. Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen.
+Version 5, 3.2 KB. Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -531,7 +531,7 @@ Version 4, 3.1 KB. Wheel zoom around the cursor, drag to pan, double-click to re
 
 ## interaction.zoom-controls
 
-Version 2, 2.5 KB. A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).
+Version 3, 2.5 KB. A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |

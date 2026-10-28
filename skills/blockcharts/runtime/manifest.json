@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 27712,
+    "bytes": 27724,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 22438,
+        "bytes": 22450,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 19428,
+        "bytes": 19440,
         "off": [
           "CHECKS",
           "DECODE"
@@ -276,8 +276,8 @@
     },
     "transform.decimate": {
       "file": "blocks/transform.decimate.js",
-      "bytes": 3484,
-      "version": 2,
+      "bytes": 3496,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.decimate"
@@ -1432,8 +1432,8 @@
     },
     "guide.kpi": {
       "file": "blocks/guide.kpi.js",
-      "bytes": 3201,
-      "version": 3,
+      "bytes": 3223,
+      "version": 4,
       "requires": [],
       "closure": [
         "guide.kpi"
@@ -1576,8 +1576,8 @@
     },
     "interaction.brush": {
       "file": "blocks/interaction.brush.js",
-      "bytes": 4041,
-      "version": 2,
+      "bytes": 4063,
+      "version": 3,
       "requires": [],
       "closure": [
         "interaction.brush"
@@ -1697,8 +1697,8 @@
     },
     "interaction.zoom": {
       "file": "blocks/interaction.zoom.js",
-      "bytes": 3159,
-      "version": 4,
+      "bytes": 3254,
+      "version": 5,
       "requires": [],
       "closure": [
         "interaction.zoom"
@@ -1739,8 +1739,8 @@
     },
     "interaction.zoom-controls": {
       "file": "blocks/interaction.zoom-controls.js",
-      "bytes": 2554,
-      "version": 2,
+      "bytes": 2595,
+      "version": 3,
       "requires": [],
       "closure": [
         "interaction.zoom-controls"

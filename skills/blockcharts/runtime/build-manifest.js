@@ -29,7 +29,10 @@ function buildManifest(distDir) {
   if (UNSAFE_IN_SCRIPT.test(coreSrc)) fail('core.js contains "</script" or "<!--", which would break an inlined page');
 
   const blocks = {};
-  for (const file of fs.readdirSync(blocksDir).filter((f) => f.endsWith('.js')).sort()) {
+  for (const file of fs
+    .readdirSync(blocksDir)
+    .filter((f) => f.endsWith('.js'))
+    .sort()) {
     const src = fs.readFileSync(path.join(blocksDir, file), 'utf8');
     if (UNSAFE_IN_SCRIPT.test(src)) fail(`${file} contains "</script" or "<!--", which would break an inlined page`);
 
@@ -104,7 +107,9 @@ if (require.main === module) {
     fs.writeFileSync(path.join(dist, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
     const names = Object.keys(manifest.blocks);
     const total = names.reduce((n, k) => n + manifest.blocks[k].bytes, manifest.core.bytes);
-    console.log(`manifest: core ${manifest.core.version} + ${names.length} blocks, ${(total / 1024).toFixed(1)} KB in all -> ${path.join(dist, 'manifest.json')}`);
+    console.log(
+      `manifest: core ${manifest.core.version} + ${names.length} blocks, ${(total / 1024).toFixed(1)} KB in all -> ${path.join(dist, 'manifest.json')}`,
+    );
   } catch (e) {
     console.error(e.message);
     process.exit(1);
