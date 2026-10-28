@@ -262,6 +262,22 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     }
   });
 
+  test('guide.kpi: the figure is of all the rows, also when decimate thins the sparkline under it', () => {
+    // 2000 daily values of 1 under a 300 px sparkline: decimate keeps a few rows per pixel column
+    BC.data('kpidecimate', { columns: { t: Float64Array.from({ length: 2000 }, (_, i) => i), v: new Float64Array(2000).fill(1) } });
+    const { svg, h } = draw({
+      data: 'kpidecimate',
+      size: [300, 160],
+      transforms: [{ type: 'decimate', x: 't', y: 'v' }],
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [{ type: 'line', x: 't', y: 'v' }],
+      guides: [{ type: 'kpi', field: 'v', aggregate: 'sum', format: 'integer' }],
+    });
+    assert.deepStrictEqual(h.diagnostics, []);
+    assert(count(layer(svg, 'marks'), /L/g) < 1999, 'the line is decimated');
+    assert.strictEqual(kpiTexts(svg).value.text, '2,000', 'the sum of every row');
+  });
+
   test('guide.kpi: takes room at the top (the chart under it is a sparkline), and a tile of the guide alone is valid', () => {
     const top = (svg) =>
       Math.min(...paths(layer(svg, 'marks')).map((p) => Math.min(...[...p.d.matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => +m[2]))));

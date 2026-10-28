@@ -381,6 +381,34 @@ test('compose: an already-encoded dataset is passed through untouched and valida
   failsWith(() => compose({ data: { big: { encoding: 'base64' } }, charts: [bigSpec()] }), /needs a "data" string/);
 });
 
+test('compose: encoded data the browser would refuse is refused here too: base64url, stray characters, a gzip bomb', () => {
+  // Node's Buffer.from reads base64url and skips what it does not know; the page's atob() does neither
+  const std = zlib.gzipSync(Buffer.from(JSON.stringify(BIG))).toString('base64');
+  assert(/[+/]/.test(std), 'the sample has the two characters base64url replaces');
+  const url = std.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  failsWith(
+    () => compose({ data: { big: { encoding: 'gzip+base64', data: url } }, charts: [bigSpec()] }),
+    /data "big": .*not valid base64/,
+  );
+  const stray = std.slice(0, 40) + '!' + std.slice(40);
+  failsWith(() => compose({ data: { big: { encoding: 'gzip+base64', data: stray } }, charts: [bigSpec()] }), /not valid base64/);
+  const column = { dtype: 'float64', encoding: 'base64', data: url };
+  failsWith(
+    () => compose({ data: { big: { columns: { a: column, b: column } } }, charts: [bigSpec()] }),
+    /data "big": column "a": the data is not valid base64/,
+  );
+  // 70 MB of zeros is 70 KB of gzip; the page would refuse to unpack it (64 MB), so the composer does not pass it
+  const bomb = zlib.gzipSync(Buffer.alloc(70 * 1024 * 1024)).toString('base64');
+  failsWith(
+    () => compose({ data: { big: { encoding: 'gzip+base64', data: bomb } }, charts: [bigSpec()] }),
+    /data "big": the decoded data is larger than 64 MB/,
+  );
+  failsWith(
+    () => compose({ data: { big: { columns: { a: { dtype: 'uint8', encoding: 'gzip+base64', data: bomb } } } }, charts: [bigSpec()] }),
+    /data "big": column "a": the decoded data is larger than 64 MB/,
+  );
+});
+
 test('compose: the page with compressed data decodes it the way a browser does, and draws', async () => {
   const r = compose({ data: { big: BIG }, charts: [bigSpec()], compress: true });
   assert.deepStrictEqual(r.compressed, ['big']);

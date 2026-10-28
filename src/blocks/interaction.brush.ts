@@ -5,7 +5,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'brush',
-    version: 2,
+    version: 3,
     doc: 'Drag a rectangle over the plot to zoom to it: on the scales in `scales` (default x) the view becomes the selected range, on a category (band) scale the categories under the selection. Shift + drag by default, so it does not fight with the pan of interaction.zoom; Escape cancels while dragging, double-click resets. A drag shorter than `minSize` px is not a selection.',
     params: {
       scales: {
@@ -119,7 +119,9 @@
             const lo = Math.min(v0, v1);
             const hi = Math.max(v0, v1);
             const [b0, b1] = scale.baseDomain() as Pair;
-            live.setView(name, hi - lo >= (b1 - b0) * (1 - 1e-9) ? null : [lo, hi]);
+            // a domain that runs backwards ([100, 0]) keeps running backwards
+            const view: Pair = b1 < b0 ? [hi, lo] : [lo, hi];
+            live.setView(name, hi - lo >= Math.abs(b1 - b0) * (1 - 1e-9) ? null : view);
           } else {
             const bw = scale.bandwidth as number;
             const inside = scale.domain().filter((v) => {

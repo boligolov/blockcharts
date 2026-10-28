@@ -747,11 +747,13 @@
             if (v > u) rawDown = false;
           }
         }
+        // both ends must have a place on the scale (a log scale has none for zero): one without it cannot say which way
+        // the scale points, and a binary search would stop on it. Sorted, such values can only sit at the ends.
+        const p0 = scale(col[0]) as number;
+        const p1 = scale(col[n - 1]) as number;
         let fast = 0;
-        if (col[0] !== col[0]) fast = 0;
-        else if (col[0] === col[n - 1]) fast = 0;
-        else {
-          const points = (scale(col[n - 1]) as number) > (scale(col[0]) as number) ? 1 : -1;
+        if (isFinite(p0) && isFinite(p1) && p0 !== p1) {
+          const points = p1 > p0 ? 1 : -1;
           fast = rawUp ? points : rawDown ? -points : 0;
         }
         directions.set(col, { scale, dir: fast });
@@ -823,6 +825,7 @@
       get table() {
         return table;
       },
+      baseTable,
       size,
       get plot() {
         return plot;

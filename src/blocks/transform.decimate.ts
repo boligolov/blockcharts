@@ -57,11 +57,12 @@
           if (v > u) rawDown = false;
         }
       }
-      const a = xs[rows[0]];
-      const b = xs[rows[n - 1]];
+      // both ends must have a place on the scale (a log scale has none for zero), as in the core's culling
+      const a = scale(xs[rows[0]]) as number;
+      const b = scale(xs[rows[n - 1]]) as number;
       let dir = 0;
-      if (a === a && b === b && a !== b) {
-        const points = (scale(b) as number) > (scale(a) as number) ? 1 : -1;
+      if (isFinite(a) && isFinite(b) && a !== b) {
+        const points = b > a ? 1 : -1;
         dir = rawUp ? points : rawDown ? -points : 0;
       }
       orders.set(rows, { scale, dir });
@@ -102,7 +103,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'decimate',
-    version: 2,
+    version: 3,
     viewDependent: true,
     doc: 'Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them.',
     params: {

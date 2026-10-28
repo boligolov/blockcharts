@@ -4,7 +4,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'zoom-controls',
-    version: 2,
+    version: 3,
     doc: 'A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).',
     params: {
       scales: {
@@ -59,11 +59,13 @@
       const zoomBy = (factor: number) => {
         for (const name of zoomable) {
           const scale = live.scales[name];
-          // steps are even on the screen: on a log scale this runs on the logarithms of the values
+          // steps are even on the screen: on a log scale this runs on the logarithms of the values. A domain that runs
+          // backwards ([100, 0]) is negated, so that below the full domain always runs low to high.
           const log = scale.kind === 'log';
-          const to = (x: unknown) => (log ? Math.log10(Number(x)) : Number(x));
-          const from = (x: number) => (log ? Math.pow(10, x) : x);
           const b = scale.baseDomain();
+          const sign = Number(b[1]) < Number(b[0]) ? -1 : 1;
+          const to = (x: unknown) => sign * (log ? Math.log10(Number(x)) : Number(x));
+          const from = (x: number) => (log ? Math.pow(10, sign * x) : sign * x);
           const b0 = to(b[0]);
           const b1 = to(b[1]);
           const v = live.getView()[name] as Pair;

@@ -294,6 +294,9 @@ declare namespace BC {
   interface ChartCtx {
     readonly spec: ChartSpec;
     readonly table: Table;
+    /** The table before the transforms that depend on the view (transform.decimate and what follows it): every row,
+     *  whatever the zoom. A figure about the data as a whole (a KPI) reads this; marks draw `table`. */
+    readonly baseTable: Table;
     readonly size: { w: number; h: number };
     readonly plot: Rect;
     readonly scales: Readonly<Record<string, Scale>>;

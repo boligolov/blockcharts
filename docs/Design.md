@@ -882,6 +882,27 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   Intl has no quarters, so the core has a `quarter` preset: "Q2 " before the year Intl writes, in UTC. It has its own
   cache key; built on the `year` options, it would otherwise share that preset's formatter.
 
+## Formatting and a second review (2026-10-28)
+
+- **Prettier** formats the sources (`src/`, `scripts/`, the site's `.mjs` and `.css`; `.prettierrc.json`: 140
+  columns, single quotes, trailing commas), `npm run format`; CI runs `npm run format:check`. Generated code and the
+  skill's runtime copy are left as the build makes them.
+- **Fixes found by the review** (each reproduced first by a test that fails without the fix):
+  - Culling and `transform.decimate` v3 read which way a sorted column runs from its first and last row in pixels.
+    On a log scale a zero (or a negative) has no pixel, NaN, so a column starting at 0 read as running backwards and
+    a zoomed log x drew nothing. Both now cull only when both ends have a place on the scale; sorted, values without
+    one can only sit at the ends, so that is enough.
+  - A `domain` that runs backwards (`[100, 0]`, documented on `scale.linear`) could not be zoomed: `interaction.zoom`
+    v5, `interaction.zoom-controls` v3 and `interaction.brush` v3 compared the view with a negative full span and reset
+    it. Zoom and the buttons now work on the negated values of such a domain; the brush keeps the view running the
+    same way as the domain.
+  - `guide.kpi` v4 took its figure from the rows the marks draw, which after `transform.decimate` are a few per pixel
+    column: a sum of 2,000 rows showed 492. `ChartCtx.baseTable` is the table before the view-dependent transforms;
+    the KPI reads its fields there (or, for a field made after decimate, from `table`).
+  - The composer read encoded data with Node's `Buffer.from`, which takes base64url and skips characters it does not
+    know, and with an unlimited gunzip; the page reads it with `atob()` and a 64 MB limit. A page could compose clean
+    and show "not valid base64" in the browser. The composer now reads data the browser's way, with the same limit.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

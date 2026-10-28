@@ -49,13 +49,16 @@
     base: number;
   }
 
+  /** A field of every row: before decimate thins the rows for the sparkline (a field made after it only exists after it). */
+  const column = (ctx: BC.ChartCtx, field: string): BC.Column | undefined => ctx.baseTable.columns[field] || ctx.table.columns[field];
+
   function figures(spec: BC.GuideSpec, ctx: BC.ChartCtx): Figures {
     const how = typeof spec.aggregate === 'string' && AGGREGATES.indexOf(spec.aggregate) >= 0 ? spec.aggregate : 'last';
-    const values = numbers(ctx.table.columns[spec.field as string]);
+    const values = numbers(column(ctx, spec.field as string));
     const value = reduce(values, how);
     let base = NaN;
     if (typeof spec.against === 'string') {
-      base = reduce(numbers(ctx.table.columns[spec.against]), how);
+      base = reduce(numbers(column(ctx, spec.against)), how);
     } else {
       const compare =
         spec.compare === 'first' || spec.compare === 'none' || spec.compare === 'previous'
@@ -77,7 +80,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'kpi',
-    version: 3,
+    version: 4,
     doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.',
     params: {
       field: { kind: 'field', required: true, doc: 'The numeric field the figure comes from.' },
@@ -119,7 +122,7 @@
       return { top: height(spec) };
     },
     render(spec, ctx, offset) {
-      if (typeof spec.field !== 'string' || !ctx.table.columns[spec.field]) return {};
+      if (typeof spec.field !== 'string' || !column(ctx, spec.field)) return {};
       const size = typeof spec.size === 'number' && spec.size > 0 ? spec.size : VALUE_SIZE;
       const label = typeof spec.label === 'string' ? spec.label : '';
       const left = ctx.plot.x;

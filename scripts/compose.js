@@ -143,7 +143,29 @@ const hasBinaryColumns = (input) =>
   typeof input.columns === 'object' &&
   Object.values(input.columns).some(isBinaryColumn);
 
-function decodeBinaryColumns(name, input) {
+// The page decodes with the browser's atob() and a size limit (fromBase64, gunzip and MAX_DECODED_BYTES in src/core.ts).
+// Node is more forgiving — Buffer.from takes base64url and skips characters it does not know, gunzip has no limit — so data
+// read here the Node way could pass and still fail in the browser. It is read the browser's way.
+const MAX_DECODED_BYTES = 64 * 1024 * 1024;
+const tooLarge = () => new Error(`the decoded data is larger than ${MAX_DECODED_BYTES / 1024 / 1024} MB, refusing to unpack it`);
+
+function fromBase64(text) {
+  const clean = text.replace(/\s+/g, '');
+  if (clean.length % 4 === 1 || !/^[A-Za-z0-9+/]*={0,2}$/.test(clean)) throw new Error('the data is not valid base64');
+  return Buffer.from(clean, 'base64');
+}
+
+/** `budget.left`: what is left of the dataset's MAX_DECODED_BYTES. */
+function gunzip(bytes, budget) {
+  try {
+    return zlib.gunzipSync(bytes, { maxOutputLength: Math.max(1, budget.left) });
+  } catch (e) {
+    if (e && (e.code === 'ERR_BUFFER_TOO_LARGE' || e instanceof RangeError)) throw tooLarge();
+    throw new Error('the data is not valid gzip');
+  }
+}
+
+function decodeBinaryColumns(name, input, budget = { left: MAX_DECODED_BYTES }) {
   if (!hasBinaryColumns(input)) return input;
   const columns = {};
   for (const [k, v] of Object.entries(input.columns)) {
@@ -158,13 +180,15 @@ function decodeBinaryColumns(name, input) {
     if (typeof v.data !== 'string') throw fail('a binary column needs a "data" string');
     let bytes;
     try {
-      bytes = Buffer.from(v.data.replace(/\s+/g, ''), 'base64');
-      if (v.encoding === 'gzip+base64') bytes = zlib.gunzipSync(bytes);
+      bytes = fromBase64(v.data);
+      if (v.encoding === 'gzip+base64') bytes = gunzip(bytes, budget);
     } catch (e) {
       throw fail(e.message);
     }
     const size = DTYPES[v.dtype];
     if (bytes.length % size) throw fail(`${bytes.length} bytes is not a whole number of ${v.dtype} values`);
+    budget.left -= (bytes.length / size) * 8;
+    if (budget.left < 0) throw new ComposeError(`data "${name}": ${tooLarge().message}`);
     const out = new Array(bytes.length / size);
     for (let i = 0; i < out.length; i++) out[i] = bytes[READERS[v.dtype]](i * size);
     columns[k] = out;
@@ -178,11 +202,14 @@ function plainDataset(name, input) {
   try {
     if (typeof input.data !== 'string') throw new Error('an encoded dataset needs a "data" string');
     if (input.encoding !== 'base64' && input.encoding !== 'gzip+base64') throw new Error(`unknown encoding "${input.encoding}"`);
-    bytes = Buffer.from(input.data.replace(/\s+/g, ''), 'base64');
-    if (input.encoding === 'gzip+base64') bytes = zlib.gunzipSync(bytes);
+    const budget = { left: MAX_DECODED_BYTES };
+    bytes = fromBase64(input.data);
+    if (input.encoding === 'gzip+base64') bytes = gunzip(bytes, budget);
+    // the JSON and the binary columns inside it share one limit
+    budget.left -= bytes.length;
     const json = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     if (isEncoded(json)) throw new Error('an encoded dataset cannot contain another one');
-    return decodeBinaryColumns(name, json);
+    return decodeBinaryColumns(name, json, budget);
   } catch (e) {
     if (e instanceof ComposeError) throw e;
     throw new ComposeError(`data "${name}": ${e.message}`);

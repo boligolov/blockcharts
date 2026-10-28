@@ -2597,6 +2597,46 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const controlsOf = (host) => host.children.find((c) => c.attrs.class === 'bc-zoom-controls');
   const clickBtn = (btn) => btn.fire('click', {});
 
+  test('zoom, brush and zoom-controls zoom an axis whose domain runs backwards, and keep it running backwards', async () => {
+    BC.data('reversed', sortedRows(101));
+    const spec = (interaction) => ({
+      data: 'reversed',
+      scales: { x: { type: 'linear', domain: [100, 0] }, y: { type: 'linear' } },
+      marks: [{ type: 'point', x: 'a', y: 'b' }],
+      interaction: [{ type: 'probe2' }, interaction],
+    });
+    const zoomedIn = (h, what) => {
+      const [v0, v1] = h.getView().x;
+      assert(v0 > v1, `${what}: still runs backwards: [${v0}, ${v1}]`);
+      assert(v0 - v1 < 90 && v0 <= 100 && v1 >= 0, `${what}: zoomed in, inside the domain: [${v0}, ${v1}]`);
+    };
+
+    const wheel = new FakeNode('div');
+    const hw = BC.chart(wheel, spec({ type: 'zoom' }));
+    wheel.children[0].fire('wheel', { clientX: 300, clientY: 150, deltaY: -500, ctrlKey: true });
+    await flush();
+    zoomedIn(hw, 'wheel');
+    wheel.children[0].fire('pointerdown', { button: 0, clientX: 300, clientY: 150, pointerId: 1 });
+    wheel.children[0].fire('pointermove', { clientX: 250, clientY: 150 });
+    wheel.children[0].fire('pointerup', {});
+    await flush();
+    zoomedIn(hw, 'pan');
+
+    const brushed = new FakeNode('div');
+    const hb = BC.chart(brushed, spec({ type: 'brush' }));
+    press(brushed, 200, 150);
+    drag(brushed, 400, 150);
+    release(brushed, 400, 150);
+    await flush();
+    zoomedIn(hb, 'brush');
+
+    const buttons = new FakeNode('div');
+    const hc = BC.chart(buttons, spec({ type: 'zoom-controls' }));
+    clickBtn(controlsOf(buttons).children[2]);
+    await flush();
+    zoomedIn(hc, '"+"');
+  });
+
   test('zoom-controls: "100%" resets, "-"/"+" step around the center, capped at maxZoom', async () => {
     const host = new FakeNode('div');
     const h = BC.chart(host, lineSpec({ interaction: [{ type: 'probe2' }, { type: 'zoom-controls', fit: ['y'], maxZoom: 4 }] }));
@@ -2877,6 +2917,32 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       +first.split(' ')[0] < liveC.plot.x && +last.split(' ')[0] > liveC.plot.x + liveC.plot.w,
       'the line runs out past both edges, so it reaches them',
     );
+  });
+
+  test('culling: a sorted column that starts or ends at zero on a log scale still draws the zoomed window', async () => {
+    // zero has no place on a log scale (NaN), so the first or last row cannot tell which way the column runs
+    const rows = sortedRows(3000);
+    BC.data('logUp', rows);
+    BC.data('logDown', rows.slice().reverse());
+    for (const name of ['logUp', 'logDown']) {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, cullSpec(name, {}, { scales: { x: { type: 'log', nice: false }, y: { type: 'linear' } } }));
+      await zoomTo(h, 1000, 1150);
+      const live = probed;
+      const inside = circles(svgOf(host)).filter((c) => +c.x >= live.plot.x && +c.x <= live.plot.x + live.plot.w).length;
+      assert(inside >= 150 && inside <= 152, `${name}: ${inside} points inside the window of about 151 rows`);
+    }
+    // transform.decimate reads the order of the rows the same way
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      data: 'logUp',
+      transforms: [{ type: 'decimate', x: 'a', y: 'b' }],
+      scales: { x: { type: 'log', nice: false }, y: { type: 'linear' } },
+      marks: [{ type: 'line', x: 'a', y: 'b' }],
+    });
+    await zoomTo(h, 1000, 1150);
+    const d = [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => m[1]).join('');
+    assert(count(d, /[ML]/g) >= 150, `decimate keeps the zoomed window of a log x: ${count(d, /[ML]/g)} vertices`);
   });
 
   test('culling: descending order, dates, a window between two rows, and an empty window', async () => {
