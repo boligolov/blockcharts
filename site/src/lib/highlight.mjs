@@ -14,7 +14,10 @@ let highlighter;
 const ready = () => (highlighter ||= createHighlighter({ themes: Object.values(THEMES), langs: LANGS }));
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const styleOf = (vars) => Object.entries(vars || {}).map(([k, v]) => `${k}:${v}`).join(';');
+const styleOf = (vars) =>
+  Object.entries(vars || {})
+    .map(([k, v]) => `${k}:${v}`)
+    .join(';');
 
 /** Lines of tokens ({ content, htmlStyle }) for one run of code in one language. */
 function tokenLines(h, code, lang) {
@@ -47,7 +50,10 @@ export async function highlight(code, lang) {
   const runs = l === 'html' ? splitHtml(code) : [{ lang: l, code }];
   const lines = runs.flatMap((r) => tokenLines(h, r.code, r.lang));
   const body = lines
-    .map((tokens) => `<span class="line">${tokens.map((t) => (t.htmlStyle ? `<span style="${styleOf(t.htmlStyle)}">${esc(t.content)}</span>` : esc(t.content))).join('')}</span>`)
+    .map(
+      (tokens) =>
+        `<span class="line">${tokens.map((t) => (t.htmlStyle ? `<span style="${styleOf(t.htmlStyle)}">${esc(t.content)}</span>` : esc(t.content))).join('')}</span>`,
+    )
     .join('\n');
   return `<pre class="astro-code shiki" data-lang="${esc(l)}" tabindex="0"><code>${body}</code></pre>`;
 }

@@ -39,7 +39,8 @@
         ctx.fillStyle = v;
         return a === ctx.fillStyle;
       };
-      const property = (name: string): string => (styles && typeof styles.getPropertyValue === 'function' ? styles.getPropertyValue(name).trim() : '');
+      const property = (name: string): string =>
+        styles && typeof styles.getPropertyValue === 'function' ? styles.getPropertyValue(name).trim() : '';
       const resolve = (value: string): string | null => {
         const known = colors.get(value);
         if (known !== undefined) return known;
@@ -139,12 +140,14 @@
           if (fill) {
             ctx.globalAlpha = a * (own.fillOpacity === undefined ? 1 : own.fillOpacity);
             ctx.fillStyle = s.fade ? fadeOf(fill) : fill;
-            if (path) ctx.fill(path); else ctx.fill();
+            if (path) ctx.fill(path);
+            else ctx.fill();
           }
           if (stroke) {
             ctx.globalAlpha = a;
             ctx.strokeStyle = stroke;
-            if (path) ctx.stroke(path); else ctx.stroke();
+            if (path) ctx.stroke(path);
+            else ctx.stroke();
           }
         };
 
@@ -221,8 +224,10 @@
       // ── what is under the pointer: the `data` of the topmost primitive (a legend item tells the filter which value it is) ──
       const boxOf = (p: BC.Prim): Box | null => {
         switch (p.type) {
-          case 'rect': return [p.x, p.y, p.x + p.w, p.y + p.h];
-          case 'circle': return [p.cx - p.r, p.cy - p.r, p.cx + p.r, p.cy + p.r];
+          case 'rect':
+            return [p.x, p.y, p.x + p.w, p.y + p.h];
+          case 'circle':
+            return [p.cx - p.r, p.cy - p.r, p.cx + p.r, p.cy + p.r];
           case 'text': {
             setText(p);
             const w = ctx.measureText(p.text).width;
@@ -241,7 +246,8 @@
             const t = p.translate || [0, 0];
             return out ? [out[0] + t[0], out[1] + t[1], out[2] + t[0], out[3] + t[1]] : null;
           }
-          default: return null; // a path has no cheap bounding box; nothing that needs to be found is one
+          default:
+            return null; // a path has no cheap bounding box; nothing that needs to be found is one
         }
       };
       const find = (p: BC.Prim, x: number, y: number): Record<string, string> | null => {

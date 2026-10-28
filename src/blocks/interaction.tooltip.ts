@@ -21,9 +21,20 @@
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.',
     params: {
       fields: { kind: 'list', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
-      formats: { kind: 'any', doc: 'How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits).' },
-      content: { kind: 'any', doc: 'Name of a function registered with BC.defineFn (or, in a spec built in JS, the function itself). It gets a TooltipDatum and returns what to show: a string (text), { html }, a DOM Node, an array of those, null/false to hide the tooltip, or undefined for the default content. { html } is set with innerHTML and is not escaped — build it from trusted strings, never straight from a row value the data may contain.' },
-      marker: { kind: 'enum', values: ['auto', 'dot', 'box', 'none'], default: 'auto', doc: '"dot" draws a small circle at the point; "box" highlights the whole shape (used automatically for rect marks like bar/heatmap, where a dot would land on an edge); "auto" picks box when the mark reports its bounds and dot otherwise; "none" shows the tooltip text without a marker.' },
+      formats: {
+        kind: 'any',
+        doc: 'How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits).',
+      },
+      content: {
+        kind: 'any',
+        doc: 'Name of a function registered with BC.defineFn (or, in a spec built in JS, the function itself). It gets a TooltipDatum and returns what to show: a string (text), { html }, a DOM Node, an array of those, null/false to hide the tooltip, or undefined for the default content. { html } is set with innerHTML and is not escaped — build it from trusted strings, never straight from a row value the data may contain.',
+      },
+      marker: {
+        kind: 'enum',
+        values: ['auto', 'dot', 'box', 'none'],
+        default: 'auto',
+        doc: '"dot" draws a small circle at the point; "box" highlights the whole shape (used automatically for rect marks like bar/heatmap, where a dot would land on an edge); "auto" picks box when the mark reports its bounds and dot otherwise; "none" shows the tooltip text without a marker.',
+      },
     },
     attach(spec, live) {
       const host = live.host;
@@ -53,25 +64,48 @@
       tip.setAttribute('role', 'tooltip');
       // a card: the page's own font, figures that line up, a soft shadow; every color is a variable a theme can set
       Object.assign(tip.style, {
-        position: 'absolute', display: 'none', pointerEvents: 'none', zIndex: '10', whiteSpace: 'nowrap',
-        fontSize: '12px', lineHeight: '1.45', fontVariantNumeric: 'tabular-nums', padding: '8px 11px', borderRadius: '10px',
-        background: 'var(--bc-tooltip-bg, #fff)', color: 'var(--bc-text, #333)',
+        position: 'absolute',
+        display: 'none',
+        pointerEvents: 'none',
+        zIndex: '10',
+        whiteSpace: 'nowrap',
+        fontSize: '12px',
+        lineHeight: '1.45',
+        fontVariantNumeric: 'tabular-nums',
+        padding: '8px 11px',
+        borderRadius: '10px',
+        background: 'var(--bc-tooltip-bg, #fff)',
+        color: 'var(--bc-text, #333)',
         border: '1px solid var(--bc-tooltip-border, rgba(127,127,127,.22))',
         boxShadow: 'var(--bc-tooltip-shadow, 0 10px 28px rgba(15,23,42,.14), 0 2px 6px rgba(15,23,42,.08))',
       });
       const dot = doc.createElement('div');
       dot.setAttribute('class', 'bc-tooltip-dot');
       Object.assign(dot.style, {
-        position: 'absolute', display: 'none', pointerEvents: 'none', width: '12px', height: '12px', marginLeft: '-6px', marginTop: '-6px',
-        boxSizing: 'border-box', borderRadius: '50%', border: '2.5px solid var(--bc-tooltip-bg, #fff)', background: 'var(--bc-text, #333)',
+        position: 'absolute',
+        display: 'none',
+        pointerEvents: 'none',
+        width: '12px',
+        height: '12px',
+        marginLeft: '-6px',
+        marginTop: '-6px',
+        boxSizing: 'border-box',
+        borderRadius: '50%',
+        border: '2.5px solid var(--bc-tooltip-bg, #fff)',
+        background: 'var(--bc-text, #333)',
         boxShadow: '0 1px 4px rgba(15,23,42,.3)',
       });
       const highlight = doc.createElement('div');
       highlight.setAttribute('class', 'bc-tooltip-highlight');
       Object.assign(highlight.style, {
-        position: 'absolute', display: 'none', pointerEvents: 'none', boxSizing: 'border-box', borderRadius: '3px',
+        position: 'absolute',
+        display: 'none',
+        pointerEvents: 'none',
+        boxSizing: 'border-box',
+        borderRadius: '3px',
         background: 'var(--bc-tooltip-highlight-fill, rgba(127,127,127,.14))',
-        outline: '1.5px solid var(--bc-tooltip-highlight-line, rgba(127,127,127,.45))', outlineOffset: '-1.5px',
+        outline: '1.5px solid var(--bc-tooltip-highlight-line, rgba(127,127,127,.45))',
+        outlineOffset: '-1.5px',
       });
       host.appendChild(dot);
       host.appendChild(highlight);
@@ -244,8 +278,19 @@
             const t = doc.createElement('span');
             // a date heading without a format of its own is written as a date, not as the ISO string it was given as
             const col = live.table.columns[heading];
-            const isTime = ((): boolean => { for (const ch of ['x', 'y']) { try { const c = live.channel(mark, ch); if (c.field === heading && c.scale && c.scale.kind === 'time') return true; } catch (e) { /* not a channel */ } } return false; })();
-            t.textContent = !formats[heading] && isTime ? BC.formatter('date')(col[pick.row]) || write(heading, pick.row) : write(heading, pick.row);
+            const isTime = ((): boolean => {
+              for (const ch of ['x', 'y']) {
+                try {
+                  const c = live.channel(mark, ch);
+                  if (c.field === heading && c.scale && c.scale.kind === 'time') return true;
+                } catch (e) {
+                  /* not a channel */
+                }
+              }
+              return false;
+            })();
+            t.textContent =
+              !formats[heading] && isTime ? BC.formatter('date')(col[pick.row]) || write(heading, pick.row) : write(heading, pick.row);
             head.appendChild(t);
             tip.appendChild(head);
           }

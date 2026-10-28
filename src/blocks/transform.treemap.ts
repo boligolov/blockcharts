@@ -7,22 +7,38 @@
    *  `keep`, which the new column stands for) nor each other: a silent overwrite changes what another mark reads. */
   function checkColumns(table: BC.Table, reads: [string, unknown][], writes: [string, string][], keep: unknown[]): void {
     const has = (f: string) => Object.prototype.hasOwnProperty.call(table.columns, f);
-    for (const [param, f] of reads) if (f !== undefined && (typeof f !== 'string' || !has(f))) fail(`unknown field "${String(f)}" in "${param}"`);
+    for (const [param, f] of reads)
+      if (f !== undefined && (typeof f !== 'string' || !has(f))) fail(`unknown field "${String(f)}" in "${param}"`);
     const seen: Record<string, string> = {};
     for (const [param, name] of writes) {
       if (seen[name]) fail(`"${seen[name]}" and "${param}" both name the new column "${name}"`);
       seen[name] = param;
-      if (has(name) && keep.indexOf(name) < 0) fail(`"${name}" is already a column of the data: give the new one another name with "${param}"`);
+      if (has(name) && keep.indexOf(name) < 0)
+        fail(`"${name}" is already a column of the data: give the new one another name with "${param}"`);
     }
   }
 
-  interface Box { x: number; y: number; w: number; h: number }
-  interface Item { i: number; v: number }
+  interface Box {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  }
+  interface Item {
+    i: number;
+    v: number;
+  }
 
   function names(spec: BC.TransformSpec) {
     const as = Array.isArray(spec.as) ? spec.as : [];
     const pick = (k: number, d: string) => (typeof as[k] === 'string' ? (as[k] as string) : d);
-    return { x0: pick(0, 'x0'), x1: pick(1, 'x1'), y0: pick(2, 'y0'), y1: pick(3, 'y1'), label: typeof spec.labelAs === 'string' ? spec.labelAs : 'label' };
+    return {
+      x0: pick(0, 'x0'),
+      x1: pick(1, 'x1'),
+      y0: pick(2, 'y0'),
+      y1: pick(3, 'y1'),
+      label: typeof spec.labelAs === 'string' ? spec.labelAs : 'label',
+    };
   }
 
   /** The worst aspect ratio of a row of areas laid along a side of length `side` (squarified treemaps, Bruls et al.). */
@@ -49,7 +65,17 @@
       if (side <= 0) break;
       const row: Item[] = [rest[0]];
       let k = 1;
-      while (k < rest.length && worst(row.concat(rest[k]).map((it) => it.v), side) <= worst(row.map((it) => it.v), side)) {
+      while (
+        k < rest.length &&
+        worst(
+          row.concat(rest[k]).map((it) => it.v),
+          side,
+        ) <=
+          worst(
+            row.map((it) => it.v),
+            side,
+          )
+      ) {
         row.push(rest[k]);
         k++;
       }
@@ -94,10 +120,18 @@
     params: {
       field: { kind: 'field', required: true, doc: 'The size of each cell (positive numbers; others are left out).' },
       group: { kind: 'field', doc: 'Field that gathers cells into blocks, one per distinct value.' },
-      name: { kind: 'field', doc: 'Field with each cell\'s name, copied to `label` for cells that are big enough.' },
-      aspect: { kind: 'number', default: 1.6, doc: 'Width / height of the plot the treemap fills (for a 640 × 400 chart with no axes, about 1.6).' },
+      name: { kind: 'field', doc: "Field with each cell's name, copied to `label` for cells that are big enough." },
+      aspect: {
+        kind: 'number',
+        default: 1.6,
+        doc: 'Width / height of the plot the treemap fills (for a 640 × 400 chart with no axes, about 1.6).',
+      },
       padding: { kind: 'number', default: 0.004, doc: 'Space between cells, as a share of the plot height.' },
-      labelMin: { kind: 'number', default: 0.02, doc: 'Cells smaller than this share of the whole get no label (so small ones stay clean).' },
+      labelMin: {
+        kind: 'number',
+        default: 0.02,
+        doc: 'Cells smaller than this share of the whole get no label (so small ones stay clean).',
+      },
       as: { kind: 'list', doc: 'Names of the four corner columns. Default [x0, x1, y0, y1].' },
       labelAs: { kind: 'string', default: 'label', doc: 'Name of the label column.' },
     },
@@ -107,7 +141,22 @@
     },
     apply(table, spec) {
       const n = names(spec);
-      checkColumns(table, [['field', spec.field], ['group', spec.group], ['name', spec.name]], [['as[0]', n.x0], ['as[1]', n.x1], ['as[2]', n.y0], ['as[3]', n.y1], ['labelAs', n.label]], [spec.name]);
+      checkColumns(
+        table,
+        [
+          ['field', spec.field],
+          ['group', spec.group],
+          ['name', spec.name],
+        ],
+        [
+          ['as[0]', n.x0],
+          ['as[1]', n.x1],
+          ['as[2]', n.y0],
+          ['as[3]', n.y1],
+          ['labelAs', n.label],
+        ],
+        [spec.name],
+      );
       const values = table.columns[String(spec.field)] || [];
       const groups = typeof spec.group === 'string' ? table.columns[spec.group] : undefined;
       const labels = typeof spec.name === 'string' ? table.columns[spec.name] : undefined;

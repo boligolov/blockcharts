@@ -25,7 +25,8 @@ function forDownload(html, name) {
 
 function prebuild() {
   const distDir = path.join(repo, 'dist');
-  if (!fs.existsSync(path.join(distDir, 'manifest.json'))) throw new Error(`${distDir}/manifest.json not found: run npm run build and npm run manifest first`);
+  if (!fs.existsSync(path.join(distDir, 'manifest.json')))
+    throw new Error(`${distDir}/manifest.json not found: run npm run build and npm run manifest first`);
   const kits = JSON.parse(fs.readFileSync(path.join(repo, 'kits.json'), 'utf8'));
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bc-site-release-'));
@@ -41,7 +42,10 @@ function prebuild() {
     fs.rmSync(reportsDir, { recursive: true, force: true });
     fs.mkdirSync(reportsDir, { recursive: true });
     const sizes = {};
-    for (const f of fs.readdirSync(recipesDir).filter((n) => n.endsWith('.json')).sort()) {
+    for (const f of fs
+      .readdirSync(recipesDir)
+      .filter((n) => n.endsWith('.json'))
+      .sort()) {
       const name = f.replace(/\.json$/, '');
       const r = compose({ ...JSON.parse(fs.readFileSync(path.join(recipesDir, f), 'utf8')), baseDir: recipesDir });
       if (r.diagnostics.length) throw new Error(`recipe ${name} has diagnostics: ${JSON.stringify(r.diagnostics)}`);

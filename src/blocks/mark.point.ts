@@ -16,7 +16,10 @@
     for (let i = from; i < to; i++) rows.push(i);
     if (spec.size !== undefined) {
       // rows without a size are not drawn; they go last so a NaN never reaches the comparator's arithmetic
-      const key = (i: number) => { const r = radius(i); return isFinite(r) ? r : -1; };
+      const key = (i: number) => {
+        const r = radius(i);
+        return isFinite(r) ? r : -1;
+      };
       rows.sort((a, b) => key(b) - key(a) || a - b);
     }
     return rows;
@@ -31,13 +34,22 @@
       r: { kind: 'number', default: 3, doc: 'Radius in px (when there is no `size` channel).' },
       fill: { kind: 'string', doc: 'Any CSS color. Default: theme color by mark index.' },
       opacity: { kind: 'number', default: 1, doc: 'Bubbles overlap: 0.7 lets the ones behind show through.' },
-      stroke: { kind: 'string', doc: 'Outline color; bubbles read better with the card color as one ("var(--bc-tooltip-bg, #fff)", which follows the dark theme).' },
+      stroke: {
+        kind: 'string',
+        doc: 'Outline color; bubbles read better with the card color as one ("var(--bc-tooltip-bg, #fff)", which follows the dark theme).',
+      },
     },
     channels: {
       x: { required: true, scales: ['linear', 'log', 'time', 'band'] },
       y: { required: true, scales: ['linear', 'log', 'time', 'band'] },
-      color: { scales: ['color', 'sequential'], doc: 'Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn.' },
-      size: { scales: ['size'], doc: 'Radius per row from a scale.size (a bubble chart); rows without a size (missing or negative) are not drawn.' },
+      color: {
+        scales: ['color', 'sequential'],
+        doc: 'Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn.',
+      },
+      size: {
+        scales: ['size'],
+        doc: 'Radius per row from a scale.size (a bubble chart); rows without a size (missing or negative) are not drawn.',
+      },
     },
     render(spec, ctx, index) {
       const cx = ctx.channel(spec, 'x');
@@ -57,7 +69,14 @@
         if (!isFinite(px) || !isFinite(py) || !isFinite(r)) continue;
         const c = colors ? colors[i] : fill;
         if (!c) continue;
-        out.push({ type: 'circle', cx: px + halfX, cy: py + halfY, r, style: stroke ? { fill: c, opacity, stroke, strokeWidth: 1 } : { fill: c, opacity }, ref: { mark: index, row: i } });
+        out.push({
+          type: 'circle',
+          cx: px + halfX,
+          cy: py + halfY,
+          r,
+          style: stroke ? { fill: c, opacity, stroke, strokeWidth: 1 } : { fill: c, opacity },
+          ref: { mark: index, row: i },
+        });
       }
       return out;
     },

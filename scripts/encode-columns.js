@@ -7,8 +7,24 @@
 const zlib = require('zlib');
 
 const SIZES = { float32: 4, float64: 8, int8: 1, int16: 2, int32: 4, uint8: 1, uint16: 2, uint32: 4 };
-const RANGES = { int8: [-128, 127], int16: [-32768, 32767], int32: [-2147483648, 2147483647], uint8: [0, 255], uint16: [0, 65535], uint32: [0, 4294967295] };
-const WRITERS = { float32: 'writeFloatLE', float64: 'writeDoubleLE', int8: 'writeInt8', int16: 'writeInt16LE', int32: 'writeInt32LE', uint8: 'writeUInt8', uint16: 'writeUInt16LE', uint32: 'writeUInt32LE' };
+const RANGES = {
+  int8: [-128, 127],
+  int16: [-32768, 32767],
+  int32: [-2147483648, 2147483647],
+  uint8: [0, 255],
+  uint16: [0, 65535],
+  uint32: [0, 4294967295],
+};
+const WRITERS = {
+  float32: 'writeFloatLE',
+  float64: 'writeDoubleLE',
+  int8: 'writeInt8',
+  int16: 'writeInt16LE',
+  int32: 'writeInt32LE',
+  uint8: 'writeUInt8',
+  uint16: 'writeUInt16LE',
+  uint32: 'writeUInt32LE',
+};
 const AUTO_ORDER = ['uint8', 'int8', 'uint16', 'int16', 'uint32', 'int32'];
 
 const isNumeric = (values) => values.length > 0 && values.every((v) => v === null || v === undefined || typeof v === 'number');
@@ -16,7 +32,10 @@ const isNumeric = (values) => values.length > 0 && values.every((v) => v === nul
 function autoDtype(values) {
   let ints = true;
   for (const v of values) {
-    if (v === null || v === undefined || !Number.isInteger(v)) { ints = false; break; }
+    if (v === null || v === undefined || !Number.isInteger(v)) {
+      ints = false;
+      break;
+    }
   }
   if (!ints) return 'float64';
   for (const t of AUTO_ORDER) if (values.every((v) => v >= RANGES[t][0] && v <= RANGES[t][1])) return t;
@@ -27,7 +46,8 @@ function encodeColumns(columns, options) {
   const o = options || {};
   const dtypes = o.dtypes || {};
   const gzip = o.gzip === undefined ? true : o.gzip;
-  if (!columns || typeof columns !== 'object' || Array.isArray(columns)) throw new Error('encodeColumns: columns must be an object of name to array');
+  if (!columns || typeof columns !== 'object' || Array.isArray(columns))
+    throw new Error('encodeColumns: columns must be an object of name to array');
   const names = Object.keys(columns);
   for (const k of Object.keys(dtypes)) if (!(k in columns)) throw new Error(`encodeColumns: dtypes names an unknown column "${k}"`);
   const length = names.length ? columns[names[0]].length : 0;
@@ -36,16 +56,19 @@ function encodeColumns(columns, options) {
     const values = Array.from(columns[k]);
     if (values.length !== length) throw new Error(`encodeColumns: column "${k}" has ${values.length} values, expected ${length}`);
     if (!isNumeric(values)) {
-      if (dtypes[k] && dtypes[k] !== 'auto') throw new Error(`encodeColumns: column "${k}" is not numeric, cannot store it as ${dtypes[k]}`);
+      if (dtypes[k] && dtypes[k] !== 'auto')
+        throw new Error(`encodeColumns: column "${k}" is not numeric, cannot store it as ${dtypes[k]}`);
       out[k] = values;
       continue;
     }
     let dtype = dtypes[k] === undefined || dtypes[k] === 'auto' ? autoDtype(values) : dtypes[k];
-    if (!SIZES[dtype]) throw new Error(`encodeColumns: column "${k}": unknown dtype "${dtype}" (use ${Object.keys(SIZES).join(', ')} or auto)`);
+    if (!SIZES[dtype])
+      throw new Error(`encodeColumns: column "${k}": unknown dtype "${dtype}" (use ${Object.keys(SIZES).join(', ')} or auto)`);
     const range = RANGES[dtype];
     values.forEach((v, i) => {
       if (v === null || v === undefined) {
-        if (range) throw new Error(`encodeColumns: column "${k}" has a missing value at ${i}, which ${dtype} cannot hold; use float32 or float64`);
+        if (range)
+          throw new Error(`encodeColumns: column "${k}" has a missing value at ${i}, which ${dtype} cannot hold; use float32 or float64`);
       } else if (range && (!Number.isInteger(v) || v < range[0] || v > range[1])) {
         throw new Error(`encodeColumns: column "${k}": ${v} at ${i} does not fit ${dtype}`);
       }

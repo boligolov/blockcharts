@@ -32,7 +32,10 @@
     grad.setAttribute('x2', '0');
     num(grad, 'y1', pt.plot.y);
     num(grad, 'y2', pt.plot.y + pt.plot.h);
-    for (const [offset, alpha] of [[0, opacity], [1, 0]]) {
+    for (const [offset, alpha] of [
+      [0, opacity],
+      [1, 0],
+    ]) {
       const stop = el('stop');
       stop.setAttribute('offset', String(offset));
       stop.setAttribute('style', `stop-color:${fill.replace(/[;{}<>]/g, '')};stop-opacity:${alpha}`);

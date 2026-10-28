@@ -47,7 +47,8 @@
     const fixed = FIXED.find((f) => span / f <= count);
     if (fixed !== undefined) {
       const off = fixed === 7 * D ? WEEK_OFFSET : 0;
-      for (let t = Math.ceil((d0 - off) / fixed) * fixed + off; t <= d1 && out.length < MAX_TICKS; t += fixed) out.push({ t, label: labelFixed(t, fixed) });
+      for (let t = Math.ceil((d0 - off) / fixed) * fixed + off; t <= d1 && out.length < MAX_TICKS; t += fixed)
+        out.push({ t, label: labelFixed(t, fixed) });
       return out;
     }
     const k = MONTHS.find((m) => span / (m * MONTH) <= count);
@@ -86,7 +87,10 @@
       if (spec.domain && spec.domain.length === 2) {
         b0 = toMs(spec.domain[0]);
         b1 = toMs(spec.domain[1]);
-        if (!isFinite(b0) || !isFinite(b1)) throw new Error(`scale.time: domain must be two dates (ISO strings such as "2024-01-01", or epoch milliseconds), got ${JSON.stringify(spec.domain)}`);
+        if (!isFinite(b0) || !isFinite(b1))
+          throw new Error(
+            `scale.time: domain must be two dates (ISO strings such as "2024-01-01", or epoch milliseconds), got ${JSON.stringify(spec.domain)}`,
+          );
       } else {
         b0 = Infinity;
         b1 = -Infinity;
@@ -104,7 +108,10 @@
         }
         if (b0 > b1) {
           // numbers, and not one of them a date: almost always a time in another unit
-          if (outOfRange) throw new Error('scale.time: the numbers are outside the range of dates; a time scale reads epoch milliseconds (from nanoseconds divide by 1e6, from seconds multiply by 1000)');
+          if (outOfRange)
+            throw new Error(
+              'scale.time: the numbers are outside the range of dates; a time scale reads epoch milliseconds (from nanoseconds divide by 1e6, from seconds multiply by 1000)',
+            );
           b0 = 0;
           b1 = D;
         }

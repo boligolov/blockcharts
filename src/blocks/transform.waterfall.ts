@@ -7,12 +7,14 @@
    *  `keep`, which the new column stands for) nor each other: a silent overwrite changes what another mark reads. */
   function checkColumns(table: BC.Table, reads: [string, unknown][], writes: [string, string][], keep: unknown[]): void {
     const has = (f: string) => Object.prototype.hasOwnProperty.call(table.columns, f);
-    for (const [param, f] of reads) if (f !== undefined && (typeof f !== 'string' || !has(f))) fail(`unknown field "${String(f)}" in "${param}"`);
+    for (const [param, f] of reads)
+      if (f !== undefined && (typeof f !== 'string' || !has(f))) fail(`unknown field "${String(f)}" in "${param}"`);
     const seen: Record<string, string> = {};
     for (const [param, name] of writes) {
       if (seen[name]) fail(`"${seen[name]}" and "${param}" both name the new column "${name}"`);
       seen[name] = param;
-      if (has(name) && keep.indexOf(name) < 0) fail(`"${name}" is already a column of the data: give the new one another name with "${param}"`);
+      if (has(name) && keep.indexOf(name) < 0)
+        fail(`"${name}" is already a column of the data: give the new one another name with "${param}"`);
     }
   }
 
@@ -38,11 +40,18 @@
     doc: 'A waterfall (bridge) chart: how a starting value becomes an ending one through gains and losses. In row order, each row adds its `field` to a running total; the transform writes where each bar starts and ends (`<field>0`, `<field>1`), its kind (`step`: "increase", "decrease" or "total"), what it stands for (`amount`: the change, or the total) and its upper end (`top`, for a label above it). Rows marked by the `total` field are subtotals: their bar goes from 0 to the running total, and their own value is ignored. Draw with mark.rect (y = `<field>1`, y2 = `<field>0` on a band x), colored by `step` through a color scale.',
     params: {
       field: { kind: 'field', required: true, doc: 'The change each row makes (negative for a loss).' },
-      total: { kind: 'field', doc: 'Field that marks subtotal rows (true, 1, "yes" or "total"): their bar shows the running total so far.' },
+      total: {
+        kind: 'field',
+        doc: 'Field that marks subtotal rows (true, 1, "yes" or "total"): their bar shows the running total so far.',
+      },
       start: { kind: 'number', default: 0, doc: 'Where the running total begins.' },
       as: { kind: 'list', doc: 'Names of the start and end columns. Default [<field>0, <field>1].' },
       kindAs: { kind: 'string', default: 'step', doc: 'Name of the column that says "increase", "decrease" or "total".' },
-      amountAs: { kind: 'string', default: 'amount', doc: 'Name of the column with what each bar stands for: the change of a step, the running total of a subtotal. Label bars with it.' },
+      amountAs: {
+        kind: 'string',
+        default: 'amount',
+        doc: 'Name of the column with what each bar stands for: the change of a step, the running total of a subtotal. Label bars with it.',
+      },
       topAs: { kind: 'string', default: 'top', doc: 'Name of the column with the upper end of each bar, where a label above it goes.' },
     },
     outputs(spec) {
@@ -51,7 +60,21 @@
     },
     apply(table, spec) {
       const n = names(spec);
-      checkColumns(table, [['field', spec.field], ['total', spec.total]], [['as[0]', n.start], ['as[1]', n.end], ['kindAs', n.kind], ['amountAs', n.amount], ['topAs', n.top]], [spec.field]);
+      checkColumns(
+        table,
+        [
+          ['field', spec.field],
+          ['total', spec.total],
+        ],
+        [
+          ['as[0]', n.start],
+          ['as[1]', n.end],
+          ['kindAs', n.kind],
+          ['amountAs', n.amount],
+          ['topAs', n.top],
+        ],
+        [spec.field],
+      );
       const values = table.columns[String(spec.field)] || [];
       const totals = typeof spec.total === 'string' ? table.columns[spec.total] : undefined;
       const start = new Float64Array(table.length);

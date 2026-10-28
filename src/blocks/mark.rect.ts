@@ -71,20 +71,38 @@
     version: 9,
     doc: 'Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field).',
     params: {
-      baseline: { kind: 'number', default: 0, doc: 'Where bars start on a continuous axis without a second channel. Keep it inside the scale domain (scale `zero: true` for 0).' },
+      baseline: {
+        kind: 'number',
+        default: 0,
+        doc: 'Where bars start on a continuous axis without a second channel. Keep it inside the scale domain (scale `zero: true` for 0).',
+      },
       fill: { kind: 'string', doc: 'Any CSS color. Default: theme color by mark index.' },
       opacity: { kind: 'number', default: 1 },
       radius: { kind: 'number', default: 0, doc: 'Corner radius in px.' },
-      thickness: { kind: 'number', default: 1, doc: 'Share of the band a bar fills, centered (0.4 = a slim bar; a bullet chart draws the value slimmer than the ranges behind it).' },
-      dodgePadding: { kind: 'number', default: 0.1, doc: 'Gap between the bars of one dodged category, as a fraction of each bar\'s share of the band.' },
+      thickness: {
+        kind: 'number',
+        default: 1,
+        doc: 'Share of the band a bar fills, centered (0.4 = a slim bar; a bullet chart draws the value slimmer than the ranges behind it).',
+      },
+      dodgePadding: {
+        kind: 'number',
+        default: 0.1,
+        doc: "Gap between the bars of one dodged category, as a fraction of each bar's share of the band.",
+      },
     },
     channels: {
       x: { required: true, scales: KINDS },
       y: { required: true, scales: KINDS },
       x2: { scales: ['linear', 'log', 'time'], sharesScale: 'x', doc: 'Other end of the rectangle along x.' },
       y2: { scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Other end of the rectangle along y.' },
-      color: { scales: ['color', 'sequential'], doc: 'Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn.' },
-      dodge: { unscaled: true, doc: 'Field that splits the band-scale axis into side-by-side bars, one per distinct value (grouped bar). Usually the same field as `color`. One distinct value (or none) draws a plain bar, unchanged.' },
+      color: {
+        scales: ['color', 'sequential'],
+        doc: 'Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn.',
+      },
+      dodge: {
+        unscaled: true,
+        doc: 'Field that splits the band-scale axis into side-by-side bars, one per distinct value (grouped bar). Usually the same field as `color`. One distinct value (or none) draws a plain bar, unchanged.',
+      },
     },
     render(spec, ctx, index) {
       const baseline = typeof spec.baseline === 'number' ? spec.baseline : 0;

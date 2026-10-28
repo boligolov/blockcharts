@@ -3,7 +3,10 @@
   const MAX_BUCKETS = 20000;
 
   type Rows = Int32Array;
-  interface Order { scale: BC.Scale; dir: number }
+  interface Order {
+    scale: BC.Scale;
+    dir: number;
+  }
 
   // Both caches are keyed by the column objects of the table the transform gets. That table is the same object at every
   // redraw (only the view changes), so the work of partitioning and of checking the order is done once, not per frame.
@@ -147,7 +150,9 @@
           for (let k = 0; k < n; k++) keep.push(rows[k]);
           if (n > threshold * buckets) {
             const which = part.key === undefined ? 'the rows' : `series ${JSON.stringify(part.key)}`;
-            view.warn(`${which} are not sorted by "${xField}" (or have a missing "${xField}"), so decimate left ${n} rows as they are; sort the data by "${xField}" first`);
+            view.warn(
+              `${which} are not sorted by "${xField}" (or have a missing "${xField}"), so decimate left ${n} rows as they are; sort the data by "${xField}" first`,
+            );
           }
           continue;
         }

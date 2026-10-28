@@ -78,10 +78,22 @@
       field: { kind: 'field', required: true, doc: 'Numeric field to compute from.' },
       op: { kind: 'enum', values: OPS, required: true, doc: 'cumsum | sum | mean | min | max | diff | pctChange.' },
       size: { kind: 'number', doc: 'Rows in the window of sum, mean, min, max (required for them).' },
-      align: { kind: 'enum', values: ['trailing', 'center'], default: 'trailing', doc: '"trailing": the row and the size - 1 rows before it. "center": the row in the middle of its window.' },
-      partial: { kind: 'boolean', default: false, doc: 'Compute windows cut short by the start or end of a series from the rows they have.' },
+      align: {
+        kind: 'enum',
+        values: ['trailing', 'center'],
+        default: 'trailing',
+        doc: '"trailing": the row and the size - 1 rows before it. "center": the row in the middle of its window.',
+      },
+      partial: {
+        kind: 'boolean',
+        default: false,
+        doc: 'Compute windows cut short by the start or end of a series from the rows they have.',
+      },
       sort: { kind: 'field', doc: 'Field that orders the rows (the x of the chart). Rows without it get NaN.' },
-      group: { kind: 'field', doc: 'Field that splits the rows into series, each computed on its own; a missing value is a series of its own.' },
+      group: {
+        kind: 'field',
+        doc: 'Field that splits the rows into series, each computed on its own; a missing value is a series of its own.',
+      },
       as: { kind: 'string', doc: 'Name of the new column.' },
     },
     outputs: (spec) => [nameOf(spec)],
@@ -96,7 +108,8 @@
       if (spec.group !== undefined && !groupCol) fail(`unknown field "${spec.group}"`);
       const windowed = WINDOWED.indexOf(op) >= 0;
       if (windowed) {
-        if (!(typeof spec.size === 'number' && spec.size >= 1 && Math.floor(spec.size) === spec.size)) fail(`"${op}" needs "size": a whole number of rows, at least 1`);
+        if (!(typeof spec.size === 'number' && spec.size >= 1 && Math.floor(spec.size) === spec.size))
+          fail(`"${op}" needs "size": a whole number of rows, at least 1`);
       } else if (spec.size !== undefined) {
         fail(`"size" applies to sum, mean, min and max, not to "${op}"`);
       }
@@ -148,7 +161,12 @@
             out[rows[k]] = op === 'diff' ? d : prev ? d / Math.abs(prev) : NaN;
           }
         } else {
-          const res = slide(vals, op, (k) => Math.max(0, k - before), (k) => Math.min(m - 1, k + after));
+          const res = slide(
+            vals,
+            op,
+            (k) => Math.max(0, k - before),
+            (k) => Math.min(m - 1, k + after),
+          );
           for (let k = 0; k < m; k++) {
             if (!isFinite(vals[k])) continue;
             if (!partial && (k - before < 0 || k + after > m - 1)) continue;

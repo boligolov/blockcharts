@@ -45,7 +45,10 @@ export function loadRecipes() {
     need[m[2]] = m[1];
     order.push(m[2]);
   }
-  const names = fs.readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, ''));
+  const names = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => f.replace(/\.json$/, ''));
   const missing = order.filter((n) => !names.includes(n));
   if (missing.length) throw new Error(`SKILL.md lists recipes that do not exist: ${missing.join(', ')}`);
   return order.concat(names.filter((n) => !order.includes(n)).sort()).map((name) => {
@@ -64,7 +67,10 @@ export function lakeOf(recipes) {
   const charts = new Map();
   for (const r of recipes) {
     for (const n of Object.keys(r.data)) lake[`${r.name}:${n}`] = r.data[n];
-    charts.set(r.name, r.charts.map((c) => ({ ...c, spec: { ...c.spec, data: `${r.name}:${c.spec.data}` } })));
+    charts.set(
+      r.name,
+      r.charts.map((c) => ({ ...c, spec: { ...c.spec, data: `${r.name}:${c.spec.data}` } })),
+    );
   }
   return { lake, charts };
 }
@@ -96,8 +102,18 @@ export const { SITE } = require(path.join(repo, 'scripts', 'site-prebuild.js'));
  */
 export function composeDemo() {
   const { compose } = require(path.join(repo, 'scripts', 'compose.js'));
-  const data = { orders: [{ region: 'North', revenue: 42 }, { region: 'South', revenue: 58 }] };
-  const spec = { data: 'orders', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'rect', x: 'region', y: 'revenue' }], interaction: [{ type: 'tooltip' }] };
+  const data = {
+    orders: [
+      { region: 'North', revenue: 42 },
+      { region: 'South', revenue: 58 },
+    ],
+  };
+  const spec = {
+    data: 'orders',
+    scales: { x: { type: 'band' }, y: { type: 'linear' } },
+    marks: [{ type: 'rect', x: 'region', y: 'revenue' }],
+    interaction: [{ type: 'tooltip' }],
+  };
   const blocks = compose({ data, charts: [spec] }).blocks;
   let error = null;
   try {
@@ -122,7 +138,11 @@ export function loadPageCode() {
   const lean = m.core.variants && m.core.variants['composed-plain'];
   const core = fs.readFileSync(path.join(dir, lean ? lean.file : m.core.file));
   const blocks = Object.entries(m.blocks).map(([name, b]) => ({ name, bytes: b.bytes }));
-  return { core: { bytes: core.length, gzip: zlib.gzipSync(core, { level: 9 }).length }, blocks, all: core.length + blocks.reduce((n, b) => n + b.bytes, 0) };
+  return {
+    core: { bytes: core.length, gzip: zlib.gzipSync(core, { level: 9 }).length },
+    blocks,
+    all: core.length + blocks.reduce((n, b) => n + b.bytes, 0),
+  };
 }
 
 /**
@@ -139,8 +159,15 @@ export function loadSizes() {
     return { source: fs.statSync(path.join(repo, 'src', src)).size, min: min.length, gzip: zlib.gzipSync(min, { level: 9 }).length };
   };
   const core = [{ name: 'core', ...sizes(m.core.file, 'core.ts') }];
-  for (const [name, v] of Object.entries(m.core.variants || {})) core.push({ name: `core.${name}`, off: v.off, ...sizes(v.file, 'core.ts') });
-  const blocks = Object.entries(m.blocks).map(([name, b]) => ({ name, role: name.split('.')[0], version: b.version, requires: b.requires, ...sizes(b.file, `blocks/${name}.ts`) }));
+  for (const [name, v] of Object.entries(m.core.variants || {}))
+    core.push({ name: `core.${name}`, off: v.off, ...sizes(v.file, 'core.ts') });
+  const blocks = Object.entries(m.blocks).map(([name, b]) => ({
+    name,
+    role: name.split('.')[0],
+    version: b.version,
+    requires: b.requires,
+    ...sizes(b.file, `blocks/${name}.ts`),
+  }));
   return { core, blocks };
 }
 

@@ -45,12 +45,36 @@
     if (back) {
       for (let k = n - 1; k > 0; k--) {
         const h = (px[k] - px[k - 1]) / 3;
-        d += 'C' + r2(px[k] - h) + ' ' + r2(py[k] - m[k] * h) + ' ' + r2(px[k - 1] + h) + ' ' + r2(py[k - 1] + m[k - 1] * h) + ' ' + r2(px[k - 1]) + ' ' + r2(py[k - 1]);
+        d +=
+          'C' +
+          r2(px[k] - h) +
+          ' ' +
+          r2(py[k] - m[k] * h) +
+          ' ' +
+          r2(px[k - 1] + h) +
+          ' ' +
+          r2(py[k - 1] + m[k - 1] * h) +
+          ' ' +
+          r2(px[k - 1]) +
+          ' ' +
+          r2(py[k - 1]);
       }
     } else {
       for (let k = 0; k < n - 1; k++) {
         const h = (px[k + 1] - px[k]) / 3;
-        d += 'C' + r2(px[k] + h) + ' ' + r2(py[k] + m[k] * h) + ' ' + r2(px[k + 1] - h) + ' ' + r2(py[k + 1] - m[k + 1] * h) + ' ' + r2(px[k + 1]) + ' ' + r2(py[k + 1]);
+        d +=
+          'C' +
+          r2(px[k] + h) +
+          ' ' +
+          r2(py[k] + m[k] * h) +
+          ' ' +
+          r2(px[k + 1] - h) +
+          ' ' +
+          r2(py[k + 1] - m[k + 1] * h) +
+          ' ' +
+          r2(px[k + 1]) +
+          ' ' +
+          r2(py[k + 1]);
       }
     }
     return d;

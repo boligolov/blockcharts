@@ -14,23 +14,30 @@ function rng(seed) {
 
 const MONTHS = ['2024-01-01', '2024-02-01', '2024-03-01', '2024-04-01', '2024-05-01', '2024-06-01'];
 const monthly = [];
-[['web', [200, 260, 310, 290, 350, 420]], ['app', [120, 150, 210, 260, 280, 330]]].forEach(([channel, values]) => {
+[
+  ['web', [200, 260, 310, 290, 350, 420]],
+  ['app', [120, 150, 210, 260, 280, 330]],
+].forEach(([channel, values]) => {
   values.forEach((visits, i) => monthly.push({ month: MONTHS[i], channel, visits }));
 });
 
-const lineSpec = (data, x, extra) => Object.assign({
-  data,
-  size: [720, 300],
-  scales: { x: { type: 'time' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
-  guides: [
-    { type: 'grid', scale: 'y' },
-    { type: 'axis', scale: 'x' },
-    { type: 'axis', scale: 'y', title: 'Visits' },
-    { type: 'legend', scale: 'color', position: 'top' },
-  ],
-  marks: [{ type: 'line', x, y: 'visits', color: 'channel' }],
-  interaction: [{ type: 'tooltip' }],
-}, extra || {});
+const lineSpec = (data, x, extra) =>
+  Object.assign(
+    {
+      data,
+      size: [720, 300],
+      scales: { x: { type: 'time' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
+      guides: [
+        { type: 'grid', scale: 'y' },
+        { type: 'axis', scale: 'x' },
+        { type: 'axis', scale: 'y', title: 'Visits' },
+        { type: 'legend', scale: 'color', position: 'top' },
+      ],
+      marks: [{ type: 'line', x, y: 'visits', color: 'channel' }],
+      interaction: [{ type: 'tooltip' }],
+    },
+    extra || {},
+  );
 
 const json = (v) => JSON.stringify(v);
 // JSON as people write it: one line for anything short ({ "type": "band" }, [640, 300]), indented otherwise
@@ -44,7 +51,9 @@ const pretty = (v, indent = '') => {
   const flat = flatJson(v);
   if (v === null || typeof v !== 'object' || flat.length + indent.length <= 80) return flat;
   const inner = indent + '  ';
-  const items = Array.isArray(v) ? v.map((x) => inner + pretty(x, inner)) : Object.entries(v).map(([k, x]) => `${inner}${JSON.stringify(k)}: ${pretty(x, inner)}`);
+  const items = Array.isArray(v)
+    ? v.map((x) => inner + pretty(x, inner))
+    : Object.entries(v).map(([k, x]) => `${inner}${JSON.stringify(k)}: ${pretty(x, inner)}`);
   return Array.isArray(v) ? `[\n${items.join(',\n')}\n${indent}]` : `{\n${items.join(',\n')}\n${indent}}`;
 };
 const dataTag = (data, id) => `<script type="application/json" id="${id || 'bc-data'}">\n${json(data)}\n</script>`;
@@ -106,13 +115,26 @@ window.addEventListener('load', function () {
 
   // ── 3. ES module ──
   const moduleSpec = {
-    data: 'sales', size: [720, 280],
+    data: 'sales',
+    size: [720, 280],
     scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-    guides: [{ type: 'grid', scale: 'y' }, { type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y', format: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } }],
-    marks: [{ type: 'rect', x: 'region', y: 'total', radius: 3 }, { type: 'text', x: 'region', y: 'total', text: 'total', format: 'compact', baseline: 'auto', dy: -5 }],
+    guides: [
+      { type: 'grid', scale: 'y' },
+      { type: 'axis', scale: 'x' },
+      { type: 'axis', scale: 'y', format: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } },
+    ],
+    marks: [
+      { type: 'rect', x: 'region', y: 'total', radius: 3 },
+      { type: 'text', x: 'region', y: 'total', text: 'total', format: 'compact', baseline: 'auto', dy: -5 },
+    ],
     interaction: [{ type: 'tooltip', formats: { total: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } } }],
   };
-  const sales = [{ region: 'North', total: 42000 }, { region: 'South', total: 58000 }, { region: 'East', total: 31000 }, { region: 'West', total: 66000 }];
+  const sales = [
+    { region: 'North', total: 42000 },
+    { region: 'South', total: 58000 },
+    { region: 'East', total: 31000 },
+    { region: 'West', total: 66000 },
+  ];
   pages.push({
     file: 'module.html',
     title: 'As an ES module',
@@ -136,7 +158,12 @@ window.addEventListener('load', function () {
   const days = 90;
   const apiSpec = lineSpec('visits', 'day', {
     size: [720, 320],
-    interaction: [{ type: 'zoom', fit: ['y'] }, { type: 'brush', fit: ['y'] }, { type: 'legend-filter' }, { type: 'tooltip', content: 'tip' }],
+    interaction: [
+      { type: 'zoom', fit: ['y'] },
+      { type: 'brush', fit: ['y'] },
+      { type: 'legend-filter' },
+      { type: 'tooltip', content: 'tip' },
+    ],
   });
   pages.push({
     file: 'api.html',
@@ -204,9 +231,14 @@ window.addEventListener('load', function () {
 
   // ── 5. themes ──
   const themeSpec = {
-    data: 'sales', size: [520, 220],
+    data: 'sales',
+    size: [520, 220],
     scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-    guides: [{ type: 'grid', scale: 'y' }, { type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y', format: 'compact' }],
+    guides: [
+      { type: 'grid', scale: 'y' },
+      { type: 'axis', scale: 'x' },
+      { type: 'axis', scale: 'y', format: 'compact' },
+    ],
     marks: [{ type: 'rect', x: 'region', y: 'total', radius: 2 }],
     interaction: [{ type: 'tooltip' }],
   };
@@ -237,10 +269,13 @@ ${dataTag({ sales: sales.map((r) => ({ region: r.region, total: r.total })) })}
 
   // ── 5b. your own block ──
   const targetSpec = {
-    data: 'sales', size: [640, 260],
+    data: 'sales',
+    size: [640, 260],
     scales: { x: { type: 'band' }, y: { type: 'linear', zero: true, domain: [0, 80000] } },
     guides: [
-      { type: 'grid', scale: 'y' }, { type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y', format: 'compact' },
+      { type: 'grid', scale: 'y' },
+      { type: 'axis', scale: 'x' },
+      { type: 'axis', scale: 'y', format: 'compact' },
       { type: 'target', scale: 'y', value: 50000, label: 'Target 50K' },
     ],
     marks: [{ type: 'rect', x: 'region', y: 'total', radius: 2 }],
@@ -271,7 +306,8 @@ ${dataTag({ sales: sales.map((r) => ({ region: r.region, total: r.total })) })}
   pages.push({
     file: 'block.html',
     title: 'Your own block',
-    description: 'Write a chart block of your own: a small script that registers with BC.define, is named by type in the spec, and is carried only by the pages that use it.',
+    description:
+      'Write a chart block of your own: a small script that registers with BC.define, is named by type in the spec, and is carried only by the pages that use it.',
     lead: 'A block is a small classic script that registers itself with BC.define. The built-in ones are made exactly this way, so a block of your own is a first-class part of the chart: the spec names it by type, and only the pages that use it carry it.',
     sections: [
       {
@@ -292,7 +328,8 @@ ${chartTag(targetSpec)}`,
   // ── 6. data forms ──
   const rnd = rng(11);
   const N = 2000;
-  const xs = [], ys = [];
+  const xs = [],
+    ys = [];
   let level = 50;
   for (let i = 0; i < N; i++) {
     level += (rnd() - 0.5) * 3;
@@ -309,20 +346,33 @@ ${chartTag(targetSpec)}`,
   const forms = [
     ['Rows', rows, 'An array of objects. The simplest form, and the largest.'],
     ['Columns', columns, 'One array per field: no repeated keys.'],
-    ['gzip + base64', gzB64, 'The JSON of rows or columns, gzipped and base64-encoded. The composer does this by itself for big datasets. Needs DecompressionStream (all current browsers).'],
-    ['Binary columns', binary, 'Numeric columns as raw values, gzipped, base64: what a data pipeline can write. Integers use the smallest integer type; floats stay 64-bit, so nothing is lost.'],
+    [
+      'gzip + base64',
+      gzB64,
+      'The JSON of rows or columns, gzipped and base64-encoded. The composer does this by itself for big datasets. Needs DecompressionStream (all current browsers).',
+    ],
+    [
+      'Binary columns',
+      binary,
+      'Numeric columns as raw values, gzipped, base64: what a data pipeline can write. Integers use the smallest integer type; floats stay 64-bit, so nothing is lost.',
+    ],
   ];
   const dataSpec = (name) => ({
-    data: name, size: [520, 200],
+    data: name,
+    size: [520, 200],
     scales: { x: { type: 'linear' }, y: { type: 'linear' } },
-    guides: [{ type: 'grid', scale: 'y' }, { type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+    guides: [
+      { type: 'grid', scale: 'y' },
+      { type: 'axis', scale: 'x' },
+      { type: 'axis', scale: 'y' },
+    ],
     marks: [{ type: 'line', x: 't', y: 'v' }],
     interaction: [{ type: 'tooltip' }],
   });
   const dataHtml = `<script src="${kit('basic.js')}"></script>
 <script type="application/json" id="bc-data">${json({ rows, columns: columns, gz: gzB64, binary })}</script>
 <div class="cols">
-${forms.map(([label, , ], i) => `  <div class="demo"><p class="muted" style="margin:0 0 4px">${label}</p>${chartTag(dataSpec(['rows', 'columns', 'gz', 'binary'][i])).replace(/\n/g, ' ')}</div>`).join('\n')}
+${forms.map(([label, ,], i) => `  <div class="demo"><p class="muted" style="margin:0 0 4px">${label}</p>${chartTag(dataSpec(['rows', 'columns', 'gz', 'binary'][i])).replace(/\n/g, ' ')}</div>`).join('\n')}
 </div>`;
   pages.push({
     file: 'data.html',
@@ -350,13 +400,19 @@ ${forms.map(([label, value, what]) => `<tr><td>${label}</td><td>${kb(size(value)
   // ── 7. canvas ──
   const brng = rng(42);
   const gauss = () => {
-    let u = 0, v = 0;
+    let u = 0,
+      v = 0;
     while (!u) u = brng();
     while (!v) v = brng();
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   };
-  const bx = [], by = [];
-  [[1200, 1300, 380, 260], [2600, 2500, 300, 420], [3000, 1000, 240, 240]].forEach(([cx, cy, sx, sy]) => {
+  const bx = [],
+    by = [];
+  [
+    [1200, 1300, 380, 260],
+    [2600, 2500, 300, 420],
+    [3000, 1000, 240, 240],
+  ].forEach(([cx, cy, sx, sy]) => {
     for (let i = 0; i < 7000; i++) {
       bx.push(Math.max(0, Math.min(4095, Math.round(cx + gauss() * sx))));
       by.push(Math.max(0, Math.min(4095, Math.round(cy + gauss() * sy))));
@@ -364,9 +420,15 @@ ${forms.map(([label, value, what]) => `<tr><td>${label}</td><td>${kb(size(value)
   });
   const bigData = { points: encodeColumns({ x: bx, y: by }) };
   const bigSpec = (renderer) => ({
-    data: 'points', renderer, size: [520, 360],
+    data: 'points',
+    renderer,
+    size: [520, 360],
     scales: { x: { type: 'linear', nice: true }, y: { type: 'linear', nice: true } },
-    guides: [{ type: 'grid', scale: 'y' }, { type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+    guides: [
+      { type: 'grid', scale: 'y' },
+      { type: 'axis', scale: 'x' },
+      { type: 'axis', scale: 'y' },
+    ],
     marks: [{ type: 'point', x: 'x', y: 'y', r: 1.6, opacity: 0.35 }],
     interaction: [{ type: 'zoom', scales: ['x', 'y'] }, { type: 'tooltip' }],
   });
@@ -410,7 +472,8 @@ ${forms.map(([label, value, what]) => `<tr><td>${label}</td><td>${kb(size(value)
   pages.push({
     file: 'canvas.html',
     title: 'Many points: the canvas renderer',
-    description: 'Draw tens of thousands of points: the same chart spec on one canvas instead of an SVG element per mark, with zoom and tooltips as before.',
+    description:
+      'Draw tens of thousands of points: the same chart spec on one canvas instead of an SVG element per mark, with zoom and tooltips as before.',
     lead: 'An SVG chart makes a DOM element for every mark. Fine for thousands, slow for tens of thousands. Add <code>"renderer": "canvas"</code> to the spec and the same chart is drawn on one canvas.',
     sections: [
       {
@@ -422,7 +485,7 @@ ${forms.map(([label, value, what]) => `<tr><td>${label}</td><td>${kb(size(value)
       },
       {
         h: 'What is different on a canvas',
-        p: 'A canvas has no elements, so a few things that come from elements do not exist: CSS classes on marks, the browser\'s native hover title, and text selection inside the chart. Colors still come from your CSS variables, and the chart repaints when the color scheme or the container width changes. Charts are sharp on high-density screens (the backing store follows <code>devicePixelRatio</code>, up to 3). The renderer is a block like any other: kits that include it are <code>timeseries</code> and <code>full</code>.',
+        p: "A canvas has no elements, so a few things that come from elements do not exist: CSS classes on marks, the browser's native hover title, and text selection inside the chart. Colors still come from your CSS variables, and the chart repaints when the color scheme or the container width changes. Charts are sharp on high-density screens (the backing store follows <code>devicePixelRatio</code>, up to 3). The renderer is a block like any other: kits that include it are <code>timeseries</code> and <code>full</code>.",
       },
     ],
   });

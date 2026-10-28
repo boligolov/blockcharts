@@ -5,9 +5,13 @@
     role: 'mark',
     type: 'boxplot',
     version: 2,
-    doc: 'A box (q1 to q3), a line across it at the median, and whiskers out to low/high — the usual shape for transform.quartiles\' output. `x` is the category (a band scale, one box per category) or a plain position on a continuous one; the five value channels share the scale of `y` by default. Outliers are not drawn by this mark: transform.quartiles reports them as their own rows (only `value` set, the others NaN), meant for a plain mark.point layered on top reading the same `x` and `value`.',
+    doc: "A box (q1 to q3), a line across it at the median, and whiskers out to low/high — the usual shape for transform.quartiles' output. `x` is the category (a band scale, one box per category) or a plain position on a continuous one; the five value channels share the scale of `y` by default. Outliers are not drawn by this mark: transform.quartiles reports them as their own rows (only `value` set, the others NaN), meant for a plain mark.point layered on top reading the same `x` and `value`.",
     params: {
-      width: { kind: 'number', default: 0.6, doc: 'Box width: a fraction (0-1) of the category band, or, off a band scale, a fixed number of px.' },
+      width: {
+        kind: 'number',
+        default: 0.6,
+        doc: 'Box width: a fraction (0-1) of the category band, or, off a band scale, a fixed number of px.',
+      },
       fill: { kind: 'string', doc: 'Box fill. Default: theme color by mark index (or the `color` channel).' },
       fillOpacity: { kind: 'number', default: 0.85 },
       strokeWidth: { kind: 'number', default: 1.5, doc: 'Width of the box outline and the whiskers.' },
@@ -20,7 +24,10 @@
       median: { required: true, scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Line drawn across the box.' },
       q3: { required: true, scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Top of the box (75th percentile).' },
       high: { required: true, scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Top of the upper whisker.' },
-      color: { scales: ['color', 'sequential'], doc: 'Box and whisker color per row, from a color scale; rows the scale gives no color are not drawn.' },
+      color: {
+        scales: ['color', 'sequential'],
+        doc: 'Box and whisker color per row, from a color scale; rows the scale gives no color are not drawn.',
+      },
     },
     render(spec, ctx, index) {
       const cx = ctx.channel(spec, 'x');
@@ -57,11 +64,20 @@
         const boxY = Math.min(q1, q3);
         const boxH = Math.abs(q1 - q3);
         out.push({
-          type: 'path', ref: { mark: index, row: i },
+          type: 'path',
+          ref: { mark: index, row: i },
           d: `M${xc} ${low}L${xc} ${high}M${x0} ${low}L${x1} ${low}M${x0} ${high}L${x1} ${high}`,
           style: { stroke: c, strokeWidth, opacity },
         });
-        out.push({ type: 'rect', x: x0, y: boxY, w: boxW, h: boxH, style: { fill: c, fillOpacity, stroke: c, strokeWidth, opacity }, ref: { mark: index, row: i } });
+        out.push({
+          type: 'rect',
+          x: x0,
+          y: boxY,
+          w: boxW,
+          h: boxH,
+          style: { fill: c, fillOpacity, stroke: c, strokeWidth, opacity },
+          ref: { mark: index, row: i },
+        });
         out.push({ type: 'path', d: `M${x0} ${median}L${x1} ${median}`, style: { stroke: TEXT, strokeWidth: strokeWidth + 0.5, opacity } });
       }
       return out;

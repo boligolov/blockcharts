@@ -19,7 +19,10 @@ const manifest = JSON.parse(fs.readFileSync(path.join(repo, 'dist/min/manifest.j
 const out = fs.mkdtempSync(path.join(os.tmpdir(), 'bc-skill-'));
 const built = buildSkill(out);
 const read = (rel) => fs.readFileSync(path.join(out, rel), 'utf8');
-const recipeFiles = fs.readdirSync(path.join(skillDir, 'recipes')).filter((f) => f.endsWith('.json')).sort();
+const recipeFiles = fs
+  .readdirSync(path.join(skillDir, 'recipes'))
+  .filter((f) => f.endsWith('.json'))
+  .sort();
 const packagedCompose = require(path.join(out, 'runtime/compose.js'));
 
 /** The front matter of SKILL.md: top-level `key: value` lines, and `metadata:`'s indented ones as metadata.key. */
@@ -51,7 +54,11 @@ test('skill: SKILL.md has a name and a description an agent can trigger on', () 
 
 test('skill: the committed skill folder is what the build makes (run npm run skill after a change)', () => {
   assert.deepStrictEqual(checkSkill(), []);
-  assert.deepStrictEqual(listFiles(skillDir).filter((f) => !f.includes('/')), ['LICENSE', 'README.md', 'SKILL.md'], 'nothing else at the top of the skill');
+  assert.deepStrictEqual(
+    listFiles(skillDir).filter((f) => !f.includes('/')),
+    ['LICENSE', 'README.md', 'SKILL.md'],
+    'nothing else at the top of the skill',
+  );
 });
 
 test('skill: the check notices a stale, a missing and a stray file', () => {
@@ -78,7 +85,11 @@ test('skill: one version, in SKILL.md and in the plugin; the marketplace lists t
   const plugin = JSON.parse(read('.claude-plugin/plugin.json'));
   const market = JSON.parse(fs.readFileSync(path.join(repo, '.claude-plugin', 'marketplace.json'), 'utf8'));
   assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
-  assert.strictEqual(fm['metadata.version'], plugin.version, 'bump both together: Claude Code offers an update only when the version goes up');
+  assert.strictEqual(
+    fm['metadata.version'],
+    plugin.version,
+    'bump both together: Claude Code offers an update only when the version goes up',
+  );
   assert.strictEqual(plugin.name, fm.name);
   assert.strictEqual(market.plugins.length, 1);
   const [entry] = market.plugins;
@@ -99,7 +110,10 @@ test('skill: the README a plugin directory shows is a real listing and says what
 
 test('skill: the plugin passes claude plugin validate (when the claude CLI is installed)', () => {
   const probe = spawnSync('claude', ['--version'], { encoding: 'utf8', shell: process.platform === 'win32' });
-  if (probe.status !== 0) { console.log('     (skipped: no claude CLI)'); return; }
+  if (probe.status !== 0) {
+    console.log('     (skipped: no claude CLI)');
+    return;
+  }
   for (const target of ['.', 'skills/blockcharts']) {
     const r = spawnSync('claude', ['plugin', 'validate', target], { cwd: repo, encoding: 'utf8', shell: process.platform === 'win32' });
     assert.strictEqual(r.status, 0, `claude plugin validate ${target}:\n${r.stdout}${r.stderr}`);
@@ -112,9 +126,18 @@ test('skill: the .skill package is a zip of the folder that works on its own, th
   const files = unzipSync(new Uint8Array(zip));
   const names = Object.keys(files).sort();
   assert(names.includes('blockcharts/SKILL.md'), 'one top folder named like the skill, SKILL.md directly inside');
-  assert(names.every((n) => n.startsWith('blockcharts/')), 'nothing outside that folder');
+  assert(
+    names.every((n) => n.startsWith('blockcharts/')),
+    'nothing outside that folder',
+  );
   assert(!names.some((n) => n.includes('.claude-plugin')), 'the plugin manifest is for Claude Code, not uploads');
-  assert.deepStrictEqual(names, built.files.filter((f) => !f.startsWith('.claude-plugin/')).map((f) => 'blockcharts/' + f).sort());
+  assert.deepStrictEqual(
+    names,
+    built.files
+      .filter((f) => !f.startsWith('.claude-plugin/'))
+      .map((f) => 'blockcharts/' + f)
+      .sort(),
+  );
   // unpack it and make a page with the unpacked composer alone
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bc-skill-unzip-'));
   for (const [name, bytes] of Object.entries(files)) {
@@ -138,10 +161,12 @@ test('skill: the package has everything it points to', () => {
     assert(fs.existsSync(path.join(out, rel)), `${rel} exists`);
   }
   for (const f of recipeFiles) assert(skill.includes(`recipes/${f}`), `SKILL.md lists ${f}`);
-  for (const [, f] of skill.matchAll(/`recipes\/([\w-]+\.json)`/g)) assert(recipeFiles.includes(f), `SKILL.md points at ${f}, which does not exist`);
+  for (const [, f] of skill.matchAll(/`recipes\/([\w-]+\.json)`/g))
+    assert(recipeFiles.includes(f), `SKILL.md points at ${f}, which does not exist`);
   for (const rel of built.files) assert(fs.existsSync(path.join(out, rel)), rel);
   assert(built.files.includes('runtime/core.js') && built.files.includes('runtime/manifest.json'));
-  for (const name of Object.keys(manifest.blocks)) assert(built.files.includes(`runtime/${manifest.blocks[name].file}`), `${name} is in the package`);
+  for (const name of Object.keys(manifest.blocks))
+    assert(built.files.includes(`runtime/${manifest.blocks[name].file}`), `${name} is in the package`);
 });
 
 test('skill: the block reference is generated from the manifest and mentions every block, parameter and channel', () => {
@@ -155,7 +180,8 @@ test('skill: the block reference is generated from the manifest and mentions eve
     if (b.doc) assert(section.includes(b.doc.slice(0, 40)), `${name}: doc text`);
     for (const p of Object.keys(b.params || {})) assert(section.includes('`' + p + '`'), `${name}: parameter ${p}`);
     for (const c of Object.keys(b.channels || {})) assert(section.includes('`' + c + '`'), `${name}: channel ${c}`);
-    for (const [p, def] of Object.entries(b.params || {})) if (def.required) assert(new RegExp('`' + p + '` \\|[^|]*\\*\\*required\\*\\*').test(section), `${name}.${p} is marked required`);
+    for (const [p, def] of Object.entries(b.params || {}))
+      if (def.required) assert(new RegExp('`' + p + '` \\|[^|]*\\*\\*required\\*\\*').test(section), `${name}.${p} is marked required`);
   }
   assert(/## Keys every spec has/.test(ref));
 });
@@ -170,7 +196,11 @@ for (const file of recipeFiles) {
   test(`skill: recipe ${file} is a complete page that composes cleanly and draws`, async () => {
     const page = JSON.parse(fs.readFileSync(path.join(skillDir, 'recipes', file), 'utf8'));
     assert(page.title && page.data && Array.isArray(page.charts) && page.charts.length, 'title, data and charts');
-    for (const key of Object.keys(page)) assert(['title', 'subtitle', 'layout', 'data', 'charts', 'css', 'compress'].includes(key), `page key ${key} is one SKILL.md documents`);
+    for (const key of Object.keys(page))
+      assert(
+        ['title', 'subtitle', 'layout', 'data', 'charts', 'css', 'compress'].includes(key),
+        `page key ${key} is one SKILL.md documents`,
+      );
 
     const result = packagedCompose.compose(page); // the packaged runtime, not the repo's
     assert.deepStrictEqual(result.diagnostics, [], 'no errors and no warnings');
@@ -203,9 +233,15 @@ test('skill: the recipes together use every block, so the documentation of each 
 
 test('skill: the packaged runtime works with nothing from the repo around it', () => {
   // the packaged compose must have found its own manifest, not the repo dist
-  const r = packagedCompose.compose({ data: { a: [{ k: 'x', v: 1 }] }, charts: [{ data: 'a', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'rect', x: 'k', y: 'v' }] }] });
+  const r = packagedCompose.compose({
+    data: { a: [{ k: 'x', v: 1 }] },
+    charts: [{ data: 'a', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'rect', x: 'k', y: 'v' }] }],
+  });
   assert.deepStrictEqual(r.blocks, ['scale.band', 'scale.linear', 'mark.rect', 'renderer.svg']);
-  assert.throws(() => packagedCompose.compose({ data: {}, charts: [{ data: 'a', marks: [] }], distDir: path.join(os.tmpdir(), 'nowhere') }), /manifest\.json not found/);
+  assert.throws(
+    () => packagedCompose.compose({ data: {}, charts: [{ data: 'a', marks: [] }], distDir: path.join(os.tmpdir(), 'nowhere') }),
+    /manifest\.json not found/,
+  );
 });
 
 test('skill: rebuilding replaces the package and cannot be pointed at a dangerous folder', () => {
@@ -227,8 +263,16 @@ test('skill: rebuilding replaces the package and cannot be pointed at a dangerou
 
 (async () => {
   for (const [name, fn] of queue) {
-    try { await fn(); passed++; console.log('ok  ', name); }
-    catch (e) { failed++; console.log('FAIL', name); console.error(e); process.exitCode = 1; }
+    try {
+      await fn();
+      passed++;
+      console.log('ok  ', name);
+    } catch (e) {
+      failed++;
+      console.log('FAIL', name);
+      console.error(e);
+      process.exitCode = 1;
+    }
   }
   console.log(`\n${passed} of ${passed + failed} passed`);
 })();

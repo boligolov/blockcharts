@@ -13,7 +13,10 @@ const test = (name, fn) => queue.push([name, fn]);
 
 const dist = path.join(__dirname, '../dist');
 const manifest = JSON.parse(fs.readFileSync(path.join(dist, 'manifest.json'), 'utf8'));
-const code = [manifest.core.file, ...Object.values(manifest.blocks).map((b) => b.file)].map((f) => ({ f, text: fs.readFileSync(path.join(dist, f), 'utf8') }));
+const code = [manifest.core.file, ...Object.values(manifest.blocks).map((b) => b.file)].map((f) => ({
+  f,
+  text: fs.readFileSync(path.join(dist, f), 'utf8'),
+}));
 const flush = () => new Promise((r) => setTimeout(r, 15));
 
 /** A page with the real library in it. vars: what getComputedStyle answers for CSS variables. */
@@ -23,7 +26,11 @@ function world(options) {
   const errors = [];
   const sandbox = {
     console: { warn: (...a) => errors.push(a.join(' ')), error: (...a) => errors.push(a.join(' ')), log() {} },
-    setTimeout, clearTimeout, Path2D: FakePath2D, document: doc, devicePixelRatio: o.dpr || 1,
+    setTimeout,
+    clearTimeout,
+    Path2D: FakePath2D,
+    document: doc,
+    devicePixelRatio: o.dpr || 1,
     getComputedStyle: () => ({ position: 'static', fontFamily: 'Test Sans', getPropertyValue: (n) => (o.vars || {})[n] || '' }),
   };
   Object.assign(sandbox, o.globals || {});
@@ -40,27 +47,47 @@ function world(options) {
 const restoreRoundRect = (fn) => async () => {
   const { FakeContext } = require('./fake-dom.js');
   const saved = FakeContext.prototype.roundRect;
-  try { await fn(); } finally { FakeContext.prototype.roundRect = saved; }
+  try {
+    await fn();
+  } finally {
+    FakeContext.prototype.roundRect = saved;
+  }
 };
 
 const ctxOf = (host) => host.children[0].getContext('2d');
 /** Calls of the last complete frame: everything after the last clearRect. */
 const frame = (ctx) => {
   let at = -1;
-  ctx.calls.forEach((c, i) => { if (c.op === 'clearRect') at = i; });
+  ctx.calls.forEach((c, i) => {
+    if (c.op === 'clearRect') at = i;
+  });
   return ctx.calls.slice(at + 1);
 };
 const ops = (calls, op) => calls.filter((c) => c.op === op);
 const arr = (a) => Array.from(a);
 
-const ROWS = [{ k: 'a', v: 3 }, { k: 'b', v: 6 }, { k: 'c', v: 4 }];
+const ROWS = [
+  { k: 'a', v: 3 },
+  { k: 'b', v: 6 },
+  { k: 'c', v: 4 },
+];
 const bars = (extra) => ({
-  data: 'd', renderer: 'canvas', size: [400, 240],
+  data: 'd',
+  renderer: 'canvas',
+  size: [400, 240],
   scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
   marks: [{ type: 'rect', x: 'k', y: 'v' }],
   ...extra,
 });
-const withGuides = (extra) => bars({ guides: [{ type: 'grid', scale: 'y' }, { type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }], ...extra });
+const withGuides = (extra) =>
+  bars({
+    guides: [
+      { type: 'grid', scale: 'y' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+    ],
+    ...extra,
+  });
 
 const draw = (w, spec, rows) => {
   w.BC.data('d', rows || ROWS);
@@ -82,10 +109,16 @@ test('canvas: a chart is one <canvas>, and the bars, grid, axes and labels are d
   const filled = ops(f, 'fill').filter((c) => c.fillStyle === '#4e79a7');
   assert.strictEqual(filled.length, 3, 'one filled rectangle per bar, in the theme color');
   assert.strictEqual(ops(f, 'rect').filter((c) => c.args[2] > 0 && c.args[3] > 0).length >= 3, true);
-  assert(ops(f, 'stroke').some((c) => typeof c.args[0] === 'string' && /^M/.test(c.args[0])), 'grid and axis lines are paths');
+  assert(
+    ops(f, 'stroke').some((c) => typeof c.args[0] === 'string' && /^M/.test(c.args[0])),
+    'grid and axis lines are paths',
+  );
   const texts = ops(f, 'fillText').map((c) => c.args[0]);
   for (const t of ['a', 'b', 'c', '0']) assert(texts.includes(t), `label ${t} in ${texts}`);
-  assert(ops(f, 'fillText').every((c) => /px Test Sans$/.test(c.font)), 'the font of the page is used');
+  assert(
+    ops(f, 'fillText').every((c) => /px Test Sans$/.test(c.font)),
+    'the font of the page is used',
+  );
 });
 
 test('canvas: colors come from CSS variables of the page, with their fallbacks, and a bad color paints nothing', () => {
@@ -96,8 +129,16 @@ test('canvas: colors come from CSS variables of the page, with their fallbacks, 
   const fills = (f) => ops(f, 'fill').map((c) => c.fillStyle);
   assert.deepStrictEqual(fills(marks({})), ['#4e79a7', '#4e79a7', '#4e79a7'], 'no variable: the fallback written in the mark');
   assert.deepStrictEqual(fills(marks({ '--bc-c0': '#ff0000' })), ['#ff0000', '#ff0000', '#ff0000'], 'the page decides');
-  assert.deepStrictEqual(fills(marks({ '--bc-c0': 'var(--brand, #00ff00)' })), ['#00ff00', '#00ff00', '#00ff00'], 'a variable that names another, with its own fallback');
-  assert.deepStrictEqual(fills(marks({ '--bc-c0': 'var(--a, var(--b, rgb(1, 2, 3)))' })), ['rgb(1, 2, 3)', 'rgb(1, 2, 3)', 'rgb(1, 2, 3)'], 'fallbacks all the way down');
+  assert.deepStrictEqual(
+    fills(marks({ '--bc-c0': 'var(--brand, #00ff00)' })),
+    ['#00ff00', '#00ff00', '#00ff00'],
+    'a variable that names another, with its own fallback',
+  );
+  assert.deepStrictEqual(
+    fills(marks({ '--bc-c0': 'var(--a, var(--b, rgb(1, 2, 3)))' })),
+    ['rgb(1, 2, 3)', 'rgb(1, 2, 3)', 'rgb(1, 2, 3)'],
+    'fallbacks all the way down',
+  );
   assert.deepStrictEqual(fills(marks({ '--bc-c0': 'notacolor' })), [], 'an invalid color is not silently replaced by the previous one');
   assert.deepStrictEqual(fills(marks({ '--bc-c0': 'none' })), [], 'none paints nothing');
 });
@@ -105,14 +146,31 @@ test('canvas: colors come from CSS variables of the page, with their fallbacks, 
 test('canvas: a fading area is filled by a gradient over the plot, from the color to the same color transparent', () => {
   const lines = (vars) => {
     const w = world({ vars });
-    w.BC.data('d', [{ t: 0, v: 3 }, { t: 1, v: 6 }, { t: 2, v: 4 }]);
+    w.BC.data('d', [
+      { t: 0, v: 3 },
+      { t: 1, v: 6 },
+      { t: 2, v: 4 },
+    ]);
     const host = w.host();
-    w.BC.chart(host, { data: 'd', renderer: 'canvas', size: [400, 240], scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true } }, marks: [{ type: 'area', x: 't', y: 'v', fade: true, curve: 'smooth' }] });
+    w.BC.chart(host, {
+      data: 'd',
+      renderer: 'canvas',
+      size: [400, 240],
+      scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'area', x: 't', y: 'v', fade: true, curve: 'smooth' }],
+    });
     return ops(frame(ctxOf(host)), 'fill');
   };
   const [hex] = lines({ '--bc-c0': '#3a6fe4' });
   assert(hex.fillStyle && Array.isArray(hex.fillStyle.stops), 'a gradient, not a flat color');
-  assert.deepStrictEqual(hex.fillStyle.stops, [[0, '#3a6fe4'], [1, 'rgba(58, 111, 228, 0)']], 'the color, then the same color with alpha 0');
+  assert.deepStrictEqual(
+    hex.fillStyle.stops,
+    [
+      [0, '#3a6fe4'],
+      [1, 'rgba(58, 111, 228, 0)'],
+    ],
+    'the color, then the same color with alpha 0',
+  );
   assert.deepStrictEqual(hex.fillStyle.line, [0, 16, 0, 224], 'vertical, over the plot');
   assert.strictEqual(hex.globalAlpha, 0.45, 'at the fill opacity');
   const [rgb] = lines({ '--bc-c0': 'rgb(1, 2, 3)' });
@@ -127,7 +185,11 @@ test('canvas: size follows the container and the screen density, and is capped',
     const c = host.children[0];
     return { w: c.width, h: c.height, transform: ops(ctx.calls, 'setTransform').pop().args, clear: ops(ctx.calls, 'clearRect').pop().args };
   };
-  assert.deepStrictEqual(size({}), { w: 400, h: 240, transform: [1, 0, 0, 1, 0, 0].map((v, i) => (i === 0 || i === 3 ? 1 : v)), clear: [0, 0, 400, 240] }, 'no layout: the size of the chart');
+  assert.deepStrictEqual(
+    size({}),
+    { w: 400, h: 240, transform: [1, 0, 0, 1, 0, 0].map((v, i) => (i === 0 || i === 3 ? 1 : v)), clear: [0, 0, 400, 240] },
+    'no layout: the size of the chart',
+  );
   const s = size({ width: 300, dpr: 2 });
   assert.strictEqual(s.w, 600);
   assert.strictEqual(s.h, 360, 'the aspect ratio of the chart');
@@ -142,17 +204,53 @@ test('canvas: on a narrow container the core lays the chart out at its width, an
   const { host, ctx } = draw(world({ width: 300, dpr: 2 }), bars());
   const c = host.children[0];
   assert.deepStrictEqual([c.width, c.height], [600, 480], 'laid out 300 wide, the height kept (240), at density 2');
-  assert.deepStrictEqual(ops(ctx.calls, 'setTransform').pop().args, [2, 0, 0, 2, 0, 0], 'one chart unit is one CSS pixel: text keeps its size');
+  assert.deepStrictEqual(
+    ops(ctx.calls, 'setTransform').pop().args,
+    [2, 0, 0, 2, 0, 0],
+    'one chart unit is one CSS pixel: text keeps its size',
+  );
 });
 
 test('canvas: repaints when the container is resized or the color scheme changes, and stops after destroy', () => {
-  let resize, observed = 0, disconnected = 0, media, mutation, mutationOff = 0;
+  let resize,
+    observed = 0,
+    disconnected = 0,
+    media,
+    mutation,
+    mutationOff = 0;
   const w = world({
     width: 300,
     globals: {
-      ResizeObserver: class { constructor(fn) { resize = fn; } observe() { observed++; } disconnect() { disconnected++; } },
-      matchMedia: () => (media = { listeners: [], addEventListener(t, fn) { this.listeners.push(fn); }, removeEventListener(t, fn) { this.listeners = this.listeners.filter((x) => x !== fn); } }),
-      MutationObserver: class { constructor(fn) { mutation = fn; } observe() {} disconnect() { mutationOff++; } },
+      ResizeObserver: class {
+        constructor(fn) {
+          resize = fn;
+        }
+        observe() {
+          observed++;
+        }
+        disconnect() {
+          disconnected++;
+        }
+      },
+      matchMedia: () =>
+        (media = {
+          listeners: [],
+          addEventListener(t, fn) {
+            this.listeners.push(fn);
+          },
+          removeEventListener(t, fn) {
+            this.listeners = this.listeners.filter((x) => x !== fn);
+          },
+        }),
+      MutationObserver: class {
+        constructor(fn) {
+          mutation = fn;
+        }
+        observe() {}
+        disconnect() {
+          mutationOff++;
+        }
+      },
     },
   });
   w.doc.documentElement = new El('html', w.doc);
@@ -180,116 +278,172 @@ test('canvas: repaints when the container is resized or the color scheme changes
   assert.strictEqual(mutationOff, 1);
   assert.strictEqual(media.listeners.length, 0);
   const n = frames();
-  resize(); mutation();
+  resize();
+  mutation();
   assert.strictEqual(frames(), n, 'nothing is drawn after destroy');
 });
 
-test('canvas: shapes, text, groups, clips and opacity are drawn the way the SVG renderer draws them', restoreRoundRect(() => {
-  const w = world();
-  const host = w.host();
-  const list = {
-    size: { w: 200, h: 100 },
-    plot: { x: 0, y: 0, w: 200, h: 100 },
-    layers: [
-      { name: 'marks', clip: { x: 10, y: 10, w: 50, h: 40 }, prims: [
-        { type: 'rect', x: 1, y: 2, w: 30, h: 20 },
-        { type: 'rect', x: 5, y: 6, w: 30, h: 20, r: 3, style: { fill: '#112233', stroke: '#445566', strokeWidth: 2, strokeDash: [4, 2], strokeLinejoin: 'round', strokeLinecap: 'square' } },
-        { type: 'circle', cx: 9, cy: 8, r: 4, style: { fill: 'none', stroke: '#abcdef' } },
-        { type: 'path', d: 'M0 0L5 5', style: { fill: 'none', stroke: '#010101' } },
-        { type: 'path', d: 'M0 0L9 9Z', style: { fill: '#ff8800', fillOpacity: 0.5, opacity: 0.5 } },
-      ] },
-      { name: 'axes', prims: [
-        { type: 'g', translate: [7, 9], clip: { x: 0, y: 0, w: 20, h: 20 }, style: { opacity: 0.5, fill: '#00ff00' }, children: [
-          { type: 'rect', x: 0, y: 0, w: 4, h: 4 },
-          { type: 'rect', x: 0, y: 0, w: 4, h: 4, style: { opacity: 0.5, fill: '#0000ff' } },
-        ] },
-        { type: 'text', x: 20, y: 30, text: 'Hi', size: 12, weight: 600, anchor: 'end', baseline: 'hanging', rotate: 90, style: { fill: '#333333' } },
-        { type: 'text', x: 1, y: 2, text: 'Mid', size: 10, anchor: 'middle', baseline: 'middle', style: { fill: '#333333' } },
-        { type: 'text', x: 1, y: 2, text: 'plain' },
-        { type: 'text', x: 1, y: 2, text: 'outlined', style: { fill: 'none', stroke: '#777777' } },
-      ] },
-    ],
-  };
-  const handle = w.BC.get('renderer.canvas').render(list, host);
-  const ctx = ctxOf(host);
-  const f = frame(ctx);
-  const at = (op) => ops(f, op);
+test(
+  'canvas: shapes, text, groups, clips and opacity are drawn the way the SVG renderer draws them',
+  restoreRoundRect(() => {
+    const w = world();
+    const host = w.host();
+    const list = {
+      size: { w: 200, h: 100 },
+      plot: { x: 0, y: 0, w: 200, h: 100 },
+      layers: [
+        {
+          name: 'marks',
+          clip: { x: 10, y: 10, w: 50, h: 40 },
+          prims: [
+            { type: 'rect', x: 1, y: 2, w: 30, h: 20 },
+            {
+              type: 'rect',
+              x: 5,
+              y: 6,
+              w: 30,
+              h: 20,
+              r: 3,
+              style: {
+                fill: '#112233',
+                stroke: '#445566',
+                strokeWidth: 2,
+                strokeDash: [4, 2],
+                strokeLinejoin: 'round',
+                strokeLinecap: 'square',
+              },
+            },
+            { type: 'circle', cx: 9, cy: 8, r: 4, style: { fill: 'none', stroke: '#abcdef' } },
+            { type: 'path', d: 'M0 0L5 5', style: { fill: 'none', stroke: '#010101' } },
+            { type: 'path', d: 'M0 0L9 9Z', style: { fill: '#ff8800', fillOpacity: 0.5, opacity: 0.5 } },
+          ],
+        },
+        {
+          name: 'axes',
+          prims: [
+            {
+              type: 'g',
+              translate: [7, 9],
+              clip: { x: 0, y: 0, w: 20, h: 20 },
+              style: { opacity: 0.5, fill: '#00ff00' },
+              children: [
+                { type: 'rect', x: 0, y: 0, w: 4, h: 4 },
+                { type: 'rect', x: 0, y: 0, w: 4, h: 4, style: { opacity: 0.5, fill: '#0000ff' } },
+              ],
+            },
+            {
+              type: 'text',
+              x: 20,
+              y: 30,
+              text: 'Hi',
+              size: 12,
+              weight: 600,
+              anchor: 'end',
+              baseline: 'hanging',
+              rotate: 90,
+              style: { fill: '#333333' },
+            },
+            { type: 'text', x: 1, y: 2, text: 'Mid', size: 10, anchor: 'middle', baseline: 'middle', style: { fill: '#333333' } },
+            { type: 'text', x: 1, y: 2, text: 'plain' },
+            { type: 'text', x: 1, y: 2, text: 'outlined', style: { fill: 'none', stroke: '#777777' } },
+          ],
+        },
+      ],
+    };
+    const handle = w.BC.get('renderer.canvas').render(list, host);
+    const ctx = ctxOf(host);
+    const f = frame(ctx);
+    const at = (op) => ops(f, op);
 
-  // the clip of the layer, once, before its shapes
-  const firstClip = f.findIndex((c) => c.op === 'clip');
-  assert.deepStrictEqual(f[firstClip - 1].args, [10, 10, 50, 40], 'the layer clip rectangle');
+    // the clip of the layer, once, before its shapes
+    const firstClip = f.findIndex((c) => c.op === 'clip');
+    assert.deepStrictEqual(f[firstClip - 1].args, [10, 10, 50, 40], 'the layer clip rectangle');
 
-  // no style: black fill, no stroke (the SVG defaults)
-  const plain = at('fill')[0];
-  assert.strictEqual(plain.fillStyle, '#000');
-  assert.strictEqual(plain.lineWidth, 1);
-  assert(f.some((c) => c.op === 'rect' && c.args.join() === '1,2,30,20'));
+    // no style: black fill, no stroke (the SVG defaults)
+    const plain = at('fill')[0];
+    assert.strictEqual(plain.fillStyle, '#000');
+    assert.strictEqual(plain.lineWidth, 1);
+    assert(f.some((c) => c.op === 'rect' && c.args.join() === '1,2,30,20'));
 
-  // rounded rectangle with a full style
-  assert(ops(f, 'roundRect').some((c) => c.args.join() === '5,6,30,20,3'), 'roundRect when the browser has it');
-  const styled = at('stroke').find((c) => c.strokeStyle === '#445566');
-  assert.strictEqual(styled.lineWidth, 2);
-  assert.deepStrictEqual(styled.dash, [4, 2]);
-  assert.strictEqual(styled.lineJoin, 'round');
-  assert.strictEqual(styled.lineCap, 'square');
-  assert.strictEqual(at('fill').find((c) => c.fillStyle === '#112233').globalAlpha, 1);
+    // rounded rectangle with a full style
+    assert(
+      ops(f, 'roundRect').some((c) => c.args.join() === '5,6,30,20,3'),
+      'roundRect when the browser has it',
+    );
+    const styled = at('stroke').find((c) => c.strokeStyle === '#445566');
+    assert.strictEqual(styled.lineWidth, 2);
+    assert.deepStrictEqual(styled.dash, [4, 2]);
+    assert.strictEqual(styled.lineJoin, 'round');
+    assert.strictEqual(styled.lineCap, 'square');
+    assert.strictEqual(at('fill').find((c) => c.fillStyle === '#112233').globalAlpha, 1);
 
-  // circle: an arc all the way round, fill none = only the stroke
-  const arc = at('arc')[0];
-  assert.deepStrictEqual(arc.args, [9, 8, 4, 0, Math.PI * 2]);
-  assert(at('stroke').some((c) => c.strokeStyle === '#abcdef'));
-  assert(!at('fill').some((c) => c.fillStyle === '#abcdef'), 'fill "none" is not painted');
+    // circle: an arc all the way round, fill none = only the stroke
+    const arc = at('arc')[0];
+    assert.deepStrictEqual(arc.args, [9, 8, 4, 0, Math.PI * 2]);
+    assert(at('stroke').some((c) => c.strokeStyle === '#abcdef'));
+    assert(!at('fill').some((c) => c.fillStyle === '#abcdef'), 'fill "none" is not painted');
 
-  // paths through Path2D; opacity times fillOpacity
-  assert(at('stroke').some((c) => c.args[0] === 'M0 0L5 5' && c.strokeStyle === '#010101'));
-  const half = at('fill').find((c) => c.args[0] === 'M0 0L9 9Z');
-  assert.strictEqual(half.globalAlpha, 0.25, 'opacity 0.5 x fill-opacity 0.5');
-  assert.strictEqual(half.fillStyle, '#ff8800');
+    // paths through Path2D; opacity times fillOpacity
+    assert(at('stroke').some((c) => c.args[0] === 'M0 0L5 5' && c.strokeStyle === '#010101'));
+    const half = at('fill').find((c) => c.args[0] === 'M0 0L9 9Z');
+    assert.strictEqual(half.globalAlpha, 0.25, 'opacity 0.5 x fill-opacity 0.5');
+    assert.strictEqual(half.fillStyle, '#ff8800');
 
-  // groups: translate, own clip, inherited fill, opacity multiplied down the tree
-  const gi = f.findIndex((c) => c.op === 'translate' && c.args.join() === '7,9');
-  assert(gi > 0);
-  assert.deepStrictEqual(f[gi + 2].args, [0, 0, 20, 20], 'the group clip (after beginPath, rect)');
-  const inherited = at('fill').find((c) => c.fillStyle === '#00ff00');
-  assert.strictEqual(inherited.globalAlpha, 0.5, 'the group fill and opacity reach a child with no style of its own');
-  assert.strictEqual(at('fill').find((c) => c.fillStyle === '#0000ff').globalAlpha, 0.25, 'opacity 0.5 in a group of 0.5');
+    // groups: translate, own clip, inherited fill, opacity multiplied down the tree
+    const gi = f.findIndex((c) => c.op === 'translate' && c.args.join() === '7,9');
+    assert(gi > 0);
+    assert.deepStrictEqual(f[gi + 2].args, [0, 0, 20, 20], 'the group clip (after beginPath, rect)');
+    const inherited = at('fill').find((c) => c.fillStyle === '#00ff00');
+    assert.strictEqual(inherited.globalAlpha, 0.5, 'the group fill and opacity reach a child with no style of its own');
+    assert.strictEqual(at('fill').find((c) => c.fillStyle === '#0000ff').globalAlpha, 0.25, 'opacity 0.5 in a group of 0.5');
 
-  // text
-  const hi = at('fillText').find((c) => c.args[0] === 'Hi');
-  assert.strictEqual(hi.font, '600 12px Test Sans');
-  assert.strictEqual(hi.textAlign, 'right');
-  assert.strictEqual(hi.textBaseline, 'hanging');
-  assert.deepStrictEqual(hi.args, ['Hi', 0, 0], 'drawn at the origin of a translated and rotated frame');
-  const i = f.findIndex((c) => c.op === 'translate' && c.args.join() === '20,30');
-  assert(Math.abs(f[i + 1].args[0] - Math.PI / 2) < 1e-12 && f[i + 1].op === 'rotate', 'rotate(90 deg) in radians');
-  const mid = at('fillText').find((c) => c.args[0] === 'Mid');
-  assert.strictEqual(mid.textAlign, 'center');
-  assert.strictEqual(mid.textBaseline, 'middle');
-  const plainText = at('fillText').find((c) => c.args[0] === 'plain');
-  assert.strictEqual(plainText.textAlign, 'left');
-  assert.strictEqual(plainText.textBaseline, 'alphabetic');
-  assert.strictEqual(plainText.fillStyle, '#000');
-  assert(at('strokeText').some((c) => c.args[0] === 'outlined' && c.strokeStyle === '#777777'));
-  assert(!at('fillText').some((c) => c.args[0] === 'outlined'));
+    // text
+    const hi = at('fillText').find((c) => c.args[0] === 'Hi');
+    assert.strictEqual(hi.font, '600 12px Test Sans');
+    assert.strictEqual(hi.textAlign, 'right');
+    assert.strictEqual(hi.textBaseline, 'hanging');
+    assert.deepStrictEqual(hi.args, ['Hi', 0, 0], 'drawn at the origin of a translated and rotated frame');
+    const i = f.findIndex((c) => c.op === 'translate' && c.args.join() === '20,30');
+    assert(Math.abs(f[i + 1].args[0] - Math.PI / 2) < 1e-12 && f[i + 1].op === 'rotate', 'rotate(90 deg) in radians');
+    const mid = at('fillText').find((c) => c.args[0] === 'Mid');
+    assert.strictEqual(mid.textAlign, 'center');
+    assert.strictEqual(mid.textBaseline, 'middle');
+    const plainText = at('fillText').find((c) => c.args[0] === 'plain');
+    assert.strictEqual(plainText.textAlign, 'left');
+    assert.strictEqual(plainText.textBaseline, 'alphabetic');
+    assert.strictEqual(plainText.fillStyle, '#000');
+    assert(at('strokeText').some((c) => c.args[0] === 'outlined' && c.strokeStyle === '#777777'));
+    assert(!at('fillText').some((c) => c.args[0] === 'outlined'));
 
-  // update repaints the same canvas; destroy removes it
-  const n = ops(ctx.calls, 'clearRect').length;
-  handle.update(list);
-  assert.strictEqual(ops(ctx.calls, 'clearRect').length, n + 1);
-  assert.strictEqual(handle.root, host.children[0]);
-  handle.destroy();
-  assert.strictEqual(host.children.length, 0);
-}));
+    // update repaints the same canvas; destroy removes it
+    const n = ops(ctx.calls, 'clearRect').length;
+    handle.update(list);
+    assert.strictEqual(ops(ctx.calls, 'clearRect').length, n + 1);
+    assert.strictEqual(handle.root, host.children[0]);
+    handle.destroy();
+    assert.strictEqual(host.children.length, 0);
+  }),
+);
 
-test('canvas: without roundRect (older browsers) a rounded rectangle is made of arcs', restoreRoundRect(() => {
-  const w = world({ noRoundRect: true });
-  const host = w.host();
-  w.BC.get('renderer.canvas').render({ size: { w: 50, h: 50 }, plot: { x: 0, y: 0, w: 50, h: 50 }, layers: [{ name: 'marks', prims: [{ type: 'rect', x: 0, y: 0, w: 20, h: 10, r: 50 }] }] }, host);
-  const f = frame(ctxOf(host));
-  assert.strictEqual(ops(f, 'arcTo').length, 4);
-  assert.deepStrictEqual(ops(f, 'arcTo')[0].args, [20, 0, 20, 10, 5], 'the radius cannot exceed half the smaller side');
-  assert(ops(f, 'closePath').length === 1 && ops(f, 'fill').length === 1);
-}));
+test(
+  'canvas: without roundRect (older browsers) a rounded rectangle is made of arcs',
+  restoreRoundRect(() => {
+    const w = world({ noRoundRect: true });
+    const host = w.host();
+    w.BC.get('renderer.canvas').render(
+      {
+        size: { w: 50, h: 50 },
+        plot: { x: 0, y: 0, w: 50, h: 50 },
+        layers: [{ name: 'marks', prims: [{ type: 'rect', x: 0, y: 0, w: 20, h: 10, r: 50 }] }],
+      },
+      host,
+    );
+    const f = frame(ctxOf(host));
+    assert.strictEqual(ops(f, 'arcTo').length, 4);
+    assert.deepStrictEqual(ops(f, 'arcTo')[0].args, [20, 0, 20, 10, 5], 'the radius cannot exceed half the smaller side');
+    assert(ops(f, 'closePath').length === 1 && ops(f, 'fill').length === 1);
+  }),
+);
 
 test('canvas: no 2D context is a clear failure of that chart, not of the page', () => {
   const w = world();
@@ -297,12 +451,23 @@ test('canvas: no 2D context is a clear failure of that chart, not of the page', 
   w.BC.data('d', ROWS);
   const host = w.host();
   const h = w.BC.chart(host, bars());
-  assert(arr(h.diagnostics).some((d) => /no 2D canvas context/.test(d.message)) || /no 2D canvas context/.test(JSON.stringify(host.children.map((c) => c.text))), JSON.stringify(arr(h.diagnostics)));
+  assert(
+    arr(h.diagnostics).some((d) => /no 2D canvas context/.test(d.message)) ||
+      /no 2D canvas context/.test(JSON.stringify(host.children.map((c) => c.text))),
+    JSON.stringify(arr(h.diagnostics)),
+  );
 });
 
-const POINTS = [{ x: 1, y: 2, g: 'A' }, { x: 2, y: 4, g: 'B' }, { x: 3, y: 3, g: 'C' }, { x: 4, y: 6, g: 'A' }];
+const POINTS = [
+  { x: 1, y: 2, g: 'A' },
+  { x: 2, y: 4, g: 'B' },
+  { x: 3, y: 3, g: 'C' },
+  { x: 4, y: 6, g: 'A' },
+];
 const points = (interaction) => ({
-  data: 'p', renderer: 'canvas', size: [400, 240],
+  data: 'p',
+  renderer: 'canvas',
+  size: [400, 240],
   scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'color' } },
   guides: [{ type: 'legend', scale: 'color', position: 'top' }],
   marks: [{ type: 'point', x: 'x', y: 'y', color: 'g' }],
@@ -345,7 +510,10 @@ test('canvas: legend-filter works without elements: the click is tested against 
   await flush();
   assert.deepStrictEqual(arr(h.getView().color), ['A', 'C'], 'clicked on the swatch');
   assert.strictEqual(dots(ctx), 3);
-  assert(ops(frame(ctx), 'fill').some((c) => c.globalAlpha === 0.4), 'the hidden value stays in the legend, dimmed');
+  assert(
+    ops(frame(ctx), 'fill').some((c) => c.globalAlpha === 0.4),
+    'the hidden value stays in the legend, dimmed',
+  );
 
   const b2 = legendItem(ctx, 'B');
   root.fire('click', { clientX: b2.label[1] + 3, clientY: b2.label[2], detail: 1 });
@@ -427,7 +595,13 @@ test('canvas: a long series is one Path2D, drawn in one stroke', () => {
   const rows = Array.from({ length: n }, (_, i) => ({ t: i, v: Math.sin(i / 300) * 100 }));
   w.BC.data('long', rows);
   const host = w.host();
-  const h = w.BC.chart(host, { data: 'long', renderer: 'canvas', size: [640, 300], scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 't', y: 'v' }] });
+  const h = w.BC.chart(host, {
+    data: 'long',
+    renderer: 'canvas',
+    size: [640, 300],
+    scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+    marks: [{ type: 'line', x: 't', y: 'v' }],
+  });
   assert.deepStrictEqual(arr(h.diagnostics), []);
   const strokes = ops(frame(ctxOf(host)), 'stroke').filter((c) => c.args[0] && c.args[0].length > 1000);
   assert.strictEqual(strokes.length, 1);
@@ -436,8 +610,16 @@ test('canvas: a long series is one Path2D, drawn in one stroke', () => {
 
 (async () => {
   for (const [name, fn] of queue) {
-    try { await fn(); passed++; console.log('ok  ', name); }
-    catch (e) { failed++; console.log('FAIL', name); console.error(e); process.exitCode = 1; }
+    try {
+      await fn();
+      passed++;
+      console.log('ok  ', name);
+    } catch (e) {
+      failed++;
+      console.log('FAIL', name);
+      console.error(e);
+      process.exitCode = 1;
+    }
   }
   console.log(`\n${passed} of ${passed + failed} passed`);
 })();

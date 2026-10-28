@@ -6,7 +6,13 @@
   /** Least vertical distance between two end labels, px: closer ones are pushed apart. */
   const LABEL_GAP = LABEL_SIZE + 3;
 
-  interface EndLabel { x: number; y: number; text: string; color: string; owner: number }
+  interface EndLabel {
+    x: number;
+    y: number;
+    text: string;
+    color: string;
+    owner: number;
+  }
 
   /** x of each row in px: on a band scale, the middle of its band (a category axis), so the line joins the categories in
    *  their domain order. */
@@ -31,9 +37,12 @@
     const ys = yc.mapped;
     const colorCh = spec.color !== undefined ? ctx.channel(spec, 'color') : null;
     const grouped = typeof spec.group === 'string' || !!(colorCh && colorCh.field);
-    const write = mode === 'value' || mode === 'both'
-      ? spec.format !== undefined ? BC.formatter(spec.format as BC.FormatSpec | string) : (v: unknown) => (typeof v === 'number' ? String(+v.toPrecision(6)) : String(v))
-      : null;
+    const write =
+      mode === 'value' || mode === 'both'
+        ? spec.format !== undefined
+          ? BC.formatter(spec.format as BC.FormatSpec | string)
+          : (v: unknown) => (typeof v === 'number' ? String(+v.toPrecision(6)) : String(v))
+        : null;
     const right = ctx.plot.x + ctx.plot.w + 0.5;
     const out: EndLabel[] = [];
     ctx.series(spec, xs).forEach(({ key, rows }, n) => {
@@ -76,8 +85,18 @@
       strokeWidth: { kind: 'number', default: 2 },
       dash: { kind: 'list', doc: 'Dash pattern, e.g. [4, 3].' },
       opacity: { kind: 'number', default: 1 },
-      curve: { kind: 'enum', values: ['linear', 'smooth'], default: 'linear', doc: '"smooth": a monotone cubic curve through the points — no peaks or dips the data does not have. "linear": straight segments.' },
-      label: { kind: 'enum', values: ['none', 'name', 'value', 'both'], default: 'none', doc: 'A label at the end of each line, in its color: the series name, its last value, or both — so a legend is rarely needed. Labels that would overlap are moved apart. Leave room on the right (padding.right, about 70–110 px).' },
+      curve: {
+        kind: 'enum',
+        values: ['linear', 'smooth'],
+        default: 'linear',
+        doc: '"smooth": a monotone cubic curve through the points — no peaks or dips the data does not have. "linear": straight segments.',
+      },
+      label: {
+        kind: 'enum',
+        values: ['none', 'name', 'value', 'both'],
+        default: 'none',
+        doc: 'A label at the end of each line, in its color: the series name, its last value, or both — so a legend is rarely needed. Labels that would overlap are moved apart. Leave room on the right (padding.right, about 70–110 px).',
+      },
       format: { kind: 'any', doc: 'How the end label writes the last value (a preset or Intl options, as guide.axis `format`).' },
       name: { kind: 'string', doc: 'The end label of a line that is not split into series (default: the y field).' },
     },
@@ -137,7 +156,18 @@
         spread(all, ctx.plot.y, ctx.plot.y + ctx.plot.h);
         for (const l of all) {
           if (l.owner !== index) continue;
-          out.push({ type: 'text', x: l.x + 8, y: l.y, text: l.text, size: LABEL_SIZE, weight: 600, anchor: 'start', baseline: 'middle', style: { fill: l.color }, cls: 'bc-line-label' });
+          out.push({
+            type: 'text',
+            x: l.x + 8,
+            y: l.y,
+            text: l.text,
+            size: LABEL_SIZE,
+            weight: 600,
+            anchor: 'start',
+            baseline: 'middle',
+            style: { fill: l.color },
+            cls: 'bc-line-label',
+          });
         }
       }
       return out;

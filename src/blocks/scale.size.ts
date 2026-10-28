@@ -37,11 +37,16 @@
     version: 2,
     doc: 'Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.',
     params: {
-      zero: { kind: 'boolean', default: true, doc: 'Start the domain at 0, so areas are proportional to the values. false: the smallest value gets the smallest radius (shows differences, overstates ratios).' },
+      zero: {
+        kind: 'boolean',
+        default: true,
+        doc: 'Start the domain at 0, so areas are proportional to the values. false: the smallest value gets the smallest radius (shows differences, overstates ratios).',
+      },
     },
     create(spec, ctx) {
       const r = Array.isArray(spec.range) && spec.range.length === 2 ? spec.range.map(Number) : DEFAULT_RANGE;
-      if (!r.every((v) => isFinite(v) && v >= 0) || r[0] > r[1]) throw new Error(`scale.size: range must be [smallest, largest] radius in px, got ${JSON.stringify(spec.range)}`);
+      if (!r.every((v) => isFinite(v) && v >= 0) || r[0] > r[1])
+        throw new Error(`scale.size: range must be [smallest, largest] radius in px, got ${JSON.stringify(spec.range)}`);
       let r0 = r[0];
       let r1 = r[1];
 
@@ -49,7 +54,8 @@
       if (spec.domain && spec.domain.length === 2) {
         b0 = Number(spec.domain[0]);
         b1 = Number(spec.domain[1]);
-        if (!isFinite(b0) || !isFinite(b1) || b0 >= b1 || b0 < 0) throw new Error('scale.size: domain must be [min, max] with 0 <= min < max');
+        if (!isFinite(b0) || !isFinite(b1) || b0 >= b1 || b0 < 0)
+          throw new Error('scale.size: domain must be [min, max] with 0 <= min < max');
       } else {
         b0 = Infinity;
         b1 = -Infinity;
@@ -104,7 +110,11 @@
         // a few round values inside the domain, for a legend; pos is the radius
         ticks: {
           // a circle of nothing says nothing: no tick at 0
-          value: (approxCount: number = 3): BC.Tick[] => roundTicks(d0, d1, approxCount).filter((t) => t.value > 0).slice(0, 50).map((t) => ({ ...t, pos: scale(t.value) as number })),
+          value: (approxCount: number = 3): BC.Tick[] =>
+            roundTicks(d0, d1, approxCount)
+              .filter((t) => t.value > 0)
+              .slice(0, 50)
+              .map((t) => ({ ...t, pos: scale(t.value) as number })),
         },
       });
       return scale;

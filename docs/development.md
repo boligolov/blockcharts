@@ -22,7 +22,7 @@ docs/                   the documentation (an index: docs/README.md)
   Design.md               the design journal: every decision and why
 site/                   blockcharts.online (Astro, its own package.json); serves the skill's download
 .claude-plugin/         the Claude Code plugin marketplace (one plugin: the skill)
-.github/workflows/      ci.yml: npm test and npm run site on every push and pull request
+.github/workflows/      ci.yml: format check, npm test and npm run site on every push and pull request
 kits.json               which blocks each kit contains
 LICENSE  README.md  ROADMAP.md  package.json  tsconfig.json
 ```
@@ -34,12 +34,18 @@ folder straight from git, so it must be complete): `dist/` (tsc output, manifest
 ## Setup
 
 Node.js 18+ (developed on 22). The library has no runtime dependencies; the dev dependencies are
-TypeScript, esbuild (minification) and fflate (the `.skill` zip).
+TypeScript, esbuild (minification), fflate (the `.skill` zip) and Prettier (formatting).
 
 ```sh
 npm install
 npm test
 ```
+
+## Formatting
+
+The sources (`src/`, `scripts/`, the site's `.mjs` and `.css`) are formatted by Prettier, configured in
+`.prettierrc.json`. `npm run format` rewrites them, `npm run format:check` (run by CI) fails on a file it
+would change. Generated code and the skill's runtime copy are not formatted.
 
 ## Tests
 

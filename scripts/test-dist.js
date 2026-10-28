@@ -30,7 +30,11 @@ const pageKit = (name) => ({ name, blocks: compose({ ...recipe(name + '.json'), 
 const out = tmp();
 const release = buildRelease({ distDir, outDir: out, kits, pageKits: [pageKit('bar')] });
 const read = (rel) => fs.readFileSync(path.join(out, rel));
-const files = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(path.join(dir, e.name)).map((f) => path.join(e.name, f)) : [e.name])).sort();
+const files = (dir) =>
+  fs
+    .readdirSync(dir, { withFileTypes: true })
+    .flatMap((e) => (e.isDirectory() ? files(path.join(dir, e.name)).map((f) => path.join(e.name, f)) : [e.name]))
+    .sort();
 
 function classic(file, extra) {
   const sandbox = { console: { warn() {}, error() {}, log() {} }, ...(extra || {}) };
@@ -43,9 +47,24 @@ test('release: every part is a file of its own, and the manifest describes each 
   assert.strictEqual(release.version, manifest.core.version);
   const listed = new Set(['manifest.json', release.core.file, release.loader.file, release.types.file]);
   for (const b of Object.values(release.blocks)) listed.add(b.file);
-  for (const k of Object.values(release.kits)) { listed.add(k.js.file); listed.add(k.mjs.file); listed.add(k.dts.file); listed.add(k.cts.file); }
-  assert.deepStrictEqual(files(out).map((f) => f.split(path.sep).join('/')), Array.from(listed).sort(), 'nothing missing, nothing unexplained');
-  const entries = [release.core, release.loader, release.types, ...Object.values(release.blocks), ...Object.values(release.kits).flatMap((k) => [k.js, k.mjs, k.dts, k.cts])];
+  for (const k of Object.values(release.kits)) {
+    listed.add(k.js.file);
+    listed.add(k.mjs.file);
+    listed.add(k.dts.file);
+    listed.add(k.cts.file);
+  }
+  assert.deepStrictEqual(
+    files(out).map((f) => f.split(path.sep).join('/')),
+    Array.from(listed).sort(),
+    'nothing missing, nothing unexplained',
+  );
+  const entries = [
+    release.core,
+    release.loader,
+    release.types,
+    ...Object.values(release.blocks),
+    ...Object.values(release.kits).flatMap((k) => [k.js, k.mjs, k.dts, k.cts]),
+  ];
   for (const e of entries) {
     const buf = read(e.file);
     assert.strictEqual(e.bytes, buf.length, e.file);
@@ -115,7 +134,15 @@ test('kit: require() returns BC, a browser with an element called "module" is no
   assert.strictEqual(main.require.types, './release/kits/full.d.ts');
   assert.strictEqual(main.import.default, './release/kits/full.mjs');
   assert.strictEqual(main.import.types, './release/kits/full.d.mts');
-  for (const target of [main.require.default, main.require.types, main.import.default, main.import.types, pkg.main, pkg.module, pkg.types]) {
+  for (const target of [
+    main.require.default,
+    main.require.types,
+    main.import.default,
+    main.import.types,
+    pkg.main,
+    pkg.module,
+    pkg.types,
+  ]) {
     assert(fs.existsSync(path.join(out, path.relative('./release', target))), `${target} is built`);
   }
 });
@@ -127,18 +154,30 @@ test('kit: a page kit holds exactly what one page uses, and that page validates 
   const { BC } = classic(k.js.file);
   const page = recipe('bar.json');
   for (const name of Object.keys(page.data)) BC.data(name, page.data[name]);
-  for (const c of page.charts) assert.deepStrictEqual(Array.from(BC.validate(c.spec || c)).filter((d) => d.level === 'error'), []);
+  for (const c of page.charts)
+    assert.deepStrictEqual(
+      Array.from(BC.validate(c.spec || c)).filter((d) => d.level === 'error'),
+      [],
+    );
 });
 
 test('release: mistakes are errors that say what to fix, and nothing is written to places it does not own', () => {
-  const bad = (opts, re) => assert.throws(() => buildRelease({ distDir, outDir: tmp(), ...opts }), (e) => e instanceof ReleaseError && re.test(e.message));
+  const bad = (opts, re) =>
+    assert.throws(
+      () => buildRelease({ distDir, outDir: tmp(), ...opts }),
+      (e) => e instanceof ReleaseError && re.test(e.message),
+    );
   bad({ kits: { x: { blocks: ['mark.ghost'] } } }, /kit "x": no such block: mark\.ghost/);
   bad({ kits: { x: { blocks: 'all' } } }, /kit "x": "blocks" must be a list/);
   bad({ kits: { x: {} } }, /kit "x": "blocks" must be a list/);
   bad({ kits: { 'Bad Name': { blocks: '*' } } }, /kit name "Bad Name"/);
   bad({ kits: { bar: { blocks: '*' } }, pageKits: [{ name: 'bar', blocks: [] }] }, /kit "bar" is defined twice/);
   for (const dir of [repo, path.join(repo, 'src'), path.join(repo, 'dist', 'x'), path.join(repo, 'skills'), path.parse(repo).root]) {
-    assert.throws(() => buildRelease({ distDir, outDir: dir, kits }), (e) => e instanceof ReleaseError && /refusing/.test(e.message), dir);
+    assert.throws(
+      () => buildRelease({ distDir, outDir: dir, kits }),
+      (e) => e instanceof ReleaseError && /refusing/.test(e.message),
+      dir,
+    );
   }
   assert.throws(() => buildRelease({ distDir: path.join(os.tmpdir(), 'no-dist'), outDir: tmp(), kits }), /ENOENT/);
 });
@@ -149,13 +188,18 @@ function browser(options) {
   const base = 'https://cdn.test/bc/';
   const log = { fetched: [], scripts: [], timers: 0 };
   const body = new El('body');
-  const chartNodes = (o.charts || []).map((spec) => Object.assign(new El('script'), { text: JSON.stringify(spec), textContent: JSON.stringify(spec) }));
+  const chartNodes = (o.charts || []).map((spec) =>
+    Object.assign(new El('script'), { text: JSON.stringify(spec), textContent: JSON.stringify(spec) }),
+  );
   const dataNode = Object.assign(new El('script'), { text: JSON.stringify(o.data || {}), textContent: JSON.stringify(o.data || {}) });
   [dataNode, ...chartNodes].forEach((n) => body.appendChild(n));
   const self = { src: base + 'loader.js', hasAttribute: (a) => a === 'data-auto' && !!o.auto };
   const sandbox = {
     console: { warn() {}, error: (...a) => (log.errors = (log.errors || []).concat(a.join(' '))), log() {} },
-    setTimeout: () => { log.timers++; return 0; },
+    setTimeout: () => {
+      log.timers++;
+      return 0;
+    },
     getComputedStyle: () => ({ position: 'static' }),
     fetch: async (url) => {
       log.fetched.push(url);
@@ -186,8 +230,22 @@ function browser(options) {
   return { sandbox, log, body, run, base };
 }
 
-const oneChart = { data: 'd', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }], marks: [{ type: 'line', x: 'a', y: 'b' }] };
-const oneData = { d: [{ a: 1, b: 2 }, { a: 2, b: 3 }, { a: 3, b: 1 }] };
+const oneChart = {
+  data: 'd',
+  scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+  guides: [
+    { type: 'axis', scale: 'x' },
+    { type: 'axis', scale: 'y' },
+  ],
+  marks: [{ type: 'line', x: 'a', y: 'b' }],
+};
+const oneData = {
+  d: [
+    { a: 1, b: 2 },
+    { a: 2, b: 3 },
+    { a: 3, b: 1 },
+  ],
+};
 
 test('loader: data-auto loads the core and only the blocks the page uses, then draws', async () => {
   const b = browser({ auto: true, charts: [oneChart], data: oneData });
@@ -203,7 +261,10 @@ test('loader: data-auto loads the core and only the blocks the page uses, then d
   assert.strictEqual(b.log.timers, 0, 'the core did not mount by itself before its blocks were there');
   assert.strictEqual(countTags(b.body, 'svg'), 1, 'the chart is drawn');
   assert(!b.log.errors, JSON.stringify(b.log.errors));
-  assert(b.log.scripts.every((s) => s.integrity === undefined), 'no integrity attributes unless asked');
+  assert(
+    b.log.scripts.every((s) => s.integrity === undefined),
+    'no integrity attributes unless asked',
+  );
 });
 
 test('loader: explicit blocks, no scan, no mount, integrity from the manifest, and nothing is fetched twice', async () => {
@@ -220,7 +281,11 @@ test('loader: explicit blocks, no scan, no mount, integrity from the manifest, a
   }
   const n = b.log.scripts.length;
   await b.sandbox.BCLoader.load({ blocks: ['mark.rect', 'scale.linear'], scan: false, mount: false });
-  assert.strictEqual(b.log.scripts.length, n + 1 - (manifest.blocks['mark.rect'].closure.includes('scale.linear') ? 1 : 0), 'only what was new');
+  assert.strictEqual(
+    b.log.scripts.length,
+    n + 1 - (manifest.blocks['mark.rect'].closure.includes('scale.linear') ? 1 : 0),
+    'only what was new',
+  );
   assert.strictEqual(b.log.fetched.length, 1, 'the manifest is fetched once');
 });
 
@@ -231,7 +296,10 @@ test('loader: a block that does not exist, a file that is missing, a base that i
 
   b = browser({ missing: ['blocks/mark.line.js'] });
   b.run();
-  await assert.rejects(() => b.sandbox.BCLoader.load({ blocks: ['mark.line'], mount: false }), /cannot load https:\/\/cdn\.test\/bc\/blocks\/mark\.line\.js/);
+  await assert.rejects(
+    () => b.sandbox.BCLoader.load({ blocks: ['mark.line'], mount: false }),
+    /cannot load https:\/\/cdn\.test\/bc\/blocks\/mark\.line\.js/,
+  );
   b.log.missing = null;
 
   b = browser({ noCurrentScript: true });
@@ -248,9 +316,12 @@ test('loader: a chart whose spec is broken does not stop the others being loaded
   const b = browser({ charts: [oneChart], data: oneData });
   const broken = Object.assign(new El('script'), { text: '{nope', textContent: '{nope' });
   b.body.appendChild(broken);
-  b.sandbox.document.querySelectorAll = (sel) => (sel === 'script#bc-data' ? [] : sel === 'script[data-bc-chart]' ? b.body.children.slice(1) : []);
+  b.sandbox.document.querySelectorAll = (sel) =>
+    sel === 'script#bc-data' ? [] : sel === 'script[data-bc-chart]' ? b.body.children.slice(1) : [];
   b.body.children[0].text = b.body.children[0].textContent = JSON.stringify(oneData);
-  b.sandbox.document.querySelectorAll = ((orig) => (sel) => (sel === 'script#bc-data' ? [b.body.children[0]] : orig(sel)))(b.sandbox.document.querySelectorAll);
+  b.sandbox.document.querySelectorAll = ((orig) => (sel) => (sel === 'script#bc-data' ? [b.body.children[0]] : orig(sel)))(
+    b.sandbox.document.querySelectorAll,
+  );
   b.run();
   await b.sandbox.BCLoader.load({});
   assert.strictEqual(countTags(b.body, 'svg'), 1);
@@ -258,9 +329,21 @@ test('loader: a chart whose spec is broken does not stop the others being loaded
 });
 
 test('core: BC_CONFIG.autoMount false is honored, and the default still mounts on its own', () => {
-  let on = 0, off = 0;
-  const a = classic('core.js', { document: createDocument(), setTimeout: () => { on++; } });
-  const b = classic('core.js', { document: createDocument(), BC_CONFIG: { autoMount: false }, setTimeout: () => { off++; } });
+  let on = 0,
+    off = 0;
+  const a = classic('core.js', {
+    document: createDocument(),
+    setTimeout: () => {
+      on++;
+    },
+  });
+  const b = classic('core.js', {
+    document: createDocument(),
+    BC_CONFIG: { autoMount: false },
+    setTimeout: () => {
+      off++;
+    },
+  });
   assert.strictEqual(typeof a.BC.mount, 'function');
   assert.strictEqual(typeof b.BC.mount, 'function', 'still usable by hand');
   assert.strictEqual(on, 1);
@@ -269,7 +352,10 @@ test('core: BC_CONFIG.autoMount false is honored, and the default still mounts o
 
 test('minified release: every recipe draws exactly what the unminified code draws', async () => {
   const { runPage } = require('./run-page.js');
-  const plainCode = (names) => [manifest.core.file, ...names.map((n) => manifest.blocks[n].file)].map((f) => fs.readFileSync(path.join(distDir, f), 'utf8')).join('\n');
+  const plainCode = (names) =>
+    [manifest.core.file, ...names.map((n) => manifest.blocks[n].file)]
+      .map((f) => fs.readFileSync(path.join(distDir, f), 'utf8'))
+      .join('\n');
   const kit = read('kits/full.js').toString('utf8');
   const recipes = fs.readdirSync(path.join(repo, 'skills/blockcharts/recipes')).filter((f) => f.endsWith('.json'));
   assert(recipes.length >= 12);
@@ -292,7 +378,11 @@ test('minified release: every recipe draws exactly what the unminified code draw
 
 test('minified release: smaller than the source by a wide margin, and only the docs are gone from the blocks', () => {
   const full = release.kits.full;
-  const plainBytes = Buffer.byteLength([manifest.core.file, ...Object.values(manifest.blocks).map((b) => b.file)].map((f) => fs.readFileSync(path.join(distDir, f), 'utf8')).join('\n'));
+  const plainBytes = Buffer.byteLength(
+    [manifest.core.file, ...Object.values(manifest.blocks).map((b) => b.file)]
+      .map((f) => fs.readFileSync(path.join(distDir, f), 'utf8'))
+      .join('\n'),
+  );
   assert(full.js.bytes < plainBytes * 0.5, `${full.js.bytes} vs ${plainBytes}`);
   assert(!/\bdoc:/.test(read('kits/full.js').toString()), 'no doc strings in the released code');
   // a block is a line or two (its own, plus newlines inside template strings); a line per statement would be thousands
@@ -303,11 +393,22 @@ test('minified release: smaller than the source by a wide margin, and only the d
     const defs = [];
     vm.runInNewContext(src, { BC: { define: (d) => defs.push(d) } }, { filename: file });
     const d = defs[0];
-    const strip = (o) => (o && typeof o === 'object' ? Object.fromEntries(Object.entries(o).filter(([k, v]) => !(k === 'doc' && typeof v === 'string')).map(([k, v]) => [k, typeof v === 'function' ? 'fn' : strip(v)])) : o);
+    const strip = (o) =>
+      o && typeof o === 'object'
+        ? Object.fromEntries(
+            Object.entries(o)
+              .filter(([k, v]) => !(k === 'doc' && typeof v === 'string'))
+              .map(([k, v]) => [k, typeof v === 'function' ? 'fn' : strip(v)]),
+          )
+        : o;
     return JSON.stringify(strip(JSON.parse(JSON.stringify(d, (k, v) => (typeof v === 'function' ? 'fn' : v)))));
   };
   for (const name of Object.keys(manifest.blocks)) {
-    assert.strictEqual(shape(read(release.blocks[name].file).toString(), name), shape(fs.readFileSync(path.join(distDir, manifest.blocks[name].file), 'utf8'), name), name + ': same parameters, channels, versions, requires');
+    assert.strictEqual(
+      shape(read(release.blocks[name].file).toString(), name),
+      shape(fs.readFileSync(path.join(distDir, manifest.blocks[name].file), 'utf8'), name),
+      name + ': same parameters, channels, versions, requires',
+    );
   }
   const raw = buildRelease({ distDir, outDir: tmp(), kits: { all: { blocks: '*' } }, minify: false });
   assert(raw.kits.all.js.bytes > plainBytes, 'minify: false keeps the code as it was');
@@ -315,12 +416,23 @@ test('minified release: smaller than the source by a wide margin, and only the d
 });
 
 test('minified release: a doc cut that changes anything else is refused, not shipped', () => {
-  const ok = "(function(){ BC.define({ role: 'mark', type: 'x', version: 1, doc: 'What it is, \\'quoted\\'.', params: { a: { kind: 'number', doc: \"A number.\" } } }); })();";
+  const ok =
+    "(function(){ BC.define({ role: 'mark', type: 'x', version: 1, doc: 'What it is, \\'quoted\\'.', params: { a: { kind: 'number', doc: \"A number.\" } } }); })();";
   const out = stripDocs('x.js', ok);
   assert(!/doc/.test(out) && /kind: 'number'/.test(out));
-  assert.throws(() => stripDocs('x.js', "(function(){ BC.define({ role: 'mark', type: 'x', version: 1, doc: 'a' + 'b', params: {} }); })();"), /does not run|more than the docs/);
-  assert.throws(() => stripDocs('x.js', "(function(){ BC.define({ role: 'mark', type: 'x', version: 1, render() { return \"see doc: 'here'\"; } }); })();"), /more than the docs changed/);
-  assert.throws(() => stripDocs('x.js', "BC.define({ role: 'mark', type: 'x', version: 1, doc: 'ok' }); throw new Error('boom');"), /does not run/);
+  assert.throws(
+    () => stripDocs('x.js', "(function(){ BC.define({ role: 'mark', type: 'x', version: 1, doc: 'a' + 'b', params: {} }); })();"),
+    /does not run|more than the docs/,
+  );
+  assert.throws(
+    () =>
+      stripDocs('x.js', "(function(){ BC.define({ role: 'mark', type: 'x', version: 1, render() { return \"see doc: 'here'\"; } }); })();"),
+    /more than the docs changed/,
+  );
+  assert.throws(
+    () => stripDocs('x.js', "BC.define({ role: 'mark', type: 'x', version: 1, doc: 'ok' }); throw new Error('boom');"),
+    /does not run/,
+  );
 });
 
 test('core variants: smaller by what they leave out, and a switch that is missing or doubled stops the build', () => {
@@ -336,11 +448,19 @@ test('core variants: smaller by what they leave out, and a switch that is missin
   assert.strictEqual(typeof run(min.core.file).validate, 'function');
   assert.strictEqual(run(composed.file).validate, undefined);
   const source = fs.readFileSync(path.join(distDir, 'core.js'), 'utf8');
-  assert.throws(() => coreVariant('x', source.replace('const CHECKS = true;', 'const CHECKS=true;'), ['CHECKS']), /not in the core exactly once/);
+  assert.throws(
+    () => coreVariant('x', source.replace('const CHECKS = true;', 'const CHECKS=true;'), ['CHECKS']),
+    /not in the core exactly once/,
+  );
   assert.throws(() => coreVariant('x', source + '\nconst DECODE = true;', ['DECODE']), /not in the core exactly once/);
   // the switches must come before the first early return, or the minifier keeps the code they guard
-  const late = source.replace('const CHECKS = true;', '').replace("const VERSION = '0.1.0';", "if (globalThis.__x) return;\n    const CHECKS = true;\n    const VERSION = '0.1.0';");
-  assert(minify('x', coreVariant('x', late, ['CHECKS'])).length > composed.bytes + 4000, 'a switch after a return saves nothing: the test above guards that');
+  const late = source
+    .replace('const CHECKS = true;', '')
+    .replace("const VERSION = '0.1.0';", "if (globalThis.__x) return;\n    const CHECKS = true;\n    const VERSION = '0.1.0';");
+  assert(
+    minify('x', coreVariant('x', late, ['CHECKS'])).length > composed.bytes + 4000,
+    'a switch after a return saves nothing: the test above guards that',
+  );
 });
 
 test('lib blocks: line and area share lib.curve, a page without it says so, and a spec cannot name it', () => {
@@ -349,19 +469,41 @@ test('lib blocks: line and area share lib.curve, a page without it says so, and 
   const load = (names) => {
     const sandbox = { console: { warn() {}, error() {} } };
     vm.createContext(sandbox);
-    for (const f of [min.core.file].concat(names.map((n) => min.blocks[n].file))) vm.runInContext(fs.readFileSync(path.join(distDir, 'min', f), 'utf8'), sandbox);
+    for (const f of [min.core.file].concat(names.map((n) => min.blocks[n].file)))
+      vm.runInContext(fs.readFileSync(path.join(distDir, 'min', f), 'utf8'), sandbox);
     return sandbox.BC;
   };
-  const spec = { data: 'd', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 'x', y: 'y' }], renderer: 'svg' };
+  const spec = {
+    data: 'd',
+    scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+    marks: [{ type: 'line', x: 'x', y: 'y' }],
+    renderer: 'svg',
+  };
   const without = load(['scale.linear', 'mark.line', 'renderer.svg']);
-  without.data('d', [{ x: 1, y: 1 }, { x: 2, y: 3 }]);
-  assert(without.validate(spec).some((d) => d.level === 'error' && /mark\.line requires lib\.curve, which is not loaded/.test(d.message)), JSON.stringify(without.validate(spec)));
+  without.data('d', [
+    { x: 1, y: 1 },
+    { x: 2, y: 3 },
+  ]);
+  assert(
+    without.validate(spec).some((d) => d.level === 'error' && /mark\.line requires lib\.curve, which is not loaded/.test(d.message)),
+    JSON.stringify(without.validate(spec)),
+  );
   const withLib = load(['lib.curve', 'scale.linear', 'mark.line', 'renderer.svg']);
-  withLib.data('d', [{ x: 1, y: 1 }, { x: 2, y: 3 }]);
-  assert.strictEqual(JSON.stringify(withLib.validate(spec)), "[]");
-  assert.deepStrictEqual(Array.from(withLib.needs(spec)).filter((n) => n.startsWith('lib.')), [], 'needs() never asks for a lib block itself');
+  withLib.data('d', [
+    { x: 1, y: 1 },
+    { x: 2, y: 3 },
+  ]);
+  assert.strictEqual(JSON.stringify(withLib.validate(spec)), '[]');
+  assert.deepStrictEqual(
+    Array.from(withLib.needs(spec)).filter((n) => n.startsWith('lib.')),
+    [],
+    'needs() never asks for a lib block itself',
+  );
   const named = withLib.validate({ ...spec, marks: [{ type: 'curve', x: 'x', y: 'y' }] });
-  assert(named.some((d) => d.level === 'error' && /mark\.curve/.test(d.message)), 'a lib block is not a mark');
+  assert(
+    named.some((d) => d.level === 'error' && /mark\.curve/.test(d.message)),
+    'a lib block is not a mark',
+  );
 });
 
 test('README: the table of blocks lists every block there is, and only those', () => {
@@ -375,8 +517,16 @@ test('README: the table of blocks lists every block there is, and only those', (
 
 (async () => {
   for (const [name, fn] of queue) {
-    try { await fn(); passed++; console.log('ok  ', name); }
-    catch (e) { failed++; console.log('FAIL', name); console.error(e); process.exitCode = 1; }
+    try {
+      await fn();
+      passed++;
+      console.log('ok  ', name);
+    } catch (e) {
+      failed++;
+      console.log('FAIL', name);
+      console.error(e);
+      process.exitCode = 1;
+    }
   }
   console.log(`\n${passed} of ${passed + failed} passed`);
 })();

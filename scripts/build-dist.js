@@ -29,14 +29,16 @@ function checkOutDir(outDir) {
   const rel = path.relative(repo, outDir);
   const inside = rel && !rel.startsWith('..') && !path.isAbsolute(rel);
   const top = rel.split(path.sep)[0];
-  if (inside && ['src', 'dist', 'scripts', 'docs', 'skills', 'node_modules', '.git'].includes(top)) throw new ReleaseError(`refusing to write the release into ${outDir}`);
+  if (inside && ['src', 'dist', 'scripts', 'docs', 'skills', 'node_modules', '.git'].includes(top))
+    throw new ReleaseError(`refusing to write the release into ${outDir}`);
   if (!rel) throw new ReleaseError('refusing to write the release into the repository root');
   if (path.dirname(outDir) === outDir) throw new ReleaseError('refusing to write the release into a filesystem root');
 }
 
 /** Blocks of a kit definition: a list of names, or "*" for all; returns the closure union in role order. */
 function kitBlocks(name, def, manifest) {
-  if (!def || (def.blocks !== '*' && !Array.isArray(def.blocks))) throw new ReleaseError(`kit "${name}": "blocks" must be a list of block names or "*"`);
+  if (!def || (def.blocks !== '*' && !Array.isArray(def.blocks)))
+    throw new ReleaseError(`kit "${name}": "blocks" must be a list of block names or "*"`);
   const asked = def.blocks === '*' ? Object.keys(manifest.blocks) : def.blocks;
   const missing = asked.filter((n) => !manifest.blocks[n]);
   if (missing.length) throw new ReleaseError(`kit "${name}": no such block: ${missing.join(', ')}`);
@@ -65,7 +67,8 @@ function buildRelease(options) {
   };
   const manifest = JSON.parse(read('manifest.json').toString('utf8'));
   const pkg = JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8'));
-  if (pkg.version !== manifest.core.version) throw new ReleaseError(`package.json says ${pkg.version} but the core says ${manifest.core.version}: keep them equal`);
+  if (pkg.version !== manifest.core.version)
+    throw new ReleaseError(`package.json says ${pkg.version} but the core says ${manifest.core.version}: keep them equal`);
 
   const kits = {};
   for (const name of Object.keys(options.kits || {})) kits[name] = { doc: options.kits[name].doc, blocks: options.kits[name].blocks };
@@ -73,7 +76,8 @@ function buildRelease(options) {
     if (kits[p.name]) throw new ReleaseError(`kit "${p.name}" is defined twice`);
     kits[p.name] = { doc: 'Exactly the blocks one page uses.', blocks: p.blocks };
   }
-  for (const name of Object.keys(kits)) if (!NAME.test(name)) throw new ReleaseError(`kit name "${name}" must be lowercase letters, digits and dashes`);
+  for (const name of Object.keys(kits))
+    if (!NAME.test(name)) throw new ReleaseError(`kit name "${name}" must be lowercase letters, digits and dashes`);
 
   // a release is rebuilt from scratch: only the folders and files it owns are removed
   fs.mkdirSync(outDir, { recursive: true });
@@ -110,9 +114,15 @@ function buildRelease(options) {
       js: put(`kits/${name}.js`, Buffer.from(banner + body + '\n' + CJS_EXPORT)),
       mjs: put(`kits/${name}.mjs`, Buffer.from(banner + body + '\nexport default globalThis.BC;\n')),
       // what TypeScript sees when a kit is imported as a module: the runtime, typed by bc.d.ts
-      dts: put(`kits/${name}.d.mts`, Buffer.from('/// <reference path="../bc.d.ts" />\ndeclare const runtime: BC.Runtime;\nexport default runtime;\n')),
+      dts: put(
+        `kits/${name}.d.mts`,
+        Buffer.from('/// <reference path="../bc.d.ts" />\ndeclare const runtime: BC.Runtime;\nexport default runtime;\n'),
+      ),
       // ... and when it is required
-      cts: put(`kits/${name}.d.ts`, Buffer.from('/// <reference path="../bc.d.ts" />\ndeclare const runtime: BC.Runtime;\nexport = runtime;\n')),
+      cts: put(
+        `kits/${name}.d.ts`,
+        Buffer.from('/// <reference path="../bc.d.ts" />\ndeclare const runtime: BC.Runtime;\nexport = runtime;\n'),
+      ),
     };
   }
   fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(release, null, 2) + '\n');
@@ -137,7 +147,14 @@ if (require.main === module) {
     const pageKits = pages.map((spec) => {
       const eq = spec.lastIndexOf('=');
       const file = path.resolve(eq > 0 ? spec.slice(0, eq) : spec);
-      const name = eq > 0 ? spec.slice(eq + 1) : path.basename(file).replace(/\.json$/i, '').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+      const name =
+        eq > 0
+          ? spec.slice(eq + 1)
+          : path
+              .basename(file)
+              .replace(/\.json$/i, '')
+              .toLowerCase()
+              .replace(/[^a-z0-9-]+/g, '-');
       const page = JSON.parse(fs.readFileSync(file, 'utf8'));
       return { name, blocks: compose({ ...page, baseDir: path.dirname(file), distDir }).blocks };
     });
@@ -146,7 +163,10 @@ if (require.main === module) {
     const kb = (n) => (n / 1024).toFixed(1) + ' KB';
     console.log(`release ${release.version} -> ${outDir}`);
     console.log(`  core ${kb(release.core.bytes)}, ${Object.keys(release.blocks).length} blocks, loader ${kb(release.loader.bytes)}`);
-    for (const [name, k] of Object.entries(release.kits)) console.log(`  kit ${name.padEnd(12)} ${String(k.blocks.length).padStart(2)} blocks ${kb(k.js.bytes).padStart(9)}  gzip ${kb(k.js.gzip)}`);
+    for (const [name, k] of Object.entries(release.kits))
+      console.log(
+        `  kit ${name.padEnd(12)} ${String(k.blocks.length).padStart(2)} blocks ${kb(k.js.bytes).padStart(9)}  gzip ${kb(k.js.gzip)}`,
+      );
   } catch (e) {
     console.error(e instanceof ReleaseError || e.name === 'ComposeError' ? e.message : e.stack);
     process.exit(1);

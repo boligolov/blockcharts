@@ -14,7 +14,8 @@
   /** How far the labels sit from the axis line: past the tick marks when there are any. */
   const reach = (spec: BC.GuideSpec) => (spec.ticks === true ? TICK + PAD : GAP);
   /** The axis line: shown on horizontal axes (the baseline the bars stand on), not on vertical ones, unless told. */
-  const showLine = (spec: BC.GuideSpec, side: Side) => (spec.line === 'on' ? true : spec.line === 'off' ? false : side === 'top' || side === 'bottom');
+  const showLine = (spec: BC.GuideSpec, side: Side) =>
+    spec.line === 'on' ? true : spec.line === 'off' ? false : side === 'top' || side === 'bottom';
 
   type Side = 'top' | 'right' | 'bottom' | 'left';
 
@@ -65,8 +66,16 @@
       scale: { kind: 'scale', required: true },
       position: { kind: 'enum', values: ['top', 'right', 'bottom', 'left'] },
       title: { kind: 'string', doc: 'Text that names the axis (with its unit, for example "Revenue, USD"). Rotated on a vertical axis.' },
-      format: { kind: 'any', doc: 'How to write the tick labels: numbers and dates on a linear, log or time scale, and on a band scale categories that are dates ("2024-04-01" from an aggregate by quarter) or numbers; text categories stay as they are. A preset ("percent", "compact", "integer", "year", "quarter" (Q2 2024), "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix".' },
-      line: { kind: 'enum', values: ['auto', 'on', 'off'], default: 'auto', doc: 'The axis line. "auto": drawn along a horizontal axis (the baseline bars stand on), left out on a vertical one, where grid lines do the job.' },
+      format: {
+        kind: 'any',
+        doc: 'How to write the tick labels: numbers and dates on a linear, log or time scale, and on a band scale categories that are dates ("2024-04-01" from an aggregate by quarter) or numbers; text categories stay as they are. A preset ("percent", "compact", "integer", "year", "quarter" (Q2 2024), "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix".',
+      },
+      line: {
+        kind: 'enum',
+        values: ['auto', 'on', 'off'],
+        default: 'auto',
+        doc: 'The axis line. "auto": drawn along a horizontal axis (the baseline bars stand on), left out on a vertical one, where grid lines do the job.',
+      },
       ticks: { kind: 'boolean', default: false, doc: 'Small tick marks at the labels.' },
     },
     measure(spec, ctx) {
@@ -80,7 +89,13 @@
       const wrap = wrapper(spec, ctx, side);
       for (const t of labelled(spec, ctx)) {
         const lines = wrap(t.label);
-        const m = lines.reduce((acc, line) => { const lm = ctx.measure(line, FONT); return { w: Math.max(acc.w, lm.w), h: acc.h }; }, { w: 0, h: lines.length > 1 ? lines.length * LINE : ctx.measure(t.label, FONT).h });
+        const m = lines.reduce(
+          (acc, line) => {
+            const lm = ctx.measure(line, FONT);
+            return { w: Math.max(acc.w, lm.w), h: acc.h };
+          },
+          { w: 0, h: lines.length > 1 ? lines.length * LINE : ctx.measure(t.label, FONT).h },
+        );
         label = Math.max(label, vertical ? m.w : m.h);
         if (vertical) {
           over.top = Math.max(over.top!, p.y - (t.pos - m.h / 2));
@@ -114,13 +129,32 @@
           if (marks) d += `M${x0} ${t.pos}H${x0 + dir * TICK}`;
           labelSpace = Math.max(labelSpace, ctx.measure(t.label, FONT).w);
           texts.push({
-            type: 'text', x: x0 + dir * r, y: t.pos, text: t.label, size: FONT,
-            anchor: dir < 0 ? 'end' : 'start', baseline: 'middle', style: { fill: LABEL }, cls: 'bc-axis-label',
+            type: 'text',
+            x: x0 + dir * r,
+            y: t.pos,
+            text: t.label,
+            size: FONT,
+            anchor: dir < 0 ? 'end' : 'start',
+            baseline: 'middle',
+            style: { fill: LABEL },
+            cls: 'bc-axis-label',
           });
         }
         if (name) {
           const tx = x0 + dir * (r + labelSpace + PAD + TITLE_ROOM / 2);
-          texts.push({ type: 'text', x: tx, y: y + h / 2, text: name, size: TITLE_FONT, weight: 600, anchor: 'middle', baseline: 'middle', rotate: dir < 0 ? -90 : 90, style: { fill: TEXT }, cls: 'bc-axis-title' });
+          texts.push({
+            type: 'text',
+            x: tx,
+            y: y + h / 2,
+            text: name,
+            size: TITLE_FONT,
+            weight: 600,
+            anchor: 'middle',
+            baseline: 'middle',
+            rotate: dir < 0 ? -90 : 90,
+            style: { fill: TEXT },
+            cls: 'bc-axis-title',
+          });
         }
       } else {
         const dir = side === 'top' ? -1 : 1;
@@ -135,14 +169,32 @@
           const order = dir < 0 ? lines.slice().reverse() : lines;
           order.forEach((line, k) => {
             texts.push({
-              type: 'text', x: t.pos, y: y0 + dir * (r + k * LINE), text: line, size: FONT,
-              anchor: 'middle', baseline: dir < 0 ? 'auto' : 'hanging', style: { fill: LABEL }, cls: 'bc-axis-label',
+              type: 'text',
+              x: t.pos,
+              y: y0 + dir * (r + k * LINE),
+              text: line,
+              size: FONT,
+              anchor: 'middle',
+              baseline: dir < 0 ? 'auto' : 'hanging',
+              style: { fill: LABEL },
+              cls: 'bc-axis-label',
             });
           });
         }
         if (name) {
           const ty = y0 + dir * (r + labelSpace + PAD + 2);
-          texts.push({ type: 'text', x: x + w / 2, y: ty, text: name, size: TITLE_FONT, weight: 600, anchor: 'middle', baseline: dir < 0 ? 'auto' : 'hanging', style: { fill: TEXT }, cls: 'bc-axis-title' });
+          texts.push({
+            type: 'text',
+            x: x + w / 2,
+            y: ty,
+            text: name,
+            size: TITLE_FONT,
+            weight: 600,
+            anchor: 'middle',
+            baseline: dir < 0 ? 'auto' : 'hanging',
+            style: { fill: TEXT },
+            cls: 'bc-axis-title',
+          });
         }
       }
 

@@ -26,7 +26,7 @@
     }
     const p = live.plot;
     const scale = horizontal ? live.scales.x : live.scales.y;
-    const zero = scale && (scale.kind === 'linear') ? (scale(0) as number) : NaN;
+    const zero = scale && scale.kind === 'linear' ? (scale(0) as number) : NaN;
     if (horizontal) return { horizontal, at: isFinite(zero) && zero >= p.x && zero <= p.x + p.w ? zero : p.x };
     return { horizontal, at: isFinite(zero) && zero >= p.y && zero <= p.y + p.h ? zero : p.y + p.h };
   }
@@ -35,9 +35,14 @@
     role: 'interaction',
     type: 'animate',
     version: 1,
-    doc: 'Plays the chart in once, when it is first drawn: bars grow from their baseline, lines and areas are drawn from left to right, a pie opens from its center, anything else fades in. Never again on zoom, filter or update of the view, and not at all for readers who ask their system for reduced motion. Uses the browser\'s own animation of the SVG layer (no timer loop); on a canvas chart it fades the canvas in.',
+    doc: "Plays the chart in once, when it is first drawn: bars grow from their baseline, lines and areas are drawn from left to right, a pie opens from its center, anything else fades in. Never again on zoom, filter or update of the view, and not at all for readers who ask their system for reduced motion. Uses the browser's own animation of the SVG layer (no timer loop); on a canvas chart it fades the canvas in.",
     params: {
-      effect: { kind: 'enum', values: ['auto', 'grow', 'wipe', 'pop', 'fade'], default: 'auto', doc: '"auto" picks by the marks: grow for bars, wipe for lines and areas, pop for a pie, fade otherwise.' },
+      effect: {
+        kind: 'enum',
+        values: ['auto', 'grow', 'wipe', 'pop', 'fade'],
+        default: 'auto',
+        doc: '"auto" picks by the marks: grow for bars, wipe for lines and areas, pop for a pie, fade otherwise.',
+      },
       duration: { kind: 'number', default: 700, doc: 'Milliseconds.' },
       delay: { kind: 'number', default: 0, doc: 'Milliseconds before it starts (stagger the cards of a dashboard).' },
     },
@@ -53,10 +58,14 @@
       const duration = typeof spec.duration === 'number' && spec.duration >= 0 ? Math.min(10000, spec.duration) : 700;
       const delay = typeof spec.delay === 'number' && spec.delay >= 0 ? Math.min(10000, spec.delay) : 0;
       const timing = { duration, delay, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'backwards' as FillMode };
-      const effect: Effect = spec.effect === 'grow' || spec.effect === 'wipe' || spec.effect === 'pop' || spec.effect === 'fade' ? spec.effect : auto(live.spec);
+      const effect: Effect =
+        spec.effect === 'grow' || spec.effect === 'wipe' || spec.effect === 'pop' || spec.effect === 'fade' ? spec.effect : auto(live.spec);
 
       // the marks layer of an SVG chart; a canvas has no layers, so it fades as a whole
-      const layer = typeof root.querySelector === 'function' ? (root.querySelector('[data-bc-layer="marks"]') as (Element & { style: CSSStyleDeclaration }) | null) : null;
+      const layer =
+        typeof root.querySelector === 'function'
+          ? (root.querySelector('[data-bc-layer="marks"]') as (Element & { style: CSSStyleDeclaration }) | null)
+          : null;
       const target = (layer || root) as Element;
       if (typeof target.animate !== 'function') return; // an environment without the Web Animations API: just show it
       const p = live.plot;
@@ -66,11 +75,18 @@
       } else if (effect === 'wipe') {
         // reveal from the left edge of the plot to its right one
         const right = live.size.w - (p.x + p.w);
-        frames = [{ clipPath: `inset(0 ${live.size.w - p.x}px 0 0)` }, { clipPath: `inset(0 ${Math.max(0, right - 4)}px 0 0)`, offset: 0.999 }, { clipPath: 'none' }];
+        frames = [
+          { clipPath: `inset(0 ${live.size.w - p.x}px 0 0)` },
+          { clipPath: `inset(0 ${Math.max(0, right - 4)}px 0 0)`, offset: 0.999 },
+          { clipPath: 'none' },
+        ];
       } else if (effect === 'pop') {
         layer.style.transformBox = 'view-box';
         layer.style.transformOrigin = `${p.x + p.w / 2}px ${p.y + p.h / 2}px`;
-        frames = [{ transform: 'scale(0.6) rotate(-30deg)', opacity: 0 }, { transform: 'none', opacity: 1 }];
+        frames = [
+          { transform: 'scale(0.6) rotate(-30deg)', opacity: 0 },
+          { transform: 'none', opacity: 1 },
+        ];
       } else {
         const b = baseline(live);
         layer.style.transformBox = 'view-box';

@@ -3,7 +3,8 @@
     const field = typeof spec.field === 'string' ? spec.field : 'value';
     const as = spec.as;
     if (as === undefined) return [field + '0', field + '1'];
-    if (Array.isArray(as) && as.length === 2 && typeof as[0] === 'string' && typeof as[1] === 'string' && as[0] !== as[1]) return [as[0], as[1]];
+    if (Array.isArray(as) && as.length === 2 && typeof as[0] === 'string' && typeof as[1] === 'string' && as[0] !== as[1])
+      return [as[0], as[1]];
     throw new Error('transform.stack: "as" must be two different column names, e.g. ["y0", "y1"]');
   }
 
@@ -11,7 +12,7 @@
     role: 'transform',
     type: 'stack',
     version: 1,
-    doc: 'Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row\'s segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area.',
+    doc: "Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area.",
     params: {
       field: { kind: 'field', required: true, doc: 'Numeric field to stack.' },
       by: { kind: 'field', required: true, doc: 'Field whose values are the stacks (the x of a stacked bar).' },

@@ -7,7 +7,10 @@
 
   function parseColor(c: unknown): RGB {
     const m = typeof c === 'string' ? /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c.trim()) : null;
-    if (!m) throw new Error(`scale.sequential: range colors must be #rgb or #rrggbb, got ${JSON.stringify(c)} (mixing needs real numbers, so CSS variables and names cannot be used)`);
+    if (!m)
+      throw new Error(
+        `scale.sequential: range colors must be #rgb or #rrggbb, got ${JSON.stringify(c)} (mixing needs real numbers, so CSS variables and names cannot be used)`,
+      );
     let h = m[1];
     if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
     return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
@@ -95,7 +98,10 @@
         return '#' + hex(a[0] + (b[0] - a[0]) * f) + hex(a[1] + (b[1] - a[1]) * f) + hex(a[2] + (b[2] - a[2]) * f);
       };
 
-      const scale = ((v: unknown) => (typeof v === 'number' && isFinite(v) ? colorAt((v - d0) / (d1 - d0)) : NONE)) as unknown as BC.Scale<number, string>;
+      const scale = ((v: unknown) => (typeof v === 'number' && isFinite(v) ? colorAt((v - d0) / (d1 - d0)) : NONE)) as unknown as BC.Scale<
+        number,
+        string
+      >;
       Object.defineProperties(scale, {
         kind: { value: 'sequential' },
         domain: { value: () => [d0, d1] },
@@ -110,7 +116,8 @@
         setRange: { value: () => {} },
         // pos is a fraction of the domain, which is what a legend needs to place its labels along the color bar
         ticks: {
-          value: (approxCount: number = 5): BC.Tick[] => roundTicks(d0, d1, approxCount).map((t) => ({ ...t, pos: (t.value - d0) / (d1 - d0) })),
+          value: (approxCount: number = 5): BC.Tick[] =>
+            roundTicks(d0, d1, approxCount).map((t) => ({ ...t, pos: (t.value - d0) / (d1 - d0) })),
         },
       });
       return scale;

@@ -72,10 +72,16 @@
       });
       for (const k of Object.keys(keys)) columns[k] = toColumn(input.map((r) => r[k]));
       length = input.length;
-    } else if (input && typeof input === 'object' && (input as { columns?: unknown }).columns && typeof (input as { columns?: unknown }).columns === 'object') {
+    } else if (
+      input &&
+      typeof input === 'object' &&
+      (input as { columns?: unknown }).columns &&
+      typeof (input as { columns?: unknown }).columns === 'object'
+    ) {
       const source = (input as { columns: Record<string, unknown[] | Float64Array> }).columns;
       const names = Object.keys(source);
-      for (const k of names) if (!Array.isArray(source[k]) && !(source[k] instanceof Float64Array)) throw new Error(`BC.data: column "${k}" is not an array`);
+      for (const k of names)
+        if (!Array.isArray(source[k]) && !(source[k] instanceof Float64Array)) throw new Error(`BC.data: column "${k}" is not an array`);
       length = names.length ? source[names[0]].length : 0;
       for (const k of names) {
         if (source[k].length !== length) throw new Error(`BC.data: column "${k}" has ${source[k].length} values, expected ${length}`);
@@ -90,54 +96,67 @@
   const isEncoded = (input: unknown): input is BC.EncodedDataset =>
     !!input && typeof input === 'object' && !Array.isArray(input) && typeof (input as { encoding?: unknown }).encoding === 'string';
 
-  const fromBase64 = (DECODE ? function fromBase64(text: string): Uint8Array {
-    const clean = text.replace(/\s+/g, '');
-    if (clean.length % 4 === 1 || !/^[A-Za-z0-9+/]*={0,2}$/.test(clean)) throw new Error('the data is not valid base64');
-    if (typeof atob !== 'function') throw new Error('this environment has no atob(), cannot decode base64');
-    const bin = atob(clean);
-    const out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out;
-  } : undefined)!;
+  const fromBase64 = (
+    DECODE
+      ? function fromBase64(text: string): Uint8Array {
+          const clean = text.replace(/\s+/g, '');
+          if (clean.length % 4 === 1 || !/^[A-Za-z0-9+/]*={0,2}$/.test(clean)) throw new Error('the data is not valid base64');
+          if (typeof atob !== 'function') throw new Error('this environment has no atob(), cannot decode base64');
+          const bin = atob(clean);
+          const out = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+          return out;
+        }
+      : undefined
+  )!;
 
   /** `limit` is what is left of the dataset's MAX_DECODED_BYTES. */
-  const gunzip = (DECODE ? async function gunzip(bytes: Uint8Array, limit: number): Promise<Uint8Array> {
-    const DS = (globalThis as any).DecompressionStream;
-    if (typeof DS !== 'function' || typeof Blob !== 'function') {
-      throw new Error('this browser cannot decompress gzip data (no DecompressionStream); store the dataset as plain rows or "base64"');
-    }
-    const reader = (new Blob([bytes as BlobPart]).stream().pipeThrough(new DS('gzip')) as ReadableStream<Uint8Array>).getReader();
-    const chunks: Uint8Array[] = [];
-    let total = 0;
-    for (;;) {
-      let step: ReadableStreamReadResult<Uint8Array>;
-      try {
-        step = await reader.read();
-      } catch (e) {
-        // the type of a decompression error differs between browsers; whatever it is, the input is not a whole gzip stream
-        throw new Error('the data is not valid gzip');
-      }
-      const { done, value } = step;
-      if (done) break;
-      total += value.length;
-      if (total > limit) {
-        await reader.cancel();
-        throw new Error(`the decoded data is larger than ${MAX_DECODED_BYTES / 1024 / 1024} MB, refusing to unpack it`);
-      }
-      chunks.push(value);
-    }
-    const out = new Uint8Array(total);
-    let at = 0;
-    for (const c of chunks) {
-      out.set(c, at);
-      at += c.length;
-    }
-    return out;
-  } : undefined)!;
+  const gunzip = (
+    DECODE
+      ? async function gunzip(bytes: Uint8Array, limit: number): Promise<Uint8Array> {
+          const DS = (globalThis as any).DecompressionStream;
+          if (typeof DS !== 'function' || typeof Blob !== 'function') {
+            throw new Error(
+              'this browser cannot decompress gzip data (no DecompressionStream); store the dataset as plain rows or "base64"',
+            );
+          }
+          const reader = (new Blob([bytes as BlobPart]).stream().pipeThrough(new DS('gzip')) as ReadableStream<Uint8Array>).getReader();
+          const chunks: Uint8Array[] = [];
+          let total = 0;
+          for (;;) {
+            let step: ReadableStreamReadResult<Uint8Array>;
+            try {
+              step = await reader.read();
+            } catch (e) {
+              // the type of a decompression error differs between browsers; whatever it is, the input is not a whole gzip stream
+              throw new Error('the data is not valid gzip');
+            }
+            const { done, value } = step;
+            if (done) break;
+            total += value.length;
+            if (total > limit) {
+              await reader.cancel();
+              throw new Error(`the decoded data is larger than ${MAX_DECODED_BYTES / 1024 / 1024} MB, refusing to unpack it`);
+            }
+            chunks.push(value);
+          }
+          const out = new Uint8Array(total);
+          let at = 0;
+          for (const c of chunks) {
+            out.set(c, at);
+            at += c.length;
+          }
+          return out;
+        }
+      : undefined
+  )!;
 
   // Binary columns: { dtype, encoding, data } inside `columns`: the raw little-endian values of a numeric column, base64 (and
   // gzip) encoded. Much smaller than JSON text for long series; always read as Float64 (NaN = missing for float types).
-  const DTYPES: Record<string, { size: number; ctor: { new (buffer: ArrayBuffer, offset: number, length: number): ArrayLike<number> }; get: string }> = {
+  const DTYPES: Record<
+    string,
+    { size: number; ctor: { new (buffer: ArrayBuffer, offset: number, length: number): ArrayLike<number> }; get: string }
+  > = {
     float32: { size: 4, ctor: Float32Array, get: 'getFloat32' },
     float64: { size: 8, ctor: Float64Array, get: 'getFloat64' },
     int8: { size: 1, ctor: Int8Array, get: 'getInt8' },
@@ -150,91 +169,114 @@
   const LITTLE_ENDIAN = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
 
   const isBinaryColumn = (v: unknown): v is BC.BinaryColumn =>
-    !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Float64Array) && typeof (v as { dtype?: unknown }).dtype === 'string';
+    !!v &&
+    typeof v === 'object' &&
+    !Array.isArray(v) &&
+    !(v instanceof Float64Array) &&
+    typeof (v as { dtype?: unknown }).dtype === 'string';
 
   const hasBinaryColumns = (input: unknown): boolean => {
     const cols = input && typeof input === 'object' && !Array.isArray(input) ? (input as { columns?: unknown }).columns : undefined;
     return !!cols && typeof cols === 'object' && Object.keys(cols).some((k) => isBinaryColumn((cols as Record<string, unknown>)[k]));
   };
 
-  const decodeBinaryColumn = (DECODE ? async function decodeBinaryColumn(name: string, col: BC.BinaryColumn, budget: { left: number }): Promise<Float64Array> {
-    const t = DTYPES[col.dtype];
-    if (!t) throw new Error(`column "${name}": unknown dtype "${col.dtype}" (use ${Object.keys(DTYPES).join(', ')})`);
-    if (col.encoding !== 'base64' && col.encoding !== 'gzip+base64') throw new Error(`column "${name}": unknown encoding "${col.encoding}" (use "base64" or "gzip+base64")`);
-    if (typeof col.data !== 'string') throw new Error(`column "${name}": a binary column needs a "data" string`);
-    let bytes: Uint8Array;
-    try {
-      bytes = fromBase64(col.data);
-      if (col.encoding === 'gzip+base64') bytes = await gunzip(bytes, budget.left);
-    } catch (e) {
-      throw new Error(`column "${name}": ${e instanceof Error ? e.message : String(e)}`);
-    }
-    if (bytes.length % t.size !== 0) throw new Error(`column "${name}": ${bytes.length} bytes is not a whole number of ${col.dtype} values`);
-    const n = bytes.length / t.size;
-    budget.left -= n * 8;
-    if (budget.left < 0) throw new Error(`the decoded data is larger than ${MAX_DECODED_BYTES / 1024 / 1024} MB, refusing to unpack it`);
-    const out = new Float64Array(n);
-    if (LITTLE_ENDIAN) {
-      // a view needs an aligned buffer; the bytes may sit anywhere inside a larger one
-      const aligned = bytes.byteOffset % t.size === 0 ? bytes.buffer as ArrayBuffer : (bytes.slice().buffer as ArrayBuffer);
-      const offset = bytes.byteOffset % t.size === 0 ? bytes.byteOffset : 0;
-      out.set(new t.ctor(aligned, offset, n));
-    } else {
-      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
-      for (let i = 0; i < n; i++) out[i] = (view as any)[t.get](i * t.size, true);
-    }
-    return out;
-  } : undefined)!;
+  const decodeBinaryColumn = (
+    DECODE
+      ? async function decodeBinaryColumn(name: string, col: BC.BinaryColumn, budget: { left: number }): Promise<Float64Array> {
+          const t = DTYPES[col.dtype];
+          if (!t) throw new Error(`column "${name}": unknown dtype "${col.dtype}" (use ${Object.keys(DTYPES).join(', ')})`);
+          if (col.encoding !== 'base64' && col.encoding !== 'gzip+base64')
+            throw new Error(`column "${name}": unknown encoding "${col.encoding}" (use "base64" or "gzip+base64")`);
+          if (typeof col.data !== 'string') throw new Error(`column "${name}": a binary column needs a "data" string`);
+          let bytes: Uint8Array;
+          try {
+            bytes = fromBase64(col.data);
+            if (col.encoding === 'gzip+base64') bytes = await gunzip(bytes, budget.left);
+          } catch (e) {
+            throw new Error(`column "${name}": ${e instanceof Error ? e.message : String(e)}`);
+          }
+          if (bytes.length % t.size !== 0)
+            throw new Error(`column "${name}": ${bytes.length} bytes is not a whole number of ${col.dtype} values`);
+          const n = bytes.length / t.size;
+          budget.left -= n * 8;
+          if (budget.left < 0)
+            throw new Error(`the decoded data is larger than ${MAX_DECODED_BYTES / 1024 / 1024} MB, refusing to unpack it`);
+          const out = new Float64Array(n);
+          if (LITTLE_ENDIAN) {
+            // a view needs an aligned buffer; the bytes may sit anywhere inside a larger one
+            const aligned = bytes.byteOffset % t.size === 0 ? (bytes.buffer as ArrayBuffer) : (bytes.slice().buffer as ArrayBuffer);
+            const offset = bytes.byteOffset % t.size === 0 ? bytes.byteOffset : 0;
+            out.set(new t.ctor(aligned, offset, n));
+          } else {
+            const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
+            for (let i = 0; i < n; i++) out[i] = (view as any)[t.get](i * t.size, true);
+          }
+          return out;
+        }
+      : undefined
+  )!;
 
   /** Replaces the binary columns of a { columns } dataset with Float64Arrays. */
-  const withBinaryColumns = (DECODE ? async function withBinaryColumns(json: unknown, budget: { left: number }): Promise<unknown> {
-    if (!hasBinaryColumns(json)) return json;
-    const source = (json as { columns: Record<string, unknown> }).columns;
-    const columns: Record<string, unknown> = {};
-    for (const k of Object.keys(source)) columns[k] = isBinaryColumn(source[k]) ? await decodeBinaryColumn(k, source[k] as BC.BinaryColumn, budget) : source[k];
-    return { columns };
-  } : undefined)!;
+  const withBinaryColumns = (
+    DECODE
+      ? async function withBinaryColumns(json: unknown, budget: { left: number }): Promise<unknown> {
+          if (!hasBinaryColumns(json)) return json;
+          const source = (json as { columns: Record<string, unknown> }).columns;
+          const columns: Record<string, unknown> = {};
+          for (const k of Object.keys(source))
+            columns[k] = isBinaryColumn(source[k]) ? await decodeBinaryColumn(k, source[k] as BC.BinaryColumn, budget) : source[k];
+          return { columns };
+        }
+      : undefined
+  )!;
 
-  const decodeDataset = (DECODE ? async function decodeDataset(input: BC.EncodedDataset | { columns: Record<string, unknown> }): Promise<BC.Table> {
-    const budget = { left: MAX_DECODED_BYTES };
-    if (!isEncoded(input)) return toTable((await withBinaryColumns(input, budget)) as BC.DatasetInput);
-    if (typeof input.data !== 'string') throw new Error('an encoded dataset needs a "data" string');
-    if (input.encoding !== 'base64' && input.encoding !== 'gzip+base64') {
-      throw new Error(`unknown encoding "${input.encoding}" (use "base64" or "gzip+base64")`);
-    }
-    let bytes = fromBase64(input.data);
-    if (input.encoding === 'gzip+base64') bytes = await gunzip(bytes, budget.left);
-    // the JSON and the binary columns inside it share one limit
-    budget.left -= bytes.length;
-    let json: unknown;
-    try {
-      json = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-    } catch (e) {
-      throw new Error('the decoded data is not UTF-8 JSON: ' + (e instanceof Error ? e.message : String(e)));
-    }
-    if (isEncoded(json)) throw new Error('an encoded dataset cannot contain another encoded dataset');
-    return toTable((await withBinaryColumns(json, budget)) as BC.DatasetInput);
-  } : undefined)!;
+  const decodeDataset = (
+    DECODE
+      ? async function decodeDataset(input: BC.EncodedDataset | { columns: Record<string, unknown> }): Promise<BC.Table> {
+          const budget = { left: MAX_DECODED_BYTES };
+          if (!isEncoded(input)) return toTable((await withBinaryColumns(input, budget)) as BC.DatasetInput);
+          if (typeof input.data !== 'string') throw new Error('an encoded dataset needs a "data" string');
+          if (input.encoding !== 'base64' && input.encoding !== 'gzip+base64') {
+            throw new Error(`unknown encoding "${input.encoding}" (use "base64" or "gzip+base64")`);
+          }
+          let bytes = fromBase64(input.data);
+          if (input.encoding === 'gzip+base64') bytes = await gunzip(bytes, budget.left);
+          // the JSON and the binary columns inside it share one limit
+          budget.left -= bytes.length;
+          let json: unknown;
+          try {
+            json = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+          } catch (e) {
+            throw new Error('the decoded data is not UTF-8 JSON: ' + (e instanceof Error ? e.message : String(e)));
+          }
+          if (isEncoded(json)) throw new Error('an encoded dataset cannot contain another encoded dataset');
+          return toTable((await withBinaryColumns(json, budget)) as BC.DatasetInput);
+        }
+      : undefined
+  )!;
 
   function data(name: string, input: BC.DatasetInput): void {
     if (isEncoded(input) || hasBinaryColumns(input)) {
-      if (!DECODE) throw new Error(`dataset "${name}" is encoded, and this page was composed without the code that decodes data: compose it again`);
+      if (!DECODE)
+        throw new Error(`dataset "${name}" is encoded, and this page was composed without the code that decodes data: compose it again`);
       failed.delete(name);
       // a later data() call for the same name wins even if this decode finishes after it
-      const job: Promise<void> = decodeDataset(input as BC.EncodedDataset).then(
-        (table) => {
-          if (pending.get(name) !== job) return;
-          lake.set(name, table);
-        },
-        (e) => {
-          if (pending.get(name) !== job) return;
-          const reason = e instanceof Error ? e.message : String(e);
-          failed.set(name, reason);
-          console.error(`[blockcharts] dataset "${name}": ${reason}`);
-        },
-      ).then(() => {
-        if (pending.get(name) === job) pending.delete(name);
-      });
+      const job: Promise<void> = decodeDataset(input as BC.EncodedDataset)
+        .then(
+          (table) => {
+            if (pending.get(name) !== job) return;
+            lake.set(name, table);
+          },
+          (e) => {
+            if (pending.get(name) !== job) return;
+            const reason = e instanceof Error ? e.message : String(e);
+            failed.set(name, reason);
+            console.error(`[blockcharts] dataset "${name}": ${reason}`);
+          },
+        )
+        .then(() => {
+          if (pending.get(name) === job) pending.delete(name);
+        });
       pending.set(name, job);
       return;
     }
@@ -250,7 +292,11 @@
 
   // ───────────────────────── spec helpers ─────────────────────────
 
-  interface ChannelRef { field?: string; scale?: string; value?: unknown }
+  interface ChannelRef {
+    field?: string;
+    scale?: string;
+    value?: unknown;
+  }
 
   /** null = absent, undefined = malformed. */
   function channelRef(mark: BC.MarkSpec, name: string, cdef?: BC.ChannelDef): ChannelRef | null | undefined {
@@ -288,218 +334,255 @@
     return null;
   }
 
-  const needs = (CHECKS ? function needs(spec: BC.ChartSpec): BC.BlockName[] {
-    const out: BC.BlockName[] = [];
-    const add = (role: BC.Role, s: unknown) => {
-      const t = s && (s as BC.BlockSpec).type;
-      if (typeof t === 'string') {
-        const n = `${role}.${t}` as BC.BlockName;
-        if (out.indexOf(n) < 0) out.push(n);
-      }
-    };
-    if (!spec) return out;
-    if (Array.isArray(spec.transforms)) spec.transforms.forEach((s) => add('transform', s));
-    if (spec.scales) for (const k of Object.keys(spec.scales)) add('scale', spec.scales[k]);
-    if (Array.isArray(spec.marks)) spec.marks.forEach((s) => add('mark', s));
-    if (Array.isArray(spec.guides)) spec.guides.forEach((s) => add('guide', s));
-    if (Array.isArray(spec.interaction)) spec.interaction.forEach((s) => add('interaction', s));
-    add('renderer', { type: spec.renderer || 'svg' });
-    return out;
-  } : undefined)!;
+  const needs = (
+    CHECKS
+      ? function needs(spec: BC.ChartSpec): BC.BlockName[] {
+          const out: BC.BlockName[] = [];
+          const add = (role: BC.Role, s: unknown) => {
+            const t = s && (s as BC.BlockSpec).type;
+            if (typeof t === 'string') {
+              const n = `${role}.${t}` as BC.BlockName;
+              if (out.indexOf(n) < 0) out.push(n);
+            }
+          };
+          if (!spec) return out;
+          if (Array.isArray(spec.transforms)) spec.transforms.forEach((s) => add('transform', s));
+          if (spec.scales) for (const k of Object.keys(spec.scales)) add('scale', spec.scales[k]);
+          if (Array.isArray(spec.marks)) spec.marks.forEach((s) => add('mark', s));
+          if (Array.isArray(spec.guides)) spec.guides.forEach((s) => add('guide', s));
+          if (Array.isArray(spec.interaction)) spec.interaction.forEach((s) => add('interaction', s));
+          add('renderer', { type: spec.renderer || 'svg' });
+          return out;
+        }
+      : undefined
+  )!;
 
   // ───────────────────────── validation ─────────────────────────
 
-  const validate = (CHECKS ? function validate(spec: BC.ChartSpec): BC.Diagnostic[] {
-    const out: BC.Diagnostic[] = [];
-    const err = (path: string, message: string) => out.push({ level: 'error', path, message });
-    const warn = (path: string, message: string) => out.push({ level: 'warn', path, message });
-    if (!spec || typeof spec !== 'object') {
-      err('', 'the spec must be an object');
-      return out;
-    }
-
-    const table = typeof spec.data === 'string' && !pending.has(spec.data) ? lake.get(spec.data) : undefined;
-    const problem = dataProblem(spec);
-    if (problem) err('data', problem);
-    // Transforms add columns. Each declares them through `outputs`; one that does not makes the field list
-    // unknowable before it runs, and field checks are skipped rather than guessed.
-    // `stages[i]` = the columns that exist before transform i, and the last one after all of them; undefined = unknown.
-    const stages: (Record<string, unknown> | undefined)[] = [table ? { ...table.columns } : undefined];
-    if (Array.isArray(spec.transforms)) {
-      for (const ts of spec.transforms) {
-        let next: Record<string, unknown> | undefined = stages[stages.length - 1];
-        const tdef = ts && typeof ts.type === 'string' ? registry.get(`transform.${ts.type}`) : undefined;
-        if (next) {
-          if (tdef && tdef.role === 'transform' && tdef.outputs) {
-            try {
-              const added = tdef.outputs(ts);
-              next = tdef.replacesColumns ? {} : { ...next };
-              for (const name of added) next[name] = true;
-            } catch (e) {
-              next = undefined;
-            }
-          } else {
-            next = undefined;
+  const validate = (
+    CHECKS
+      ? function validate(spec: BC.ChartSpec): BC.Diagnostic[] {
+          const out: BC.Diagnostic[] = [];
+          const err = (path: string, message: string) => out.push({ level: 'error', path, message });
+          const warn = (path: string, message: string) => out.push({ level: 'warn', path, message });
+          if (!spec || typeof spec !== 'object') {
+            err('', 'the spec must be an object');
+            return out;
           }
-        }
-        stages.push(next);
-      }
-    }
-    const knownColumns = stages[stages.length - 1];
-    const checkFieldIn = (known: Record<string, unknown> | undefined, path: string, field: string) => {
-      if (known && !Object.prototype.hasOwnProperty.call(known, field)) err(path, `unknown field "${field}" in dataset "${spec.data}"`);
-    };
-    const checkField = (path: string, field: string) => checkFieldIn(knownColumns, path, field);
-    const scales = spec.scales || {};
 
-    if (spec.size !== undefined && !(Array.isArray(spec.size) && spec.size.length === 2 && spec.size[0] > 0 && spec.size[1] > 0)) {
-      err('size', 'size must be [width, height] with positive numbers');
-    }
-
-    const firstPath = new Map<string, string>();
-    const blockOf = (role: BC.Role, s: unknown, path: string): BC.BlockDef | undefined => {
-      const t = s && (s as BC.BlockSpec).type;
-      if (typeof t !== 'string' || !t) {
-        err(`${path}.type`, `${role} needs a "type"`);
-        return undefined;
-      }
-      const name = `${role}.${t}`;
-      if (!firstPath.has(name)) firstPath.set(name, path);
-      const def = registry.get(name);
-      if (!def) err(`${path}.type`, `block "${name}" is not loaded`);
-      return def;
-    };
-
-    const checkParams = (path: string, s: BC.BlockSpec, def: BC.BlockDef, common: string[], fieldCheck: (path: string, field: string) => void = checkField) => {
-      const name = `${def.role}.${def.type}`;
-      const params = def.params || {};
-      const channels = def.role === 'mark' ? def.channels : {};
-      for (const key of Object.keys(s)) {
-        if (key === 'type' || common.indexOf(key) >= 0 || Object.prototype.hasOwnProperty.call(channels, key)) continue;
-        const p = params[key];
-        if (!p) {
-          warn(`${path}.${key}`, `unknown parameter "${key}" for ${name}`);
-          continue;
-        }
-        const v = s[key];
-        const bad = (want: string) => err(`${path}.${key}`, `${key} of ${name} must be ${want}`);
-        switch (p.kind) {
-          case 'string': if (typeof v !== 'string') bad('a string'); break;
-          case 'number': if (typeof v !== 'number') bad('a number'); break;
-          case 'boolean': if (typeof v !== 'boolean') bad('a boolean'); break;
-          case 'list': if (!Array.isArray(v)) bad('a list'); break;
-          case 'enum': if (typeof v !== 'string' || !p.values || p.values.indexOf(v) < 0) bad(`one of: ${(p.values || []).join(', ')}`); break;
-          case 'field': if (typeof v !== 'string') bad('a field name'); else fieldCheck(`${path}.${key}`, v); break;
-          case 'scale': if (typeof v !== 'string' || !scales[v]) bad('the name of a declared scale'); break;
-        }
-      }
-      for (const key of Object.keys(params)) {
-        if (params[key].required && params[key].default === undefined && s[key] === undefined) err(`${path}.${key}`, `${name} requires "${key}"`);
-      }
-    };
-
-    // a chart draws something: a mark, or at least a guide (a KPI tile is a guide alone)
-    const hasGuides = Array.isArray(spec.guides) && spec.guides.length > 0;
-    if (!Array.isArray(spec.marks)) err('marks', 'marks must be a list (an empty one is fine when the chart has a guide, such as a KPI)');
-    else if (!spec.marks.length && !hasGuides) err('marks', 'at least one mark is required (or a guide, such as a KPI)');
-
-    if (spec.view !== undefined) {
-      if (!spec.view || typeof spec.view !== 'object') err('view', 'view must map scale names to domains');
-      else {
-        for (const name of Object.keys(spec.view)) {
-          if (!scales[name]) err(`view.${name}`, `scale "${name}" is not declared in scales`);
-          else if (!Array.isArray(spec.view[name])) err(`view.${name}`, 'a view is a list (the visible domain)');
-        }
-      }
-    }
-
-    if (Array.isArray(spec.transforms)) {
-      spec.transforms.forEach((s, i) => {
-        const def = blockOf('transform', s, `transforms[${i}]`);
-        // a transform reads the columns that exist before it, not the ones that exist at the end
-        if (def) checkParams(`transforms[${i}]`, s, def, [], (p, field) => checkFieldIn(stages[i], p, field));
-      });
-    }
-
-    for (const name of Object.keys(scales)) {
-      const s = scales[name];
-      const path = `scales.${name}`;
-      const def = blockOf('scale', s, path);
-      if (!def) continue;
-      checkParams(path, s, def, ['field', 'domain', 'range']);
-      if (typeof s.field === 'string') checkField(`${path}.field`, s.field);
-      if (s.range !== undefined && s.range !== 'width' && s.range !== 'height' && !Array.isArray(s.range)) {
-        err(`${path}.range`, 'range must be "width", "height" or a list');
-      }
-    }
-
-    if (Array.isArray(spec.marks)) {
-      spec.marks.forEach((m, i) => {
-        const path = `marks[${i}]`;
-        const def = blockOf('mark', m, path);
-        if (!def || def.role !== 'mark') return;
-        const name = `mark.${def.type}`;
-        checkParams(path, m, def, []);
-        for (const ch of Object.keys(def.channels)) {
-          const cdef = def.channels[ch];
-          const ref = channelRef(m, ch, cdef);
-          if (ref === null) {
-            if (cdef.required) err(`${path}.${ch}`, `${name} requires channel "${ch}"`);
-            continue;
-          }
-          if (ref === undefined) {
-            err(`${path}.${ch}`, `channel "${ch}" must be a field name, { field, scale } or { value }`);
-            continue;
-          }
-          if (ref.field !== undefined) checkField(`${path}.${ch}`, ref.field);
-          if (cdef.unscaled) {
-            if (ref.scale !== undefined) err(`${path}.${ch}`, `channel "${ch}" of ${name} is read as it is and does not use a scale`);
-          } else if (ref.scale !== undefined) {
-            const sdef = scales[ref.scale];
-            if (!sdef) err(`${path}.${ch}`, `scale "${ref.scale}" is not declared in scales`);
-            else if (cdef.scales && cdef.scales.indexOf(sdef.type) < 0) {
-              err(`${path}.${ch}`, `channel "${ch}" of ${name} does not accept a "${sdef.type}" scale (accepts: ${cdef.scales.join(', ')})`);
+          const table = typeof spec.data === 'string' && !pending.has(spec.data) ? lake.get(spec.data) : undefined;
+          const problem = dataProblem(spec);
+          if (problem) err('data', problem);
+          // Transforms add columns. Each declares them through `outputs`; one that does not makes the field list
+          // unknowable before it runs, and field checks are skipped rather than guessed.
+          // `stages[i]` = the columns that exist before transform i, and the last one after all of them; undefined = unknown.
+          const stages: (Record<string, unknown> | undefined)[] = [table ? { ...table.columns } : undefined];
+          if (Array.isArray(spec.transforms)) {
+            for (const ts of spec.transforms) {
+              let next: Record<string, unknown> | undefined = stages[stages.length - 1];
+              const tdef = ts && typeof ts.type === 'string' ? registry.get(`transform.${ts.type}`) : undefined;
+              if (next) {
+                if (tdef && tdef.role === 'transform' && tdef.outputs) {
+                  try {
+                    const added = tdef.outputs(ts);
+                    next = tdef.replacesColumns ? {} : { ...next };
+                    for (const name of added) next[name] = true;
+                  } catch (e) {
+                    next = undefined;
+                  }
+                } else {
+                  next = undefined;
+                }
+              }
+              stages.push(next);
             }
           }
+          const knownColumns = stages[stages.length - 1];
+          const checkFieldIn = (known: Record<string, unknown> | undefined, path: string, field: string) => {
+            if (known && !Object.prototype.hasOwnProperty.call(known, field))
+              err(path, `unknown field "${field}" in dataset "${spec.data}"`);
+          };
+          const checkField = (path: string, field: string) => checkFieldIn(knownColumns, path, field);
+          const scales = spec.scales || {};
+
+          if (spec.size !== undefined && !(Array.isArray(spec.size) && spec.size.length === 2 && spec.size[0] > 0 && spec.size[1] > 0)) {
+            err('size', 'size must be [width, height] with positive numbers');
+          }
+
+          const firstPath = new Map<string, string>();
+          const blockOf = (role: BC.Role, s: unknown, path: string): BC.BlockDef | undefined => {
+            const t = s && (s as BC.BlockSpec).type;
+            if (typeof t !== 'string' || !t) {
+              err(`${path}.type`, `${role} needs a "type"`);
+              return undefined;
+            }
+            const name = `${role}.${t}`;
+            if (!firstPath.has(name)) firstPath.set(name, path);
+            const def = registry.get(name);
+            if (!def) err(`${path}.type`, `block "${name}" is not loaded`);
+            return def;
+          };
+
+          const checkParams = (
+            path: string,
+            s: BC.BlockSpec,
+            def: BC.BlockDef,
+            common: string[],
+            fieldCheck: (path: string, field: string) => void = checkField,
+          ) => {
+            const name = `${def.role}.${def.type}`;
+            const params = def.params || {};
+            const channels = def.role === 'mark' ? def.channels : {};
+            for (const key of Object.keys(s)) {
+              if (key === 'type' || common.indexOf(key) >= 0 || Object.prototype.hasOwnProperty.call(channels, key)) continue;
+              const p = params[key];
+              if (!p) {
+                warn(`${path}.${key}`, `unknown parameter "${key}" for ${name}`);
+                continue;
+              }
+              const v = s[key];
+              const bad = (want: string) => err(`${path}.${key}`, `${key} of ${name} must be ${want}`);
+              switch (p.kind) {
+                case 'string':
+                  if (typeof v !== 'string') bad('a string');
+                  break;
+                case 'number':
+                  if (typeof v !== 'number') bad('a number');
+                  break;
+                case 'boolean':
+                  if (typeof v !== 'boolean') bad('a boolean');
+                  break;
+                case 'list':
+                  if (!Array.isArray(v)) bad('a list');
+                  break;
+                case 'enum':
+                  if (typeof v !== 'string' || !p.values || p.values.indexOf(v) < 0) bad(`one of: ${(p.values || []).join(', ')}`);
+                  break;
+                case 'field':
+                  if (typeof v !== 'string') bad('a field name');
+                  else fieldCheck(`${path}.${key}`, v);
+                  break;
+                case 'scale':
+                  if (typeof v !== 'string' || !scales[v]) bad('the name of a declared scale');
+                  break;
+              }
+            }
+            for (const key of Object.keys(params)) {
+              if (params[key].required && params[key].default === undefined && s[key] === undefined)
+                err(`${path}.${key}`, `${name} requires "${key}"`);
+            }
+          };
+
+          // a chart draws something: a mark, or at least a guide (a KPI tile is a guide alone)
+          const hasGuides = Array.isArray(spec.guides) && spec.guides.length > 0;
+          if (!Array.isArray(spec.marks))
+            err('marks', 'marks must be a list (an empty one is fine when the chart has a guide, such as a KPI)');
+          else if (!spec.marks.length && !hasGuides) err('marks', 'at least one mark is required (or a guide, such as a KPI)');
+
+          if (spec.view !== undefined) {
+            if (!spec.view || typeof spec.view !== 'object') err('view', 'view must map scale names to domains');
+            else {
+              for (const name of Object.keys(spec.view)) {
+                if (!scales[name]) err(`view.${name}`, `scale "${name}" is not declared in scales`);
+                else if (!Array.isArray(spec.view[name])) err(`view.${name}`, 'a view is a list (the visible domain)');
+              }
+            }
+          }
+
+          if (Array.isArray(spec.transforms)) {
+            spec.transforms.forEach((s, i) => {
+              const def = blockOf('transform', s, `transforms[${i}]`);
+              // a transform reads the columns that exist before it, not the ones that exist at the end
+              if (def) checkParams(`transforms[${i}]`, s, def, [], (p, field) => checkFieldIn(stages[i], p, field));
+            });
+          }
+
+          for (const name of Object.keys(scales)) {
+            const s = scales[name];
+            const path = `scales.${name}`;
+            const def = blockOf('scale', s, path);
+            if (!def) continue;
+            checkParams(path, s, def, ['field', 'domain', 'range']);
+            if (typeof s.field === 'string') checkField(`${path}.field`, s.field);
+            if (s.range !== undefined && s.range !== 'width' && s.range !== 'height' && !Array.isArray(s.range)) {
+              err(`${path}.range`, 'range must be "width", "height" or a list');
+            }
+          }
+
+          if (Array.isArray(spec.marks)) {
+            spec.marks.forEach((m, i) => {
+              const path = `marks[${i}]`;
+              const def = blockOf('mark', m, path);
+              if (!def || def.role !== 'mark') return;
+              const name = `mark.${def.type}`;
+              checkParams(path, m, def, []);
+              for (const ch of Object.keys(def.channels)) {
+                const cdef = def.channels[ch];
+                const ref = channelRef(m, ch, cdef);
+                if (ref === null) {
+                  if (cdef.required) err(`${path}.${ch}`, `${name} requires channel "${ch}"`);
+                  continue;
+                }
+                if (ref === undefined) {
+                  err(`${path}.${ch}`, `channel "${ch}" must be a field name, { field, scale } or { value }`);
+                  continue;
+                }
+                if (ref.field !== undefined) checkField(`${path}.${ch}`, ref.field);
+                if (cdef.unscaled) {
+                  if (ref.scale !== undefined) err(`${path}.${ch}`, `channel "${ch}" of ${name} is read as it is and does not use a scale`);
+                } else if (ref.scale !== undefined) {
+                  const sdef = scales[ref.scale];
+                  if (!sdef) err(`${path}.${ch}`, `scale "${ref.scale}" is not declared in scales`);
+                  else if (cdef.scales && cdef.scales.indexOf(sdef.type) < 0) {
+                    err(
+                      `${path}.${ch}`,
+                      `channel "${ch}" of ${name} does not accept a "${sdef.type}" scale (accepts: ${cdef.scales.join(', ')})`,
+                    );
+                  }
+                }
+              }
+            });
+          }
+
+          if (Array.isArray(spec.guides)) {
+            spec.guides.forEach((s, i) => {
+              const path = `guides[${i}]`;
+              const def = blockOf('guide', s, path);
+              if (!def) return;
+              checkParams(path, s, def, ['scale', 'position']);
+              if (s.scale !== undefined && (typeof s.scale !== 'string' || !scales[s.scale]))
+                err(`${path}.scale`, `scale "${String(s.scale)}" is not declared in scales`);
+              if (s.position !== undefined && SIDES.indexOf(s.position) < 0)
+                err(`${path}.position`, `position must be one of: ${SIDES.join(', ')}`);
+            });
+          }
+
+          if (Array.isArray(spec.interaction)) {
+            spec.interaction.forEach((s, i) => {
+              const def = blockOf('interaction', s, `interaction[${i}]`);
+              if (def) checkParams(`interaction[${i}]`, s, def, []);
+            });
+          }
+          blockOf('renderer', { type: spec.renderer || 'svg' }, 'renderer');
+
+          // Declared dependencies of everything loaded (transitively).
+          const visited = new Set<string>();
+          const walk = (name: string, path: string) => {
+            if (visited.has(name)) return;
+            visited.add(name);
+            const def = registry.get(name);
+            if (!def || !def.requires) return;
+            for (const req of def.requires) {
+              if (!registry.has(req)) err(path, `${name} requires ${req}, which is not loaded`);
+              else walk(req, path);
+            }
+          };
+          firstPath.forEach((path, name) => walk(name, path));
+
+          return out;
         }
-      });
-    }
-
-    if (Array.isArray(spec.guides)) {
-      spec.guides.forEach((s, i) => {
-        const path = `guides[${i}]`;
-        const def = blockOf('guide', s, path);
-        if (!def) return;
-        checkParams(path, s, def, ['scale', 'position']);
-        if (s.scale !== undefined && (typeof s.scale !== 'string' || !scales[s.scale])) err(`${path}.scale`, `scale "${String(s.scale)}" is not declared in scales`);
-        if (s.position !== undefined && SIDES.indexOf(s.position) < 0) err(`${path}.position`, `position must be one of: ${SIDES.join(', ')}`);
-      });
-    }
-
-    if (Array.isArray(spec.interaction)) {
-      spec.interaction.forEach((s, i) => {
-        const def = blockOf('interaction', s, `interaction[${i}]`);
-        if (def) checkParams(`interaction[${i}]`, s, def, []);
-      });
-    }
-    blockOf('renderer', { type: spec.renderer || 'svg' }, 'renderer');
-
-    // Declared dependencies of everything loaded (transitively).
-    const visited = new Set<string>();
-    const walk = (name: string, path: string) => {
-      if (visited.has(name)) return;
-      visited.add(name);
-      const def = registry.get(name);
-      if (!def || !def.requires) return;
-      for (const req of def.requires) {
-        if (!registry.has(req)) err(path, `${name} requires ${req}, which is not loaded`);
-        else walk(req, path);
-      }
-    };
-    firstPath.forEach((path, name) => walk(name, path));
-
-    return out;
-  } : undefined)!;
+      : undefined
+  )!;
 
   // ───────────────────────── pipeline ─────────────────────────
 
@@ -548,7 +631,9 @@
       if (!diagnostics.some((d) => d.path === path && d.message === message)) diagnostics.push({ level: 'warn', path, message });
     };
     let disposed = false;
-    cleanups.push(() => { disposed = true; });
+    cleanups.push(() => {
+      disposed = true;
+    });
 
     // Shared by every interaction that needs `host` to be a positioning context for an absolutely-positioned overlay
     // (a tooltip marker, a drag box, a button bar). More than one may want this at once; a claim/release count is
@@ -735,9 +820,13 @@
 
     const ctx: BC.ChartCtx = {
       spec,
-      get table() { return table; },
+      get table() {
+        return table;
+      },
       size,
-      get plot() { return plot; },
+      get plot() {
+        return plot;
+      },
       scales,
       measure,
       orientation(name) {
@@ -748,7 +837,10 @@
         const scale = scales[name];
         if (!scale || !scale.ticks) return [];
         const o = ctx.orientation(name);
-        let count = approxCount !== undefined ? approxCount : Math.max(2, Math.round(o === 'vertical' ? plot.h / 40 : o === 'horizontal' ? plot.w / 80 : 6));
+        let count =
+          approxCount !== undefined
+            ? approxCount
+            : Math.max(2, Math.round(o === 'vertical' ? plot.h / 40 : o === 'horizontal' ? plot.w / 80 : 6));
         // categories are named, not sampled: show every label that fits (measured), thin them only when they do not
         if (approxCount === undefined && scale.kind === 'band' && o) {
           const labels = scale.domain() as unknown[];
@@ -878,7 +970,11 @@
         let t = baseTable;
         dynamicSpecs.forEach((ts, i) => {
           try {
-            const next = (registry.get(`transform.${ts.type}`) as BC.TransformDef).apply(t, ts, { plot, scales, warn: (m) => warn(`transforms[${staticCount + i}]`, m) });
+            const next = (registry.get(`transform.${ts.type}`) as BC.TransformDef).apply(t, ts, {
+              plot,
+              scales,
+              warn: (m) => warn(`transforms[${staticCount + i}]`, m),
+            });
             if (!next) throw new Error('returned no table');
             t = next;
           } catch (e) {
@@ -908,14 +1004,26 @@
         }
       });
       if (spec.title) {
-        layers.axes.push({ type: 'text', x: pad.left, y: TITLE_HEIGHT - 6, text: spec.title, size: 14, weight: 600, style: { fill: 'var(--bc-text, #444)' } });
+        layers.axes.push({
+          type: 'text',
+          x: pad.left,
+          y: TITLE_HEIGHT - 6,
+          text: spec.title,
+          size: 14,
+          weight: 600,
+          style: { fill: 'var(--bc-text, #444)' },
+        });
       }
       // Marks may overhang the plot only while nothing is zoomed; a view needs the clip.
       const zoomed = Object.keys(view).length > 0;
       list = {
         size,
         plot,
-        layers: (['grid', 'marks', 'axes', 'overlay'] as BC.LayerName[]).map((name) => ({ name, prims: layers[name], clip: name === 'marks' && zoomed ? { ...plot } : undefined })),
+        layers: (['grid', 'marks', 'axes', 'overlay'] as BC.LayerName[]).map((name) => ({
+          name,
+          prims: layers[name],
+          clip: name === 'marks' && zoomed ? { ...plot } : undefined,
+        })),
       };
     }
 
@@ -968,9 +1076,15 @@
       // domain fixed (so categories are known), and a row is visible if the probe puts it inside the plot
       // (positional scales: judged in pixels, so a time scale never parses its own strings here) or gives it a
       // color (color scales: a hidden category has none).
-      const probe = (registry.get(`scale.${followSpec.type}`) as BC.ScaleDef).create({ ...followSpec, domain: scales[follow].baseDomain() }, {
-        name: follow, sources: [], range: scales[follow].range(), color: colorAt,
-      });
+      const probe = (registry.get(`scale.${followSpec.type}`) as BC.ScaleDef).create(
+        { ...followSpec, domain: scales[follow].baseDomain() },
+        {
+          name: follow,
+          sources: [],
+          range: scales[follow].range(),
+          color: colorAt,
+        },
+      );
       probe.setDomain(requested);
       const isVisible = (v: unknown): boolean => {
         const p = probe(v);
@@ -1008,7 +1122,10 @@
       }
       if (!seen) return null;
       const fitted = (registry.get(`scale.${spec2.type}`) as BC.ScaleDef).create(spec2, {
-        name, sources, range: scales[name].range(), color: colorAt,
+        name,
+        sources,
+        range: scales[name].range(),
+        color: colorAt,
       });
       return fitted.baseDomain();
     };
@@ -1044,7 +1161,11 @@
       root: { value: rendered.root },
       list: { get: () => list },
       hit: { value: hit },
-      cleanup: { value: (fn: () => void) => { cleanups.push(fn); } },
+      cleanup: {
+        value: (fn: () => void) => {
+          cleanups.push(fn);
+        },
+      },
       setView: { value: setView },
       getView: { value: getView },
       fit: { value: fit },
@@ -1096,13 +1217,19 @@
     let destroyed = false;
     let keptView: Record<string, unknown[]> | null = null;
     let settle!: () => void;
-    const firstBuild = new Promise<void>((resolve) => { settle = resolve; });
+    const firstBuild = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
 
     const all = () => (built ? checks.concat(built.diagnostics) : checks);
 
     function teardown(): void {
       for (const fn of cleanups) {
-        try { fn(); } catch (e) { console.error(e); }
+        try {
+          fn();
+        } catch (e) {
+          console.error(e);
+        }
       }
       cleanups = [];
       if (built) built.rendered.destroy();
@@ -1135,7 +1262,10 @@
       if (!checks.some((d) => d.level === 'error')) {
         try {
           laidOut = widthFor(current);
-          const effective = laidOut === null ? current : { ...current, size: [laidOut, Array.isArray(current.size) ? current.size[1] : 400] as [number, number] };
+          const effective =
+            laidOut === null
+              ? current
+              : { ...current, size: [laidOut, Array.isArray(current.size) ? current.size[1] : 400] as [number, number] };
           built = build(host, effective, cleanups, carried || undefined);
         } catch (e) {
           checks.push({ level: 'error', path: '', message: e instanceof Error ? e.message : String(e) });
@@ -1143,7 +1273,8 @@
       }
       const diagnostics = all();
       if (diagnostics.length) {
-        for (const d of diagnostics) (d.level === 'error' ? console.error : console.warn)(`[blockcharts] ${d.path || '(spec)'}: ${d.message}`);
+        for (const d of diagnostics)
+          (d.level === 'error' ? console.error : console.warn)(`[blockcharts] ${d.path || '(spec)'}: ${d.message}`);
         if (checks.some((d) => d.level === 'error')) showErrors(host, diagnostics);
       }
       settle();
@@ -1183,8 +1314,12 @@
     run();
     return {
       host,
-      get spec() { return current; },
-      get diagnostics() { return all(); },
+      get spec() {
+        return current;
+      },
+      get diagnostics() {
+        return all();
+      },
       ready: firstBuild,
       update(next, options) {
         if (destroyed) return;
@@ -1202,8 +1337,12 @@
         keptView = kept;
         run();
       },
-      setView(scale, domain) { if (built) built.setView(scale, domain); },
-      getView() { return built ? built.getView() : {}; },
+      setView(scale, domain) {
+        if (built) built.setView(scale, domain);
+      },
+      getView() {
+        return built ? built.getView() : {};
+      },
       destroy() {
         destroyed = true;
         if (observer) observer.disconnect();
@@ -1286,7 +1425,8 @@
       const s = v.trim();
       const m = DATE_TIME.exec(s);
       if (!m) return Date.parse(s);
-      const zone = m[3] === undefined ? 'Z' : m[3].length === 3 ? m[3] + ':00' : m[3].length === 5 ? m[3].slice(0, 3) + ':' + m[3].slice(3) : m[3];
+      const zone =
+        m[3] === undefined ? 'Z' : m[3].length === 3 ? m[3] + ':00' : m[3].length === 5 ? m[3].slice(0, 3) + ':' + m[3].slice(3) : m[3];
       return Date.parse(`${m[1]}T${m[2].replace(',', '.')}${zone.toUpperCase()}`);
     }
     if (v && typeof (v as Date).getTime === 'function') {
@@ -1299,7 +1439,23 @@
   // ───────────────────────── formatting ─────────────────────────
 
   const DEFAULT_LOCALE = 'en-US';
-  const DATE_OPTIONS = ['era', 'year', 'month', 'day', 'weekday', 'hour', 'minute', 'second', 'dayPeriod', 'fractionalSecondDigits', 'timeZoneName', 'dateStyle', 'timeStyle', 'hour12', 'hourCycle'];
+  const DATE_OPTIONS = [
+    'era',
+    'year',
+    'month',
+    'day',
+    'weekday',
+    'hour',
+    'minute',
+    'second',
+    'dayPeriod',
+    'fractionalSecondDigits',
+    'timeZoneName',
+    'dateStyle',
+    'timeStyle',
+    'hour12',
+    'hourCycle',
+  ];
   const PRESETS: Record<string, BC.FormatSpec> = {
     percent: { kind: 'number', style: 'percent', maximumFractionDigits: 1 },
     compact: { kind: 'number', notation: 'compact', maximumFractionDigits: 1 },
@@ -1316,7 +1472,8 @@
   function formatter(spec: string | BC.FormatSpec, kind?: 'number' | 'date'): (value: unknown) => string {
     let o: BC.FormatSpec;
     if (typeof spec === 'string') {
-      if (!PRESETS[spec]) throw new Error(`unknown format "${spec}" (presets: ${Object.keys(PRESETS).join(', ')}; or an object of Intl options)`);
+      if (!PRESETS[spec])
+        throw new Error(`unknown format "${spec}" (presets: ${Object.keys(PRESETS).join(', ')}; or an object of Intl options)`);
       o = PRESETS[spec];
     } else if (spec && typeof spec === 'object' && !Array.isArray(spec)) {
       o = spec;
@@ -1331,7 +1488,11 @@
 
     const { locale, kind: declared, prefix, suffix, ...options } = o;
     if (locale !== undefined && typeof locale !== 'string') throw new Error('format "locale" must be a string like "en-US"');
-    for (const [name, v] of [['prefix', prefix], ['suffix', suffix]] as const) if (v !== undefined && typeof v !== 'string') throw new Error(`format "${name}" must be a string`);
+    for (const [name, v] of [
+      ['prefix', prefix],
+      ['suffix', suffix],
+    ] as const)
+      if (v !== undefined && typeof v !== 'string') throw new Error(`format "${name}" must be a string`);
     if (declared !== undefined && declared !== 'number' && declared !== 'date') throw new Error('format "kind" must be "number" or "date"');
     const wantDate = (kind || declared || (Object.keys(options).some((k) => DATE_OPTIONS.indexOf(k) >= 0) ? 'date' : 'number')) === 'date';
     let nf: Intl.NumberFormat | undefined;
@@ -1349,7 +1510,9 @@
         text = typeof v === 'number' && isFinite(v) ? nf.format(v) : String(v);
       } else {
         const ms = time(v);
-        text = isFinite(ms) ? (quarter ? 'Q' + (Math.floor(new Date(ms).getUTCMonth() / 3) + 1) + ' ' : '') + (df as Intl.DateTimeFormat).format(ms) : String(v);
+        text = isFinite(ms)
+          ? (quarter ? 'Q' + (Math.floor(new Date(ms).getUTCMonth() / 3) + 1) + ' ' : '') + (df as Intl.DateTimeFormat).format(ms)
+          : String(v);
       }
       return (prefix || '') + text + (suffix || '');
     };
@@ -1365,7 +1528,10 @@
     blocks: () => Array.from(registry.keys()) as BC.BlockName[],
     data,
     ready,
-    defineFn: (name, fn) => { if (typeof fn !== 'function') throw new Error('BC.defineFn: ' + name + ' is not a function'); fns.set(name, fn); },
+    defineFn: (name, fn) => {
+      if (typeof fn !== 'function') throw new Error('BC.defineFn: ' + name + ' is not a function');
+      fns.set(name, fn);
+    },
     getFn: (name) => fns.get(name),
     formatter,
     time,

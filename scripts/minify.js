@@ -61,7 +61,8 @@ const shrink = (name, source, isBlock) => minify(name, isBlock ? stripDocs(name,
 function buildMin(distDir, outDir) {
   const dist = path.resolve(distDir);
   const out = path.resolve(outDir || path.join(dist, 'min'));
-  if (out === dist || out === path.parse(out).root || dist.startsWith(out + path.sep)) throw new MinifyError(`refusing to write minified files into ${out}`);
+  if (out === dist || out === path.parse(out).root || dist.startsWith(out + path.sep))
+    throw new MinifyError(`refusing to write minified files into ${out}`);
   const manifestFile = path.join(dist, 'manifest.json');
   if (!fs.existsSync(manifestFile)) throw new MinifyError(`${manifestFile} not found: run npm run build and npm run manifest first`);
   const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));

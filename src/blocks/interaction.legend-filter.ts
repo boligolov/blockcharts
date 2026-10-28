@@ -17,7 +17,9 @@
       const name = typeof spec.scale === 'string' ? spec.scale : legends.length ? (legends[0].scale as string) : undefined;
       const scale = name ? live.scales[name] : undefined;
       if (!name || !scale || scale.kind !== 'color') {
-        console.warn('[blockcharts] interaction.legend-filter: needs a categorical color scale (set "scale", or add a legend guide for one); ignored');
+        console.warn(
+          '[blockcharts] interaction.legend-filter: needs a categorical color scale (set "scale", or add a legend guide for one); ignored',
+        );
         return;
       }
       const fitNames = (Array.isArray(spec.fit) ? (spec.fit as unknown[]) : []).filter((n): n is string => {

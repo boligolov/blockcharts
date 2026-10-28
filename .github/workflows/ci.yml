@@ -29,6 +29,9 @@ jobs:
           npm ci
           npm --prefix site ci
 
+      - name: Format
+        run: npm run format:check
+
       # builds, then six suites; also fails while skills/blockcharts differs from a fresh build
       - name: Test
         run: npm test

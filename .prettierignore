@@ -1,0 +1,13 @@
+# generated: builds, the release, the skill's runtime copy, the site's build inputs
+dist
+release
+node_modules
+skills/blockcharts/runtime
+skills/blockcharts/reference
+*.json
+*.md
+site/node_modules
+site/.astro
+site/dist
+site/public
+site/src/data

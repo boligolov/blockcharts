@@ -8,8 +8,16 @@
     return s;
   };
 
-  interface Key { field: string; unit?: string; as: string }
-  interface Measure { op: string; field?: string; as: string }
+  interface Key {
+    field: string;
+    unit?: string;
+    as: string;
+  }
+  interface Measure {
+    op: string;
+    field?: string;
+    as: string;
+  }
 
   function fail(message: string): never {
     throw new Error('transform.aggregate: ' + message);
@@ -22,7 +30,8 @@
       if (typeof k === 'string') return { field: k, as: k };
       const o = k as { field?: unknown; unit?: unknown; as?: unknown };
       if (!o || typeof o !== 'object' || typeof o.field !== 'string') fail(`groupby[${i}] must be a field name or { field, unit }`);
-      if (o.unit !== undefined && (typeof o.unit !== 'string' || UNITS.indexOf(o.unit) < 0)) fail(`groupby[${i}].unit must be one of: ${UNITS.join(', ')}`);
+      if (o.unit !== undefined && (typeof o.unit !== 'string' || UNITS.indexOf(o.unit) < 0))
+        fail(`groupby[${i}].unit must be one of: ${UNITS.join(', ')}`);
       const unit = o.unit as string | undefined;
       return { field: o.field as string, unit, as: typeof o.as === 'string' && o.as ? o.as : (o.field as string) };
     });
@@ -33,7 +42,8 @@
     if (!Array.isArray(raw) || !raw.length) fail('"measures" must be a non-empty list like [{ "op": "sum", "field": "revenue" }]');
     return (raw as unknown[]).map((m, i) => {
       const o = m as { op?: unknown; field?: unknown; as?: unknown };
-      if (!o || typeof o !== 'object' || typeof o.op !== 'string' || OPS.indexOf(o.op) < 0) fail(`measures[${i}].op must be one of: ${OPS.join(', ')}`);
+      if (!o || typeof o !== 'object' || typeof o.op !== 'string' || OPS.indexOf(o.op) < 0)
+        fail(`measures[${i}].op must be one of: ${OPS.join(', ')}`);
       const op = o.op as string;
       if (NEEDS_FIELD.indexOf(op) >= 0 && typeof o.field !== 'string') fail(`measures[${i}]: "${op}" needs a "field"`);
       if (o.field !== undefined && typeof o.field !== 'string') fail(`measures[${i}].field must be a field name`);
@@ -58,17 +68,22 @@
     const y = d.getUTCFullYear();
     const m = d.getUTCMonth();
     switch (unit) {
-      case 'year': return `${pad(y, 4)}-01-01`;
-      case 'quarter': return `${pad(y, 4)}-${pad(Math.floor(m / 3) * 3 + 1)}-01`;
-      case 'month': return `${pad(y, 4)}-${pad(m + 1)}-01`;
+      case 'year':
+        return `${pad(y, 4)}-01-01`;
+      case 'quarter':
+        return `${pad(y, 4)}-${pad(Math.floor(m / 3) * 3 + 1)}-01`;
+      case 'month':
+        return `${pad(y, 4)}-${pad(m + 1)}-01`;
       case 'week': {
         // weeks start on Monday
         const back = (d.getUTCDay() + 6) % 7;
         const s = new Date(Date.UTC(y, m, d.getUTCDate() - back));
         return `${pad(s.getUTCFullYear(), 4)}-${pad(s.getUTCMonth() + 1)}-${pad(s.getUTCDate())}`;
       }
-      case 'day': return `${pad(y, 4)}-${pad(m + 1)}-${pad(d.getUTCDate())}`;
-      default: return `${pad(y, 4)}-${pad(m + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:00:00Z`;
+      case 'day':
+        return `${pad(y, 4)}-${pad(m + 1)}-${pad(d.getUTCDate())}`;
+      default:
+        return `${pad(y, 4)}-${pad(m + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:00:00Z`;
     }
   }
 
@@ -91,10 +106,14 @@
     for (const i of rows) if (isNumber(c[i])) values.push(c[i] as number);
     if (!values.length) return NaN;
     switch (op) {
-      case 'sum': return values.reduce((a, b) => a + b, 0);
-      case 'mean': return values.reduce((a, b) => a + b, 0) / values.length;
-      case 'min': return values.reduce((a, b) => (b < a ? b : a));
-      case 'max': return values.reduce((a, b) => (b > a ? b : a));
+      case 'sum':
+        return values.reduce((a, b) => a + b, 0);
+      case 'mean':
+        return values.reduce((a, b) => a + b, 0) / values.length;
+      case 'min':
+        return values.reduce((a, b) => (b < a ? b : a));
+      case 'max':
+        return values.reduce((a, b) => (b > a ? b : a));
       default: {
         values.sort((a, b) => a - b);
         const mid = values.length >> 1;
@@ -111,7 +130,11 @@
     doc: 'Group-by: one row per distinct combination of the `groupby` fields, with measures computed over the rows of each group (`sum`, `mean`, `min`, `max`, `median`, `count`, `distinct`). A group-by field can be cut into calendar units, `{ "field": "date", "unit": "month" }` (year, quarter, month, week from Monday, day, hour; UTC; the group value is the ISO start of the unit). Missing values are ignored by the measures (`count` without a field counts rows). Groups come in order of first appearance, or sorted by a column with `sort`; a time unit sorts by time unless told otherwise. `limit` keeps the first N groups after sorting (top N).',
     params: {
       groupby: { kind: 'list', doc: 'Fields to group by: names, or { "field", "unit", "as" }. Empty or missing: one group of all rows.' },
-      measures: { kind: 'list', default: [{ op: 'count' }], doc: 'What to compute per group: [{ "op": "sum", "field": "revenue", "as": "total" }]. `as` defaults to "<op>_<field>" ("count" for a plain count).' },
+      measures: {
+        kind: 'list',
+        default: [{ op: 'count' }],
+        doc: 'What to compute per group: [{ "op": "sum", "field": "revenue", "as": "total" }]. `as` defaults to "<op>_<field>" ("count" for a plain count).',
+      },
       sort: { kind: 'string', doc: 'Output column (a group-by field or a measure `as`) to sort the groups by.' },
       order: { kind: 'enum', values: ['asc', 'desc'], default: 'asc', doc: 'Direction of `sort`.' },
       limit: { kind: 'number', doc: 'Keep only the first N groups (after sorting).' },
@@ -123,8 +146,10 @@
       const names = namesOf(spec);
       for (const k of keys) if (!table.columns[k.field]) fail(`unknown field "${k.field}"`);
       for (const m of measures) if (m.field && !table.columns[m.field]) fail(`unknown field "${m.field}"`);
-      if (spec.sort !== undefined && (typeof spec.sort !== 'string' || names.indexOf(spec.sort) < 0)) fail(`"sort" must be one of the output columns: ${names.join(', ')}`);
-      if (spec.limit !== undefined && !(typeof spec.limit === 'number' && spec.limit >= 0 && isFinite(spec.limit))) fail('"limit" must be a number of at least 0');
+      if (spec.sort !== undefined && (typeof spec.sort !== 'string' || names.indexOf(spec.sort) < 0))
+        fail(`"sort" must be one of the output columns: ${names.join(', ')}`);
+      if (spec.limit !== undefined && !(typeof spec.limit === 'number' && spec.limit >= 0 && isFinite(spec.limit)))
+        fail('"limit" must be a number of at least 0');
 
       // group rows; the key is the list of group values with their types, so 1 and "1" are different groups
       const groups = new Map<string, { values: unknown[]; rows: number[] }>();
@@ -179,7 +204,9 @@
       const columns: Record<string, BC.Column> = {};
       keys.forEach((k, at) => {
         const values = list.map((g) => g.values[at]);
-        columns[k.as] = values.every((v) => v === null || typeof v === 'number') ? Float64Array.from(values.map((v) => (v === null ? NaN : (v as number)))) : values;
+        columns[k.as] = values.every((v) => v === null || typeof v === 'number')
+          ? Float64Array.from(values.map((v) => (v === null ? NaN : (v as number))))
+          : values;
       });
       measures.forEach((m, at) => {
         columns[m.as] = Float64Array.from(out.map((r) => r[at]));

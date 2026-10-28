@@ -45,9 +45,22 @@
       group: { kind: 'field', doc: 'Field whose distinct values become separate areas.' },
       fill: { kind: 'string', doc: 'Any CSS color. Default: theme color by series index.' },
       opacity: { kind: 'number', default: 0.85, doc: 'Fill opacity (0.45 by default with `fade`).' },
-      toBottom: { kind: 'boolean', default: false, doc: 'Fill down to the bottom edge of the plot instead of to `baseline`: the area under a line whose axis does not start at 0 (a sparkline, a KPI trend).' },
-      fade: { kind: 'boolean', default: false, doc: 'The fill fades from the color at the top of the plot to transparent at the bottom, and the area has no outline: the soft area under a line.' },
-      curve: { kind: 'enum', values: ['linear', 'smooth'], default: 'linear', doc: 'Same as mark.line: "smooth" is a monotone curve through the points.' },
+      toBottom: {
+        kind: 'boolean',
+        default: false,
+        doc: 'Fill down to the bottom edge of the plot instead of to `baseline`: the area under a line whose axis does not start at 0 (a sparkline, a KPI trend).',
+      },
+      fade: {
+        kind: 'boolean',
+        default: false,
+        doc: 'The fill fades from the color at the top of the plot to transparent at the bottom, and the area has no outline: the soft area under a line.',
+      },
+      curve: {
+        kind: 'enum',
+        values: ['linear', 'smooth'],
+        default: 'linear',
+        doc: 'Same as mark.line: "smooth" is a monotone curve through the points.',
+      },
     },
     channels: {
       x: { required: true, scales: ['linear', 'log', 'time', 'band'] },
@@ -86,7 +99,13 @@
         }
         flush();
         if (d) {
-          out.push({ type: 'path', d, style: fade ? { fill, fillOpacity: opacity, fade: true } : { fill, fillOpacity: opacity, stroke: fill, strokeWidth: 1, strokeLinejoin: 'round' } });
+          out.push({
+            type: 'path',
+            d,
+            style: fade
+              ? { fill, fillOpacity: opacity, fade: true }
+              : { fill, fillOpacity: opacity, stroke: fill, strokeWidth: 1, strokeLinejoin: 'round' },
+          });
         }
       });
       return out;

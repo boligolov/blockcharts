@@ -8,8 +8,16 @@
     doc: 'Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen.',
     params: {
       scales: { kind: 'list', default: ['x'], doc: 'Names of the scales to control.' },
-      wheel: { kind: 'enum', values: ['ctrl', 'always', 'off'], default: 'ctrl', doc: '"ctrl": Ctrl/Cmd + wheel (and trackpad pinch) zooms, so the page still scrolls; "always": plain wheel zooms.' },
-      fit: { kind: 'list', doc: 'Scales to auto-fit to the zoomed window (usually ["y"]): their domain is recomputed from the rows that are visible.' },
+      wheel: {
+        kind: 'enum',
+        values: ['ctrl', 'always', 'off'],
+        default: 'ctrl',
+        doc: '"ctrl": Ctrl/Cmd + wheel (and trackpad pinch) zooms, so the page still scrolls; "always": plain wheel zooms.',
+      },
+      fit: {
+        kind: 'list',
+        doc: 'Scales to auto-fit to the zoomed window (usually ["y"]): their domain is recomputed from the rows that are visible.',
+      },
       pan: { kind: 'boolean', default: true },
       maxZoom: { kind: 'number', default: 50, doc: 'How far in you can go, as a multiple of the full domain.' },
     },
@@ -98,8 +106,10 @@
       // a drag that starts a brush selection (its modifier held) is the brush's, not a pan: both would move at once, and
       // the selection would be read off a view that slid away under it
       const brushes = (live.spec.interaction || []).filter((i) => i.type === 'brush');
-      const startsBrush = (ev: PointerEvent) => brushes.some((b) =>
-        b.modifier === 'none' ? false : b.modifier === 'alt' ? ev.altKey : b.modifier === 'ctrl' ? ev.ctrlKey || ev.metaKey : ev.shiftKey);
+      const startsBrush = (ev: PointerEvent) =>
+        brushes.some((b) =>
+          b.modifier === 'none' ? false : b.modifier === 'alt' ? ev.altKey : b.modifier === 'ctrl' ? ev.ctrlKey || ev.metaKey : ev.shiftKey,
+        );
 
       let drag: { x: number; y: number; start: Record<string, Pair> } | null = null;
       const onDown = (ev: PointerEvent) => {

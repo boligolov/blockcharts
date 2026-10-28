@@ -13,8 +13,15 @@
     mount?: boolean;
     integrity?: boolean;
   }
-  interface Entry { file: string; closure: string[]; sha384?: string }
-  interface Release { core: { file: string; sha384?: string }; blocks: Record<string, Entry> }
+  interface Entry {
+    file: string;
+    closure: string[];
+    sha384?: string;
+  }
+  interface Release {
+    core: { file: string; sha384?: string };
+    blocks: Record<string, Entry>;
+  }
 
   const g = globalThis as any;
   if (g.BCLoader) return;

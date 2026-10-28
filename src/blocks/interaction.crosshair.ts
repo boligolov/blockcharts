@@ -10,7 +10,12 @@
     version: 3,
     doc: 'A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. On a touch screen it follows a tap and the sliding finger, and stays until the reader touches somewhere else. Works with or without the tooltip.',
     params: {
-      snap: { kind: 'enum', values: ['lines', 'all', 'off'], default: 'lines', doc: 'What the line jumps to: the nearest point of a line or area ("lines"), of any mark ("all"), or nothing (it follows the pointer).' },
+      snap: {
+        kind: 'enum',
+        values: ['lines', 'all', 'off'],
+        default: 'lines',
+        doc: 'What the line jumps to: the nearest point of a line or area ("lines"), of any mark ("all"), or nothing (it follows the pointer).',
+      },
       horizontal: { kind: 'boolean', default: false, doc: 'Also a horizontal line through the datum.' },
     },
     attach(spec, live) {
@@ -22,9 +27,26 @@
       const line = (cls: string, vertical: boolean) => {
         const el = doc.createElement('div');
         el.setAttribute('class', cls);
-        Object.assign(el.style, vertical
-          ? { position: 'absolute', display: 'none', pointerEvents: 'none', width: '0', marginLeft: '-0.5px', borderLeft: '1px dashed var(--bc-crosshair, var(--bc-axis, #999))' }
-          : { position: 'absolute', display: 'none', pointerEvents: 'none', height: '0', marginTop: '-0.5px', borderTop: '1px dashed var(--bc-crosshair, var(--bc-axis, #999))' });
+        Object.assign(
+          el.style,
+          vertical
+            ? {
+                position: 'absolute',
+                display: 'none',
+                pointerEvents: 'none',
+                width: '0',
+                marginLeft: '-0.5px',
+                borderLeft: '1px dashed var(--bc-crosshair, var(--bc-axis, #999))',
+              }
+            : {
+                position: 'absolute',
+                display: 'none',
+                pointerEvents: 'none',
+                height: '0',
+                marginTop: '-0.5px',
+                borderTop: '1px dashed var(--bc-crosshair, var(--bc-axis, #999))',
+              },
+        );
         host.appendChild(el);
         return el;
       };
@@ -80,8 +102,19 @@
         if (x < p.x || x > p.x + p.w || y < p.y || y > p.y + p.h) return hide();
         const at = snap === 'off' ? { x, y } : nearest(x, y);
         if (!at) return hide();
-        Object.assign(vline.style, { left: r.left - hostBox.left + at.x * k + 'px', top: r.top - hostBox.top + p.y * k + 'px', height: p.h * k + 'px', display: 'block' });
-        if (hline) Object.assign(hline.style, { top: r.top - hostBox.top + at.y * k + 'px', left: r.left - hostBox.left + p.x * k + 'px', width: p.w * k + 'px', display: 'block' });
+        Object.assign(vline.style, {
+          left: r.left - hostBox.left + at.x * k + 'px',
+          top: r.top - hostBox.top + p.y * k + 'px',
+          height: p.h * k + 'px',
+          display: 'block',
+        });
+        if (hline)
+          Object.assign(hline.style, {
+            top: r.top - hostBox.top + at.y * k + 'px',
+            left: r.left - hostBox.left + p.x * k + 'px',
+            width: p.w * k + 'px',
+            display: 'block',
+          });
       };
       // a finger is down whenever it points, so for touch a press is the hover (as in interaction.tooltip)
       const isTouch = (ev: Event) => (ev as PointerEvent).pointerType === 'touch';

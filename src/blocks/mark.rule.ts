@@ -100,9 +100,31 @@
         if (label) {
           // at the right end of a horizontal line, above it; at the top of a vertical one
           const horizontal = Math.abs(s[2] - s[0]) >= Math.abs(s[3] - s[1]);
-          out.push(horizontal
-            ? { type: 'text', x: Math.max(s[0], s[2]), y: s[1] - 5, text: label, size: 11, weight: 600, anchor: 'end', baseline: 'auto', style: { fill: c } }
-            : { type: 'text', x: s[0] + 5, y: Math.min(s[1], s[3]), text: label, size: 11, weight: 600, anchor: 'start', baseline: 'hanging', style: { fill: c } });
+          out.push(
+            horizontal
+              ? {
+                  type: 'text',
+                  x: Math.max(s[0], s[2]),
+                  y: s[1] - 5,
+                  text: label,
+                  size: 11,
+                  weight: 600,
+                  anchor: 'end',
+                  baseline: 'auto',
+                  style: { fill: c },
+                }
+              : {
+                  type: 'text',
+                  x: s[0] + 5,
+                  y: Math.min(s[1], s[3]),
+                  text: label,
+                  size: 11,
+                  weight: 600,
+                  anchor: 'start',
+                  baseline: 'hanging',
+                  style: { fill: c },
+                },
+          );
         }
       }
       return out;

@@ -49,7 +49,12 @@ const escapeText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 /** JSON that is safe inside <script type="application/json">: nothing in the data can close the tag or open a comment. */
 const jsonForScript = (v) =>
-  JSON.stringify(v).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+  JSON.stringify(v)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 
 const plain = (v) => JSON.parse(JSON.stringify(v));
 
@@ -83,7 +88,11 @@ const isEncoded = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && ty
 /** Path of the first thing in a spec that JSON cannot carry (or would silently change), or null. */
 function findUnserializable(value, path, ancestors) {
   const t = typeof value;
-  if (t === 'function') return { path, why: 'is a function; a JSON spec cannot carry code. Register it with BC.defineFn(name, fn) in a script and put the name here' };
+  if (t === 'function')
+    return {
+      path,
+      why: 'is a function; a JSON spec cannot carry code. Register it with BC.defineFn(name, fn) in a script and put the name here',
+    };
   if (t === 'symbol' || t === 'bigint') return { path, why: `is a ${t}, which JSON cannot represent` };
   if (t === 'number' && !Number.isFinite(value)) return { path, why: `is ${value}, which JSON turns into null` };
   if (!value || t !== 'object') return null;
@@ -99,7 +108,8 @@ function findUnserializable(value, path, ancestors) {
 
 /** CSV forms become plain columns; everything else is left for the rest of the pipeline. */
 function resolveDataset(name, input, baseDir) {
-  if (!input || typeof input !== 'object' || Array.isArray(input) || (typeof input.csv !== 'string' && typeof input.csvFile !== 'string')) return input;
+  if (!input || typeof input !== 'object' || Array.isArray(input) || (typeof input.csv !== 'string' && typeof input.csvFile !== 'string'))
+    return input;
   try {
     if (typeof input.csv === 'string' && typeof input.csvFile === 'string') throw new CsvError('give either "csv" or "csvFile", not both');
     const text = typeof input.csv === 'string' ? input.csv : readCsvFile(input.csvFile, baseDir);
@@ -114,18 +124,37 @@ function resolveDataset(name, input, baseDir) {
 /** The plain rows/columns behind a dataset, decoding it the way the page will, so specs can be checked against it. */
 // binary columns: { dtype, encoding, data } as a value in `columns` (see BC.BinaryColumn); read like the browser reads them
 const DTYPES = { float32: 4, float64: 8, int8: 1, int16: 2, int32: 4, uint8: 1, uint16: 2, uint32: 4 };
-const READERS = { float32: 'readFloatLE', float64: 'readDoubleLE', int8: 'readInt8', int16: 'readInt16LE', int32: 'readInt32LE', uint8: 'readUInt8', uint16: 'readUInt16LE', uint32: 'readUInt32LE' };
+const READERS = {
+  float32: 'readFloatLE',
+  float64: 'readDoubleLE',
+  int8: 'readInt8',
+  int16: 'readInt16LE',
+  int32: 'readInt32LE',
+  uint8: 'readUInt8',
+  uint16: 'readUInt16LE',
+  uint32: 'readUInt32LE',
+};
 const isBinaryColumn = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.dtype === 'string';
-const hasBinaryColumns = (input) => !!input && typeof input === 'object' && !Array.isArray(input) && !!input.columns && typeof input.columns === 'object' && Object.values(input.columns).some(isBinaryColumn);
+const hasBinaryColumns = (input) =>
+  !!input &&
+  typeof input === 'object' &&
+  !Array.isArray(input) &&
+  !!input.columns &&
+  typeof input.columns === 'object' &&
+  Object.values(input.columns).some(isBinaryColumn);
 
 function decodeBinaryColumns(name, input) {
   if (!hasBinaryColumns(input)) return input;
   const columns = {};
   for (const [k, v] of Object.entries(input.columns)) {
-    if (!isBinaryColumn(v)) { columns[k] = v; continue; }
+    if (!isBinaryColumn(v)) {
+      columns[k] = v;
+      continue;
+    }
     const fail = (why) => new ComposeError(`data "${name}": column "${k}": ${why}`);
     if (!DTYPES[v.dtype]) throw fail(`unknown dtype "${v.dtype}" (use ${Object.keys(DTYPES).join(', ')})`);
-    if (v.encoding !== 'base64' && v.encoding !== 'gzip+base64') throw fail(`unknown encoding "${v.encoding}" (use "base64" or "gzip+base64")`);
+    if (v.encoding !== 'base64' && v.encoding !== 'gzip+base64')
+      throw fail(`unknown encoding "${v.encoding}" (use "base64" or "gzip+base64")`);
     if (typeof v.data !== 'string') throw fail('a binary column needs a "data" string');
     let bytes;
     try {
@@ -165,10 +194,14 @@ function needsDecoding(v) {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
   if (typeof v.encoding === 'string') return true;
   const cols = v.columns;
-  return !!cols && typeof cols === 'object' && Object.keys(cols).some((k) => {
-    const c = cols[k];
-    return !!c && typeof c === 'object' && !Array.isArray(c) && !(c instanceof Float64Array) && typeof c.dtype === 'string';
-  });
+  return (
+    !!cols &&
+    typeof cols === 'object' &&
+    Object.keys(cols).some((k) => {
+      const c = cols[k];
+      return !!c && typeof c === 'object' && !Array.isArray(c) && !(c instanceof Float64Array) && typeof c.dtype === 'string';
+    })
+  );
 }
 
 function encodeDataset(input, mode) {
@@ -189,7 +222,14 @@ function styleTag(parts) {
 function compose(opts) {
   const options = opts || {};
   // next to manifest.json (a packaged skill) or in the repo's dist folder
-  const distDir = path.resolve(options.distDir || (fs.existsSync(path.join(__dirname, 'manifest.json')) ? __dirname : fs.existsSync(path.join(__dirname, '../dist/min/manifest.json')) ? path.join(__dirname, '../dist/min') : path.join(__dirname, '../dist')));
+  const distDir = path.resolve(
+    options.distDir ||
+      (fs.existsSync(path.join(__dirname, 'manifest.json'))
+        ? __dirname
+        : fs.existsSync(path.join(__dirname, '../dist/min/manifest.json'))
+          ? path.join(__dirname, '../dist/min')
+          : path.join(__dirname, '../dist')),
+  );
   const manifestFile = path.join(distDir, 'manifest.json');
   if (!fs.existsSync(manifestFile)) throw new ComposeError(`${manifestFile} not found: run the build and scripts/build-manifest.js first`);
   const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
@@ -203,9 +243,11 @@ function compose(opts) {
   const compress = options.compress === undefined ? 'auto' : options.compress;
   if (compress !== 'auto' && compress !== true && compress !== false) throw new ComposeError('compress must be "auto", true or false');
   const layout = options.layout;
-  if (layout !== undefined && (!layout || typeof layout !== 'object' || Array.isArray(layout))) throw new ComposeError('layout must be an object: { "columns": 4 }');
+  if (layout !== undefined && (!layout || typeof layout !== 'object' || Array.isArray(layout)))
+    throw new ComposeError('layout must be an object: { "columns": 4 }');
   const columns = layout && layout.columns !== undefined ? layout.columns : 1;
-  if (!Number.isInteger(columns) || columns < 1 || columns > 12) throw new ComposeError('layout.columns must be a whole number from 1 to 12');
+  if (!Number.isInteger(columns) || columns < 1 || columns > 12)
+    throw new ComposeError('layout.columns must be a whole number from 1 to 12');
   const ids = new Map();
   const charts = options.charts.map((c, i) => {
     const entry = c && c.spec ? c : { spec: c };
@@ -218,9 +260,11 @@ function compose(opts) {
     // the id is the element the chart is drawn in: two charts with one id would draw into one, the second wiping out the first
     const id = entry.spec.id;
     if (id !== undefined) {
-      if (typeof id !== 'string' || !/^[A-Za-z][\w-]*$/.test(id)) throw new ComposeError(`charts[${i}].id must be a name of letters, digits, "-" and "_", starting with a letter`);
+      if (typeof id !== 'string' || !/^[A-Za-z][\w-]*$/.test(id))
+        throw new ComposeError(`charts[${i}].id must be a name of letters, digits, "-" and "_", starting with a letter`);
       if (id === 'bc-data') throw new ComposeError(`charts[${i}].id "bc-data" is the id of the page's data; choose another`);
-      if (ids.has(id)) throw new ComposeError(`charts[${i}].id "${id}" is also the id of charts[${ids.get(id)}]; every chart needs its own`);
+      if (ids.has(id))
+        throw new ComposeError(`charts[${i}].id "${id}" is also the id of charts[${ids.get(id)}]; every chart needs its own`);
       ids.set(id, i);
     }
     return entry;
@@ -229,7 +273,10 @@ function compose(opts) {
   // a sandbox with only the core: it answers BC.needs and, once the blocks are in, BC.validate
   // what the core and blocks say to the console while charts are tried out is collected, not lost
   const captured = [];
-  const say = (level) => (...a) => captured.push({ level, text: a.map(String).join(' ') });
+  const say =
+    (level) =>
+    (...a) =>
+      captured.push({ level, text: a.map(String).join(' ') });
   const sandbox = { console: { warn: say('warn'), error: say('error'), log() {} } };
   vm.createContext(sandbox);
   vm.runInContext(read(manifest.core.file), sandbox, { filename: 'core.js', timeout: 2000 });
@@ -240,9 +287,13 @@ function compose(opts) {
   const wanted = new Set();
   for (const name of options.include || []) wanted.add(name);
   for (const { spec } of charts) for (const name of Array.from(BC.needs(spec))) wanted.add(name);
-  const missing = Array.from(wanted).filter((n) => !manifest.blocks[n]).sort();
+  const missing = Array.from(wanted)
+    .filter((n) => !manifest.blocks[n])
+    .sort();
   if (missing.length) {
-    throw new ComposeError(`no such block${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}. Available: ${Object.keys(manifest.blocks).join(', ')}`);
+    throw new ComposeError(
+      `no such block${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}. Available: ${Object.keys(manifest.blocks).join(', ')}`,
+    );
   }
   const used = new Set();
   for (const name of wanted) for (const n of manifest.blocks[name].closure) used.add(n);
@@ -260,7 +311,8 @@ function compose(opts) {
   }
   const diagnostics = [];
   charts.forEach(({ spec }, i) => {
-    for (const d of plain(Array.from(BC.validate(spec)))) diagnostics.push({ ...d, chart: i, path: `charts[${i}].${d.path}`.replace(/\.$/, '') });
+    for (const d of plain(Array.from(BC.validate(spec))))
+      diagnostics.push({ ...d, chart: i, path: `charts[${i}].${d.path}`.replace(/\.$/, '') });
   });
   // 3b: build every chart once, the way a page would, in a sandbox with a fake DOM
   if (options.dryRun !== false) {
@@ -286,14 +338,21 @@ function compose(opts) {
         vm.runInContext('__bcTrial()', sandbox, { timeout: drawTimeout });
       } catch (e) {
         const stuck = e && e.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT';
-        found = [{ level: 'error', path: '', message: stuck ? `did not finish drawing in ${drawTimeout / 1000} s: a block is stuck on this data or spec` : e.message }];
+        found = [
+          {
+            level: 'error',
+            path: '',
+            message: stuck ? `did not finish drawing in ${drawTimeout / 1000} s: a block is stuck on this data or spec` : e.message,
+          },
+        ];
       } finally {
         delete sandbox.__bcTrial;
       }
       const said = new Set(found.map((d) => `[blockcharts] ${d.path || '(spec)'}: ${d.message}`));
       for (const c of captured.slice(mark)) {
         // the core logs each diagnostic too; only what is not already a diagnostic is new
-        if (!said.has(c.text)) found.push({ level: c.level === 'error' ? 'error' : 'warn', path: '', message: c.text.replace(/^\[blockcharts\] /, '') });
+        if (!said.has(c.text))
+          found.push({ level: c.level === 'error' ? 'error' : 'warn', path: '', message: c.text.replace(/^\[blockcharts\] /, '') });
       }
       for (const d of found) {
         const item = { ...d, chart: i, path: `charts[${i}].${d.path}`.replace(/\.$/, '') };
@@ -308,7 +367,10 @@ function compose(opts) {
 
   const errors = diagnostics.filter((d) => d.level === 'error');
   if (errors.length && !options.allowErrors) {
-    throw new ComposeError(`${errors.length} spec error(s):\n - ` + errors.map((d) => `${d.path}: ${d.message}`).join('\n - '), diagnostics);
+    throw new ComposeError(
+      `${errors.length} spec error(s):\n - ` + errors.map((d) => `${d.path}: ${d.message}`).join('\n - '),
+      diagnostics,
+    );
   }
 
   // 4: assemble
@@ -347,9 +409,10 @@ function compose(opts) {
     const width = columns > 1 ? ` style="grid-column:span ${span || columns}"` : '';
     return `<section class="bc-section"${width}>${title ? `<h2>${escapeText(title)}</h2>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
   };
-  const header = options.title || options.subtitle
-    ? `<header class="bc-header">${options.title ? `<h1>${escapeText(options.title)}</h1>` : ''}${options.subtitle ? `<p>${escapeText(options.subtitle)}</p>` : ''}</header>`
-    : '';
+  const header =
+    options.title || options.subtitle
+      ? `<header class="bc-header">${options.title ? `<h1>${escapeText(options.title)}</h1>` : ''}${options.subtitle ? `<p>${escapeText(options.subtitle)}</p>` : ''}</header>`
+      : '';
 
   const html = [
     '<!doctype html>',
@@ -368,7 +431,9 @@ function compose(opts) {
     options.after || '',
     '</body></html>',
     '',
-  ].filter((s) => s !== '').join('\n');
+  ]
+    .filter((s) => s !== '')
+    .join('\n');
 
   return { html, blocks: blockNames, bytes, diagnostics, unusedData, compressed, core };
 }

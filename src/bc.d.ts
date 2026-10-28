@@ -134,14 +134,22 @@ declare namespace BC {
    *  null / false hides the tooltip; undefined keeps the default content. */
   type TooltipContent = string | number | { html: string } | Node | null | false | undefined | readonly TooltipContent[];
 
-  type ChannelSpec =
-    | string
-    | { field?: string; scale?: string; value?: number | string };
+  type ChannelSpec = string | { field?: string; scale?: string; value?: number | string };
 
   // ───────────────────────── geometry ─────────────────────────
 
-  interface Rect { x: number; y: number; w: number; h: number }
-  interface Insets { top: number; right: number; bottom: number; left: number }
+  interface Rect {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  }
+  interface Insets {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  }
 
   // ───────────────────────── scales ─────────────────────────
 
@@ -185,10 +193,13 @@ declare namespace BC {
   // ───────────────────────── display list ─────────────────────────
 
   /** Which table row of which mark a primitive represents — interaction uses it for hit-testing. */
-  interface DatumRef { mark: number; row: number }
+  interface DatumRef {
+    mark: number;
+    row: number;
+  }
 
   interface Style {
-    fill?: string;            // any CSS color, CSS variables allowed (theming)
+    fill?: string; // any CSS color, CSS variables allowed (theming)
     stroke?: string;
     strokeWidth?: number;
     strokeDash?: number[];
@@ -213,9 +224,24 @@ declare namespace BC {
   }
 
   /** `d` is a standard SVG path string (Path2D understands it too, so a Canvas renderer can reuse it). */
-  interface PathPrim extends PrimBase { type: 'path'; d: string }
-  interface RectPrim extends PrimBase { type: 'rect'; x: number; y: number; w: number; h: number; r?: number }
-  interface CirclePrim extends PrimBase { type: 'circle'; cx: number; cy: number; r: number }
+  interface PathPrim extends PrimBase {
+    type: 'path';
+    d: string;
+  }
+  interface RectPrim extends PrimBase {
+    type: 'rect';
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    r?: number;
+  }
+  interface CirclePrim extends PrimBase {
+    type: 'circle';
+    cx: number;
+    cy: number;
+    r: number;
+  }
   interface TextPrim extends PrimBase {
     type: 'text';
     x: number;
@@ -240,7 +266,11 @@ declare namespace BC {
   type LayerName = 'grid' | 'marks' | 'axes' | 'overlay';
   type Emission = Partial<Record<LayerName, Prim[]>>;
 
-  interface Layer { name: LayerName; prims: Prim[]; clip?: Rect }
+  interface Layer {
+    name: LayerName;
+    prims: Prim[];
+    clip?: Rect;
+  }
   interface DisplayList {
     size: { w: number; h: number };
     plot: Rect;

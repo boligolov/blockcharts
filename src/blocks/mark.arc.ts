@@ -6,8 +6,21 @@
   const r2 = (v: number) => Math.round(v * 100) / 100;
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-  interface Slice { row: number; a0: number; a1: number; frac: number; value: number }
-  interface Geometry { cx: number; cy: number; R: number; r0: number; slices: Slice[]; start: number }
+  interface Slice {
+    row: number;
+    a0: number;
+    a1: number;
+    frac: number;
+    value: number;
+  }
+  interface Geometry {
+    cx: number;
+    cy: number;
+    R: number;
+    r0: number;
+    slices: Slice[];
+    start: number;
+  }
 
   /** Slice angles, shared by render and pick so that what is drawn is what is hit. */
   function geometry(spec: BC.MarkSpec, ctx: BC.ChartCtx): Geometry | null {
@@ -61,13 +74,23 @@
     role: 'mark',
     type: 'arc',
     version: 1,
-    doc: 'Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o\'clock.',
+    doc: "Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock.",
     params: {
       innerRadius: { kind: 'number', default: 0, doc: 'Hole size as a fraction of the radius (0 = pie, 0.5 = donut).' },
-      startAngle: { kind: 'number', default: 0, doc: 'Where the first slice starts, in degrees clockwise from 12 o\'clock.' },
+      startAngle: { kind: 'number', default: 0, doc: "Where the first slice starts, in degrees clockwise from 12 o'clock." },
       padAngle: { kind: 'number', default: 1, doc: 'Gap between slices, in degrees.' },
-      sort: { kind: 'enum', values: ['none', 'desc', 'asc'], default: 'none', doc: 'Order of the slices by value; "none" keeps the data order.' },
-      label: { kind: 'enum', values: ['none', 'percent', 'value'], default: 'none', doc: 'Text outside each slice (slices under 3% get none).' },
+      sort: {
+        kind: 'enum',
+        values: ['none', 'desc', 'asc'],
+        default: 'none',
+        doc: 'Order of the slices by value; "none" keeps the data order.',
+      },
+      label: {
+        kind: 'enum',
+        values: ['none', 'percent', 'value'],
+        default: 'none',
+        doc: 'Text outside each slice (slices under 3% get none).',
+      },
       fill: { kind: 'string', doc: 'One color for all slices, when there is no color channel.' },
       opacity: { kind: 'number', default: 1 },
     },
@@ -87,13 +110,30 @@
         // a slice narrower than its gap keeps a sliver rather than vanishing or inverting
         // (a lone slice has no neighbour to be separated from)
         const gap = g.slices.length > 1 ? Math.min(pad, (s.a1 - s.a0) * 0.5) : 0;
-        out.push({ type: 'path', d: arcPath(g, s.a0 + gap / 2, s.a1 - gap / 2), style: { fill, opacity }, ref: { mark: index, row: s.row } });
+        out.push({
+          type: 'path',
+          d: arcPath(g, s.a0 + gap / 2, s.a1 - gap / 2),
+          style: { fill, opacity },
+          ref: { mark: index, row: s.row },
+        });
         if ((spec.label === 'percent' || spec.label === 'value') && s.frac >= MIN_LABELED) {
           const mid = (s.a0 + s.a1) / 2;
           const lx = g.cx + (g.R + 10) * Math.cos(mid);
           const ly = g.cy + (g.R + 10) * Math.sin(mid);
-          const text = spec.label === 'percent' ? `${Math.round(s.frac * 100)}%` : String(Number.isInteger(s.value) ? s.value : +s.value.toPrecision(6));
-          out.push({ type: 'text', x: r2(lx), y: r2(ly), text, size: 11, anchor: Math.cos(mid) > 0.2 ? 'start' : Math.cos(mid) < -0.2 ? 'end' : 'middle', baseline: 'middle', style: { fill: TEXT } });
+          const text =
+            spec.label === 'percent'
+              ? `${Math.round(s.frac * 100)}%`
+              : String(Number.isInteger(s.value) ? s.value : +s.value.toPrecision(6));
+          out.push({
+            type: 'text',
+            x: r2(lx),
+            y: r2(ly),
+            text,
+            size: 11,
+            anchor: Math.cos(mid) > 0.2 ? 'start' : Math.cos(mid) < -0.2 ? 'end' : 'middle',
+            baseline: 'middle',
+            style: { fill: TEXT },
+          });
         }
       });
       return out;

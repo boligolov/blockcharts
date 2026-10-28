@@ -2,44 +2,79 @@
 const assert = require('assert');
 
 module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, flush }) {
-  const rects = (svg) => [...svg.matchAll(/<rect x="([\d.-]+)" y="([\d.-]+)" width="([\d.-]+)" height="([\d.-]+)"/g)].map((m) => ({ x: +m[1], y: +m[2], w: +m[3], h: +m[4] }));
-  const layer = (svg, name) => { const i = svg.indexOf(`data-bc-layer="${name}"`); return svg.slice(i, svg.indexOf('</g>', i)); };
+  const rects = (svg) =>
+    [...svg.matchAll(/<rect x="([\d.-]+)" y="([\d.-]+)" width="([\d.-]+)" height="([\d.-]+)"/g)].map((m) => ({
+      x: +m[1],
+      y: +m[2],
+      w: +m[3],
+      h: +m[4],
+    }));
+  const layer = (svg, name) => {
+    const i = svg.indexOf(`data-bc-layer="${name}"`);
+    return svg.slice(i, svg.indexOf('</g>', i));
+  };
   const hasClip = (svg, name) => new RegExp(`data-bc-layer="${name}" clip-path`).test(svg);
 
-  BC.data('cats', [{ k: 'a', v: 3 }, { k: 'b', v: 6 }, { k: 'c', v: 0 }, { k: 'd', v: 9 }]);
+  BC.data('cats', [
+    { k: 'a', v: 3 },
+    { k: 'b', v: 6 },
+    { k: 'c', v: 0 },
+    { k: 'd', v: 9 },
+  ]);
   BC.data('series', [
-    { t: '2024-03-01', v: 5, s: 'up' }, { t: '2024-01-01', v: 1, s: 'up' }, { t: '2024-02-01', v: 3, s: 'up' },
-    { t: '2024-01-01', v: 8, s: 'down' }, { t: '2024-02-01', v: 6, s: 'down' }, { t: '2024-03-01', v: 2, s: 'down' },
+    { t: '2024-03-01', v: 5, s: 'up' },
+    { t: '2024-01-01', v: 1, s: 'up' },
+    { t: '2024-02-01', v: 3, s: 'up' },
+    { t: '2024-01-01', v: 8, s: 'down' },
+    { t: '2024-02-01', v: 6, s: 'down' },
+    { t: '2024-03-01', v: 2, s: 'down' },
   ]);
   const barSpec = () => ({
     data: 'cats',
     scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-    guides: [{ type: 'grid', scale: 'y' }, { type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
+    guides: [
+      { type: 'grid', scale: 'y' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+    ],
     marks: [{ type: 'rect', x: 'k', y: 'v' }],
   });
   const lineSpec = (extra) => ({
     data: 'series',
     scales: { x: { type: 'time' }, y: { type: 'linear' } },
-    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
+    guides: [
+      { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+    ],
     marks: [{ type: 'line', x: 't', y: 'v', group: 's' }],
     ...extra,
   });
 
   test('scale.linear: padding widens the domain, setDomain zooms without touching base', () => {
-    const mk = (spec) => BC.get('scale.linear').create({ type: 'linear', ...spec }, { name: 'x', sources: [Float64Array.of(1, 12)], range: [0, 100] });
+    const mk = (spec) =>
+      BC.get('scale.linear').create({ type: 'linear', ...spec }, { name: 'x', sources: [Float64Array.of(1, 12)], range: [0, 100] });
     assert.deepStrictEqual(mk({}).domain(), [0, 12]);
     const p = mk({ padding: 0.05 }).domain();
     assert(p[0] < 1 && p[1] > 12, JSON.stringify(p));
     const s = mk({});
     s.setDomain([2, 4]);
-    assert.deepStrictEqual([s.domain(), s.baseDomain()], [[2, 4], [0, 12]]);
+    assert.deepStrictEqual(
+      [s.domain(), s.baseDomain()],
+      [
+        [2, 4],
+        [0, 12],
+      ],
+    );
     assert.strictEqual(s(3), 50);
     s.setDomain(null);
     assert.deepStrictEqual(s.domain(), [0, 12]);
   });
 
   test('scale.band: bands, bandwidth, reversed range, window', () => {
-    const s = BC.get('scale.band').create({ type: 'band', paddingInner: 0, paddingOuter: 0 }, { name: 'x', sources: [['a', 'b', 'c', 'd', 'a']], range: [0, 200] });
+    const s = BC.get('scale.band').create(
+      { type: 'band', paddingInner: 0, paddingOuter: 0 },
+      { name: 'x', sources: [['a', 'b', 'c', 'd', 'a']], range: [0, 200] },
+    );
     assert.deepStrictEqual(s.domain(), ['a', 'b', 'c', 'd']);
     assert.deepStrictEqual([s('a'), s('d'), s.bandwidth], [0, 150, 50]);
     assert(Number.isNaN(s('zzz')));
@@ -50,16 +85,33 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     s.setRange([200, 0]);
     assert.strictEqual(s('a'), 0, 'reversed range (a vertical axis): the first band is still first from the top');
     assert.strictEqual(s('d'), 150);
-    assert.deepStrictEqual(s.ticks(2).map((t) => t.label), ['a', 'c']);
+    assert.deepStrictEqual(
+      s.ticks(2).map((t) => t.label),
+      ['a', 'c'],
+    );
   });
 
   test('scale.time: ISO strings, calendar ticks', () => {
     const mk = (a, b) => BC.get('scale.time').create({ type: 'time' }, { name: 'x', sources: [[a, b]], range: [0, 600] });
     const months = mk('2024-01-01', '2024-12-31');
-    assert.deepStrictEqual(months.ticks(6).map((t) => t.label), ['Jan 2024', 'Apr 2024', 'Jul 2024', 'Oct 2024']);
+    assert.deepStrictEqual(
+      months.ticks(6).map((t) => t.label),
+      ['Jan 2024', 'Apr 2024', 'Jul 2024', 'Oct 2024'],
+    );
     const days = mk('2024-03-01', '2024-03-08');
-    assert(days.ticks(8).every((t) => /^Mar \d+$/.test(t.label)), days.ticks(8).map((t) => t.label).join());
-    assert.deepStrictEqual(mk('2010-06-01', '2024-06-01').ticks(6).map((t) => t.label), ['2012', '2014', '2016', '2018', '2020', '2022', '2024']);
+    assert(
+      days.ticks(8).every((t) => /^Mar \d+$/.test(t.label)),
+      days
+        .ticks(8)
+        .map((t) => t.label)
+        .join(),
+    );
+    assert.deepStrictEqual(
+      mk('2010-06-01', '2024-06-01')
+        .ticks(6)
+        .map((t) => t.label),
+      ['2012', '2014', '2016', '2018', '2020', '2022', '2024'],
+    );
     const hours = mk('2024-03-01T00:00:00Z', '2024-03-01T06:00:00Z');
     assert(hours.ticks(6).every((t) => /^\d\d:\d\d$/.test(t.label)));
     assert.strictEqual(months(Date.UTC(2024, 0, 1)), 0);
@@ -73,10 +125,19 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(h.diagnostics, []);
     assert.strictEqual(count(layer(svg, 'marks'), /<rect /g), 4);
     const bars = rects(layer(svg, 'marks'));
-    assert(bars.every((b) => Math.abs(b.w - bars[0].w) < 1e-6), 'equal widths');
-    assert(bars.every((b, i) => i === 0 || b.x > bars[i - 1].x), 'left to right');
+    assert(
+      bars.every((b) => Math.abs(b.w - bars[0].w) < 1e-6),
+      'equal widths',
+    );
+    assert(
+      bars.every((b, i) => i === 0 || b.x > bars[i - 1].x),
+      'left to right',
+    );
     const bottoms = bars.filter((b) => b.h > 0).map((b) => +(b.y + b.h).toFixed(4));
-    assert(bottoms.every((y) => y === bottoms[0]), 'all bars sit on the baseline: ' + bottoms);
+    assert(
+      bottoms.every((y) => y === bottoms[0]),
+      'all bars sit on the baseline: ' + bottoms,
+    );
     assert(Math.abs(bars[3].h / bars[1].h - 1.5) < 1e-6, 'heights are proportional');
     assert.strictEqual(bars[2].h, 0, 'a zero bar is empty');
     assert(!/NaN/.test(svg));
@@ -86,8 +147,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     // product "A" appears first (North row 0): every category must put "A" in the same (first) sub-slot,
     // even in South where the data lists "B" before "A".
     BC.data('grouped', [
-      { region: 'North', product: 'A', revenue: 10 }, { region: 'North', product: 'B', revenue: 20 },
-      { region: 'South', product: 'B', revenue: 15 }, { region: 'South', product: 'A', revenue: 5 },
+      { region: 'North', product: 'A', revenue: 10 },
+      { region: 'North', product: 'B', revenue: 20 },
+      { region: 'South', product: 'B', revenue: 15 },
+      { region: 'South', product: 'A', revenue: 5 },
     ]);
     const host = new FakeNode('div');
     const h = BC.chart(host, {
@@ -103,44 +166,67 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(Math.abs(nb / na - 2) < 1e-6, `North B should be twice North A: ${nb} vs ${na}`);
     assert(Math.abs(sb / sa - 3) < 1e-6, `South B should be 3x South A: ${sb} vs ${sa}`);
     assert(Math.abs(na / sa - 2) < 1e-6, `North A (10) should be twice South A (5): ${na} vs ${sa}`);
-    assert(bars.every((b) => Math.abs(b.w - bars[0].w) < 1e-6), 'every dodged bar shares the same width');
+    assert(
+      bars.every((b) => Math.abs(b.w - bars[0].w) < 1e-6),
+      'every dodged bar shares the same width',
+    );
     assert(bars[0].x + bars[0].w <= bars[1].x, 'North A and North B do not overlap');
     assert(bars[2].x + bars[2].w <= bars[3].x, 'South A and South B do not overlap');
     assert(bars[1].x + bars[1].w < bars[2].x, 'North and South stay in their own bands');
   });
 
   test('mark.rect: dodge does not affect the value axis or a chart with only one dodge value', () => {
-    BC.data('onegroup', [{ region: 'North', product: 'A', revenue: 10 }, { region: 'South', product: 'A', revenue: 5 }]);
+    BC.data('onegroup', [
+      { region: 'North', product: 'A', revenue: 10 },
+      { region: 'South', product: 'A', revenue: 5 },
+    ]);
     const host = new FakeNode('div');
-    const h = BC.chart(host, { data: 'onegroup', scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } }, marks: [{ type: 'rect', x: 'region', y: 'revenue', dodge: 'product' }] });
+    const h = BC.chart(host, {
+      data: 'onegroup',
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'rect', x: 'region', y: 'revenue', dodge: 'product' }],
+    });
     assert.deepStrictEqual(h.diagnostics, []);
     const bars = rects(layer(svgOf(host), 'marks'));
     const plainHost = new FakeNode('div');
-    BC.chart(plainHost, { data: 'onegroup', scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } }, marks: [{ type: 'rect', x: 'region', y: 'revenue' }] });
+    BC.chart(plainHost, {
+      data: 'onegroup',
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'rect', x: 'region', y: 'revenue' }],
+    });
     const plainBars = rects(layer(svgOf(plainHost), 'marks'));
     assert.deepStrictEqual(bars, plainBars, 'one distinct dodge value: identical to no dodge at all');
   });
 
   test('mark.rect: dodge is hit correctly by the tooltip, and a row with no dodge value is skipped', () => {
     BC.data('groupedPick', [
-      { region: 'North', product: 'A', revenue: 10 }, { region: 'North', product: 'B', revenue: 20 },
+      { region: 'North', product: 'A', revenue: 10 },
+      { region: 'North', product: 'B', revenue: 20 },
       { region: 'South', product: null, revenue: 8 },
     ]);
     const host = new FakeNode('div');
     BC.chart(host, {
-      data: 'groupedPick', scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-      marks: [{ type: 'rect', x: 'region', y: 'revenue', dodge: 'product' }], interaction: [{ type: 'tooltip' }],
+      data: 'groupedPick',
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'rect', x: 'region', y: 'revenue', dodge: 'product' }],
+      interaction: [{ type: 'tooltip' }],
     });
     const bars = rects(layer(svgOf(host), 'marks'));
     assert.strictEqual(bars.length, 2, 'the row with a null dodge value draws nothing');
   });
 
   test('mark.point: a band scale centers the dot in its band (dot plot), and the tooltip finds it there', async () => {
-    BC.data('dotplot', [{ team: 'A', score: 42 }, { team: 'B', score: 58 }, { team: 'C', score: 31 }]);
+    BC.data('dotplot', [
+      { team: 'A', score: 42 },
+      { team: 'B', score: 58 },
+      { team: 'C', score: 31 },
+    ]);
     const host = new FakeNode('div');
     const h = BC.chart(host, {
-      data: 'dotplot', scales: { y: { type: 'band' }, x: { type: 'linear', zero: true } },
-      marks: [{ type: 'point', x: 'score', y: 'team', r: 5 }], interaction: [{ type: 'tooltip' }],
+      data: 'dotplot',
+      scales: { y: { type: 'band' }, x: { type: 'linear', zero: true } },
+      marks: [{ type: 'point', x: 'score', y: 'team', r: 5 }],
+      interaction: [{ type: 'tooltip' }],
     });
     assert.deepStrictEqual(h.diagnostics, []);
     const svg = svgOf(host);
@@ -148,7 +234,12 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(dots.length, 3);
     // the dot must sit at the vertical center of its band, not at the band's edge
     const probeHost = new FakeNode('div');
-    const p = BC.chart(probeHost, { data: 'dotplot', scales: { y: { type: 'band' }, x: { type: 'linear', zero: true } }, marks: [{ type: 'rect', x: 'score', y: 'team', baseline: 0 }], interaction: [{ type: 'probe2' }] });
+    const p = BC.chart(probeHost, {
+      data: 'dotplot',
+      scales: { y: { type: 'band' }, x: { type: 'linear', zero: true } },
+      marks: [{ type: 'rect', x: 'score', y: 'team', baseline: 0 }],
+      interaction: [{ type: 'probe2' }],
+    });
     const rowOfA = probed.rows(probed.spec.marks[0]).from;
     const bw = probed.channel(probed.spec.marks[0], 'y').scale.bandwidth;
     const bandStart = probed.channel(probed.spec.marks[0], 'y').mapped[rowOfA];
@@ -185,7 +276,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('line chart: a missing value breaks the line', () => {
-    BC.data('gappy', [{ x: 1, y: 1 }, { x: 2, y: 2 }, { x: 3, y: null }, { x: 4, y: 4 }, { x: 5, y: 5 }]);
+    BC.data('gappy', [
+      { x: 1, y: 1 },
+      { x: 2, y: 2 },
+      { x: 3, y: null },
+      { x: 4, y: 4 },
+      { x: 5, y: 5 },
+    ]);
     const host = new FakeNode('div');
     BC.chart(host, { data: 'gappy', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 'x', y: 'y' }] });
     const d = svgOf(host).match(/<path d="([^"]+)"/)[1];
@@ -193,8 +290,15 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('validate: channel scale kinds of the new blocks, spec.view', () => {
-    const d = BC.validate({ data: 'cats', scales: { x: { type: 'linear' }, y: { type: 'band' } }, marks: [{ type: 'line', x: 'v', y: 'k' }] });
-    assert(d.some((x) => x.path === 'marks[0].y' && /does not accept a "band" scale/.test(x.message)), JSON.stringify(d));
+    const d = BC.validate({
+      data: 'cats',
+      scales: { x: { type: 'linear' }, y: { type: 'band' } },
+      marks: [{ type: 'line', x: 'v', y: 'k' }],
+    });
+    assert(
+      d.some((x) => x.path === 'marks[0].y' && /does not accept a "band" scale/.test(x.message)),
+      JSON.stringify(d),
+    );
     const v = BC.validate({ ...barSpec(), view: { nope: [1, 2], y: 5 } });
     assert(v.some((x) => x.path === 'view.nope') && v.some((x) => x.path === 'view.y'));
   });
@@ -216,7 +320,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(axisStarts(after), startsBefore, 'axes do not move: layout is frozen');
     assert(/>Feb \d+</.test(after), 'ticks follow the view domain');
     assert.deepStrictEqual(h.getView().x, [Date.UTC(2024, 1, 1), Date.UTC(2024, 1, 20)]);
-    assert.deepStrictEqual(h.getView().y, BC.chart(new FakeNode('div'), lineSpec()).getView().y, 'unzoomed scales report their base domain');
+    assert.deepStrictEqual(
+      h.getView().y,
+      BC.chart(new FakeNode('div'), lineSpec()).getView().y,
+      'unzoomed scales report their base domain',
+    );
     h.setView('x', null);
     await flush();
     assert(!hasClip(svgOf(host), 'marks'));
@@ -261,7 +369,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     root.fire('pointerup', {});
     await flush();
     const [p0, p1] = h.getView().x;
-    assert(Math.abs((p1 - p0) - (z1 - z0)) < 1e-3, 'panning keeps the span');
+    assert(Math.abs(p1 - p0 - (z1 - z0)) < 1e-3, 'panning keeps the span');
     assert(p0 > z0, 'dragging left moves the view to later dates');
 
     root.fire('pointerdown', { button: 0, ...mid, pointerId: 1 });
@@ -284,8 +392,12 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   BC.data('pts', [
-    { a: 1, b: 2, g: 'A' }, { a: 2, b: 4, g: 'B' }, { a: 3, b: 3, g: 'A' },
-    { a: 4, b: 6, g: 'B' }, { a: 5, b: 5, g: 'C' }, { a: 6, b: 8, g: 'C' },
+    { a: 1, b: 2, g: 'A' },
+    { a: 2, b: 4, g: 'B' },
+    { a: 3, b: 3, g: 'A' },
+    { a: 4, b: 6, g: 'B' },
+    { a: 5, b: 5, g: 'C' },
+    { a: 6, b: 8, g: 'C' },
   ]);
   const ptSpec = (guides) => ({
     data: 'pts',
@@ -297,7 +409,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const fills = (svg) => [...layer(svg, 'marks').matchAll(/<circle [^>]*fill="([^"]+)"/g)].map((m) => m[1]);
 
   test('scale.color: one color per value, theme palette or explicit range, stable under a filtered domain', () => {
-    const mk = (spec) => BC.get('scale.color').create({ type: 'color', ...spec }, { name: 'color', sources: [['x', 'y', 'x', 'z']], range: [], color: (i) => `theme${i}` });
+    const mk = (spec) =>
+      BC.get('scale.color').create(
+        { type: 'color', ...spec },
+        { name: 'color', sources: [['x', 'y', 'x', 'z']], range: [], color: (i) => `theme${i}` },
+      );
     const s = mk({});
     assert.deepStrictEqual(s.domain(), ['x', 'y', 'z']);
     assert.deepStrictEqual([s('x'), s('z')], ['theme0', 'theme2']);
@@ -318,18 +434,33 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(f[0].startsWith('var(--bc-c0'));
 
     const bars = new FakeNode('div');
-    BC.chart(bars, { ...barSpec(), scales: { ...barSpec().scales, color: { type: 'color' } }, marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }] });
-    assert.strictEqual(new Set([...layer(svgOf(bars), 'marks').matchAll(/<rect [^>]*fill="([^"]+)"/g)].map((m) => m[1])).size, 4, 'a color per bar');
+    BC.chart(bars, {
+      ...barSpec(),
+      scales: { ...barSpec().scales, color: { type: 'color' } },
+      marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
+    });
+    assert.strictEqual(
+      new Set([...layer(svgOf(bars), 'marks').matchAll(/<rect [^>]*fill="([^"]+)"/g)].map((m) => m[1])).size,
+      4,
+      'a color per bar',
+    );
 
     const lines = new FakeNode('div');
-    BC.chart(lines, lineSpec({ scales: { x: { type: 'time' }, y: { type: 'linear' }, color: { type: 'color' } }, marks: [{ type: 'line', x: 't', y: 'v', color: 's' }] }));
+    BC.chart(
+      lines,
+      lineSpec({
+        scales: { x: { type: 'time' }, y: { type: 'linear' }, color: { type: 'color' } },
+        marks: [{ type: 'line', x: 't', y: 'v', color: 's' }],
+      }),
+    );
     const strokes = [...layer(svgOf(lines), 'marks').matchAll(/<path [^>]*stroke="([^"]+)"/g)].map((m) => m[1]);
     assert.strictEqual(strokes.length, 2, 'the color field also splits the lines');
     assert.notStrictEqual(strokes[0], strokes[1]);
   });
 
   test('guide.legend: a column on the right takes space and lists every value', () => {
-    const plain = new FakeNode('div'), legend = new FakeNode('div');
+    const plain = new FakeNode('div'),
+      legend = new FakeNode('div');
     BC.chart(plain, ptSpec([]));
     const h = BC.chart(legend, ptSpec([{ type: 'legend', scale: 'color' }]));
     assert.deepStrictEqual(h.diagnostics, []);
@@ -339,7 +470,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(bottomAxisEnd(svg) < bottomAxisEnd(svgOf(plain)) - 20, 'the plot shrank to make room');
     const swatchX = +svg.match(/<rect x="([\d.]+)"[^>]*class="bc-legend-swatch"/)[1];
     assert(swatchX > bottomAxisEnd(svg), 'and the legend sits to the right of it');
-    assert.deepStrictEqual(fills(svg).slice(0, 1), [svg.match(/<rect [^>]*fill="([^"]+)"[^>]*class="bc-legend-swatch"/)[1]], 'legend and marks use the same color');
+    assert.deepStrictEqual(
+      fills(svg).slice(0, 1),
+      [svg.match(/<rect [^>]*fill="([^"]+)"[^>]*class="bc-legend-swatch"/)[1]],
+      'legend and marks use the same color',
+    );
   });
 
   test('guide.legend: top row above the plot, and stacked outside a right axis', () => {
@@ -353,9 +488,18 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(xs[0] < xs[1] && xs[1] < xs[2], 'items run left to right');
 
     const both = new FakeNode('div');
-    BC.chart(both, ptSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right' }, { type: 'legend', scale: 'color' }]));
+    BC.chart(
+      both,
+      ptSpec([
+        { type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right' },
+        { type: 'legend', scale: 'color' },
+      ]),
+    );
     const s2 = svgOf(both);
-    const rightAxisX = +s2.match(/<path d="M([\d.]+) [\d.]+V[\d.]+M[\d.]+ [\d.]+H([\d.]+)/g).map((m) => m)[0].match(/M([\d.]+)/)[1];
+    const rightAxisX = +s2
+      .match(/<path d="M([\d.]+) [\d.]+V[\d.]+M[\d.]+ [\d.]+H([\d.]+)/g)
+      .map((m) => m)[0]
+      .match(/M([\d.]+)/)[1];
     const legendX = +s2.match(/<rect x="([\d.]+)"[^>]*class="bc-legend-swatch"/)[1];
     assert(legendX > rightAxisX + 20, 'legend is outside the axis labels');
   });
@@ -364,14 +508,20 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     logged.error.length = 0;
     const host = new FakeNode('div');
     const h = BC.chart(host, ptSpec([{ type: 'legend', scale: 'x' }]));
-    assert(h.diagnostics.some((d) => d.path === 'guides[2]' && /needs a color, sequential or size scale/.test(d.message)), JSON.stringify(h.diagnostics));
+    assert(
+      h.diagnostics.some((d) => d.path === 'guides[2]' && /needs a color, sequential or size scale/.test(d.message)),
+      JSON.stringify(h.diagnostics),
+    );
     assert.strictEqual(count(svgOf(host), /<circle /g), 6);
     logged.error.length = 0;
   });
 
   test('validate: color channels only accept color scales', () => {
     const d = BC.validate({ ...ptSpec([]), scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'linear' } } });
-    assert(d.some((x) => x.path === 'marks[0].color' && /does not accept a "linear" scale \(accepts: color, sequential\)/.test(x.message)), JSON.stringify(d));
+    assert(
+      d.some((x) => x.path === 'marks[0].color' && /does not accept a "linear" scale \(accepts: color, sequential\)/.test(x.message)),
+      JSON.stringify(d),
+    );
     assert(BC.validate(ptSpec([{ type: 'legend', scale: 'nope' }])).some((x) => x.path === 'guides[2].scale'));
   });
 
@@ -385,12 +535,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const out = [];
     for (const c of tipOf(host).children) {
       if (c.attrs.class === 'bc-tooltip-heading') out.push(c.attrs['data-bc-field'] + ': ' + c.children[c.children.length - 1].text);
-      else if (c.attrs.class === 'bc-tooltip-lines') for (let k = 0; k < c.children.length; k += 2) out.push(c.children[k].text + ': ' + c.children[k + 1].text);
+      else if (c.attrs.class === 'bc-tooltip-lines')
+        for (let k = 0; k < c.children.length; k += 2) out.push(c.children[k].text + ': ' + c.children[k + 1].text);
       else out.push(c.children.length ? c.children.map((x) => x.text).join('') : c.text);
     }
     return out;
   };
-  const hover = async (host, x, y, extra) => { host.children[0].fire('pointermove', { clientX: x, clientY: y, buttons: 0, ...extra }); await flush(); };
+  const hover = async (host, x, y, extra) => {
+    host.children[0].fire('pointermove', { clientX: x, clientY: y, buttons: 0, ...extra });
+    await flush();
+  };
   const circles = (svg) => [...svg.matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)"/g)].map((m) => ({ x: +m[1], y: +m[2] }));
   const tipSpec = (extra, tooltip) => ({ ...ptSpec([]), interaction: [{ type: 'tooltip', ...tooltip }], ...extra });
 
@@ -521,7 +675,12 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const d = [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => m[1].match(/[\d.]+/g).map(Number));
     const [up, down] = d;
     await hover(host, up[0], up[1]);
-    assert.deepStrictEqual(tipText(host).filter((l) => /^(v|s):/.test(l)).sort(), ['s: up', 'v: 1']);
+    assert.deepStrictEqual(
+      tipText(host)
+        .filter((l) => /^(v|s):/.test(l))
+        .sort(),
+      ['s: up', 'v: 1'],
+    );
     await hover(host, (up[0] + up[2]) / 2, (up[1] + up[3]) / 2 + 3);
     assert(tipText(host).includes('s: up'), 'midway between two vertices of the same line');
     await hover(host, (down[0] + down[2]) / 2, (down[1] + down[3]) / 2);
@@ -535,18 +694,35 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('interaction.tooltip: the closest mark wins, later marks win ties', async () => {
     const host = new FakeNode('div');
     BC.chart(host, {
-      ...lineSpec({ marks: [{ type: 'line', x: 't', y: 'v', group: 's' }, { type: 'point', x: 't', y: 'v', r: 4 }] }),
+      ...lineSpec({
+        marks: [
+          { type: 'line', x: 't', y: 'v', group: 's' },
+          { type: 'point', x: 't', y: 'v', r: 4 },
+        ],
+      }),
       interaction: [{ type: 'tooltip' }],
     });
     const c = circles(svgOf(host))[0];
     await hover(host, c.x, c.y);
-    assert(tipText(host).includes('t: Mar 1, 2024'), 'the point (on top) is reported, with its own fields, the date written as a date: ' + tipText(host));
+    assert(
+      tipText(host).includes('t: Mar 1, 2024'),
+      'the point (on top) is reported, with its own fields, the date written as a date: ' + tipText(host),
+    );
     assert(!tipText(host).some((l) => l.startsWith('s:')), 'not the line, which also passes here');
   });
 
   test('interaction.tooltip: data is text, never markup; fields param; long values are cut', async () => {
-    BC.data('evil', [{ a: 1, b: 1, n: '<img src=x onerror=alert(1)>' }, { a: 2, b: 2, n: 'x'.repeat(300) }, { a: 3, b: 3, n: 'ok' }]);
-    const spec = (tooltip) => ({ data: 'evil', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'a', y: 'b' }], interaction: [{ type: 'tooltip', ...tooltip }] });
+    BC.data('evil', [
+      { a: 1, b: 1, n: '<img src=x onerror=alert(1)>' },
+      { a: 2, b: 2, n: 'x'.repeat(300) },
+      { a: 3, b: 3, n: 'ok' },
+    ]);
+    const spec = (tooltip) => ({
+      data: 'evil',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [{ type: 'point', x: 'a', y: 'b' }],
+      interaction: [{ type: 'tooltip', ...tooltip }],
+    });
     const host = new FakeNode('div');
     BC.chart(host, spec({ fields: ['n'] }));
     const cs = circles(svgOf(host));
@@ -561,12 +737,25 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('interaction.tooltip: a tooltip for values that are missing, and marks without pick, are harmless', async () => {
-    BC.define({ role: 'mark', type: 'inert', version: 1, channels: { x: { required: true, scales: ['linear'] }, y: { required: true, scales: ['linear'] } }, render: () => [] });
-    BC.data('holes', [{ a: 1, b: 1, c: null }, { a: 2, b: 2, c: 5 }]);
+    BC.define({
+      role: 'mark',
+      type: 'inert',
+      version: 1,
+      channels: { x: { required: true, scales: ['linear'] }, y: { required: true, scales: ['linear'] } },
+      render: () => [],
+    });
+    BC.data('holes', [
+      { a: 1, b: 1, c: null },
+      { a: 2, b: 2, c: 5 },
+    ]);
     const host = new FakeNode('div');
     const h = BC.chart(host, {
-      data: 'holes', scales: { x: { type: 'linear' }, y: { type: 'linear' } },
-      marks: [{ type: 'inert', x: 'a', y: 'b' }, { type: 'point', x: 'a', y: 'b' }],
+      data: 'holes',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [
+        { type: 'inert', x: 'a', y: 'b' },
+        { type: 'point', x: 'a', y: 'b' },
+      ],
       interaction: [{ type: 'tooltip', fields: ['c', 'nope'] }],
     });
     assert.deepStrictEqual(h.diagnostics, []);
@@ -577,18 +766,35 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   // ── tooltip: custom content ──
   const tipSpecWith = (content, extra) => ({ ...ptSpec([]), interaction: [{ type: 'tooltip', content }], ...extra });
-  const hoverFirst = async (host) => { const c = circles(svgOf(host))[0]; await hover(host, c.x, c.y); };
+  const hoverFirst = async (host) => {
+    const c = circles(svgOf(host))[0];
+    await hover(host, c.x, c.y);
+  };
   const tipChildren = (host) => tipOf(host).children;
 
   test('interaction.tooltip content: the function gets the whole datum and its string is shown as text', async () => {
     let seen = null;
     const host = new FakeNode('div');
-    const h = BC.chart(host, tipSpecWith((d) => { seen = d; return `row ${d.row}: <b>${d.values.g}</b>`; }));
+    const h = BC.chart(
+      host,
+      tipSpecWith((d) => {
+        seen = d;
+        return `row ${d.row}: <b>${d.values.g}</b>`;
+      }),
+    );
     assert.deepStrictEqual(h.diagnostics, [], 'a function is a valid value for a spec built in JS');
     await hoverFirst(host);
     assert.strictEqual(seen.row, 0);
     assert.deepStrictEqual(seen.values, { a: 1, b: 2, g: 'A' }, 'every column of the row');
-    assert.deepStrictEqual(seen.lines, [['a', '1'], ['b', '2'], ['g', 'A']], 'the default content is offered too');
+    assert.deepStrictEqual(
+      seen.lines,
+      [
+        ['a', '1'],
+        ['b', '2'],
+        ['g', 'A'],
+      ],
+      'the default content is offered too',
+    );
     assert.strictEqual(seen.markIndex, 0);
     assert.strictEqual(seen.mark.type, 'point');
     assert.strictEqual(seen.table.length, 6);
@@ -623,13 +829,25 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('interaction.tooltip content: strings, numbers, Nodes, { html }, arrays; null and false hide; undefined = default', async () => {
     const host = new FakeNode('div');
     let out;
-    BC.chart(host, tipSpecWith(() => out));
-    const show = async (value) => { out = value; await hoverFirst(host); };
+    BC.chart(
+      host,
+      tipSpecWith(() => out),
+    );
+    const show = async (value) => {
+      out = value;
+      await hoverFirst(host);
+    };
 
     await show('plain');
-    assert.deepStrictEqual(tipChildren(host).map((c) => c.text), ['plain']);
+    assert.deepStrictEqual(
+      tipChildren(host).map((c) => c.text),
+      ['plain'],
+    );
     await show(42);
-    assert.deepStrictEqual(tipChildren(host).map((c) => c.text), ['42']);
+    assert.deepStrictEqual(
+      tipChildren(host).map((c) => c.text),
+      ['42'],
+    );
 
     const node = document.createElement('div');
     node.textContent = 'my own node';
@@ -641,7 +859,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     await show(['one', null, false, '', { html: '<i>two</i>' }, ['three', 4]]);
     assert.strictEqual(tipChildren(host).length, 4, 'nulls, false and empty strings are skipped, nested arrays are flattened');
-    assert.deepStrictEqual(tipChildren(host).map((c) => c.text || c.innerHTML), ['one', '<i>two</i>', 'three', '4']);
+    assert.deepStrictEqual(
+      tipChildren(host).map((c) => c.text || c.innerHTML),
+      ['one', '<i>two</i>', 'three', '4'],
+    );
 
     await show(undefined);
     assert.deepStrictEqual(tipText(host), ['a: 1', 'b: 2', 'g: A'], 'undefined keeps the default');
@@ -663,7 +884,12 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('interaction.tooltip content: a function that throws falls back to the default, and says so once', async () => {
     logged.error.length = 0;
     const host = new FakeNode('div');
-    BC.chart(host, tipSpecWith(() => { throw new Error('my bug'); }));
+    BC.chart(
+      host,
+      tipSpecWith(() => {
+        throw new Error('my bug');
+      }),
+    );
     await hoverFirst(host);
     assert.deepStrictEqual(tipText(host), ['a: 1', 'b: 2', 'g: A']);
     await hoverFirst(host);
@@ -679,10 +905,25 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('interaction.tooltip content: it knows which mark was hit and can draw values the default would not', async () => {
     const host = new FakeNode('div');
     const seen = [];
-    BC.chart(host, lineSpec({
-      marks: [{ type: 'line', x: 't', y: 'v', group: 's' }, { type: 'point', x: 't', y: 'v', r: 4 }],
-      interaction: [{ type: 'tooltip', fields: ['t'], content: (d) => { seen.push(d); return `${d.markIndex}:${d.values.s}:${d.values.v}:${d.lines.length}`; } }],
-    }));
+    BC.chart(
+      host,
+      lineSpec({
+        marks: [
+          { type: 'line', x: 't', y: 'v', group: 's' },
+          { type: 'point', x: 't', y: 'v', r: 4 },
+        ],
+        interaction: [
+          {
+            type: 'tooltip',
+            fields: ['t'],
+            content: (d) => {
+              seen.push(d);
+              return `${d.markIndex}:${d.values.s}:${d.values.v}:${d.lines.length}`;
+            },
+          },
+        ],
+      }),
+    );
     const c = circles(svgOf(host))[0];
     await hover(host, c.x, c.y);
     assert.strictEqual(seen[0].markIndex, 1, 'the point is on top of the line');
@@ -713,21 +954,43 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('transform.stack: positives stack in series order, the same for every stack', () => {
     // stack q2 has no A, so B must still sit above A's slot, not at 0 because A is missing
-    const t = stack({ k: ['q1', 'q1', 'q2', 'q2', 'q2'], s: ['A', 'B', 'B', 'C', 'A'], v: [2, 3, 1, 5, 4] }, { field: 'v', by: 'k', group: 's' });
-    assert.deepStrictEqual([arr(t.columns.v0), arr(t.columns.v1)], [[0, 2, 4, 5, 0], [2, 5, 5, 10, 4]]);
+    const t = stack(
+      { k: ['q1', 'q1', 'q2', 'q2', 'q2'], s: ['A', 'B', 'B', 'C', 'A'], v: [2, 3, 1, 5, 4] },
+      { field: 'v', by: 'k', group: 's' },
+    );
+    assert.deepStrictEqual(
+      [arr(t.columns.v0), arr(t.columns.v1)],
+      [
+        [0, 2, 4, 5, 0],
+        [2, 5, 5, 10, 4],
+      ],
+    );
     assert.strictEqual(t.length, 5);
   });
 
   test('transform.stack: negatives go down separately, gaps contribute nothing, no group = data order', () => {
     const t = stack({ k: ['a', 'a', 'a', 'a', 'a'], v: [3, -2, 4, null, -1] }, { field: 'v', by: 'k' });
-    assert.deepStrictEqual(arr(t.columns.v0).map((x) => (Number.isNaN(x) ? 'nan' : x)), [0, 0, 3, 'nan', -2]);
-    assert.deepStrictEqual(arr(t.columns.v1).map((x) => (Number.isNaN(x) ? 'nan' : x)), [3, -2, 7, 'nan', -3]);
+    assert.deepStrictEqual(
+      arr(t.columns.v0).map((x) => (Number.isNaN(x) ? 'nan' : x)),
+      [0, 0, 3, 'nan', -2],
+    );
+    assert.deepStrictEqual(
+      arr(t.columns.v1).map((x) => (Number.isNaN(x) ? 'nan' : x)),
+      [3, -2, 7, 'nan', -3],
+    );
   });
 
   test('transform.stack: normalize, custom names, input untouched, bad input reported', () => {
     const cols = { k: ['a', 'a', 'b', 'b'], s: ['x', 'y', 'x', 'y'], v: [1, 3, 0, 0] };
     const t = stack(cols, { field: 'v', by: 'k', group: 's', normalize: true, as: ['lo', 'hi'] });
-    assert.deepStrictEqual([arr(t.columns.lo), arr(t.columns.hi)], [[0, 0.25, 0, 0], [0.25, 1, 0, 0]], 'stack b sums to 0: left at 0, no division');
+    assert.deepStrictEqual(
+      [arr(t.columns.lo), arr(t.columns.hi)],
+      [
+        [0, 0.25, 0, 0],
+        [0.25, 1, 0, 0],
+      ],
+      'stack b sums to 0: left at 0, no division',
+    );
     assert.deepStrictEqual(Object.keys(cols), ['k', 's', 'v'], 'the source table is not changed');
     assert.strictEqual(t.columns.v, cols.v, 'existing columns are shared, not copied');
     assert.deepStrictEqual(BC.get('transform.stack').outputs({ field: 'v', as: ['lo', 'hi'] }), ['lo', 'hi']);
@@ -739,14 +1002,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   BC.data('stk', [
-    { k: 'q1', s: 'A', v: 2 }, { k: 'q1', s: 'B', v: 3 },
-    { k: 'q2', s: 'A', v: 4 }, { k: 'q2', s: 'B', v: 1 }, { k: 'q2', s: 'C', v: 2 },
+    { k: 'q1', s: 'A', v: 2 },
+    { k: 'q1', s: 'B', v: 3 },
+    { k: 'q2', s: 'A', v: 4 },
+    { k: 'q2', s: 'B', v: 1 },
+    { k: 'q2', s: 'C', v: 2 },
   ]);
   const stackedBars = (extra) => ({
     data: 'stk',
     transforms: [{ type: 'stack', field: 'v', by: 'k', group: 's', ...extra }],
     scales: { x: { type: 'band' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
-    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }, { type: 'legend', scale: 'color', position: 'top' }],
+    guides: [
+      { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+      { type: 'legend', scale: 'color', position: 'top' },
+    ],
     marks: [{ type: 'rect', x: 'k', y: 'v1', y2: 'v0', color: 's' }],
   });
 
@@ -758,7 +1028,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(bars.length, 5);
     const [a1, b1, a2, b2, c2] = bars;
     assert(Math.abs(b1.y + b1.h - a1.y) < 1e-6, 'B starts where A ends');
-    assert(Math.abs(c2.y + c2.h - (b2.y)) < 1e-6 && Math.abs(b2.y + b2.h - a2.y) < 1e-6, 'C on B on A');
+    assert(Math.abs(c2.y + c2.h - b2.y) < 1e-6 && Math.abs(b2.y + b2.h - a2.y) < 1e-6, 'C on B on A');
     assert(Math.abs(a1.h / a2.h - 0.5) < 1e-6, 'heights follow the values');
     assert(Math.abs(a1.y + a1.h - (a2.y + a2.h)) < 1e-6, 'all stacks start on the same baseline');
     const bad = stackedBars();
@@ -768,12 +1038,18 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const opaque = stackedBars();
     opaque.transforms.push({ type: 'opaque' });
     opaque.marks[0].y = 'anything';
-    assert(!BC.validate(opaque).some((d) => /unknown field/.test(d.message)), 'a transform that does not declare outputs turns the field check off');
+    assert(
+      !BC.validate(opaque).some((d) => /unknown field/.test(d.message)),
+      'a transform that does not declare outputs turns the field check off',
+    );
   });
 
   test('stacked bars: 100% normalization fills the plot height', () => {
     const host = new FakeNode('div');
-    BC.chart(host, { ...stackedBars({ normalize: true }), scales: { x: { type: 'band' }, y: { type: 'linear', domain: [0, 1] }, color: { type: 'color' } } });
+    BC.chart(host, {
+      ...stackedBars({ normalize: true }),
+      scales: { x: { type: 'band' }, y: { type: 'linear', domain: [0, 1] }, color: { type: 'color' } },
+    });
     const bars = rects(layer(svgOf(host), 'marks'));
     const total = (xs) => bars.filter((b) => xs.includes(b.x)).reduce((s, b) => s + b.h, 0);
     const q1 = total([bars[0].x]);
@@ -782,14 +1058,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   BC.data('areas', [
-    { t: '2024-01-01', s: 'A', v: 2 }, { t: '2024-02-01', s: 'A', v: 4 }, { t: '2024-03-01', s: 'A', v: 3 },
-    { t: '2024-01-01', s: 'B', v: 1 }, { t: '2024-02-01', s: 'B', v: 2 }, { t: '2024-03-01', s: 'B', v: null },
+    { t: '2024-01-01', s: 'A', v: 2 },
+    { t: '2024-02-01', s: 'A', v: 4 },
+    { t: '2024-03-01', s: 'A', v: 3 },
+    { t: '2024-01-01', s: 'B', v: 1 },
+    { t: '2024-02-01', s: 'B', v: 2 },
+    { t: '2024-03-01', s: 'B', v: null },
   ]);
   const areaSpec = (marks) => ({
     data: 'areas',
     transforms: [{ type: 'stack', field: 'v', by: 't', group: 's' }],
     scales: { x: { type: 'time' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
-    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
+    guides: [
+      { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+    ],
     marks: marks || [{ type: 'area', x: 't', y: 'v1', y2: 'v0', color: 's' }],
   });
 
@@ -799,7 +1082,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(h.diagnostics, []);
     const shapes = [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => m[1]);
     assert.strictEqual(shapes.length, 2);
-    assert(shapes.every((d) => d.endsWith('Z')), 'every shape is closed');
+    assert(
+      shapes.every((d) => d.endsWith('Z')),
+      'every shape is closed',
+    );
     const [a, b] = shapes.map((d) => d.match(/[\d.]+/g).map(Number));
     assert.strictEqual(a.length, 12, 'A: three vertices along the top, three back along the bottom');
     assert.strictEqual(b.length, 8, 'B: the missing March value shortens it to two vertices');
@@ -813,9 +1099,19 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('mark.area: a gap in the middle splits into separate shapes', () => {
-    BC.data('gap', [{ t: 1, v: 1 }, { t: 2, v: 2 }, { t: 3, v: null }, { t: 4, v: 2 }, { t: 5, v: 1 }]);
+    BC.data('gap', [
+      { t: 1, v: 1 },
+      { t: 2, v: 2 },
+      { t: 3, v: null },
+      { t: 4, v: 2 },
+      { t: 5, v: 1 },
+    ]);
     const host = new FakeNode('div');
-    BC.chart(host, { data: 'gap', scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true } }, marks: [{ type: 'area', x: 't', y: 'v' }] });
+    BC.chart(host, {
+      data: 'gap',
+      scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'area', x: 't', y: 'v' }],
+    });
     const d = svgOf(host).match(/<path d="([^"]+)"/)[1];
     assert.strictEqual(count(d, /M/g), 2);
     assert.strictEqual(count(d, /Z/g), 2);
@@ -842,7 +1138,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   // ── y auto-fit ──
   let probed = null;
-  BC.define({ role: 'interaction', type: 'probe2', version: 1, attach(_s, live) { probed = live; } });
+  BC.define({
+    role: 'interaction',
+    type: 'probe2',
+    version: 1,
+    attach(_s, live) {
+      probed = live;
+    },
+  });
 
   test('live.fit: the domain of the rows visible in the followed view, judged in pixels for any scale kind', () => {
     const host = new FakeNode('div');
@@ -866,11 +1169,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(probed.fit('y', 'x'), [0, 6], 'values 3 and 6 (zero kept by the scale)');
   });
 
-  BC.data('jump', Array.from({ length: 100 }, (_, i) => ({ x: i, y: i < 50 ? 10 + (i % 3) : 1000 + i })));
+  BC.data(
+    'jump',
+    Array.from({ length: 100 }, (_, i) => ({ x: i, y: i < 50 ? 10 + (i % 3) : 1000 + i })),
+  );
   const jumpSpec = (zoom) => ({
     data: 'jump',
     scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
-    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
+    guides: [
+      { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+    ],
     marks: [{ type: 'line', x: 'x', y: 'y' }],
     interaction: [{ type: 'zoom', wheel: 'always', ...zoom }],
   });
@@ -915,25 +1224,44 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   // ── axis labels that stick out past the plot ──
-  BC.data('edge', [{ t: '2024-01-01', v: 1 }, { t: '2024-06-01', v: 3 }]);
+  BC.data('edge', [
+    { t: '2024-01-01', v: 1 },
+    { t: '2024-06-01', v: 3 },
+  ]);
   const edgeSpec = (extra) => ({
     data: 'edge',
     scales: { x: { type: 'time' }, y: { type: 'linear' } },
-    guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
+    guides: [
+      { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+    ],
     marks: [{ type: 'line', x: 't', y: 'v' }],
     ...extra,
   });
   // the core's own text-size estimate, the one the layout is based on
   const half = (label, size = 11) => (label.length * size * 0.6) / 2;
-  const xLabels = (svg) => [...svg.matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"[^>]*text-anchor="middle"[^>]*>([^<]*)</g)].map((m) => ({ x: +m[1], y: +m[2], text: m[3] }));
-  const yLabels = (svg) => [...svg.matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"[^>]*text-anchor="end"[^>]*>([^<]*)</g)].map((m) => ({ x: +m[1], y: +m[2], text: m[3] }));
+  const xLabels = (svg) =>
+    [...svg.matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"[^>]*text-anchor="middle"[^>]*>([^<]*)</g)].map((m) => ({
+      x: +m[1],
+      y: +m[2],
+      text: m[3],
+    }));
+  const yLabels = (svg) =>
+    [...svg.matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"[^>]*text-anchor="end"[^>]*>([^<]*)</g)].map((m) => ({
+      x: +m[1],
+      y: +m[2],
+      text: m[3],
+    }));
 
   test('layout: the first and last axis labels are kept inside the chart', () => {
     const host = new FakeNode('div');
     BC.chart(host, edgeSpec());
     const labels = xLabels(svgOf(host));
     assert(labels.length >= 2);
-    assert(labels.some((l) => l.text === 'Jan 2024') && labels.some((l) => l.text === 'Jun 2024'), 'ticks at both ends: ' + labels.map((l) => l.text));
+    assert(
+      labels.some((l) => l.text === 'Jan 2024') && labels.some((l) => l.text === 'Jun 2024'),
+      'ticks at both ends: ' + labels.map((l) => l.text),
+    );
     for (const l of labels) {
       assert(l.x - half(l.text) >= -0.01, `${l.text} does not stick out on the left`);
       assert(l.x + half(l.text) <= 640 + 0.01, `${l.text} does not stick out on the right: ${l.x + half(l.text)}`);
@@ -947,14 +1275,19 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     for (const l of [...yLabels(svg), ...xLabels(svg)]) {
       assert(l.x - half(l.text) >= -0.01 && l.x + half(l.text) <= 640.01, `${l.text} inside horizontally`);
     }
-    for (const l of yLabels(svg)) assert(l.y - 11 * 1.2 / 2 >= -0.01, `${l.text} is not cut off at the top (y ${l.y})`);
-    for (const l of yLabels(svg)) assert(l.y + 11 * 1.2 / 2 <= 400.01, `${l.text} is not cut off at the bottom (y ${l.y})`);
+    for (const l of yLabels(svg)) assert(l.y - (11 * 1.2) / 2 >= -0.01, `${l.text} is not cut off at the top (y ${l.y})`);
+    for (const l of yLabels(svg)) assert(l.y + (11 * 1.2) / 2 <= 400.01, `${l.text} is not cut off at the bottom (y ${l.y})`);
   });
 
   test('layout: room is only added where the padding is not enough, and it does not push other guides away', () => {
     // short labels (numbers) fit inside the default 16px padding: the plot keeps its full width
     const plain = new FakeNode('div');
-    BC.chart(plain, { data: 'cats', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }], marks: [{ type: 'point', x: 'v', y: 'v' }] });
+    BC.chart(plain, {
+      data: 'cats',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }],
+      marks: [{ type: 'point', x: 'v', y: 'v' }],
+    });
     assert.strictEqual(bottomAxisEnd(svgOf(plain)), 624, 'right edge at 640 - 16');
 
     // wide labels widen the right margin...
@@ -965,9 +1298,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     // ...but a second guide on that side sits right against the plot, not behind an imaginary reserved strip
     const both = new FakeNode('div');
-    BC.chart(both, edgeSpec({ scales: { x: { type: 'time' }, y: { type: 'linear', range: 'height' } }, guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right' }] }));
+    BC.chart(
+      both,
+      edgeSpec({
+        scales: { x: { type: 'time' }, y: { type: 'linear', range: 'height' } },
+        guides: [
+          { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+          { type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right' },
+        ],
+      }),
+    );
     const svg = svgOf(both);
-    const rightAxisX = +svg.match(/<path d="M([\d.]+) [\d.]+V[\d.]+M[\d.]+ [\d.]+H([\d.]+)/g).find((d) => /^<path d="M([\d.]+) [\d.]+V/.test(d)).match(/M([\d.]+)/)[1];
+    const rightAxisX = +svg
+      .match(/<path d="M([\d.]+) [\d.]+V[\d.]+M[\d.]+ [\d.]+H([\d.]+)/g)
+      .find((d) => /^<path d="M([\d.]+) [\d.]+V/.test(d))
+      .match(/M([\d.]+)/)[1];
     assert.strictEqual(rightAxisX, bottomAxisEnd(svg), 'the right axis starts exactly where the x axis ends');
   });
 
@@ -975,27 +1320,53 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     BC.define({ role: 'guide', type: 'halo', version: 1, measure: () => ({ overhang: { left: 60 } }), render: () => ({}) });
     BC.define({ role: 'guide', type: 'mute', version: 1, measure: () => ({}), render: () => ({}) });
     const host = new FakeNode('div');
-    const h = BC.chart(host, { ...edgeSpec({ guides: [{ type: 'halo' }, { type: 'mute' }, { type: 'axis', line: 'on', ticks: true, scale: 'x' }] }) });
+    const h = BC.chart(host, {
+      ...edgeSpec({ guides: [{ type: 'halo' }, { type: 'mute' }, { type: 'axis', line: 'on', ticks: true, scale: 'x' }] }),
+    });
     assert.deepStrictEqual(h.diagnostics, []);
-    const [x0] = svgOf(host).match(/<path d="M([\d.]+) [\d.]+H/).slice(1).map(Number);
+    const [x0] = svgOf(host)
+      .match(/<path d="M([\d.]+) [\d.]+H/)
+      .slice(1)
+      .map(Number);
     assert.strictEqual(x0, 60, 'the plot starts at least 60 from the left edge');
   });
 
   // ── histogram: transform.bin ──
-  const bin = (values, spec, extra) => BC.get('transform.bin').apply({ length: values.length, columns: { v: Float64Array.from(values), ...(extra || {}) } }, { type: 'bin', field: 'v', ...spec });
+  const bin = (values, spec, extra) =>
+    BC.get('transform.bin').apply(
+      { length: values.length, columns: { v: Float64Array.from(values), ...(extra || {}) } },
+      { type: 'bin', field: 'v', ...spec },
+    );
   const col = (t, name) => Array.from(t.columns[name]);
 
   test('transform.bin: round edges, contiguous bins, the last bin includes its end', () => {
     const t = bin([1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5], { bins: 5 });
-    assert.deepStrictEqual([col(t, 'bin0'), col(t, 'bin1'), col(t, 'count')], [[1, 2, 3, 4], [2, 3, 4, 5], [1, 2, 3, 5]]);
+    assert.deepStrictEqual(
+      [col(t, 'bin0'), col(t, 'bin1'), col(t, 'count')],
+      [
+        [1, 2, 3, 4],
+        [2, 3, 4, 5],
+        [1, 2, 3, 5],
+      ],
+    );
     assert.strictEqual(t.length, 4);
-    assert.strictEqual(col(t, 'count').reduce((a, b) => a + b, 0), 11, 'every value is counted once');
+    assert.strictEqual(
+      col(t, 'count').reduce((a, b) => a + b, 0),
+      11,
+      'every value is counted once',
+    );
 
     const messy = bin([0.13, 0.27, 0.31, 0.44, 0.98, 0.5, 0.51, 0.7], { bins: 10 });
     for (const e of [...col(messy, 'bin0'), ...col(messy, 'bin1')]) assert(String(e).length <= 5, `no float drift in edge ${e}`);
     const e0 = col(messy, 'bin0');
-    assert(e0.every((x, i) => i === 0 || Math.abs(x - e0[i - 1] - (e0[1] - e0[0])) < 1e-9), 'equal width');
-    assert.strictEqual(col(messy, 'count').reduce((a, b) => a + b, 0), 8);
+    assert(
+      e0.every((x, i) => i === 0 || Math.abs(x - e0[i - 1] - (e0[1] - e0[0])) < 1e-9),
+      'equal width',
+    );
+    assert.strictEqual(
+      col(messy, 'count').reduce((a, b) => a + b, 0),
+      8,
+    );
     assert(e0[0] <= 0.13 && col(messy, 'bin1')[e0.length - 1] >= 0.98, 'the bins cover the data');
   });
 
@@ -1014,8 +1385,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     assert.strictEqual(bin([], {}).length, 0);
     const holes = { length: 4, columns: { v: [NaN, null, undefined, Infinity] } };
-    assert.strictEqual(BC.get('transform.bin').apply(holes, { type: 'bin', field: 'v' }).length, 0, 'nothing numeric: no bins, and no crash');
-    assert.strictEqual(col(bin([NaN, 1, 2, NaN, Infinity, 3], { bins: 3 }), 'count').reduce((a, b) => a + b, 0), 3, 'missing and infinite values are skipped');
+    assert.strictEqual(
+      BC.get('transform.bin').apply(holes, { type: 'bin', field: 'v' }).length,
+      0,
+      'nothing numeric: no bins, and no crash',
+    );
+    assert.strictEqual(
+      col(bin([NaN, 1, 2, NaN, Infinity, 3], { bins: 3 }), 'count').reduce((a, b) => a + b, 0),
+      3,
+      'missing and infinite values are skipped',
+    );
   });
 
   test('transform.bin: groups get a row per bin and group, in a stable order', () => {
@@ -1036,22 +1415,41 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(outputs({ field: 'v' }), ['bin0', 'bin1', 'count']);
     assert.deepStrictEqual(outputs({ field: 'v', group: 'g', as: ['a', 'b', 'c'] }), ['a', 'b', 'c', 'g']);
     for (const [spec, re] of [
-      [{ field: 'nope' }, /unknown field "nope"/], [{ field: 'v', group: 'nope' }, /unknown field "nope"/],
-      [{ field: 'v', as: ['a', 'a', 'b'] }, /three different column names/], [{ field: 'v', as: ['a', 'b'] }, /three different column names/],
-      [{ field: 'v', width: 0 }, /"width" must be a positive number/], [{ field: 'v', width: -1 }, /positive/], [{ field: 'v', bins: 0 }, /"bins" must be/],
-      [{ field: 'v', extent: [3, 1] }, /"extent" must be \[min, max\]/], [{ field: 'v', extent: ['a', 'b'] }, /"extent"/],
+      [{ field: 'nope' }, /unknown field "nope"/],
+      [{ field: 'v', group: 'nope' }, /unknown field "nope"/],
+      [{ field: 'v', as: ['a', 'a', 'b'] }, /three different column names/],
+      [{ field: 'v', as: ['a', 'b'] }, /three different column names/],
+      [{ field: 'v', width: 0 }, /"width" must be a positive number/],
+      [{ field: 'v', width: -1 }, /positive/],
+      [{ field: 'v', bins: 0 }, /"bins" must be/],
+      [{ field: 'v', extent: [3, 1] }, /"extent" must be \[min, max\]/],
+      [{ field: 'v', extent: ['a', 'b'] }, /"extent"/],
       [{ field: 'v', width: 1e-9 }, /too many/],
-    ]) assert.throws(() => BC.get('transform.bin').apply({ length: 3, columns: { v: Float64Array.of(1, 2, 300) } }, { type: 'bin', ...spec }), re, JSON.stringify(spec));
-    assert.throws(() => BC.get('transform.bin').apply({ length: 2, columns: { v: ['x', 'y'] } }, { type: 'bin', field: 'v' }), /has no numeric values/);
+    ])
+      assert.throws(
+        () => BC.get('transform.bin').apply({ length: 3, columns: { v: Float64Array.of(1, 2, 300) } }, { type: 'bin', ...spec }),
+        re,
+        JSON.stringify(spec),
+      );
+    assert.throws(
+      () => BC.get('transform.bin').apply({ length: 2, columns: { v: ['x', 'y'] } }, { type: 'bin', field: 'v' }),
+      /has no numeric values/,
+    );
   });
 
   test('histogram: bins drawn as contiguous rectangles, the fields of the transform are known to validate', () => {
-    BC.data('measure', Array.from({ length: 60 }, (_, i) => ({ h: 150 + ((i * 37) % 41) + (i % 3) })));
+    BC.data(
+      'measure',
+      Array.from({ length: 60 }, (_, i) => ({ h: 150 + ((i * 37) % 41) + (i % 3) })),
+    );
     const spec = () => ({
       data: 'measure',
       transforms: [{ type: 'bin', field: 'h', bins: 8 }],
       scales: { x: { type: 'linear', nice: false }, y: { type: 'linear', zero: true } },
-      guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
+      guides: [
+        { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+        { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+      ],
       marks: [{ type: 'rect', x: 'bin0', x2: 'bin1', y: 'count' }],
       interaction: [{ type: 'tooltip' }],
     });
@@ -1060,16 +1458,26 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(h.diagnostics, []);
     const bars = rects(layer(svgOf(host), 'marks'));
     assert(bars.length >= 6);
-    assert(bars.every((b, i) => i === 0 || Math.abs(bars[i - 1].x + bars[i - 1].w - b.x) < 1e-6), 'no gaps between bars');
+    assert(
+      bars.every((b, i) => i === 0 || Math.abs(bars[i - 1].x + bars[i - 1].w - b.x) < 1e-6),
+      'no gaps between bars',
+    );
     const bottoms = bars.map((b) => +(b.y + b.h).toFixed(4));
-    assert(bottoms.every((y) => y === bottoms[0]), 'all bars stand on the baseline');
+    assert(
+      bottoms.every((y) => y === bottoms[0]),
+      'all bars stand on the baseline',
+    );
     const typo = spec();
     typo.marks[0].y = 'cnt';
     assert(BC.validate(typo).some((d) => d.path === 'marks[0].y' && /unknown field "cnt"/.test(d.message)));
   });
 
   // ── boxplot: transform.quartiles + mark.boxplot ──
-  const quart = (values, spec, extra) => BC.get('transform.quartiles').apply({ length: values.length, columns: { v: Float64Array.from(values), ...(extra || {}) } }, { type: 'quartiles', field: 'v', ...spec });
+  const quart = (values, spec, extra) =>
+    BC.get('transform.quartiles').apply(
+      { length: values.length, columns: { v: Float64Array.from(values), ...(extra || {}) } },
+      { type: 'quartiles', field: 'v', ...spec },
+    );
 
   test('transform.quartiles: R-7 interpolated quartiles, Tukey whiskers, and outliers reported as their own row', () => {
     // sorted 1..9,100: q1/median/q3 sit at fractional positions 2.25/4.5/6.75, unaffected by the 100 itself
@@ -1080,14 +1488,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(isNaN(col(t, 'value')[0]), 'the summary row has no "value"');
     assert.strictEqual(col(t, 'count')[0], 10);
     assert.strictEqual(col(t, 'value')[1], 100, 'the outlier is its own row');
-    assert(isNaN(col(t, 'low')[1]) && isNaN(col(t, 'q1')[1]) && isNaN(col(t, 'median')[1]) && isNaN(col(t, 'q3')[1]) && isNaN(col(t, 'high')[1]), 'an outlier row has no summary');
+    assert(
+      isNaN(col(t, 'low')[1]) && isNaN(col(t, 'q1')[1]) && isNaN(col(t, 'median')[1]) && isNaN(col(t, 'q3')[1]) && isNaN(col(t, 'high')[1]),
+      'an outlier row has no summary',
+    );
 
     const noOutliers = quart([1, 2, 3, 4, 5, 6, 7, 8, 9, 100], { outliers: false });
     assert.strictEqual(noOutliers.length, 1, 'no separate row: the whisker just stretches to it');
     assert.deepStrictEqual([col(noOutliers, 'low')[0], col(noOutliers, 'high')[0]], [1, 100]);
 
     const one = quart([42], {});
-    assert.deepStrictEqual([col(one, 'low')[0], col(one, 'q1')[0], col(one, 'median')[0], col(one, 'q3')[0], col(one, 'high')[0]], [42, 42, 42, 42, 42], 'a single sample is its own whole summary');
+    assert.deepStrictEqual(
+      [col(one, 'low')[0], col(one, 'q1')[0], col(one, 'median')[0], col(one, 'q3')[0], col(one, 'high')[0]],
+      [42, 42, 42, 42, 42],
+      'a single sample is its own whole summary',
+    );
   });
 
   test('transform.quartiles: one summary per group, first-appearance order, a missing group is its own group', () => {
@@ -1098,8 +1513,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual([...new Set(groups)], ['A', 'B', null], 'first-appearance order, null kept as its own group');
     const rowOf = (key) => groups.findIndex((k) => k === key);
     assert.deepStrictEqual([col(t, 'low')[rowOf('A')], col(t, 'high')[rowOf('A')]], [1, 10], 'A has no outlier');
-    assert.deepStrictEqual([col(t, 'low')[rowOf('B')], col(t, 'high')[rowOf('B')]], [1, 9], 'B\'s 100 is an outlier');
-    assert.strictEqual(t.length, 3 + 1, '3 summaries + B\'s one outlier');
+    assert.deepStrictEqual([col(t, 'low')[rowOf('B')], col(t, 'high')[rowOf('B')]], [1, 9], "B's 100 is an outlier");
+    assert.strictEqual(t.length, 3 + 1, "3 summaries + B's one outlier");
   });
 
   test('transform.quartiles: input is untouched, outputs(), and bad input is a clear error', () => {
@@ -1111,22 +1526,39 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(outputs({ field: 'v' }).sort(), ['low', 'q1', 'median', 'q3', 'high', 'value', 'count'].sort());
     assert(outputs({ field: 'v', group: 'g' }).includes('g'));
     assert.throws(() => BC.get('transform.quartiles').apply(table, { type: 'quartiles', field: 'nope' }), /unknown field "nope"/);
-    assert.throws(() => BC.get('transform.quartiles').apply(table, { type: 'quartiles', field: 'v', group: 'nope' }), /unknown field "nope"/);
-    assert.throws(() => BC.get('transform.quartiles').apply({ length: 2, columns: { v: ['x', 'y'] } }, { type: 'quartiles', field: 'v' }), /has no numeric values/);
+    assert.throws(
+      () => BC.get('transform.quartiles').apply(table, { type: 'quartiles', field: 'v', group: 'nope' }),
+      /unknown field "nope"/,
+    );
+    assert.throws(
+      () => BC.get('transform.quartiles').apply({ length: 2, columns: { v: ['x', 'y'] } }, { type: 'quartiles', field: 'v' }),
+      /has no numeric values/,
+    );
     assert.strictEqual(BC.get('transform.quartiles').apply({ length: 0, columns: { v: [] } }, { type: 'quartiles', field: 'v' }).length, 0);
   });
 
   test('mark.boxplot: box spans q1..q3, whiskers reach low/high, outlier rows draw no box, tooltip hits the box', async () => {
     BC.data('latency', [
-      { team: 'A', ms: 10 }, { team: 'A', ms: 20 }, { team: 'A', ms: 30 }, { team: 'A', ms: 40 }, { team: 'A', ms: 50 },
-      { team: 'A', ms: 60 }, { team: 'A', ms: 70 }, { team: 'A', ms: 80 }, { team: 'A', ms: 90 }, { team: 'A', ms: 900 },
+      { team: 'A', ms: 10 },
+      { team: 'A', ms: 20 },
+      { team: 'A', ms: 30 },
+      { team: 'A', ms: 40 },
+      { team: 'A', ms: 50 },
+      { team: 'A', ms: 60 },
+      { team: 'A', ms: 70 },
+      { team: 'A', ms: 80 },
+      { team: 'A', ms: 90 },
+      { team: 'A', ms: 900 },
     ]);
     const host = new FakeNode('div');
     const h = BC.chart(host, {
       data: 'latency',
       transforms: [{ type: 'quartiles', field: 'ms', group: 'team' }],
       scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-      marks: [{ type: 'boxplot', x: 'team', low: 'low', q1: 'q1', median: 'median', q3: 'q3', high: 'high' }, { type: 'point', x: 'team', y: 'value', r: 3 }],
+      marks: [
+        { type: 'boxplot', x: 'team', low: 'low', q1: 'q1', median: 'median', q3: 'q3', high: 'high' },
+        { type: 'point', x: 'team', y: 'value', r: 3 },
+      ],
       interaction: [{ type: 'tooltip' }],
     });
     assert.deepStrictEqual(h.diagnostics, []);
@@ -1139,11 +1571,19 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     await hover(host, box.x + box.w / 2, box.y + box.h / 2);
     assert.strictEqual(tipOf(host).style.display, 'block', 'the box is hoverable');
   });
-  const seq = (spec, values) => BC.get('scale.sequential').create({ type: 'sequential', ...spec }, { name: 'color', sources: [Float64Array.from(values)], range: [], color: (i) => `c${i}` });
+  const seq = (spec, values) =>
+    BC.get('scale.sequential').create(
+      { type: 'sequential', ...spec },
+      { name: 'color', sources: [Float64Array.from(values)], range: [], color: (i) => `c${i}` },
+    );
 
   test('scale.sequential: endpoints, exact stops, mixing, clamping, missing values', () => {
     const s = seq({}, [0, 10]);
-    assert.deepStrictEqual([s(0), s(5), s(10)], ['#440154', '#21908d', '#fde725'], 'first stop, middle stop, last stop of the default (viridis)');
+    assert.deepStrictEqual(
+      [s(0), s(5), s(10)],
+      ['#440154', '#21908d', '#fde725'],
+      'first stop, middle stop, last stop of the default (viridis)',
+    );
     assert.strictEqual(s.kind, 'sequential');
     assert.deepStrictEqual(s.domain(), [0, 10]);
     assert.strictEqual(s.range().length, 5);
@@ -1153,7 +1593,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(seq({ range: ['#f00', '#00f'] }, [0, 1])(0), '#ff0000', 'three-digit hex is expanded');
 
     const div = seq({ range: ['#0000ff', '#ffffff', '#ff0000'], domain: [-10, 10] }, [1]);
-    assert.deepStrictEqual([div(-10), div(0), div(10), div(5)], ['#0000ff', '#ffffff', '#ff0000', '#ff8080'], 'three colors: a diverging scale');
+    assert.deepStrictEqual(
+      [div(-10), div(0), div(10), div(5)],
+      ['#0000ff', '#ffffff', '#ff0000', '#ff8080'],
+      'three colors: a diverging scale',
+    );
     assert.deepStrictEqual([div(-99), div(99)], ['#0000ff', '#ff0000'], 'outside an explicit domain: the end colors');
 
     for (const missing of [NaN, null, undefined, 'x', Infinity, {}]) assert.strictEqual(s(missing), '', `${String(missing)} has no color`);
@@ -1168,7 +1612,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('scale.sequential: bad ranges and domains are clear errors, ticks are fractions of the domain', () => {
-    for (const range of [['red', 'blue'], ['var(--a)', '#fff'], ['#ggg', '#fff'], [5, 6], ['#12345', '#fff']]) {
+    for (const range of [
+      ['red', 'blue'],
+      ['var(--a)', '#fff'],
+      ['#ggg', '#fff'],
+      [5, 6],
+      ['#12345', '#fff'],
+    ]) {
       assert.throws(() => seq({ range }, [0, 1]), /range colors must be #rgb or #rrggbb/, JSON.stringify(range));
     }
     assert.throws(() => seq({ range: ['#fff'] }, [0, 1]), /at least two colors/);
@@ -1178,12 +1628,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(t.length >= 3 && t.length <= 6);
     assert.strictEqual(t[0].pos, 0);
     assert.strictEqual(t[t.length - 1].pos, 1);
-    assert(t.every((k, i) => i === 0 || k.pos > t[i - 1].pos), 'increasing');
-    assert(t.every((k) => k.label === String(k.value)), 'labels are the values');
+    assert(
+      t.every((k, i) => i === 0 || k.pos > t[i - 1].pos),
+      'increasing',
+    );
+    assert(
+      t.every((k) => k.label === String(k.value)),
+      'labels are the values',
+    );
   });
 
   test('scale.color: a value outside the visible domain has no color, and it comes back', () => {
-    const s = BC.get('scale.color').create({ type: 'color' }, { name: 'color', sources: [['a', 'b', 'c']], range: [], color: (i) => `c${i}` });
+    const s = BC.get('scale.color').create(
+      { type: 'color' },
+      { name: 'color', sources: [['a', 'b', 'c']], range: [], color: (i) => `c${i}` },
+    );
     assert.deepStrictEqual([s('a'), s('b'), s('c')], ['c0', 'c1', 'c2']);
     s.setDomain(['a', 'c']);
     assert.deepStrictEqual([s('a'), s('b'), s('c')], ['c0', '', 'c2'], 'b is hidden, the others keep their color');
@@ -1209,8 +1668,15 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(circles(svg).length, 4, 'the two rows of B are gone');
     assert(!fills(svg).includes(''), 'and no mark got an empty fill');
     assert.strictEqual(count(svg, /class="bc-legend-item"/g), 3, 'the legend still lists all three');
-    assert.strictEqual(count(svg, /class="bc-legend-item"[^>]*opacity="0.4"|opacity="0.4"[^>]*class="bc-legend-item"/g), 1, 'and dims the hidden one');
-    assert(svg.includes('data-bc-legend-scale="color"') && svg.includes('data-bc-legend-index="1"'), 'items say which value they stand for');
+    assert.strictEqual(
+      count(svg, /class="bc-legend-item"[^>]*opacity="0.4"|opacity="0.4"[^>]*class="bc-legend-item"/g),
+      1,
+      'and dims the hidden one',
+    );
+    assert(
+      svg.includes('data-bc-legend-scale="color"') && svg.includes('data-bc-legend-index="1"'),
+      'items say which value they stand for',
+    );
     assert.strictEqual(h.getView().color.length, 2);
 
     const c = circles(svgOf(all)).find((_, i) => i === 1); // row 1 is group B, in the unfiltered chart
@@ -1218,11 +1684,23 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(tipOf(host).style.display, 'none', 'a hidden datum is not picked');
 
     const lines = new FakeNode('div');
-    BC.chart(lines, lineSpec({ scales: { x: { type: 'time' }, y: { type: 'linear' }, color: { type: 'color' } }, marks: [{ type: 'line', x: 't', y: 'v', color: 's' }], view: { color: ['up'] } }));
+    BC.chart(
+      lines,
+      lineSpec({
+        scales: { x: { type: 'time' }, y: { type: 'linear' }, color: { type: 'color' } },
+        marks: [{ type: 'line', x: 't', y: 'v', color: 's' }],
+        view: { color: ['up'] },
+      }),
+    );
     assert.strictEqual(count(layer(svgOf(lines), 'marks'), /<path /g), 1, 'one series left');
 
     const bars = new FakeNode('div');
-    BC.chart(bars, { ...barSpec(), scales: { ...barSpec().scales, color: { type: 'color' } }, marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }], view: { color: ['a', 'd'] } });
+    BC.chart(bars, {
+      ...barSpec(),
+      scales: { ...barSpec().scales, color: { type: 'color' } },
+      marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
+      view: { color: ['a', 'd'] },
+    });
     assert.strictEqual(count(layer(svgOf(bars), 'marks'), /<rect /g), 2);
 
     const areas = new FakeNode('div');
@@ -1231,13 +1709,19 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   BC.data('heat', [
-    { day: 'Mon', part: 'am', n: 1 }, { day: 'Mon', part: 'pm', n: 5 },
-    { day: 'Tue', part: 'am', n: 3 }, { day: 'Tue', part: 'pm', n: 9 },
+    { day: 'Mon', part: 'am', n: 1 },
+    { day: 'Mon', part: 'pm', n: 5 },
+    { day: 'Tue', part: 'am', n: 3 },
+    { day: 'Tue', part: 'pm', n: 9 },
     { day: 'Wed', part: 'am', n: 2 },
   ]);
   const heatSpec = (guides, extra) => ({
     data: 'heat',
-    scales: { x: { type: 'band', paddingInner: 0.05, paddingOuter: 0 }, y: { type: 'band', paddingInner: 0.05, paddingOuter: 0 }, color: { type: 'sequential' } },
+    scales: {
+      x: { type: 'band', paddingInner: 0.05, paddingOuter: 0 },
+      y: { type: 'band', paddingInner: 0.05, paddingOuter: 0 },
+      color: { type: 'sequential' },
+    },
     guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }, ...guides],
     marks: [{ type: 'rect', x: 'day', y: 'part', color: 'n' }],
     interaction: [{ type: 'tooltip' }],
@@ -1267,13 +1751,19 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('legend of a continuous scale: a color bar with labels, on the right and on top', () => {
-    const plain = new FakeNode('div'), right = new FakeNode('div'), top = new FakeNode('div');
+    const plain = new FakeNode('div'),
+      right = new FakeNode('div'),
+      top = new FakeNode('div');
     BC.chart(plain, heatSpec([]));
     const h = BC.chart(right, heatSpec([{ type: 'legend', scale: 'color' }]));
     assert.deepStrictEqual(h.diagnostics, []);
     const svg = svgOf(right);
     assert.strictEqual(count(svg, /class="bc-legend-bar"/g), 48, 'one slice per step');
-    const slices = [...svg.matchAll(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"[^>]*fill="(#[0-9a-f]{6})"[^>]*class="bc-legend-bar"/g)].map((m) => ({ x: +m[1], y: +m[2], fill: m[5] }));
+    const slices = [
+      ...svg.matchAll(
+        /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"[^>]*fill="(#[0-9a-f]{6})"[^>]*class="bc-legend-bar"/g,
+      ),
+    ].map((m) => ({ x: +m[1], y: +m[2], fill: m[5] }));
     assert.strictEqual(slices.length, 48);
     assert(slices.every((s, i) => i === 0 || s.y > slices[i - 1].y) && slices.every((s) => s.x === slices[0].x), 'a vertical bar');
     const near = (a, b) => [1, 3, 5].every((i) => Math.abs(parseInt(a.slice(i, i + 2), 16) - parseInt(b.slice(i, i + 2), 16)) <= 12);
@@ -1287,30 +1777,63 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     BC.chart(top, heatSpec([{ type: 'legend', scale: 'color', position: 'top' }]));
     const t = svgOf(top);
-    const barY = [...t.matchAll(/<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="[\d.]+"[^>]*class="bc-legend-bar"/g)].map((m) => +m[1]);
+    const barY = [...t.matchAll(/<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="[\d.]+"[^>]*class="bc-legend-bar"/g)].map(
+      (m) => +m[1],
+    );
     const plotTop = +t.match(/<path d="M[\d.]+ ([\d.]+)V/)[1];
     assert(barY.length === 48 && barY.every((y) => y === barY[0]) && barY[0] < plotTop, 'a horizontal bar above the plot');
     const xs = [...t.matchAll(/<rect x="([\d.]+)"[^>]*class="bc-legend-bar"/g)].map((m) => +m[1]);
-    assert(xs.every((x, i) => i === 0 || x > xs[i - 1]), 'low to high, left to right');
+    assert(
+      xs.every((x, i) => i === 0 || x > xs[i - 1]),
+      'low to high, left to right',
+    );
   });
 
   test('sequential color on points: each dot takes its color from its value, missing values are not drawn', () => {
-    BC.data('bubbles', [{ a: 1, b: 1, v: 0 }, { a: 2, b: 2, v: 50 }, { a: 3, b: 3, v: 100 }, { a: 4, b: 4, v: null }]);
+    BC.data('bubbles', [
+      { a: 1, b: 1, v: 0 },
+      { a: 2, b: 2, v: 50 },
+      { a: 3, b: 3, v: 100 },
+      { a: 4, b: 4, v: null },
+    ]);
     const host = new FakeNode('div');
-    const h = BC.chart(host, { data: 'bubbles', scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'sequential', range: ['#000000', '#ffffff'] } }, marks: [{ type: 'point', x: 'a', y: 'b', color: 'v' }] });
+    const h = BC.chart(host, {
+      data: 'bubbles',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'sequential', range: ['#000000', '#ffffff'] } },
+      marks: [{ type: 'point', x: 'a', y: 'b', color: 'v' }],
+    });
     assert.deepStrictEqual(h.diagnostics, []);
     assert.deepStrictEqual(fills(svgOf(host)), ['#000000', '#808080', '#ffffff'], 'the row without a value has no dot');
-    const bad = BC.validate({ data: 'bubbles', scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'sequential', range: ['red', 'blue'] } }, marks: [{ type: 'point', x: 'a', y: 'b', color: 'v' }] });
+    const bad = BC.validate({
+      data: 'bubbles',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'sequential', range: ['red', 'blue'] } },
+      marks: [{ type: 'point', x: 'a', y: 'b', color: 'v' }],
+    });
     assert.deepStrictEqual(bad, [], 'a bad color is found when the scale is built, not by validate');
     const broken = new FakeNode('div');
-    const hb = BC.chart(broken, { data: 'bubbles', scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'sequential', range: ['red', 'blue'] } }, marks: [{ type: 'point', x: 'a', y: 'b', color: 'v' }] });
-    assert(hb.diagnostics.some((d) => /range colors must be/.test(d.message)), 'and reported as a chart error, not a crash');
+    const hb = BC.chart(broken, {
+      data: 'bubbles',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'sequential', range: ['red', 'blue'] } },
+      marks: [{ type: 'point', x: 'a', y: 'b', color: 'v' }],
+    });
+    assert(
+      hb.diagnostics.some((d) => /range colors must be/.test(d.message)),
+      'and reported as a chart error, not a crash',
+    );
     logged.error.length = 0;
   });
 
   // ── mark.text and channels without a scale ──
-  const texts = (svg) => [...svg.matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"([^>]*)>([^<]*)</g)].map((m) => ({ x: +m[1], y: +m[2], attrs: m[3], text: m[4] }));
-  const barsWithLabels = (textExtra) => ({ ...barSpec(), guides: [], marks: [{ type: 'rect', x: 'k', y: 'v' }, { type: 'text', x: 'k', y: 'v', text: 'v', baseline: 'auto', dy: -4, ...textExtra }] });
+  const texts = (svg) =>
+    [...svg.matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"([^>]*)>([^<]*)</g)].map((m) => ({ x: +m[1], y: +m[2], attrs: m[3], text: m[4] }));
+  const barsWithLabels = (textExtra) => ({
+    ...barSpec(),
+    guides: [],
+    marks: [
+      { type: 'rect', x: 'k', y: 'v' },
+      { type: 'text', x: 'k', y: 'v', text: 'v', baseline: 'auto', dy: -4, ...textExtra },
+    ],
+  });
 
   test('mark.text: value labels centered on their bars, just above them', () => {
     const host = new FakeNode('div');
@@ -1319,7 +1842,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const svg = svgOf(host);
     const bars = rects(layer(svg, 'marks'));
     const labels = texts(layer(svg, 'marks'));
-    assert.deepStrictEqual(labels.map((l) => l.text), ['3', '6', '0', '9']);
+    assert.deepStrictEqual(
+      labels.map((l) => l.text),
+      ['3', '6', '0', '9'],
+    );
     labels.forEach((l, i) => {
       assert(Math.abs(l.x - (bars[i].x + bars[i].w / 2)) < 1e-6, `label ${i} is centered on its bar`);
       assert(Math.abs(l.y - (bars[i].y - 4)) < 1e-6, `label ${i} sits 4px above the bar top`);
@@ -1329,20 +1855,45 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('mark.text: formatting, styling, missing values, and text that is only ever text', () => {
-    BC.data('labels', [{ k: 'a', v: 3.14159265, s: 'pi' }, { k: 'b', v: 2, s: '<b>bold</b> & co' }, { k: 'c', v: null, s: null }, { k: 'd', v: 4.5, s: '' }]);
-    const mk = (textField, extra) => ({ data: 'labels', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'text', x: 'k', y: 'v', text: textField, ...extra }] });
+    BC.data('labels', [
+      { k: 'a', v: 3.14159265, s: 'pi' },
+      { k: 'b', v: 2, s: '<b>bold</b> & co' },
+      { k: 'c', v: null, s: null },
+      { k: 'd', v: 4.5, s: '' },
+    ]);
+    const mk = (textField, extra) => ({
+      data: 'labels',
+      scales: { x: { type: 'band' }, y: { type: 'linear' } },
+      marks: [{ type: 'text', x: 'k', y: 'v', text: textField, ...extra }],
+    });
     const numbers = new FakeNode('div');
     BC.chart(numbers, mk('v'));
-    assert.deepStrictEqual(texts(svgOf(numbers)).map((t) => t.text), ['3.14159', '2', '4.5'], 'six significant digits, integers as they are, null skipped');
+    assert.deepStrictEqual(
+      texts(svgOf(numbers)).map((t) => t.text),
+      ['3.14159', '2', '4.5'],
+      'six significant digits, integers as they are, null skipped',
+    );
     const fixed = new FakeNode('div');
     BC.chart(fixed, mk('v', { decimals: 1 }));
-    assert.deepStrictEqual(texts(svgOf(fixed)).map((t) => t.text), ['3.1', '2.0', '4.5']);
+    assert.deepStrictEqual(
+      texts(svgOf(fixed)).map((t) => t.text),
+      ['3.1', '2.0', '4.5'],
+    );
 
     const words = new FakeNode('div');
     BC.chart(words, mk('s', { size: 14, weight: 'bold', anchor: 'start', baseline: 'hanging', rotate: -45, dx: 5, fill: 'red' }));
     const [pi, evil] = texts(svgOf(words));
-    assert.deepStrictEqual([pi.text, evil.text], ['pi', '<b>bold</b> & co'].map((t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;')), 'markup in data is escaped text; empty strings are skipped');
-    assert(/font-size="14"/.test(pi.attrs) && /font-weight="bold"/.test(pi.attrs) && /text-anchor="start"/.test(pi.attrs) && /dominant-baseline="hanging"/.test(pi.attrs));
+    assert.deepStrictEqual(
+      [pi.text, evil.text],
+      ['pi', '<b>bold</b> & co'].map((t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;')),
+      'markup in data is escaped text; empty strings are skipped',
+    );
+    assert(
+      /font-size="14"/.test(pi.attrs) &&
+        /font-weight="bold"/.test(pi.attrs) &&
+        /text-anchor="start"/.test(pi.attrs) &&
+        /dominant-baseline="hanging"/.test(pi.attrs),
+    );
     assert(/transform="rotate\(-45 /.test(pi.attrs) && /fill="red"/.test(pi.attrs));
     assert(!svgOf(words).includes('<b>'), 'no element was created from the data');
 
@@ -1353,18 +1904,32 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('mark.text on a horizontal band scale is centered vertically in the band', () => {
     const host = new FakeNode('div');
-    BC.chart(host, { data: 'cats', scales: { x: { type: 'linear', zero: true }, y: { type: 'band' } }, marks: [{ type: 'rect', x: 'v', y: 'k' }, { type: 'text', x: 'v', y: 'k', text: 'v', anchor: 'start', dx: 4 }] });
+    BC.chart(host, {
+      data: 'cats',
+      scales: { x: { type: 'linear', zero: true }, y: { type: 'band' } },
+      marks: [
+        { type: 'rect', x: 'v', y: 'k' },
+        { type: 'text', x: 'v', y: 'k', text: 'v', anchor: 'start', dx: 4 },
+      ],
+    });
     const svg = layer(svgOf(host), 'marks');
     const bars = rects(svg);
     texts(svg).forEach((l, i) => assert(Math.abs(l.y - (bars[i].y + bars[i].h / 2)) < 1e-6, `label ${i} is on the middle of its bar`));
   });
 
   test('channels without a scale: read as they are, and naming a scale for one is an error', () => {
-    const base = () => ({ data: 'cats', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'text', x: 'k', y: 'v', text: 'k' }] });
+    const base = () => ({
+      data: 'cats',
+      scales: { x: { type: 'band' }, y: { type: 'linear' } },
+      marks: [{ type: 'text', x: 'k', y: 'v', text: 'k' }],
+    });
     assert.deepStrictEqual(BC.validate(base()), [], 'no scale has to be declared for `text`');
     const scaled = base();
     scaled.marks[0].text = { field: 'k', scale: 'x' };
-    assert(BC.validate(scaled).some((d) => d.path === 'marks[0].text' && /read as it is and does not use a scale/.test(d.message)), JSON.stringify(BC.validate(scaled)));
+    assert(
+      BC.validate(scaled).some((d) => d.path === 'marks[0].text' && /read as it is and does not use a scale/.test(d.message)),
+      JSON.stringify(BC.validate(scaled)),
+    );
     const typo = base();
     typo.marks[0].text = 'kk';
     assert(BC.validate(typo).some((d) => d.path === 'marks[0].text' && /unknown field "kk"/.test(d.message)));
@@ -1374,21 +1939,37 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   // ── mark.arc: pie and donut ──
-  BC.data('shares', [{ name: 'A', v: 1 }, { name: 'B', v: 1 }, { name: 'C', v: 2 }]);
-  const pieSpec = (mark, extra) => ({ data: 'shares', scales: { color: { type: 'color' } }, marks: [{ type: 'arc', value: 'v', color: 'name', ...mark }], interaction: [{ type: 'tooltip' }], ...extra });
+  BC.data('shares', [
+    { name: 'A', v: 1 },
+    { name: 'B', v: 1 },
+    { name: 'C', v: 2 },
+  ]);
+  const pieSpec = (mark, extra) => ({
+    data: 'shares',
+    scales: { color: { type: 'color' } },
+    marks: [{ type: 'arc', value: 'v', color: 'name', ...mark }],
+    interaction: [{ type: 'tooltip' }],
+    ...extra,
+  });
   // plot centre (320, 200) and radius 180 for the default 640x400 chart with 16px padding and no guides
   const at = (deg, r) => ({ x: 320 + r * Math.sin((deg * Math.PI) / 180), y: 200 - r * Math.cos((deg * Math.PI) / 180) });
-  const hoverAt = async (host, deg, r) => { const p = at(deg, r); await hover(host, p.x, p.y); };
+  const hoverAt = async (host, deg, r) => {
+    const p = at(deg, r);
+    await hover(host, p.x, p.y);
+  };
   const hit = (host) => (tipOf(host).style.display === 'none' ? null : tipText(host));
 
-  test('mark.arc: slice angles follow the values, clockwise from 12 o\'clock, and pick agrees with what is drawn', async () => {
+  test("mark.arc: slice angles follow the values, clockwise from 12 o'clock, and pick agrees with what is drawn", async () => {
     const host = new FakeNode('div');
     const h = BC.chart(host, pieSpec());
     assert.deepStrictEqual(h.diagnostics, [], 'a pie needs no x or y scale');
     const svg = svgOf(host);
     const paths = [...layer(svg, 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => m[1]);
     assert.strictEqual(paths.length, 3);
-    assert(paths.every((d) => /^M[\d. -]+A/.test(d) && d.endsWith('Z')), 'closed arcs');
+    assert(
+      paths.every((d) => /^M[\d. -]+A/.test(d) && d.endsWith('Z')),
+      'closed arcs',
+    );
     assert(!/NaN/.test(svg));
     assert(new Set(fills(svg)).size === 0 || true);
 
@@ -1411,12 +1992,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(hit(donut), null, 'nothing in the hole');
     await hoverAt(donut, 45, 130);
     assert.deepStrictEqual(hit(donut), ['v: 1', 'name: A'], 'the ring is hit');
-    assert.strictEqual(count([...layer(svgOf(donut), 'marks').matchAll(/<path d="([^"]+)"/g)][0][1], /A/g), 2, 'each slice has an outer and an inner arc');
+    assert.strictEqual(
+      count([...layer(svgOf(donut), 'marks').matchAll(/<path d="([^"]+)"/g)][0][1], /A/g),
+      2,
+      'each slice has an outer and an inner arc',
+    );
 
     const rotated = new FakeNode('div');
     BC.chart(rotated, pieSpec({ startAngle: 90 }));
     await hoverAt(rotated, 135, 90);
-    assert.deepStrictEqual(hit(rotated), ['v: 1', 'name: A'], 'A now starts at 3 o\'clock');
+    assert.deepStrictEqual(hit(rotated), ['v: 1', 'name: A'], "A now starts at 3 o'clock");
 
     const sorted = new FakeNode('div');
     BC.chart(sorted, pieSpec({ sort: 'desc' }));
@@ -1426,7 +2011,12 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     BC.data('one', [{ name: 'only', v: 5 }]);
     for (const inner of [0, 0.6]) {
       const whole = new FakeNode('div');
-      const h = BC.chart(whole, { data: 'one', scales: { color: { type: 'color' } }, marks: [{ type: 'arc', value: 'v', color: 'name', innerRadius: inner }], interaction: [{ type: 'tooltip' }] });
+      const h = BC.chart(whole, {
+        data: 'one',
+        scales: { color: { type: 'color' } },
+        marks: [{ type: 'arc', value: 'v', color: 'name', innerRadius: inner }],
+        interaction: [{ type: 'tooltip' }],
+      });
       assert.deepStrictEqual(h.diagnostics, []);
       const d = [...layer(svgOf(whole), 'marks').matchAll(/<path d="([^"]+)"/g)][0][1];
       assert(!/NaN/.test(d) && count(d, /Z/g) === (inner ? 2 : 1), `a whole ring needs ${inner ? 'two' : 'one'} closed subpath(s): ${d}`);
@@ -1434,11 +2024,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       assert.deepStrictEqual(hit(whole), ['v: 5', 'name: only']);
     }
 
-    BC.data('messy', [{ name: 'a', v: 3 }, { name: 'b', v: 0 }, { name: 'c', v: -2 }, { name: 'd', v: null }, { name: 'e', v: NaN }, { name: 'f', v: 1 }]);
+    BC.data('messy', [
+      { name: 'a', v: 3 },
+      { name: 'b', v: 0 },
+      { name: 'c', v: -2 },
+      { name: 'd', v: null },
+      { name: 'e', v: NaN },
+      { name: 'f', v: 1 },
+    ]);
     const messy = new FakeNode('div');
     BC.chart(messy, { data: 'messy', scales: { color: { type: 'color' } }, marks: [{ type: 'arc', value: 'v', color: 'name' }] });
     assert.strictEqual(count(svgOf(messy), /<path /g), 2, 'only positive numbers become slices');
-    BC.data('none', [{ name: 'a', v: 0 }, { name: 'b', v: null }]);
+    BC.data('none', [
+      { name: 'a', v: 0 },
+      { name: 'b', v: null },
+    ]);
     const empty = new FakeNode('div');
     const he = BC.chart(empty, { data: 'none', scales: { color: { type: 'color' } }, marks: [{ type: 'arc', value: 'v', color: 'name' }] });
     assert.deepStrictEqual(he.diagnostics, []);
@@ -1450,17 +2050,40 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     BC.chart(host, pieSpec({ label: 'percent' }, { interaction: [] }));
     const svg = svgOf(host);
     const labels = texts(layer(svg, 'marks'));
-    assert.deepStrictEqual(labels.map((l) => l.text), ['25%', '25%', '50%']);
-    assert(labels[0].x > 320 && labels[1].x > 320 && labels[2].x < 320, 'the two right-hand slices labelled right of the centre, the left one left');
-    assert(labels.every((l) => Math.hypot(l.x - 320, l.y - 200) > 184 - 26 + 5), 'and outside the pie (which gives up 26px of radius for them)');
+    assert.deepStrictEqual(
+      labels.map((l) => l.text),
+      ['25%', '25%', '50%'],
+    );
+    assert(
+      labels[0].x > 320 && labels[1].x > 320 && labels[2].x < 320,
+      'the two right-hand slices labelled right of the centre, the left one left',
+    );
+    assert(
+      labels.every((l) => Math.hypot(l.x - 320, l.y - 200) > 184 - 26 + 5),
+      'and outside the pie (which gives up 26px of radius for them)',
+    );
     const byValue = new FakeNode('div');
     BC.chart(byValue, pieSpec({ label: 'value' }, { interaction: [] }));
-    assert.deepStrictEqual(texts(layer(svgOf(byValue), 'marks')).map((l) => l.text), ['1', '1', '2']);
+    assert.deepStrictEqual(
+      texts(layer(svgOf(byValue), 'marks')).map((l) => l.text),
+      ['1', '1', '2'],
+    );
 
-    BC.data('tiny', [{ name: 'big', v: 99 }, { name: 'tiny', v: 1 }]);
+    BC.data('tiny', [
+      { name: 'big', v: 99 },
+      { name: 'tiny', v: 1 },
+    ]);
     const t = new FakeNode('div');
-    BC.chart(t, { data: 'tiny', scales: { color: { type: 'color' } }, marks: [{ type: 'arc', value: 'v', color: 'name', label: 'percent' }] });
-    assert.deepStrictEqual(texts(layer(svgOf(t), 'marks')).map((l) => l.text), ['99%'], 'a 1% slice gets no label');
+    BC.chart(t, {
+      data: 'tiny',
+      scales: { color: { type: 'color' } },
+      marks: [{ type: 'arc', value: 'v', color: 'name', label: 'percent' }],
+    });
+    assert.deepStrictEqual(
+      texts(layer(svgOf(t), 'marks')).map((l) => l.text),
+      ['99%'],
+      'a 1% slice gets no label',
+    );
 
     const filtered = new FakeNode('div');
     BC.chart(filtered, pieSpec({}, { view: { color: ['A', 'C'] }, interaction: [] }));
@@ -1479,7 +2102,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   // ── interaction.legend-filter ──
-  const legendItem = (index, scale) => ({ parentNode: null, attributes: [{ name: 'data-bc-legend-scale', value: scale || 'color' }, { name: 'data-bc-legend-index', value: String(index) }] });
+  const legendItem = (index, scale) => ({
+    parentNode: null,
+    attributes: [
+      { name: 'data-bc-legend-scale', value: scale || 'color' },
+      { name: 'data-bc-legend-index', value: String(index) },
+    ],
+  });
   const click = (host, index, extra, scale) => host.children[0].fire('click', { target: legendItem(index, scale), ...extra });
   const dbl = (host, index, extra) => host.children[0].fire('dblclick', { target: legendItem(index), ...extra });
   const filterSpec = (filter) => ({ ...ptSpec([{ type: 'legend', scale: 'color' }]), interaction: [{ type: 'legend-filter', ...filter }] });
@@ -1512,7 +2141,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('legend-filter: hiding the last visible category shows everything again', async () => {
     const host = new FakeNode('div');
     const h = BC.chart(host, filterSpec());
-    for (const i of [0, 1]) { click(host, i); await flush(); }
+    for (const i of [0, 1]) {
+      click(host, i);
+      await flush();
+    }
     assert.strictEqual(dots(host), 2, 'only C is left');
     click(host, 2);
     await flush();
@@ -1524,7 +2156,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const host = new FakeNode('div');
     const h = BC.chart(host, filterSpec());
     let prevented = 0;
-    dbl(host, 1, { preventDefault: () => { prevented++; } });
+    dbl(host, 1, {
+      preventDefault: () => {
+        prevented++;
+      },
+    });
     await flush();
     assert.deepStrictEqual(h.getView().color, ['B']);
     assert.strictEqual(dots(host), 2);
@@ -1542,7 +2178,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('legend-filter: a real browser double-click (click, click, dblclick) isolates and restores like a bare dblclick', async () => {
     const host = new FakeNode('div');
     const h = BC.chart(host, filterSpec());
-    const browserDouble = (index) => { click(host, index, { detail: 1 }); click(host, index, { detail: 2 }); dbl(host, index, { detail: 2 }); };
+    const browserDouble = (index) => {
+      click(host, index, { detail: 1 });
+      click(host, index, { detail: 2 });
+      dbl(host, index, { detail: 2 });
+    };
     browserDouble(2);
     await flush();
     assert.deepStrictEqual(h.getView().color, ['C'], 'isolated');
@@ -1597,7 +2237,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const spec = {
       data: 'series',
       scales: { x: { type: 'time' }, y: { type: 'linear' }, color: { type: 'color' } },
-      guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }, { type: 'legend', scale: 'color' }],
+      guides: [
+        { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+        { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+        { type: 'legend', scale: 'color' },
+      ],
       marks: [{ type: 'line', x: 't', y: 'v', color: 's' }],
       interaction: [{ type: 'legend-filter', fit: ['y'] }],
     };
@@ -1630,8 +2274,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual((none.children[0].listeners.click || []).length, 0, 'no listeners for an ignored interaction');
 
     logged.warn.length = 0;
-    BC.chart(new FakeNode('div'), { ...ptSpec([{ type: 'legend', scale: 'color' }]), interaction: [{ type: 'legend-filter', scale: 'x' }] });
-    assert(logged.warn.some((w) => /needs a categorical color scale/.test(w)), 'a linear scale cannot be filtered');
+    BC.chart(new FakeNode('div'), {
+      ...ptSpec([{ type: 'legend', scale: 'color' }]),
+      interaction: [{ type: 'legend-filter', scale: 'x' }],
+    });
+    assert(
+      logged.warn.some((w) => /needs a categorical color scale/.test(w)),
+      'a linear scale cannot be filtered',
+    );
     logged.warn.length = 0;
     BC.chart(new FakeNode('div'), { ...filterSpec({ fit: ['color', 'nope'] }) });
     assert(logged.warn.some((w) => /cannot fit scale "color"/.test(w)) && logged.warn.some((w) => /cannot fit scale "nope"/.test(w)));
@@ -1652,23 +2302,39 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('interaction.legend-filter on a pie: hiding a slice is not a separate feature — the rest just recompute their share of the smaller total', async () => {
     const host = new FakeNode('div');
-    BC.chart(host, pieSpec({ label: 'percent' }, { guides: [{ type: 'legend', scale: 'color' }], interaction: [{ type: 'legend-filter' }] }));
-    assert.deepStrictEqual(texts(layer(svgOf(host), 'marks')).map((l) => l.text), ['25%', '25%', '50%'], 'A, B, C of 1, 1, 2');
+    BC.chart(
+      host,
+      pieSpec({ label: 'percent' }, { guides: [{ type: 'legend', scale: 'color' }], interaction: [{ type: 'legend-filter' }] }),
+    );
+    assert.deepStrictEqual(
+      texts(layer(svgOf(host), 'marks')).map((l) => l.text),
+      ['25%', '25%', '50%'],
+      'A, B, C of 1, 1, 2',
+    );
 
     click(host, 0); // hide "A" (index 0, first appearance order)
     await flush();
     const svg = svgOf(host);
     assert.strictEqual(count(svg, /<path /g), 2, 'A is gone');
-    assert.deepStrictEqual(texts(layer(svg, 'marks')).map((l) => l.text), ['33%', '67%'], 'B and C now split 1 : 2 of a total of 3, not 1 : 2 of the original 4');
+    assert.deepStrictEqual(
+      texts(layer(svg, 'marks')).map((l) => l.text),
+      ['33%', '67%'],
+      'B and C now split 1 : 2 of a total of 3, not 1 : 2 of the original 4',
+    );
 
     click(host, 0); // show it again
     await flush();
-    assert.deepStrictEqual(texts(layer(svgOf(host), 'marks')).map((l) => l.text), ['25%', '25%', '50%'], 'back to the original shares');
+    assert.deepStrictEqual(
+      texts(layer(svgOf(host), 'marks')).map((l) => l.text),
+      ['25%', '25%', '50%'],
+      'back to the original shares',
+    );
   });
 
   // ── interaction.brush ──
   const brushSpec = (brush, extra) => lineSpec({ interaction: [{ type: 'probe2' }, { type: 'brush', ...brush }], ...extra });
-  const press = (host, x, y, extra) => host.children[0].fire('pointerdown', { button: 0, clientX: x, clientY: y, pointerId: 1, shiftKey: true, ...extra });
+  const press = (host, x, y, extra) =>
+    host.children[0].fire('pointerdown', { button: 0, clientX: x, clientY: y, pointerId: 1, shiftKey: true, ...extra });
   const drag = (host, x, y) => host.children[0].fire('pointermove', { clientX: x, clientY: y });
   const release = (host, x, y) => host.children[0].fire('pointerup', { clientX: x, clientY: y });
   const overlay = (host) => host.children.find((c) => c.attrs.class === 'bc-brush');
@@ -1709,7 +2375,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     drag(host, 300, 200);
     release(host, 400, 250);
     await flush();
-    assert.strictEqual(host.style.position, 'relative', 'brush releasing its own claim must not drop tooltip\'s');
+    assert.strictEqual(host.style.position, 'relative', "brush releasing its own claim must not drop tooltip's");
     // whichever bars are still visible after the zoom, one of them must still be hoverable through the tooltip
     const bar = rects(layer(svgOf(host), 'marks'))[0] || before[0];
     await hover(host, bar.x + bar.w / 2, bar.y + bar.h / 2);
@@ -1719,16 +2385,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('brush: dragging the other way gives the same range, and the second selection works inside the first', async () => {
-    const a = new FakeNode('div'), b = new FakeNode('div');
+    const a = new FakeNode('div'),
+      b = new FakeNode('div');
     const ha = BC.chart(a, brushSpec());
-    press(a, 200, 150); release(a, 400, 250);
+    press(a, 200, 150);
+    release(a, 400, 250);
     await flush();
     const hb = BC.chart(b, brushSpec());
-    press(b, 400, 250); drag(b, 300, 100); release(b, 200, 50);
+    press(b, 400, 250);
+    drag(b, 300, 100);
+    release(b, 200, 50);
     await flush();
     assert.deepStrictEqual(hb.getView().x, ha.getView().x, 'right-to-left and bottom-to-top select the same x range');
     const [v0, v1] = ha.getView().x;
-    press(a, 300, 150); release(a, 380, 150);
+    press(a, 300, 150);
+    release(a, 380, 150);
     await flush();
     const [w0, w1] = ha.getView().x;
     assert(w0 >= v0 && w1 <= v1 && w1 - w0 < (v1 - v0) * 0.5, 'nested: a smaller window inside the zoomed one');
@@ -1744,11 +2415,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(!overlay(host), 'starting outside the plot does nothing');
     host.children[0].fire('pointerdown', { button: 2, clientX: 200, clientY: 150, shiftKey: true });
     assert(!overlay(host), 'only the main button');
-    press(host, 200, 150); release(host, 203, 152);
+    press(host, 200, 150);
+    release(host, 203, 152);
     await flush();
     assert.deepStrictEqual(h.getView().x, base, 'a 3px drag is a click');
     assert(!overlay(host));
-    press(host, 200, 150); drag(host, 400, 250);
+    press(host, 200, 150);
+    drag(host, 400, 250);
     document.fire('keydown', { key: 'Enter' });
     assert(overlay(host), 'other keys do not cancel');
     document.fire('keydown', { key: 'Escape' });
@@ -1757,7 +2430,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     await flush();
     assert.deepStrictEqual(h.getView().x, base, 'and a later release selects nothing');
     assert.strictEqual((document.listeners.keydown || []).length, 0, 'the key listener is removed');
-    press(host, 200, 150); host.children[0].fire('pointercancel', {});
+    press(host, 200, 150);
+    host.children[0].fire('pointercancel', {});
     assert(!overlay(host), 'a cancelled pointer ends the selection');
     release(host, 400, 250);
     drag(host, 100, 100);
@@ -1769,14 +2443,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const host = new FakeNode('div');
     const h = BC.chart(host, brushSpec());
     const [b0, b1] = h.getView().x;
-    press(host, 300, 150); release(host, 5000, 9000);
+    press(host, 300, 150);
+    release(host, 5000, 9000);
     await flush();
     const [v0, v1] = h.getView().x;
     assert(v0 > b0 && Math.abs(v1 - b1) < 1e-6, 'dragged past the right edge: the range ends at the domain end');
     host.children[0].fire('dblclick', { clientX: 300, clientY: 150 });
     await flush();
     assert.deepStrictEqual(h.getView().x, [b0, b1]);
-    press(host, probed.plot.x, 150); release(host, 5000, 150);
+    press(host, probed.plot.x, 150);
+    release(host, 5000, 150);
     await flush();
     assert.deepStrictEqual(h.getView().x, [b0, b1], 'a selection of the whole domain is no view');
   });
@@ -1787,9 +2463,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const live = probed;
     const y0 = live.scales.y.invert(300);
     const y1 = live.scales.y.invert(100);
-    press(box, 200, 100); drag(box, 400, 300);
+    press(box, 200, 100);
+    drag(box, 400, 300);
     const o = overlay(box);
-    assert.deepStrictEqual([o.style.left, o.style.top, o.style.width, o.style.height], ['200px', '100px', '200px', '200px'], 'both scales: a box');
+    assert.deepStrictEqual(
+      [o.style.left, o.style.top, o.style.width, o.style.height],
+      ['200px', '100px', '200px', '200px'],
+      'both scales: a box',
+    );
     release(box, 400, 300);
     await flush();
     const [lo, hi] = hb.getView().y;
@@ -1798,7 +2479,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const bandY = new FakeNode('div');
     const hy = BC.chart(bandY, brushSpec({ scales: ['y'] }));
     const yb = hy.getView().y;
-    press(bandY, 200, 100); drag(bandY, 300, 300);
+    press(bandY, 200, 100);
+    drag(bandY, 300, 300);
     const oy = overlay(bandY);
     assert.strictEqual(oy.style.left, probed.plot.x + 'px');
     assert.strictEqual(oy.style.width, probed.plot.w + 'px', 'one vertical scale: the band spans the whole plot width');
@@ -1811,7 +2493,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const hf = BC.chart(fit, { ...jumpSpec({}), interaction: [{ type: 'probe2' }, { type: 'brush', fit: ['y'] }] });
     const baseY = hf.getView().y;
     assert(baseY[1] > 1000);
-    press(fit, 60, 150); release(fit, 90, 150);
+    press(fit, 60, 150);
+    release(fit, 90, 150);
     await flush();
     assert(hf.getView().y[1] < 100, `y refit to the low part: ${hf.getView().y}`);
     fit.children[0].fire('dblclick', { clientX: 300, clientY: 150 });
@@ -1824,20 +2507,30 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const h = BC.chart(host, { ...barSpec(), interaction: [{ type: 'probe2' }, { type: 'brush' }] });
     const live = probed;
     const bars = rects(layer(svgOf(host), 'marks'));
-    press(host, bars[1].x + 2, 100); release(host, bars[2].x + bars[2].w - 2, 120);
+    press(host, bars[1].x + 2, 100);
+    release(host, bars[2].x + bars[2].w - 2, 120);
     await flush();
     assert.deepStrictEqual(h.getView().x, ['b', 'c'], 'the two bars the rectangle covers');
     assert.strictEqual(count(layer(svgOf(host), 'marks'), /<rect /g), 2, 'and only they are drawn');
-    press(host, live.plot.x + 1, 100); release(host, live.plot.x + live.plot.w - 1, 120);
+    press(host, live.plot.x + 1, 100);
+    release(host, live.plot.x + live.plot.w - 1, 120);
     await flush();
-    assert.deepStrictEqual(h.getView().x, ['a', 'b', 'c', 'd'].slice(0, 2).length === 2 ? h.getView().x : [], 'a selection across the visible categories');
+    assert.deepStrictEqual(
+      h.getView().x,
+      ['a', 'b', 'c', 'd'].slice(0, 2).length === 2 ? h.getView().x : [],
+      'a selection across the visible categories',
+    );
     host.children[0].fire('dblclick', { clientX: 300, clientY: 150 });
     await flush();
     assert.strictEqual(count(layer(svgOf(host), 'marks'), /<rect /g), 4, 'reset');
   });
 
   test('brush: modifier keys, misconfiguration, a conflict with pan, and cleanup', async () => {
-    for (const [modifier, key] of [['alt', 'altKey'], ['ctrl', 'ctrlKey'], ['ctrl', 'metaKey']]) {
+    for (const [modifier, key] of [
+      ['alt', 'altKey'],
+      ['ctrl', 'ctrlKey'],
+      ['ctrl', 'metaKey'],
+    ]) {
       const host = new FakeNode('div');
       BC.chart(host, brushSpec({ modifier }));
       press(host, 200, 150, { shiftKey: false });
@@ -1854,12 +2547,29 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     BC.chart(new FakeNode('div'), lineSpec({ interaction: [{ type: 'zoom' }, { type: 'brush', modifier: 'none' }] }));
     assert(logged.warn.some((w) => /same time as the pan of interaction\.zoom/.test(w)));
     logged.warn.length = 0;
-    BC.chart(new FakeNode('div'), lineSpec({ interaction: [{ type: 'zoom', pan: false }, { type: 'brush', modifier: 'none' }] }));
+    BC.chart(
+      new FakeNode('div'),
+      lineSpec({
+        interaction: [
+          { type: 'zoom', pan: false },
+          { type: 'brush', modifier: 'none' },
+        ],
+      }),
+    );
     assert.strictEqual(logged.warn.length, 0, 'no conflict when zoom does not pan');
 
     const bad = new FakeNode('div');
-    BC.chart(bad, lineSpec({ scales: { x: { type: 'time' }, y: { type: 'linear' }, color: { type: 'color' } }, interaction: [{ type: 'brush', scales: ['color', 'nope'], fit: ['nope'] }] }));
-    assert(logged.warn.some((w) => /scale "color" is not a positional scale/.test(w)) && logged.warn.some((w) => /scale "nope" is not a positional scale/.test(w)));
+    BC.chart(
+      bad,
+      lineSpec({
+        scales: { x: { type: 'time' }, y: { type: 'linear' }, color: { type: 'color' } },
+        interaction: [{ type: 'brush', scales: ['color', 'nope'], fit: ['nope'] }],
+      }),
+    );
+    assert(
+      logged.warn.some((w) => /scale "color" is not a positional scale/.test(w)) &&
+        logged.warn.some((w) => /scale "nope" is not a positional scale/.test(w)),
+    );
     assert.strictEqual((bad.children[0].listeners.pointerdown || []).length, 0, 'nothing attached');
     logged.warn.length = 0;
 
@@ -1873,7 +2583,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     h.destroy();
     assert.strictEqual(host.children.length, 0, 'the overlay is removed with the chart');
     assert.strictEqual((document.listeners.keydown || []).length, keysBefore, 'and the document listener with it');
-    for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'dblclick']) assert.strictEqual((root.listeners[t] || []).length, 0, t);
+    for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'dblclick'])
+      assert.strictEqual((root.listeners[t] || []).length, 0, t);
     const again = new FakeNode('div');
     const ha = BC.chart(again, brushSpec());
     const old = again.children[0];
@@ -1904,7 +2615,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(Math.abs(v0 + v1 - (b0 + b1)) < 1e-6, 'zooms in around the domain center');
     assert(v1 - v0 < b1 - b0, 'the span shrank');
 
-    for (let i = 0; i < 10; i++) { clickBtn(into); await flush(); }
+    for (let i = 0; i < 10; i++) {
+      clickBtn(into);
+      await flush();
+    }
     [v0, v1] = h.getView().x;
     assert(v1 - v0 >= (b1 - b0) / 4 - 1e-6, 'maxZoom caps how far "+" can go');
 
@@ -1938,8 +2652,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('zoom-controls: misconfigured scales, no positional scale at all, corner placement, and cleanup', () => {
     logged.warn.length = 0;
     const bad = new FakeNode('div');
-    BC.chart(bad, lineSpec({ scales: { x: { type: 'time' }, y: { type: 'linear' }, color: { type: 'color' } }, interaction: [{ type: 'zoom-controls', scales: ['color', 'nope'] }] }));
-    assert(logged.warn.some((w) => /scale "color" is not a positional scale/.test(w)) && logged.warn.some((w) => /scale "nope" is not a positional scale/.test(w)));
+    BC.chart(
+      bad,
+      lineSpec({
+        scales: { x: { type: 'time' }, y: { type: 'linear' }, color: { type: 'color' } },
+        interaction: [{ type: 'zoom-controls', scales: ['color', 'nope'] }],
+      }),
+    );
+    assert(
+      logged.warn.some((w) => /scale "color" is not a positional scale/.test(w)) &&
+        logged.warn.some((w) => /scale "nope" is not a positional scale/.test(w)),
+    );
     assert(!controlsOf(bad), 'nothing to control: no bar');
     logged.warn.length = 0;
 
@@ -1969,7 +2692,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     h.setView('x', [Date.UTC(2024, 1, 5), Date.UTC(2024, 1, 15)]);
     h.update(lineSpec({ interaction: [{ type: 'zoom' }] })); // before the frame that would apply the setView
-    assert.deepStrictEqual(h.getView().x, [Date.UTC(2024, 1, 5), Date.UTC(2024, 1, 15)], 'a request that had not been drawn yet is not lost');
+    assert.deepStrictEqual(
+      h.getView().x,
+      [Date.UTC(2024, 1, 5), Date.UTC(2024, 1, 15)],
+      'a request that had not been drawn yet is not lost',
+    );
     await flush();
 
     // the interactions of the rebuilt chart continue from the kept zoom
@@ -2003,14 +2730,26 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     h.setView('x', zoomedX);
     await flush();
     h.update(lineSpec({ scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 'v', y: 'v' }] }));
-    assert.deepStrictEqual(h.getView().x, h.getView().x.slice().sort((a, c) => a - c));
+    assert.deepStrictEqual(
+      h.getView().x,
+      h
+        .getView()
+        .x.slice()
+        .sort((a, c) => a - c),
+    );
     assert(h.getView().x[0] !== zoomedX[0], 'a time zoom is not applied to a linear scale of the same name');
-    assert.deepStrictEqual(h.diagnostics.filter((d) => d.level === 'error'), []);
+    assert.deepStrictEqual(
+      h.diagnostics.filter((d) => d.level === 'error'),
+      [],
+    );
 
     h.setView('y', [2, 6]);
     await flush();
     h.update({ ...lineSpec(), scales: { x: { type: 'time' } }, marks: [{ type: 'line', x: 't', y: 'v', group: 's' }] });
-    assert(h.diagnostics.some((d) => d.level === 'error'), 'the new spec is invalid without y, and that is reported as usual');
+    assert(
+      h.diagnostics.some((d) => d.level === 'error'),
+      'the new spec is invalid without y, and that is reported as usual',
+    );
     logged.error.length = 0;
     h.update(lineSpec());
     assert.deepStrictEqual(h.getView().y, yBase, 'a zoom of a scale that disappeared is gone; nothing from it comes back');
@@ -2020,7 +2759,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const enc = (rows) => ({ encoding: 'base64', data: Buffer.from(JSON.stringify(rows)).toString('base64') });
     const rows = (n) => Array.from({ length: n }, (_, i) => ({ a: i, b: i * 2 }));
     BC.data('carry', rows(50));
-    const spec = () => ({ data: 'carry', scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'a', y: 'b' }] });
+    const spec = () => ({
+      data: 'carry',
+      scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
+      marks: [{ type: 'point', x: 'a', y: 'b' }],
+    });
     const host = new FakeNode('div');
     const h = BC.chart(host, spec());
     h.setView('x', [10, 20]);
@@ -2039,11 +2782,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   // ── culling: only the rows inside a zoomed window are visited ──
   const sortedRows = (n) => Array.from({ length: n }, (_, i) => ({ a: i, b: (i * 7) % 50 }));
   const cullSpec = (data, mark, extra) => ({
-    data, scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
-    marks: [{ type: 'point', x: 'a', y: 'b', r: 3, ...mark }], interaction: [{ type: 'probe2' }], ...extra,
+    data,
+    scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
+    marks: [{ type: 'point', x: 'a', y: 'b', r: 3, ...mark }],
+    interaction: [{ type: 'probe2' }],
+    ...extra,
   });
   const pts = (svg) => circles(svg).map((c) => `${c.x},${c.y}`);
-  const zoomTo = async (h, lo, hi) => { h.setView('x', [lo, hi]); await flush(); };
+  const zoomTo = async (h, lo, hi) => {
+    h.setView('x', [lo, hi]);
+    await flush();
+  };
 
   test('culling: a zoomed sorted column draws only the rows in the window (with a margin), not all of them', async () => {
     BC.data('cull10k', sortedRows(10000));
@@ -2052,14 +2801,19 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(circles(svgOf(host)).length, 10000, 'unzoomed: every row');
     await zoomTo(h, 4000, 4100);
     const live = probed;
-    const inside = Array.from({ length: 10000 }, (_, i) => live.scales.x(i)).filter((px) => px >= live.plot.x && px <= live.plot.x + live.plot.w).length;
+    const inside = Array.from({ length: 10000 }, (_, i) => live.scales.x(i)).filter(
+      (px) => px >= live.plot.x && px <= live.plot.x + live.plot.w,
+    ).length;
     const drawn = circles(svgOf(host)).length;
     assert(inside >= 100 && inside <= 102, `the window holds about 100 rows: ${inside}`);
     assert(drawn >= inside && drawn <= inside + 2 + 4, `${drawn} drawn for ${inside} inside: window, margin and neighbours only`);
     const { from, to } = live.rows(live.spec.marks[0]);
     assert(from > 3900 && to < 4200, `rows ${from}..${to}`);
     const x = live.channel(live.spec.marks[0], 'x').mapped;
-    assert(Number.isNaN(x[0]) && Number.isNaN(x[9999]) && Number.isFinite(x[from]) && Number.isFinite(x[to - 1]), 'only the rows in range are mapped');
+    assert(
+      Number.isNaN(x[0]) && Number.isNaN(x[9999]) && Number.isFinite(x[from]) && Number.isFinite(x[to - 1]),
+      'only the rows in range are mapped',
+    );
     await zoomTo(h, 0, 9999);
     h.setView('x', null);
     await flush();
@@ -2079,25 +2833,50 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const a = pts(svgOf(culled));
     const b = pts(svgOf(plain));
     assert(a.length < 200 && b.length === 3000, `culled ${a.length}, unculled ${b.length}`);
-    const inWindow = (list) => list.filter((p) => { const x = +p.split(',')[0]; return x >= liveC.plot.x - 12 && x <= liveC.plot.x + liveC.plot.w + 12; });
+    const inWindow = (list) =>
+      list.filter((p) => {
+        const x = +p.split(',')[0];
+        return x >= liveC.plot.x - 12 && x <= liveC.plot.x + liveC.plot.w + 12;
+      });
     assert.deepStrictEqual(inWindow(a), inWindow(b), 'identical inside the plot and its margin');
-    assert(a.every((p) => b.includes(p)), 'and nothing was invented outside it');
+    assert(
+      a.every((p) => b.includes(p)),
+      'and nothing was invented outside it',
+    );
 
     // lines: the same, and the segments that run out of the window are kept
-    const lineSpecFor = (data) => cullSpec(data, { type: 'line', r: undefined }, { scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } } });
+    const lineSpecFor = (data) =>
+      cullSpec(data, { type: 'line', r: undefined }, { scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } } });
     const [lc, lp] = [new FakeNode('div'), new FakeNode('div')];
     const hlc = BC.chart(lc, lineSpecFor('culled'));
     const hlp = BC.chart(lp, lineSpecFor('unculled'));
     await zoomTo(hlc, 1000, 1150);
     await zoomTo(hlp, 1000, 1150);
-    const verts = (host) => [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)][0][1].match(/[ML]([\d.-]+ [\d.-]+)/g).map((v) => v.slice(1));
-    const vc = verts(lc), vp = verts(lp);
+    const verts = (host) =>
+      [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)][0][1].match(/[ML]([\d.-]+ [\d.-]+)/g).map((v) => v.slice(1));
+    const vc = verts(lc),
+      vp = verts(lp);
     assert(vc.length < 200 && vp.length === 3000, `${vc.length} vertices instead of ${vp.length}`);
-    assert(vc.every((v) => vp.includes(v)), 'every vertex of the culled line is on the full line');
-    assert.deepStrictEqual(vc.filter((v) => { const x = +v.split(' ')[0]; return x >= liveC.plot.x - 12 && x <= liveC.plot.x + liveC.plot.w + 12; }),
-      vp.filter((v) => { const x = +v.split(' ')[0]; return x >= liveC.plot.x - 12 && x <= liveC.plot.x + liveC.plot.w + 12; }), 'the visible stretch is identical');
+    assert(
+      vc.every((v) => vp.includes(v)),
+      'every vertex of the culled line is on the full line',
+    );
+    assert.deepStrictEqual(
+      vc.filter((v) => {
+        const x = +v.split(' ')[0];
+        return x >= liveC.plot.x - 12 && x <= liveC.plot.x + liveC.plot.w + 12;
+      }),
+      vp.filter((v) => {
+        const x = +v.split(' ')[0];
+        return x >= liveC.plot.x - 12 && x <= liveC.plot.x + liveC.plot.w + 12;
+      }),
+      'the visible stretch is identical',
+    );
     const [first, last] = [vc[0], vc[vc.length - 1]];
-    assert(+first.split(' ')[0] < liveC.plot.x && +last.split(' ')[0] > liveC.plot.x + liveC.plot.w, 'the line runs out past both edges, so it reaches them');
+    assert(
+      +first.split(' ')[0] < liveC.plot.x && +last.split(' ')[0] > liveC.plot.x + liveC.plot.w,
+      'the line runs out past both edges, so it reaches them',
+    );
   });
 
   test('culling: descending order, dates, a window between two rows, and an empty window', async () => {
@@ -2107,16 +2886,29 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     await zoomTo(hd, 500, 560);
     assert(circles(svgOf(down)).length < 120, `descending data is culled too: ${circles(svgOf(down)).length}`);
 
-    BC.data('dated', Array.from({ length: 3000 }, (_, i) => ({ t: new Date(Date.UTC(2020, 0, 1 + i)).toISOString().slice(0, 10), v: i % 30 })));
+    BC.data(
+      'dated',
+      Array.from({ length: 3000 }, (_, i) => ({ t: new Date(Date.UTC(2020, 0, 1 + i)).toISOString().slice(0, 10), v: i % 30 })),
+    );
     const dated = new FakeNode('div');
-    const hdt = BC.chart(dated, { data: 'dated', scales: { x: { type: 'time' }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 't', y: 'v' }] });
+    const hdt = BC.chart(dated, {
+      data: 'dated',
+      scales: { x: { type: 'time' }, y: { type: 'linear' } },
+      marks: [{ type: 'point', x: 't', y: 'v' }],
+    });
     hdt.setView('x', [Date.UTC(2022, 0, 1), Date.UTC(2022, 0, 20)]);
     await flush();
     assert(circles(svgOf(dated)).length < 60, `ISO dates are culled: ${circles(svgOf(dated)).length}`);
 
-    BC.data('two', [{ a: 0, b: 1 }, { a: 1000, b: 9 }]);
+    BC.data('two', [
+      { a: 0, b: 1 },
+      { a: 1000, b: 9 },
+    ]);
     const two = new FakeNode('div');
-    const h2 = BC.chart(two, { ...cullSpec('two', { type: 'line', r: undefined }), scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } } });
+    const h2 = BC.chart(two, {
+      ...cullSpec('two', { type: 'line', r: undefined }),
+      scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
+    });
     await zoomTo(h2, 400, 600);
     const d = [...layer(svgOf(two), 'marks').matchAll(/<path d="([^"]+)"/g)][0][1];
     assert.strictEqual(count(d, /[ML]/g), 2, 'the segment that crosses the window is still drawn');
@@ -2138,7 +2930,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     BC.data('interleaved', [...sortedRows(300).map((r) => ({ ...r, s: 'p' })), ...sortedRows(300).map((r) => ({ ...r, s: 'q' }))]);
     const il = new FakeNode('div');
-    const hi = BC.chart(il, { ...cullSpec('interleaved', { type: 'line', r: undefined, group: 's' }), scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } } });
+    const hi = BC.chart(il, {
+      ...cullSpec('interleaved', { type: 'line', r: undefined, group: 's' }),
+      scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
+    });
     await zoomTo(hi, 100, 140);
     const paths = [...layer(svgOf(il), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => count(m[1], /[ML]/g));
     assert.deepStrictEqual(paths, [300, 300], 'two series stacked one after the other are not one sorted column: both are drawn whole');
@@ -2151,10 +2946,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('culling: hundreds of thousands of rows zoom in a moment and draw only the window', async () => {
-    BC.data('huge', Array.from({ length: 300000 }, (_, i) => ({ a: i, b: Math.sin(i / 500) * 50 })));
+    BC.data(
+      'huge',
+      Array.from({ length: 300000 }, (_, i) => ({ a: i, b: Math.sin(i / 500) * 50 })),
+    );
     const host = new FakeNode('div');
     const t0 = Date.now();
-    const h = BC.chart(host, { ...cullSpec('huge', { type: 'line', r: undefined }), scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } } });
+    const h = BC.chart(host, {
+      ...cullSpec('huge', { type: 'line', r: undefined }),
+      scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
+    });
     const built = Date.now() - t0;
     const t1 = Date.now();
     await zoomTo(h, 100000, 100600);
@@ -2166,14 +2967,27 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   // ── view-dependent transforms, and transform.decimate ──
   const decimate = (table, spec, view) => BC.get('transform.decimate').apply(table, { type: 'decimate', x: 'a', y: 'b', ...spec }, view);
-  const linearX = (domain, range) => BC.get('scale.linear').create({ type: 'linear', domain }, { name: 'x', sources: [], range: range || [50, 650], color: (i) => `c${i}` });
+  const linearX = (domain, range) =>
+    BC.get('scale.linear').create({ type: 'linear', domain }, { name: 'x', sources: [], range: range || [50, 650], color: (i) => `c${i}` });
   const viewWarnings = [];
-  const viewOf = (scale, plot) => ({ plot: plot || { x: 50, y: 0, w: 600, h: 300 }, scales: { x: scale }, warn: (m) => viewWarnings.push(m) });
-  const wave = (n) => ({ length: n, columns: { a: Float64Array.from({ length: n }, (_, i) => i), b: Float64Array.from({ length: n }, (_, i) => Math.sin(i / 97) * 10 + ((i * 37) % 11)) } });
+  const viewOf = (scale, plot) => ({
+    plot: plot || { x: 50, y: 0, w: 600, h: 300 },
+    scales: { x: scale },
+    warn: (m) => viewWarnings.push(m),
+  });
+  const wave = (n) => ({
+    length: n,
+    columns: {
+      a: Float64Array.from({ length: n }, (_, i) => i),
+      b: Float64Array.from({ length: n }, (_, i) => Math.sin(i / 97) * 10 + ((i * 37) % 11)),
+    },
+  });
   const rowsOf = (t) => Array.from(t.columns.a);
   /** Per pixel column: the lowest and highest y among these rows, computed the way the transform buckets them. */
   const envelope = (t, rowIdx, scale, buckets) => {
-    const lo = 50 - 12, hi = 650 + 12, width = (hi - lo) / buckets;
+    const lo = 50 - 12,
+      hi = 650 + 12,
+      width = (hi - lo) / buckets;
     const out = new Map();
     for (const i of rowIdx) {
       const px = scale(t.columns.a[i]);
@@ -2193,14 +3007,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const out = decimate(t, {}, viewOf(scale));
     assert(out.length <= 4 * 600 + 8 && out.length > 600, `60000 rows become ${out.length}`);
     const a = rowsOf(out);
-    assert(a.every((v, i) => i === 0 || v > a[i - 1]), 'still in x order, no duplicates');
+    assert(
+      a.every((v, i) => i === 0 || v > a[i - 1]),
+      'still in x order, no duplicates',
+    );
     assert(a[0] === 0 && a[a.length - 1] === 59999, 'the first and last rows survive');
     const all = Array.from({ length: t.length }, (_, i) => i);
     const kept = Array.from({ length: out.length }, (_, i) => i);
     const want = envelope(t, all, scale, 600);
     const got = envelope(out, kept, scale, 600);
     assert.strictEqual(got.size, want.size);
-    for (const [b, e] of want) assert(got.get(b) && got.get(b).min === e.min && got.get(b).max === e.max, `bucket ${b}: ${JSON.stringify(got.get(b))} vs ${JSON.stringify(e)}`);
+    for (const [b, e] of want)
+      assert(
+        got.get(b) && got.get(b).min === e.min && got.get(b).max === e.max,
+        `bucket ${b}: ${JSON.stringify(got.get(b))} vs ${JSON.stringify(e)}`,
+      );
     assert.deepStrictEqual(Object.keys(out.columns), ['a', 'b'], 'every column is carried along');
     assert(out.columns.a instanceof Float64Array && out.columns.b instanceof Float64Array, 'numeric columns stay numeric');
   });
@@ -2213,7 +3034,12 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const zoomed = decimate(t, {}, view);
     assert(zoomed.length >= 100 && zoomed.length <= 130, `a 100-row window keeps its rows and a margin, nothing else: ${zoomed.length}`);
     assert(rowsOf(zoomed)[0] > 19900 && rowsOf(zoomed)[zoomed.length - 1] < 20200);
-    assert.deepStrictEqual(rowsOf(zoomed), rowsOf(zoomed).slice().sort((p, q) => p - q));
+    assert.deepStrictEqual(
+      rowsOf(zoomed),
+      rowsOf(zoomed)
+        .slice()
+        .sort((p, q) => p - q),
+    );
 
     scale.setDomain([0, 59999]);
     assert(decimate(t, {}, view).length > 600, 'back to the whole range: decimated again (caches hold no stale window)');
@@ -2232,10 +3058,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('decimate: series are decimated on their own, gaps stay gaps, unsorted or unscalable data passes through', () => {
     const n = 30000;
-    const a = new Float64Array(n * 2), b = new Float64Array(n * 2), g = new Array(n * 2);
+    const a = new Float64Array(n * 2),
+      b = new Float64Array(n * 2),
+      g = new Array(n * 2);
     for (let i = 0; i < n; i++) {
-      a[2 * i] = i; b[2 * i] = Math.sin(i / 50) * 10 + (i % 7); g[2 * i] = 'p';
-      a[2 * i + 1] = i; b[2 * i + 1] = 100 + Math.cos(i / 80) * 10 + (i % 5); g[2 * i + 1] = 'q';
+      a[2 * i] = i;
+      b[2 * i] = Math.sin(i / 50) * 10 + (i % 7);
+      g[2 * i] = 'p';
+      a[2 * i + 1] = i;
+      b[2 * i + 1] = 100 + Math.cos(i / 80) * 10 + (i % 5);
+      g[2 * i + 1] = 'q';
     }
     const table = { length: n * 2, columns: { a, b, g } };
     const scale = linearX([0, n - 1]);
@@ -2247,7 +3079,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       const pick = (t) => Array.from({ length: t.length }, (_, i) => i).filter((i) => t.columns.g[i] === key);
       const want = envelope(table, pick(table), scale, 600);
       const got = envelope(out, pick(out), scale, 600);
-      for (const [bucket, e] of want) assert(got.get(bucket) && got.get(bucket).min === e.min && got.get(bucket).max === e.max, `${key} bucket ${bucket}`);
+      for (const [bucket, e] of want)
+        assert(got.get(bucket) && got.get(bucket).min === e.min && got.get(bucket).max === e.max, `${key} bucket ${bucket}`);
     }
 
     const holes = wave(40000);
@@ -2263,7 +3096,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(viewWarnings.length, 1, 'and it says so');
     assert.match(viewWarnings[0], /the rows are not sorted by "a".*sort the data by "a" first/);
     viewWarnings.length = 0;
-    decimate(wave(500).columns.a.length ? { length: 500, columns: { a: Float64Array.from({ length: 500 }, (_, i) => (i * 7) % 500), b: new Float64Array(500) } } : null, {}, viewOf(linearX([0, 499])));
+    decimate(
+      wave(500).columns.a.length
+        ? { length: 500, columns: { a: Float64Array.from({ length: 500 }, (_, i) => (i * 7) % 500), b: new Float64Array(500) } }
+        : null,
+      {},
+      viewOf(linearX([0, 499])),
+    );
     assert.strictEqual(viewWarnings.length, 0, 'a small unsorted table would not have been decimated anyway: no warning');
 
     const down = wave(40000);
@@ -2271,14 +3110,27 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const dOut = decimate(down, {}, viewOf(linearX([0, 39999])));
     assert(dOut.length < 3000 && rowsOf(dOut).every((v, i) => i === 0 || v < rowsOf(dOut)[i - 1]), 'descending x works');
 
-    const time = BC.get('scale.time').create({ type: 'time' }, { name: 'x', sources: [['2020-01-01', '2020-12-31']], range: [50, 650], color: () => '' });
-    const dated = { length: 20000, columns: { a: Array.from({ length: 20000 }, (_, i) => new Date(Date.UTC(2020, 0, 1) + i * 1575).toISOString()), b: Float64Array.from({ length: 20000 }, (_, i) => i % 13) } };
+    const time = BC.get('scale.time').create(
+      { type: 'time' },
+      { name: 'x', sources: [['2020-01-01', '2020-12-31']], range: [50, 650], color: () => '' },
+    );
+    const dated = {
+      length: 20000,
+      columns: {
+        a: Array.from({ length: 20000 }, (_, i) => new Date(Date.UTC(2020, 0, 1) + i * 1575).toISOString()),
+        b: Float64Array.from({ length: 20000 }, (_, i) => i % 13),
+      },
+    };
     time.setDomain([Date.UTC(2020, 0, 1), Date.UTC(2020, 0, 1) + 20000 * 1575]);
     assert(decimate(dated, {}, viewOf(time)).length < 3000, 'ISO date strings through a time scale');
 
     const color = BC.get('scale.color').create({ type: 'color' }, { name: 'x', sources: [['a']], range: [], color: () => 'red' });
     const w = wave(100);
-    assert.strictEqual(decimate(w, {}, { plot: { x: 0, y: 0, w: 1, h: 1 }, scales: { x: color } }), w, 'a scale without a pixel range is not decimated');
+    assert.strictEqual(
+      decimate(w, {}, { plot: { x: 0, y: 0, w: 1, h: 1 }, scales: { x: color } }),
+      w,
+      'a scale without a pixel range is not decimated',
+    );
   });
 
   test('decimate: bad input is a clear error', () => {
@@ -2288,20 +3140,65 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.throws(() => decimate(t, { y: 'nope' }, view), /unknown field "nope"/);
     assert.throws(() => decimate(t, { group: 'nope' }, view), /unknown field "nope"/);
     assert.throws(() => decimate(t, { scale: 'z' }, view), /there is no scale named "z"/);
-    for (const buckets of [0, -1, 1e9, 'many', NaN]) assert.throws(() => decimate(t, { buckets }, view), /"buckets" must be a number/, String(buckets));
+    for (const buckets of [0, -1, 1e9, 'many', NaN])
+      assert.throws(() => decimate(t, { buckets }, view), /"buckets" must be a number/, String(buckets));
     assert.deepStrictEqual(BC.get('transform.decimate').outputs({}), []);
     assert.strictEqual(BC.get('transform.decimate').viewDependent, true);
   });
 
   const spyCalls = { before: 0, dynamic: 0, after: 0, views: [] };
-  BC.define({ role: 'transform', type: 'spybefore', version: 1, outputs: () => [], apply(t) { spyCalls.before++; return t; } });
-  BC.define({ role: 'transform', type: 'spydynamic', version: 1, viewDependent: true, outputs: () => [], apply(t, _s, view) { spyCalls.dynamic++; spyCalls.views.push(view); return t.length > 3 ? { length: 3, columns: { a: t.columns.a.slice(0, 3), b: t.columns.b.slice(0, 3) } } : t; } });
-  BC.define({ role: 'transform', type: 'spyafter', version: 1, outputs: () => [], apply(t) { spyCalls.after++; return t; } });
-  BC.define({ role: 'transform', type: 'spyfails', version: 1, viewDependent: true, outputs: () => [], apply() { throw new Error('cannot today'); } });
+  BC.define({
+    role: 'transform',
+    type: 'spybefore',
+    version: 1,
+    outputs: () => [],
+    apply(t) {
+      spyCalls.before++;
+      return t;
+    },
+  });
+  BC.define({
+    role: 'transform',
+    type: 'spydynamic',
+    version: 1,
+    viewDependent: true,
+    outputs: () => [],
+    apply(t, _s, view) {
+      spyCalls.dynamic++;
+      spyCalls.views.push(view);
+      return t.length > 3 ? { length: 3, columns: { a: t.columns.a.slice(0, 3), b: t.columns.b.slice(0, 3) } } : t;
+    },
+  });
+  BC.define({
+    role: 'transform',
+    type: 'spyafter',
+    version: 1,
+    outputs: () => [],
+    apply(t) {
+      spyCalls.after++;
+      return t;
+    },
+  });
+  BC.define({
+    role: 'transform',
+    type: 'spyfails',
+    version: 1,
+    viewDependent: true,
+    outputs: () => [],
+    apply() {
+      throw new Error('cannot today');
+    },
+  });
 
   test('view-dependent transforms: earlier transforms run once, this one and later ones at every redraw, and the table it makes is the one drawn', async () => {
     BC.data('spied', sortedRows(50));
-    const spec = () => ({ data: 'spied', transforms: [{ type: 'spybefore' }, { type: 'spydynamic' }, { type: 'spyafter' }], scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'a', y: 'b' }], interaction: [{ type: 'probe2' }] });
+    const spec = () => ({
+      data: 'spied',
+      transforms: [{ type: 'spybefore' }, { type: 'spydynamic' }, { type: 'spyafter' }],
+      scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
+      marks: [{ type: 'point', x: 'a', y: 'b' }],
+      interaction: [{ type: 'probe2' }],
+    });
     Object.assign(spyCalls, { before: 0, dynamic: 0, after: 0, views: [] });
     const host = new FakeNode('div');
     const h = BC.chart(host, spec());
@@ -2316,7 +3213,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     await flush();
     h.setView('x', [12, 20]);
     await flush();
-    assert.deepStrictEqual([spyCalls.before, spyCalls.dynamic, spyCalls.after], [1, 3, 3], 'redrawn twice: the dynamic one and the later one again, the earlier one not');
+    assert.deepStrictEqual(
+      [spyCalls.before, spyCalls.dynamic, spyCalls.after],
+      [1, 3, 3],
+      'redrawn twice: the dynamic one and the later one again, the earlier one not',
+    );
     assert.deepStrictEqual(spyCalls.views[2].scales.x.domain(), [12, 20], 'and it sees the scales as they are drawn now');
     assert(BC.validate(spec()).length === 0, 'nothing special for validation');
   });
@@ -2324,13 +3225,27 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('view-dependent transforms: scale domains come from the full data, and a failing one is reported once', async () => {
     BC.data('spied', sortedRows(50));
     const host = new FakeNode('div');
-    const h = BC.chart(host, { data: 'spied', transforms: [{ type: 'spydynamic' }], scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'a', y: 'b' }], interaction: [{ type: 'probe2' }] });
+    const h = BC.chart(host, {
+      data: 'spied',
+      transforms: [{ type: 'spydynamic' }],
+      scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
+      marks: [{ type: 'point', x: 'a', y: 'b' }],
+      interaction: [{ type: 'probe2' }],
+    });
     assert.deepStrictEqual(probed.scales.x.baseDomain(), [0, 49], 'the x axis still spans all 50 rows although only 3 are drawn');
 
     const bad = new FakeNode('div');
-    const hb = BC.chart(bad, { data: 'spied', transforms: [{ type: 'spyfails' }], scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'a', y: 'b' }] });
+    const hb = BC.chart(bad, {
+      data: 'spied',
+      transforms: [{ type: 'spyfails' }],
+      scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
+      marks: [{ type: 'point', x: 'a', y: 'b' }],
+    });
     assert.strictEqual(circles(svgOf(bad)).length, 50, 'the chart falls back to the table it had');
-    for (let i = 0; i < 3; i++) { hb.setView('x', [i, i + 30]); await flush(); }
+    for (let i = 0; i < 3; i++) {
+      hb.setView('x', [i, i + 30]);
+      await flush();
+    }
     const errors = hb.diagnostics.filter((d) => d.path === 'transforms[0]');
     assert.strictEqual(errors.length, 1, 'one report, not one per redraw');
     assert.match(errors[0].message, /cannot today/);
@@ -2338,11 +3253,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('decimate in a chart: a huge line becomes a light one, zooming shows the detail, reset lightens it again', async () => {
-    BC.data('bigline', Array.from({ length: 200000 }, (_, i) => ({ a: i, b: Math.sin(i / 600) * 40 + ((i * 31) % 17) })));
+    BC.data(
+      'bigline',
+      Array.from({ length: 200000 }, (_, i) => ({ a: i, b: Math.sin(i / 600) * 40 + ((i * 31) % 17) })),
+    );
     const spec = () => ({
-      data: 'bigline', transforms: [{ type: 'decimate', x: 'a', y: 'b' }],
+      data: 'bigline',
+      transforms: [{ type: 'decimate', x: 'a', y: 'b' }],
       scales: { x: { type: 'linear', nice: false }, y: { type: 'linear' } },
-      marks: [{ type: 'line', x: 'a', y: 'b' }], interaction: [{ type: 'probe2' }, { type: 'tooltip' }],
+      marks: [{ type: 'line', x: 'a', y: 'b' }],
+      interaction: [{ type: 'probe2' }, { type: 'tooltip' }],
     });
     const verts = (host) => count([...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)][0][1], /[ML]/g);
     const host = new FakeNode('div');
@@ -2371,7 +3291,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   // ── transform.aggregate ──
-  const agg = (columns, spec) => BC.get('transform.aggregate').apply({ length: Object.values(columns)[0].length, columns }, { type: 'aggregate', ...spec });
+  const agg = (columns, spec) =>
+    BC.get('transform.aggregate').apply({ length: Object.values(columns)[0].length, columns }, { type: 'aggregate', ...spec });
   const sales = () => ({
     region: ['N', 'S', 'N', 'S', 'N', 'W'],
     product: ['a', 'a', 'b', 'b', 'a', 'a'],
@@ -2386,21 +3307,40 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(colA(t, 'total'), [90, 20, 5]);
     assert.strictEqual(t.length, 3);
     assert(t.columns.total instanceof Float64Array, 'measures are numeric columns');
-    assert.deepStrictEqual(Object.keys(agg(sales(), { groupby: ['region'], measures: [{ op: 'sum', field: 'revenue' }, { op: 'count' }] }).columns), ['region', 'sum_revenue', 'count'], 'default names: <op>_<field>, count');
+    assert.deepStrictEqual(
+      Object.keys(agg(sales(), { groupby: ['region'], measures: [{ op: 'sum', field: 'revenue' }, { op: 'count' }] }).columns),
+      ['region', 'sum_revenue', 'count'],
+      'default names: <op>_<field>, count',
+    );
     assert.deepStrictEqual(Object.keys(agg(sales(), { groupby: ['region'] }).columns), ['region', 'count'], 'no measures given: a count');
   });
 
   test('aggregate: every measure, missing values ignored, count of rows versus of values', () => {
-    const t = agg({ g: ['x', 'x', 'x', 'y', 'y', 'z'], v: Float64Array.of(1, NaN, 3, 4, 8, NaN), w: ['p', 'p', 'q', null, 'r', 'r'] }, {
-      groupby: ['g'],
-      measures: [
-        { op: 'sum', field: 'v', as: 'sum' }, { op: 'mean', field: 'v', as: 'mean' }, { op: 'min', field: 'v', as: 'min' }, { op: 'max', field: 'v', as: 'max' },
-        { op: 'median', field: 'v', as: 'median' }, { op: 'count', as: 'rows' }, { op: 'count', field: 'v', as: 'valid' }, { op: 'distinct', field: 'w', as: 'kinds' },
-      ],
-    });
+    const t = agg(
+      { g: ['x', 'x', 'x', 'y', 'y', 'z'], v: Float64Array.of(1, NaN, 3, 4, 8, NaN), w: ['p', 'p', 'q', null, 'r', 'r'] },
+      {
+        groupby: ['g'],
+        measures: [
+          { op: 'sum', field: 'v', as: 'sum' },
+          { op: 'mean', field: 'v', as: 'mean' },
+          { op: 'min', field: 'v', as: 'min' },
+          { op: 'max', field: 'v', as: 'max' },
+          { op: 'median', field: 'v', as: 'median' },
+          { op: 'count', as: 'rows' },
+          { op: 'count', field: 'v', as: 'valid' },
+          { op: 'distinct', field: 'w', as: 'kinds' },
+        ],
+      },
+    );
     assert.deepStrictEqual(colA(t, 'sum'), [4, 12, NaN]);
     assert.deepStrictEqual(colA(t, 'mean'), [2, 6, NaN], 'the mean of 1 and 3, not of 1, missing and 3');
-    assert.deepStrictEqual([colA(t, 'min'), colA(t, 'max')], [[1, 4, NaN], [3, 8, NaN]]);
+    assert.deepStrictEqual(
+      [colA(t, 'min'), colA(t, 'max')],
+      [
+        [1, 4, NaN],
+        [3, 8, NaN],
+      ],
+    );
     assert.deepStrictEqual(colA(t, 'median'), [2, 6, NaN], 'even count: the mean of the middle two');
     assert.deepStrictEqual(colA(t, 'rows'), [3, 2, 1]);
     assert.deepStrictEqual(colA(t, 'valid'), [2, 2, 0]);
@@ -2414,7 +3354,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(colA(t, 'region'), ['N', 'S', 'N', 'S', 'W']);
     assert.deepStrictEqual(colA(t, 'product'), ['a', 'a', 'b', 'b', 'a']);
     assert.deepStrictEqual(colA(t, 'total'), [60, 20, 30, NaN, 5], 'S/b has only a missing revenue');
-    const mixed = agg({ k: [1, '1', null, 1, NaN, null] , v: Float64Array.of(1, 1, 1, 1, 1, 1) }, { groupby: ['k'], measures: [{ op: 'count' }] });
+    const mixed = agg(
+      { k: [1, '1', null, 1, NaN, null], v: Float64Array.of(1, 1, 1, 1, 1, 1) },
+      { groupby: ['k'], measures: [{ op: 'count' }] },
+    );
     assert.strictEqual(mixed.length, 3, 'number 1, string "1", and one group for null and NaN');
     assert.deepStrictEqual(colA(mixed, 'count'), [2, 1, 3]);
     const numeric = agg({ k: Float64Array.of(3, 1, 3), v: Float64Array.of(1, 1, 1) }, { groupby: ['k'] });
@@ -2423,15 +3366,38 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('aggregate: calendar units cut dates into months, weeks, hours; a time unit sorts by time', () => {
     const monthly = agg(sales(), { groupby: [{ field: 'day', unit: 'month' }], measures: [{ op: 'sum', field: 'revenue', as: 'total' }] });
-    assert.deepStrictEqual(colA(monthly, 'day'), ['2023-12-01', '2024-01-01', '2024-03-01', '2024-04-01'], 'sorted by time although the rows were not; the row that is not a date is skipped');
+    assert.deepStrictEqual(
+      colA(monthly, 'day'),
+      ['2023-12-01', '2024-01-01', '2024-03-01', '2024-04-01'],
+      'sorted by time although the rows were not; the row that is not a date is skipped',
+    );
     assert.deepStrictEqual(colA(monthly, 'total'), [50, NaN, 30, 30], 'January holds only a missing value');
-    const unit = (u, values) => colA(agg({ d: values, v: Float64Array.from(values.map(() => 1)) }, { groupby: [{ field: 'd', unit: u, as: 'bucket' }] }), 'bucket');
+    const unit = (u, values) =>
+      colA(agg({ d: values, v: Float64Array.from(values.map(() => 1)) }, { groupby: [{ field: 'd', unit: u, as: 'bucket' }] }), 'bucket');
     assert.deepStrictEqual(unit('year', ['2024-06-15', '2024-01-01', '2023-12-31T23:59:59Z']), ['2023-01-01', '2024-01-01']);
-    assert.deepStrictEqual(unit('quarter', ['2024-02-10', '2024-03-31', '2024-04-01', '2024-11-11']), ['2024-01-01', '2024-04-01', '2024-10-01']);
-    assert.deepStrictEqual(unit('week', ['2024-03-04', '2024-03-10', '2024-03-11', '2024-03-03']), ['2024-02-26', '2024-03-04', '2024-03-11'], 'weeks start on Monday (Sunday 3 March belongs to the week of 26 February)');
-    assert.deepStrictEqual(unit('day', ['2024-03-05T23:59:00Z', '2024-03-05T00:00:00Z', '2024-03-06T00:00:00Z']), ['2024-03-05', '2024-03-06']);
-    assert.deepStrictEqual(unit('hour', ['2024-03-05T10:59:00Z', '2024-03-05T10:00:01Z', '2024-03-05T11:00:00Z']), ['2024-03-05T10:00:00Z', '2024-03-05T11:00:00Z']);
-    assert.deepStrictEqual(unit('month', [Date.UTC(2024, 1, 29), Date.UTC(2024, 2, 1), Date.UTC(2024, 1, 1)]), ['2024-02-01', '2024-03-01'], 'epoch milliseconds work as well');
+    assert.deepStrictEqual(unit('quarter', ['2024-02-10', '2024-03-31', '2024-04-01', '2024-11-11']), [
+      '2024-01-01',
+      '2024-04-01',
+      '2024-10-01',
+    ]);
+    assert.deepStrictEqual(
+      unit('week', ['2024-03-04', '2024-03-10', '2024-03-11', '2024-03-03']),
+      ['2024-02-26', '2024-03-04', '2024-03-11'],
+      'weeks start on Monday (Sunday 3 March belongs to the week of 26 February)',
+    );
+    assert.deepStrictEqual(unit('day', ['2024-03-05T23:59:00Z', '2024-03-05T00:00:00Z', '2024-03-06T00:00:00Z']), [
+      '2024-03-05',
+      '2024-03-06',
+    ]);
+    assert.deepStrictEqual(unit('hour', ['2024-03-05T10:59:00Z', '2024-03-05T10:00:01Z', '2024-03-05T11:00:00Z']), [
+      '2024-03-05T10:00:00Z',
+      '2024-03-05T11:00:00Z',
+    ]);
+    assert.deepStrictEqual(
+      unit('month', [Date.UTC(2024, 1, 29), Date.UTC(2024, 2, 1), Date.UTC(2024, 1, 1)]),
+      ['2024-02-01', '2024-03-01'],
+      'epoch milliseconds work as well',
+    );
     assert.deepStrictEqual(unit('year', ['x', null, NaN]), [], 'nothing to group when nothing is a date');
     const named = agg(sales(), { groupby: [{ field: 'day', unit: 'month', as: 'month' }, 'region'], measures: [{ op: 'count' }] });
     assert.deepStrictEqual(Object.keys(named.columns), ['month', 'region', 'count'], 'as renames the bucket column');
@@ -2445,18 +3411,50 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(colA(by({ sort: 'total', order: 'desc', limit: 2 }), 'region'), ['N', 'S'], 'top 2');
     assert.strictEqual(by({ limit: 0 }).length, 0);
     assert.strictEqual(by({ limit: 99 }).length, 3);
-    const nan = agg({ g: ['a', 'b', 'c'], v: Float64Array.of(NaN, 2, 1) }, { groupby: ['g'], measures: [{ op: 'sum', field: 'v', as: 's' }], sort: 's', order: 'desc' });
+    const nan = agg(
+      { g: ['a', 'b', 'c'], v: Float64Array.of(NaN, 2, 1) },
+      { groupby: ['g'], measures: [{ op: 'sum', field: 'v', as: 's' }], sort: 's', order: 'desc' },
+    );
     assert.deepStrictEqual(colA(nan, 'g'), ['b', 'c', 'a'], 'a group without a value goes last both ways');
-    assert.deepStrictEqual(colA(agg({ g: ['a', 'b', 'c'], v: Float64Array.of(NaN, 2, 1) }, { groupby: ['g'], measures: [{ op: 'sum', field: 'v', as: 's' }], sort: 's' }), 'g'), ['c', 'b', 'a']);
-    const ties = agg({ g: ['x', 'y', 'z', 'w'], v: Float64Array.of(5, 5, 5, 1) }, { groupby: ['g'], measures: [{ op: 'sum', field: 'v', as: 's' }], sort: 's', order: 'desc' });
+    assert.deepStrictEqual(
+      colA(
+        agg(
+          { g: ['a', 'b', 'c'], v: Float64Array.of(NaN, 2, 1) },
+          { groupby: ['g'], measures: [{ op: 'sum', field: 'v', as: 's' }], sort: 's' },
+        ),
+        'g',
+      ),
+      ['c', 'b', 'a'],
+    );
+    const ties = agg(
+      { g: ['x', 'y', 'z', 'w'], v: Float64Array.of(5, 5, 5, 1) },
+      { groupby: ['g'], measures: [{ op: 'sum', field: 'v', as: 's' }], sort: 's', order: 'desc' },
+    );
     assert.deepStrictEqual(colA(ties, 'g'), ['x', 'y', 'z', 'w'], 'equal values keep the order of first appearance');
   });
 
   test('aggregate: no group-by is one row; empty input; the source table is not touched', () => {
-    const all = agg(sales(), { measures: [{ op: 'sum', field: 'revenue', as: 'total' }, { op: 'count', as: 'n' }] });
+    const all = agg(sales(), {
+      measures: [
+        { op: 'sum', field: 'revenue', as: 'total' },
+        { op: 'count', as: 'n' },
+      ],
+    });
     assert.deepStrictEqual([all.length, colA(all, 'total'), colA(all, 'n')], [1, [115], [6]]);
-    const empty = agg({ v: new Float64Array(0) }, { measures: [{ op: 'sum', field: 'v', as: 's' }, { op: 'count', as: 'n' }] });
-    assert.deepStrictEqual([empty.length, colA(empty, 's'), colA(empty, 'n')], [1, [NaN], [0]], 'nothing to total is one row with a count of 0');
+    const empty = agg(
+      { v: new Float64Array(0) },
+      {
+        measures: [
+          { op: 'sum', field: 'v', as: 's' },
+          { op: 'count', as: 'n' },
+        ],
+      },
+    );
+    assert.deepStrictEqual(
+      [empty.length, colA(empty, 's'), colA(empty, 'n')],
+      [1, [NaN], [0]],
+      'nothing to total is one row with a count of 0',
+    );
     assert.strictEqual(agg({ v: new Float64Array(0), g: [] }, { groupby: ['g'] }).length, 0, 'but no groups when grouping an empty table');
     const src = sales();
     const before = JSON.stringify(Object.keys(src)) + Array.from(src.revenue).join();
@@ -2466,24 +3464,53 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('aggregate: bad input is a clear error, and outputs() tells validation the new fields', () => {
     for (const [spec, re] of [
-      [{ groupby: ['nope'] }, /unknown field "nope"/], [{ measures: [{ op: 'sum', field: 'nope' }] }, /unknown field "nope"/],
-      [{ measures: [{ op: 'total', field: 'revenue' }] }, /measures\[0\]\.op must be one of: count, sum/], [{ measures: [{ op: 'sum' }] }, /"sum" needs a "field"/],
-      [{ measures: [] }, /non-empty list/], [{ measures: 'sum' }, /non-empty list/], [{ measures: [5] }, /measures\[0\]\.op/],
-      [{ groupby: 'region' }, /"groupby" must be a list/], [{ groupby: [5] }, /groupby\[0\] must be a field name/], [{ groupby: [{ field: 'day', unit: 'decade' }] }, /unit must be one of: year, quarter/],
+      [{ groupby: ['nope'] }, /unknown field "nope"/],
+      [{ measures: [{ op: 'sum', field: 'nope' }] }, /unknown field "nope"/],
+      [{ measures: [{ op: 'total', field: 'revenue' }] }, /measures\[0\]\.op must be one of: count, sum/],
+      [{ measures: [{ op: 'sum' }] }, /"sum" needs a "field"/],
+      [{ measures: [] }, /non-empty list/],
+      [{ measures: 'sum' }, /non-empty list/],
+      [{ measures: [5] }, /measures\[0\]\.op/],
+      [{ groupby: 'region' }, /"groupby" must be a list/],
+      [{ groupby: [5] }, /groupby\[0\] must be a field name/],
+      [{ groupby: [{ field: 'day', unit: 'decade' }] }, /unit must be one of: year, quarter/],
       [{ groupby: ['region'], measures: [{ op: 'count', as: 'region' }] }, /two output columns are called "region"/],
-      [{ groupby: ['region'], sort: 'nope' }, /"sort" must be one of the output columns: region, count/], [{ groupby: ['region'], limit: -1 }, /"limit" must be a number/],
-    ]) assert.throws(() => agg(sales(), { type: 'aggregate', ...spec }), re, JSON.stringify(spec));
-    assert.deepStrictEqual(BC.get('transform.aggregate').outputs({ groupby: ['g', { field: 'd', unit: 'month', as: 'm' }], measures: [{ op: 'sum', field: 'v', as: 't' }] }), ['g', 'm', 't']);
-    assert.throws(() => BC.get('transform.aggregate').outputs({ measures: [{ op: 'nope' }] }), /op must be one of/, 'outputs() reports a broken spec too, so validation stops trusting the field list');
+      [{ groupby: ['region'], sort: 'nope' }, /"sort" must be one of the output columns: region, count/],
+      [{ groupby: ['region'], limit: -1 }, /"limit" must be a number/],
+    ])
+      assert.throws(() => agg(sales(), { type: 'aggregate', ...spec }), re, JSON.stringify(spec));
+    assert.deepStrictEqual(
+      BC.get('transform.aggregate').outputs({
+        groupby: ['g', { field: 'd', unit: 'month', as: 'm' }],
+        measures: [{ op: 'sum', field: 'v', as: 't' }],
+      }),
+      ['g', 'm', 't'],
+    );
+    assert.throws(
+      () => BC.get('transform.aggregate').outputs({ measures: [{ op: 'nope' }] }),
+      /op must be one of/,
+      'outputs() reports a broken spec too, so validation stops trusting the field list',
+    );
   });
 
   test('aggregate in a chart: bars from raw rows, sorted, and the new fields are known to validation', () => {
     BC.data('rawsales', [
-      { region: 'N', rev: 10 }, { region: 'S', rev: 20 }, { region: 'N', rev: 30 }, { region: 'W', rev: 5 }, { region: 'S', rev: 60 },
+      { region: 'N', rev: 10 },
+      { region: 'S', rev: 20 },
+      { region: 'N', rev: 30 },
+      { region: 'W', rev: 5 },
+      { region: 'S', rev: 60 },
     ]);
     const spec = () => ({
-      data: 'rawsales', transforms: [{ type: 'aggregate', groupby: ['region'], measures: [{ op: 'sum', field: 'rev', as: 'total' }], sort: 'total', order: 'desc' }],
-      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } }, marks: [{ type: 'rect', x: 'region', y: 'total' }, { type: 'text', x: 'region', y: 'total', text: 'total', baseline: 'auto', dy: -4 }],
+      data: 'rawsales',
+      transforms: [
+        { type: 'aggregate', groupby: ['region'], measures: [{ op: 'sum', field: 'rev', as: 'total' }], sort: 'total', order: 'desc' },
+      ],
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      marks: [
+        { type: 'rect', x: 'region', y: 'total' },
+        { type: 'text', x: 'region', y: 'total', text: 'total', baseline: 'auto', dy: -4 },
+      ],
       interaction: [{ type: 'tooltip' }],
     });
     const host = new FakeNode('div');
@@ -2491,14 +3518,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(h.diagnostics, []);
     const svg = svgOf(host);
     const bars = rects(layer(svg, 'marks'));
-    assert.deepStrictEqual(texts(layer(svg, 'marks')).map((t) => t.text), ['80', '40', '5'], 'S=80, N=40, W=5, biggest first');
+    assert.deepStrictEqual(
+      texts(layer(svg, 'marks')).map((t) => t.text),
+      ['80', '40', '5'],
+      'S=80, N=40, W=5, biggest first',
+    );
     assert(bars[0].h > bars[1].h && bars[1].h > bars[2].h && Math.abs(bars[0].h / bars[1].h - 2) < 1e-6);
     const typo = spec();
     typo.marks[0].y = 'totl';
     assert(BC.validate(typo).some((d) => d.path === 'marks[0].y' && /unknown field "totl"/.test(d.message)));
     const gone = spec();
     gone.marks[0].y = 'rev';
-    assert(BC.validate(gone).some((d) => /unknown field "rev"/.test(d.message)), 'the original columns are not there after an aggregate');
+    assert(
+      BC.validate(gone).some((d) => /unknown field "rev"/.test(d.message)),
+      'the original columns are not there after an aggregate',
+    );
   });
 
   // ── formatting: BC.formatter, axis format and title, text format and contrast, tooltip formats ──
@@ -2530,7 +3564,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(BC.formatter('date')(Date.UTC(2024, 2, 5)), 'Mar 5, 2024');
     assert.strictEqual(BC.formatter('date')(new Date(Date.UTC(2024, 2, 5))), 'Mar 5, 2024', 'Date objects too');
     assert.match(BC.formatter('datetime')('2024-03-05T00:00:00Z'), /^Mar 5, 2024, 12:00\sAM$/);
-    assert.strictEqual(BC.formatter({ month: 'short', year: '2-digit' })('2024-03-05'), 'Mar 24', 'date options are recognized without saying "date"');
+    assert.strictEqual(
+      BC.formatter({ month: 'short', year: '2-digit' })('2024-03-05'),
+      'Mar 24',
+      'date options are recognized without saying "date"',
+    );
     assert.strictEqual(BC.formatter({ month: 'long', locale: 'de-DE' })('2024-03-05'), 'März');
     assert.strictEqual(BC.formatter({}, 'date')('2024-03-05').length > 0, true, 'a kind can be forced');
     assert.strictEqual(BC.formatter({ kind: 'number', maximumFractionDigits: 0 })(2.6), '3');
@@ -2544,7 +3582,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(BC.formatter('integer')(Infinity), 'Infinity');
     assert.strictEqual(BC.formatter('percent'), BC.formatter('percent'), 'cached');
     assert.notStrictEqual(BC.formatter('percent'), BC.formatter('percent', 'number') && BC.formatter({ style: 'percent' }));
-    assert.throws(() => BC.formatter('bogus'), /unknown format "bogus" \(presets: percent, compact, integer, year, quarter, month, day, date, datetime; or an object of Intl options\)/);
+    assert.throws(
+      () => BC.formatter('bogus'),
+      /unknown format "bogus" \(presets: percent, compact, integer, year, quarter, month, day, date, datetime; or an object of Intl options\)/,
+    );
     assert.throws(() => BC.formatter(5), /preset name or an object/);
     assert.throws(() => BC.formatter(['a']), /preset name or an object/);
     assert.throws(() => BC.formatter(null), /preset name or an object/);
@@ -2567,67 +3608,142 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('axis format: linear ticks as currency and percent, time ticks as dates, categories untouched', () => {
     const money = new FakeNode('div');
-    const h = BC.chart(money, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', format: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } }]));
+    const h = BC.chart(
+      money,
+      formatSpec([
+        { type: 'axis', line: 'on', ticks: true, scale: 'y', format: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } },
+      ]),
+    );
     assert.deepStrictEqual(h.diagnostics, []);
     const y = yLabels(svgOf(money)).map((l) => l.text);
     assert(y.length >= 3 && y.every((t) => /^\$\d+$/.test(t)), y.join());
 
-    BC.data('shares2', [{ k: 'a', s: 'x', v: 1 }, { k: 'a', s: 'y', v: 3 }, { k: 'b', s: 'x', v: 2 }, { k: 'b', s: 'y', v: 2 }]);
+    BC.data('shares2', [
+      { k: 'a', s: 'x', v: 1 },
+      { k: 'a', s: 'y', v: 3 },
+      { k: 'b', s: 'x', v: 2 },
+      { k: 'b', s: 'y', v: 2 },
+    ]);
     const pct = new FakeNode('div');
-    BC.chart(pct, { data: 'shares2', transforms: [{ type: 'stack', field: 'v', by: 'k', group: 's', normalize: true }], scales: { x: { type: 'band' }, y: { type: 'linear', domain: [0, 1] } }, guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'y', format: 'percent' }], marks: [{ type: 'rect', x: 'k', y: 'v1', y2: 'v0' }] });
+    BC.chart(pct, {
+      data: 'shares2',
+      transforms: [{ type: 'stack', field: 'v', by: 'k', group: 's', normalize: true }],
+      scales: { x: { type: 'band' }, y: { type: 'linear', domain: [0, 1] } },
+      guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'y', format: 'percent' }],
+      marks: [{ type: 'rect', x: 'k', y: 'v1', y2: 'v0' }],
+    });
     const p = yLabels(svgOf(pct)).map((l) => l.text);
     assert.strictEqual(p[0], '0%');
     assert.strictEqual(p[p.length - 1], '100%', 'a normalized stack reads as percent: ' + p.join());
 
     const dates = new FakeNode('div');
-    BC.chart(dates, lineSpec({ guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x', format: { month: 'short', year: '2-digit' } }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }] }));
+    BC.chart(
+      dates,
+      lineSpec({
+        guides: [
+          { type: 'axis', line: 'on', ticks: true, scale: 'x', format: { month: 'short', year: '2-digit' } },
+          { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+        ],
+      }),
+    );
     const x = xLabels(svgOf(dates)).map((l) => l.text);
     assert(x.length >= 2 && x.every((t) => /^[A-Z][a-z]{2} 24$/.test(t)), x.join());
     assert(x.includes('Jan 24'));
 
     const cats = new FakeNode('div');
     BC.chart(cats, { ...formatSpec([]), guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x', format: 'percent' }] });
-    assert.deepStrictEqual(xLabels(svgOf(cats)).map((l) => l.text), ['a', 'b', 'c', 'd'], 'text categories have nothing to format');
+    assert.deepStrictEqual(
+      xLabels(svgOf(cats)).map((l) => l.text),
+      ['a', 'b', 'c', 'd'],
+      'text categories have nothing to format',
+    );
 
     // categories that are dates (the ISO start of each quarter from an aggregate) or numbers do take the format
-    BC.data('byQuarter', ['2024-01-01', '2024-04-01', '2024-07-01', '2024-10-01', 'Later'].map((q, i) => ({ q, n: 2020 + i, v: i + 1 })));
+    BC.data(
+      'byQuarter',
+      ['2024-01-01', '2024-04-01', '2024-07-01', '2024-10-01', 'Later'].map((q, i) => ({ q, n: 2020 + i, v: i + 1 })),
+    );
     const band = (x, format) => {
       const host = new FakeNode('div');
-      BC.chart(host, { data: 'byQuarter', size: [800, 200], scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } }, guides: [{ type: 'axis', scale: 'x', format }], marks: [{ type: 'rect', x, y: 'v' }] });
+      BC.chart(host, {
+        data: 'byQuarter',
+        size: [800, 200],
+        scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+        guides: [{ type: 'axis', scale: 'x', format }],
+        marks: [{ type: 'rect', x, y: 'v' }],
+      });
       return xLabels(svgOf(host)).map((l) => l.text);
     };
-    assert.deepStrictEqual(band('q', 'quarter'), ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024', 'Later'], 'a date category is written as a date; one that is not a date stays');
+    assert.deepStrictEqual(
+      band('q', 'quarter'),
+      ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024', 'Later'],
+      'a date category is written as a date; one that is not a date stays',
+    );
     assert.deepStrictEqual(band('q', { month: 'short', year: '2-digit' }), ['Jan 24', 'Apr 24', 'Jul 24', 'Oct 24', 'Later']);
-    assert.deepStrictEqual(band('n', { prefix: 'FY', useGrouping: false }), ['FY2020', 'FY2021', 'FY2022', 'FY2023', 'FY2024'], 'number categories take a number format');
+    assert.deepStrictEqual(
+      band('n', { prefix: 'FY', useGrouping: false }),
+      ['FY2020', 'FY2021', 'FY2022', 'FY2023', 'FY2024'],
+      'number categories take a number format',
+    );
     const width = (host) => bottomAxisEnd(svgOf(host));
-    const wide = new FakeNode('div'), narrow = new FakeNode('div');
-    BC.chart(wide, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', format: { style: 'currency', currency: 'USD', minimumFractionDigits: 2 } }]));
+    const wide = new FakeNode('div'),
+      narrow = new FakeNode('div');
+    BC.chart(
+      wide,
+      formatSpec([
+        { type: 'axis', line: 'on', ticks: true, scale: 'y', format: { style: 'currency', currency: 'USD', minimumFractionDigits: 2 } },
+      ]),
+    );
     BC.chart(narrow, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y' }]));
     assert(svgOf(wide) !== svgOf(narrow));
-    const leftEdge = (host) => +svgOf(host).match(/<path d="M([\d.]+) [\d.]+V/g).map((m) => m.match(/M([\d.]+)/)[1]).sort((a, b) => a - b).pop();
+    const leftEdge = (host) =>
+      +svgOf(host)
+        .match(/<path d="M([\d.]+) [\d.]+V/g)
+        .map((m) => m.match(/M([\d.]+)/)[1])
+        .sort((a, b) => a - b)
+        .pop();
     assert(leftEdge(wide) > leftEdge(narrow), 'the wider labels made room for themselves');
   });
 
   test('axis format: a bad format is a guide diagnostic, the chart still draws', () => {
     logged.error.length = 0;
     const host = new FakeNode('div');
-    const h = BC.chart(host, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', format: { style: 'currency' } }, { type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right', format: 'bogus' }]));
-    assert(h.diagnostics.some((d) => d.path === 'guides[1]' && /invalid format/.test(d.message)), JSON.stringify(h.diagnostics));
+    const h = BC.chart(
+      host,
+      formatSpec([
+        { type: 'axis', line: 'on', ticks: true, scale: 'y', format: { style: 'currency' } },
+        { type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right', format: 'bogus' },
+      ]),
+    );
+    assert(
+      h.diagnostics.some((d) => d.path === 'guides[1]' && /invalid format/.test(d.message)),
+      JSON.stringify(h.diagnostics),
+    );
     assert(h.diagnostics.some((d) => d.path === 'guides[2]' && /unknown format "bogus"/.test(d.message)));
     assert.strictEqual(count(layer(svgOf(host), 'marks'), /<rect /g), 4, 'the marks are there');
     logged.error.length = 0;
   });
 
   test('axis title: named below or beside the labels, rotated on vertical axes, and it takes room', () => {
-    const plain = new FakeNode('div'), titled = new FakeNode('div');
+    const plain = new FakeNode('div'),
+      titled = new FakeNode('div');
     BC.chart(plain, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y' }]));
-    const h = BC.chart(titled, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', title: 'Revenue, USD' }, { type: 'axis', line: 'on', ticks: true, scale: 'x', title: 'Region' }]));
+    const h = BC.chart(
+      titled,
+      formatSpec([
+        { type: 'axis', line: 'on', ticks: true, scale: 'y', title: 'Revenue, USD' },
+        { type: 'axis', line: 'on', ticks: true, scale: 'x', title: 'Region' },
+      ]),
+    );
     assert.deepStrictEqual(h.diagnostics, []);
     const t = texts(svgOf(titled));
     const yt = t.find((l) => l.text === 'Revenue, USD');
     const xt = t.find((l) => l.text === 'Region');
     assert(yt && xt, 'both titles are drawn');
-    assert(/transform="rotate\(-90 /.test(yt.attrs) && /text-anchor="middle"/.test(yt.attrs) && /font-weight="600"/.test(yt.attrs), yt.attrs);
+    assert(
+      /transform="rotate\(-90 /.test(yt.attrs) && /text-anchor="middle"/.test(yt.attrs) && /font-weight="600"/.test(yt.attrs),
+      yt.attrs,
+    );
     const ylabels = yLabels(svgOf(titled)).filter((l) => l.text !== 'Revenue, USD');
     assert(yt.x < Math.min(...ylabels.map((l) => l.x - 4)), 'the vertical title is left of the tick labels');
     const plot = probedPlot(titled);
@@ -2635,7 +3751,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const xlabels = xLabels(svgOf(titled)).filter((l) => l.text !== 'Region');
     assert(xt.y > Math.max(...xlabels.map((l) => l.y)), 'the horizontal title is below the tick labels');
     assert(Math.abs(xt.x - (plot.x + plot.w / 2)) < 1e-6);
-    assert(bottomAxisEnd(svgOf(titled)) <= bottomAxisEnd(svgOf(plain)) && plot.h < probedPlot(plain).h, 'the plot gave room for the titles');
+    assert(
+      bottomAxisEnd(svgOf(titled)) <= bottomAxisEnd(svgOf(plain)) && plot.h < probedPlot(plain).h,
+      'the plot gave room for the titles',
+    );
     assert(!/NaN/.test(svgOf(titled)));
 
     const right = new FakeNode('div');
@@ -2647,7 +3766,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(tt && /dominant-baseline="auto"/.test(tt.attrs), 'a top title sits above its labels');
     const notText = new FakeNode('div');
     const hn = BC.chart(notText, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', title: 5 }]));
-    assert(hn.diagnostics.some((d) => d.path === 'guides[1].title' && /must be a string/.test(d.message)), 'a title that is not a string is a validation error');
+    assert(
+      hn.diagnostics.some((d) => d.path === 'guides[1].title' && /must be a string/.test(d.message)),
+      'a title that is not a string is a validation error',
+    );
     const evil = new FakeNode('div');
     BC.chart(evil, formatSpec([{ type: 'axis', line: 'on', ticks: true, scale: 'y', title: '<b>x</b> & y' }]));
     assert(svgOf(evil).includes('&lt;b>x&lt;/b> &amp; y') && !svgOf(evil).includes('<b>'), 'a title is text');
@@ -2655,7 +3777,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('legend format: the labels of a color bar', () => {
     const host = new FakeNode('div');
-    BC.chart(host, heatSpec([{ type: 'legend', scale: 'color', format: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } }]));
+    BC.chart(
+      host,
+      heatSpec([{ type: 'legend', scale: 'color', format: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } }]),
+    );
     const labels = [...svgOf(host).matchAll(/<text [^>]*>(\$\d+)</g)].map((m) => m[1]);
     assert(labels.length >= 3, labels.join());
     const bad = new FakeNode('div');
@@ -2665,20 +3790,46 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('text format: numbers and dates written as asked; contrast against the color a label sits on', () => {
-    BC.data('money', [{ k: 'a', v: 1234.5, d: '2024-03-05' }, { k: 'b', v: 9, d: '2024-04-01' }, { k: 'c', v: null, d: null }]);
-    const mk = (format, textField) => ({ data: 'money', scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } }, marks: [{ type: 'text', x: 'k', y: 'v', text: textField || 'v', format }] });
+    BC.data('money', [
+      { k: 'a', v: 1234.5, d: '2024-03-05' },
+      { k: 'b', v: 9, d: '2024-04-01' },
+      { k: 'c', v: null, d: null },
+    ]);
+    const mk = (format, textField) => ({
+      data: 'money',
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'text', x: 'k', y: 'v', text: textField || 'v', format }],
+    });
     const money = new FakeNode('div');
     BC.chart(money, mk({ style: 'currency', currency: 'USD', maximumFractionDigits: 0 }));
-    assert.deepStrictEqual(texts(svgOf(money)).map((t) => t.text), ['$1,235', '$9'], 'the row without a value has no label');
+    assert.deepStrictEqual(
+      texts(svgOf(money)).map((t) => t.text),
+      ['$1,235', '$9'],
+      'the row without a value has no label',
+    );
     const pct = new FakeNode('div');
     BC.chart(pct, mk('compact'));
-    assert.deepStrictEqual(texts(svgOf(pct)).map((t) => t.text), ['1.2K', '9']);
+    assert.deepStrictEqual(
+      texts(svgOf(pct)).map((t) => t.text),
+      ['1.2K', '9'],
+    );
     const dates = new FakeNode('div');
     BC.chart(dates, mk('month', 'd'));
-    assert.deepStrictEqual(texts(svgOf(dates)).map((t) => t.text), ['Mar 2024', 'Apr 2024'], 'ISO dates through a date preset');
+    assert.deepStrictEqual(
+      texts(svgOf(dates)).map((t) => t.text),
+      ['Mar 2024', 'Apr 2024'],
+      'ISO dates through a date preset',
+    );
     const both = new FakeNode('div');
-    BC.chart(both, { ...mk({ suffix: ' u' }), marks: [{ type: 'text', x: 'k', y: 'v', text: 'v', format: { suffix: ' u' }, decimals: 3 }] });
-    assert.deepStrictEqual(texts(svgOf(both)).map((t) => t.text), ['1,234.5 u', '9 u'], 'format wins over decimals');
+    BC.chart(both, {
+      ...mk({ suffix: ' u' }),
+      marks: [{ type: 'text', x: 'k', y: 'v', text: 'v', format: { suffix: ' u' }, decimals: 3 }],
+    });
+    assert.deepStrictEqual(
+      texts(svgOf(both)).map((t) => t.text),
+      ['1,234.5 u', '9 u'],
+      'format wins over decimals',
+    );
     const bad = new FakeNode('div');
     const hb = BC.chart(bad, mk('bogus'));
     assert(hb.diagnostics.some((d) => d.path === 'marks[0]' && /unknown format/.test(d.message)));
@@ -2686,7 +3837,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     // text on a heatmap: dark cells get light text and light cells dark text
     const heat = new FakeNode('div');
-    const h = BC.chart(heat, { ...heatSpec([]), marks: [{ type: 'rect', x: 'day', y: 'part', color: 'n' }, { type: 'text', x: 'day', y: 'part', text: 'n', on: 'n' }] });
+    const h = BC.chart(heat, {
+      ...heatSpec([]),
+      marks: [
+        { type: 'rect', x: 'day', y: 'part', color: 'n' },
+        { type: 'text', x: 'day', y: 'part', text: 'n', on: 'n' },
+      ],
+    });
     assert.deepStrictEqual(h.diagnostics, [], 'on: "n" uses the scale named color by default');
     const marks = layer(svgOf(heat), 'marks');
     const fills = [...marks.matchAll(/<text [^>]*fill="([^"]+)"[^>]*>(\d+)</g)].map((m) => ({ fill: m[1], n: +m[2] }));
@@ -2694,19 +3851,42 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(fills.find((f) => f.n === 1).fill, '#fff', 'the darkest cell (1) gets white text');
     assert.strictEqual(fills.find((f) => f.n === 9).fill, '#111', 'the lightest cell (9) gets dark text');
     assert(fills.every((f) => f.fill === '#fff' || f.fill === '#111'));
-    BC.data('holes', [{ a: 'p', b: 'q', n: 5 }, { a: 'p', b: 'r', n: null }]);
+    BC.data('holes', [
+      { a: 'p', b: 'q', n: 5 },
+      { a: 'p', b: 'r', n: null },
+    ]);
     const gap = new FakeNode('div');
-    BC.chart(gap, { data: 'holes', scales: { x: { type: 'band' }, y: { type: 'band' }, color: { type: 'sequential' } }, marks: [{ type: 'text', x: 'a', y: 'b', text: 'n', on: 'n' }] });
+    BC.chart(gap, {
+      data: 'holes',
+      scales: { x: { type: 'band' }, y: { type: 'band' }, color: { type: 'sequential' } },
+      marks: [{ type: 'text', x: 'a', y: 'b', text: 'n', on: 'n' }],
+    });
     assert.strictEqual(texts(svgOf(gap)).length, 1, 'a cell with no color gets no text');
     const cat = new FakeNode('div');
-    BC.chart(cat, { ...heatSpec([]), scales: { x: { type: 'band' }, y: { type: 'band' }, color: { type: 'color', range: ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff'] } }, marks: [{ type: 'text', x: 'day', y: 'part', text: 'n', on: 'n' }] });
+    BC.chart(cat, {
+      ...heatSpec([]),
+      scales: {
+        x: { type: 'band' },
+        y: { type: 'band' },
+        color: { type: 'color', range: ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff'] },
+      },
+      marks: [{ type: 'text', x: 'day', y: 'part', text: 'n', on: 'n' }],
+    });
     const c = [...layer(svgOf(cat), 'marks').matchAll(/<text [^>]*fill="([^"]+)"[^>]*>(\d+)</g)].map((m) => m[1]);
     assert.strictEqual(c.length, 5, 'works with a categorical scale as well');
   });
 
   test('tooltip formats: per-field writing, a broken one is dropped with one warning', async () => {
-    BC.data('tipmoney', [{ a: 1, b: 1234.5, d: '2024-03-05', s: 0.256 }, { a: 2, b: 20, d: '2024-04-01', s: 0.5 }]);
-    const spec = (formats) => ({ data: 'tipmoney', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'a', y: 'b' }], interaction: [{ type: 'tooltip', fields: ['a', 'b', 'd', 's'], formats }] });
+    BC.data('tipmoney', [
+      { a: 1, b: 1234.5, d: '2024-03-05', s: 0.256 },
+      { a: 2, b: 20, d: '2024-04-01', s: 0.5 },
+    ]);
+    const spec = (formats) => ({
+      data: 'tipmoney',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [{ type: 'point', x: 'a', y: 'b' }],
+      interaction: [{ type: 'tooltip', fields: ['a', 'b', 'd', 's'], formats }],
+    });
     const host = new FakeNode('div');
     const h = BC.chart(host, spec({ b: { style: 'currency', currency: 'USD' }, d: 'date', s: 'percent' }));
     assert.deepStrictEqual(h.diagnostics, []);
@@ -2719,7 +3899,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     BC.chart(bad, spec({ b: 'bogus', s: 'percent' }));
     assert(logged.warn.some((w) => /format of "b" ignored: unknown format "bogus"/.test(w)));
     await hover(bad, circles(svgOf(bad))[0].x, circles(svgOf(bad))[0].y);
-    assert.deepStrictEqual(tipText(bad), ['a: 1', 'b: 1234.5', 'd: 2024-03-05', 's: 25.6%'], 'the broken one falls back to the plain value, the others still apply');
+    assert.deepStrictEqual(
+      tipText(bad),
+      ['a: 1', 'b: 1234.5', 'd: 2024-03-05', 's: 25.6%'],
+      'the broken one falls back to the plain value, the others still apply',
+    );
     logged.warn.length = 0;
     BC.chart(new FakeNode('div'), spec('percent'));
     assert(logged.warn.some((w) => /"formats" must be an object/.test(w)));
@@ -2730,9 +3914,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   function probedPlot(host) {
     // the plot rectangle, read back from the axis lines of the drawn chart
     const svg = svgOf(host);
-    const vertical = svg.match(/<path d="M([\d.]+) ([\d.]+)V([\d.]+)/g).map((m) => m.match(/M([\d.]+) ([\d.]+)V([\d.]+)/).slice(1).map(Number));
+    const vertical = svg.match(/<path d="M([\d.]+) ([\d.]+)V([\d.]+)/g).map((m) =>
+      m
+        .match(/M([\d.]+) ([\d.]+)V([\d.]+)/)
+        .slice(1)
+        .map(Number),
+    );
     const left = vertical.reduce((a, b) => (b[0] < a[0] ? b : a));
-    const bottomAxis = svg.match(/<path d="M([\d.]+) ([\d.]+)H([\d.]+)/).slice(1).map(Number);
+    const bottomAxis = svg
+      .match(/<path d="M([\d.]+) ([\d.]+)H([\d.]+)/)
+      .slice(1)
+      .map(Number);
     return { x: bottomAxis[0], y: left[1], w: bottomAxis[2] - bottomAxis[0], h: left[2] - left[1] };
   }
 
@@ -2740,7 +3932,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const hbarSpec = () => ({
     data: 'cats',
     scales: { x: { type: 'linear', zero: true }, y: { type: 'band' } },
-    guides: [{ type: 'grid', scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }],
+    guides: [
+      { type: 'grid', scale: 'x' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+    ],
     marks: [{ type: 'rect', x: 'v', y: 'k' }],
     interaction: [{ type: 'tooltip' }],
   });
@@ -2752,15 +3948,31 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const svg = svgOf(host);
     const bars = rects(layer(svg, 'marks'));
     assert.strictEqual(bars.length, 4);
-    assert(bars.every((b, i) => i === 0 || b.y > bars[i - 1].y), 'a is the top bar, d the bottom one');
-    assert(bars.every((b) => Math.abs(b.h - bars[0].h) < 1e-6), 'equal thickness');
+    assert(
+      bars.every((b, i) => i === 0 || b.y > bars[i - 1].y),
+      'a is the top bar, d the bottom one',
+    );
+    assert(
+      bars.every((b) => Math.abs(b.h - bars[0].h) < 1e-6),
+      'equal thickness',
+    );
     const starts = bars.filter((b) => b.w > 0).map((b) => +b.x.toFixed(4));
-    assert(starts.every((x) => x === starts[0]), 'all bars start on the same baseline');
+    assert(
+      starts.every((x) => x === starts[0]),
+      'all bars start on the same baseline',
+    );
     assert(Math.abs(bars[3].w / bars[1].w - 1.5) < 1e-6, 'lengths follow the values');
     assert.strictEqual(bars[2].w, 0, 'a zero bar is empty');
     const labels = yLabels(svg).filter((l) => ['a', 'b', 'c', 'd'].includes(l.text));
-    assert.deepStrictEqual(labels.map((l) => l.text), ['a', 'b', 'c', 'd'], 'axis labels top to bottom');
-    assert(labels.every((l, i) => Math.abs(l.y - (bars[i].y + bars[i].h / 2)) < 1e-6), 'each label is centered on its bar');
+    assert.deepStrictEqual(
+      labels.map((l) => l.text),
+      ['a', 'b', 'c', 'd'],
+      'axis labels top to bottom',
+    );
+    assert(
+      labels.every((l, i) => Math.abs(l.y - (bars[i].y + bars[i].h / 2)) < 1e-6),
+      'each label is centered on its bar',
+    );
     assert(!/NaN/.test(svg));
 
     await hover(host, bars[1].x + bars[1].w / 2, bars[1].y + bars[1].h / 2);
@@ -2782,7 +3994,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     for (let i = 0; i < 10; i++) host2.children[0].fire('wheel', { clientX: 300, clientY: 150, deltaY: -800 });
     await flush();
     const [z0, z1] = h2.getView().x;
-    assert(Math.abs((z1 - z0) - (b1 - b0) / 2) < 1, 'maxZoom stops the zoom at half the domain');
+    assert(Math.abs(z1 - z0 - (b1 - b0) / 2) < 1, 'maxZoom stops the zoom at half the domain');
   });
 
   test('scale.time: dates out of range and a domain that does not parse give an error, not an endless tick loop', () => {
@@ -2800,8 +4012,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     s.setDomain(null);
     assert(s.ticks(6).length > 0);
     const host = new FakeNode('div');
-    const h = BC.chart(host, { data: 'series', scales: { x: { type: 'time', domain: ['x', 'y'] }, y: { type: 'linear' } }, guides: [{ type: 'axis', scale: 'x' }], marks: [{ type: 'line', x: 't', y: 'v' }] });
-    assert(h.diagnostics.some((d) => d.level === 'error' && /scale\.time: domain/.test(d.message)), JSON.stringify(h.diagnostics));
+    const h = BC.chart(host, {
+      data: 'series',
+      scales: { x: { type: 'time', domain: ['x', 'y'] }, y: { type: 'linear' } },
+      guides: [{ type: 'axis', scale: 'x' }],
+      marks: [{ type: 'line', x: 't', y: 'v' }],
+    });
+    assert(
+      h.diagnostics.some((d) => d.level === 'error' && /scale\.time: domain/.test(d.message)),
+      JSON.stringify(h.diagnostics),
+    );
   });
 
   test('line: unsorted rows with missing x are still joined in x order', () => {
@@ -2810,17 +4030,25 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     for (const k of [5, 17, 29, 41]) rows[k].x = null;
     BC.data('unsortedGaps', rows);
     const host = new FakeNode('div');
-    BC.chart(host, { data: 'unsortedGaps', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 'x', y: 'y' }] });
+    BC.chart(host, {
+      data: 'unsortedGaps',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [{ type: 'line', x: 'x', y: 'y' }],
+    });
     const d = svgOf(host).match(/<path d="([^"]+)"/)[1];
     const xs = [...d.matchAll(/[ML]([\d.]+) /g)].map((m) => +m[1]);
     assert.strictEqual(xs.length, 56, 'every row with an x is drawn');
-    assert(xs.every((x, i) => i === 0 || x >= xs[i - 1]), 'x never goes back');
+    assert(
+      xs.every((x, i) => i === 0 || x >= xs[i - 1]),
+      'x never goes back',
+    );
     assert.strictEqual(count(d, /M/g), 1, 'a row without x is not a gap in the line: it has no place on it');
   });
 
   // ── bubbles: scale.size + mark.point size + a size legend ──
   test('scale.size: area follows the value from 0, bad values have no size, ranges and domains are checked', () => {
-    const mk = (sources, spec) => BC.get('scale.size').create({ type: 'size', ...spec }, { name: 'size', sources, range: spec && spec.range ? spec.range : [] });
+    const mk = (sources, spec) =>
+      BC.get('scale.size').create({ type: 'size', ...spec }, { name: 'size', sources, range: spec && spec.range ? spec.range : [] });
     const s = mk([Float64Array.of(10, 40, 100)], { range: [0, 20] });
     assert.deepStrictEqual(s.domain(), [0, 100], 'zero by default');
     assert(Math.abs(s(100) ** 2 / s(25) ** 2 - 4) < 1e-9, 'four times the value, four times the area');
@@ -2837,13 +4065,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.throws(() => mk([[1]], { range: ['big', 5] }), /scale\.size: range/);
     assert.throws(() => mk([[1]], { domain: [5, 5] }), /scale\.size: domain/);
     assert.throws(() => mk([[1]], { domain: [-1, 5] }), /scale\.size: domain/);
-    assert.deepStrictEqual(s.ticks(3).map((t) => t.value), [50, 100], 'round values for a key, no zero circle');
+    assert.deepStrictEqual(
+      s.ticks(3).map((t) => t.value),
+      [50, 100],
+      'round values for a key, no zero circle',
+    );
     assert(s.ticks(3).every((t) => t.pos === s(t.value)));
   });
 
   BC.data('bubbleRows', [
-    { gdp: 10, life: 70, pop: 100, c: 'A' }, { gdp: 20, life: 75, pop: 4, c: 'B' }, { gdp: 20.2, life: 75.1, pop: 1, c: 'C' },
-    { gdp: 30, life: 80, pop: null, c: 'D' }, { gdp: 40, life: 82, pop: -2, c: 'E' }, { gdp: 21, life: 75.5, pop: 400, c: 'F' },
+    { gdp: 10, life: 70, pop: 100, c: 'A' },
+    { gdp: 20, life: 75, pop: 4, c: 'B' },
+    { gdp: 20.2, life: 75.1, pop: 1, c: 'C' },
+    { gdp: 30, life: 80, pop: null, c: 'D' },
+    { gdp: 40, life: 82, pop: -2, c: 'E' },
+    { gdp: 21, life: 75.5, pop: 400, c: 'F' },
   ]);
   const bubbleSpec = (extra) => ({
     data: 'bubbleRows',
@@ -2851,26 +4087,53 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     marks: [{ type: 'point', x: 'gdp', y: 'life', size: 'pop', opacity: 0.7, stroke: '#fff' }],
     ...extra,
   });
-  const bubblesIn = (svg) => [...svg.matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)" r="([\d.-]+)"[^>]*data-bc-row="(\d+)"/g)].map((m) => ({ x: +m[1], y: +m[2], r: +m[3], row: +m[4] }));
+  const bubblesIn = (svg) =>
+    [...svg.matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)" r="([\d.-]+)"[^>]*data-bc-row="(\d+)"/g)].map((m) => ({
+      x: +m[1],
+      y: +m[2],
+      r: +m[3],
+      row: +m[4],
+    }));
 
   test('bubble: radius per row from the size scale, the biggest drawn first, rows without a size left out', () => {
     const host = new FakeNode('div');
     const h = BC.chart(host, bubbleSpec());
     assert.deepStrictEqual(h.diagnostics, []);
     const c = bubblesIn(layer(svgOf(host), 'marks'));
-    assert.deepStrictEqual(c.map((b) => b.row), [5, 0, 1, 2], 'by size, descending; null and negative sizes not drawn');
+    assert.deepStrictEqual(
+      c.map((b) => b.row),
+      [5, 0, 1, 2],
+      'by size, descending; null and negative sizes not drawn',
+    );
     assert.strictEqual(c[0].r, 30);
     assert(Math.abs((c[1].r / c[0].r) ** 2 - 100 / 400) < 1e-9, 'area ratio = value ratio');
     assert(/stroke="#fff"/.test(svgOf(host)));
     const plain = new FakeNode('div');
     BC.chart(plain, { ...bubbleSpec(), marks: [{ type: 'point', x: 'gdp', y: 'life', r: 5 }] });
-    assert.deepStrictEqual(bubblesIn(layer(svgOf(plain), 'marks')).map((b) => [b.row, b.r]), [[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5]], 'without size: data order, the constant r');
+    assert.deepStrictEqual(
+      bubblesIn(layer(svgOf(plain), 'marks')).map((b) => [b.row, b.r]),
+      [
+        [0, 5],
+        [1, 5],
+        [2, 5],
+        [3, 5],
+        [4, 5],
+        [5, 5],
+      ],
+      'without size: data order, the constant r',
+    );
   });
 
   test('bubble: validation of the size channel, and the tooltip picks the small bubble on top of a big one', async () => {
     const wrong = BC.validate({ ...bubbleSpec(), scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'linear' } } });
-    assert(wrong.some((d) => d.path === 'marks[0].size' && /does not accept a "linear" scale/.test(d.message)), JSON.stringify(wrong));
-    const badRange = BC.chart(new FakeNode('div'), bubbleSpec({ scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'size', range: [9, 1] } } }));
+    assert(
+      wrong.some((d) => d.path === 'marks[0].size' && /does not accept a "linear" scale/.test(d.message)),
+      JSON.stringify(wrong),
+    );
+    const badRange = BC.chart(
+      new FakeNode('div'),
+      bubbleSpec({ scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'size', range: [9, 1] } } }),
+    );
     assert(badRange.diagnostics.some((d) => d.level === 'error' && /scale\.size: range/.test(d.message)));
 
     const host = new FakeNode('div');
@@ -2879,7 +4142,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const big = c.find((b) => b.row === 5);
     const small = c.find((b) => b.row === 2);
     assert(Math.hypot(big.x - small.x, big.y - small.y) < big.r, 'the small bubble sits inside the big one');
-    const said = () => (tipOf(host).serialize().match(/>([A-F])</) || [])[1];
+    const said = () =>
+      (tipOf(host)
+        .serialize()
+        .match(/>([A-F])</) || [])[1];
     await hover(host, small.x, small.y);
     assert.strictEqual(said(), 'C', 'the small one, drawn on top, answers');
     await hover(host, big.x - big.r + 2, big.y);
@@ -2895,32 +4161,64 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const axes = layer(svgOf(host), 'axes');
     // domain [0, 400] on radii [0, 30]: keys at 100, 200, 300, 400, each circle with the area of its value
     const keys = [...axes.matchAll(/<circle [^>]*r="([\d.]+)"[^>]*class="bc-legend-size"/g)].map((m) => +m[1]);
-    assert.deepStrictEqual(keys.map((r) => +r.toFixed(2)), [100, 200, 300, 400].map((v) => +(30 * Math.sqrt(v / 400)).toFixed(2)));
+    assert.deepStrictEqual(
+      keys.map((r) => +r.toFixed(2)),
+      [100, 200, 300, 400].map((v) => +(30 * Math.sqrt(v / 400)).toFixed(2)),
+    );
     for (const label of ['100 M', '200 M', '300 M', '400 M']) assert(axes.includes(`>${label}<`), label);
     // A (gdp 10) and F (gdp 21) are two fixed points of the data: the distance between them shrinks with the plot
-    const span = (svg) => { const b = bubblesIn(layer(svg, 'marks')); return b.find((p) => p.row === 5).x - b.find((p) => p.row === 0).x; };
-    assert(span(svgOf(host)) < span(svgOf(bare)) * 0.9, `the key takes room on the right; the plot is narrower: ${span(svgOf(host))} vs ${span(svgOf(bare))}`);
+    const span = (svg) => {
+      const b = bubblesIn(layer(svg, 'marks'));
+      return b.find((p) => p.row === 5).x - b.find((p) => p.row === 0).x;
+    };
+    assert(
+      span(svgOf(host)) < span(svgOf(bare)) * 0.9,
+      `the key takes room on the right; the plot is narrower: ${span(svgOf(host))} vs ${span(svgOf(bare))}`,
+    );
     // a row at the bottom: each label right after its own circle, and on a narrow chart the row wraps instead of running off
     for (const width of [260, 300]) {
       const narrow = new FakeNode('div');
       // as in the recipe: axis titles and a color legend on the right take room after the size key has measured itself
-      const hn = BC.chart(narrow, bubbleSpec({
-        size: [width, 420],
-        scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'size', range: [0, 30] }, color: { type: 'color' } },
-        marks: [{ type: 'point', x: 'gdp', y: 'life', size: 'pop', color: 'c' }],
-        guides: [{ type: 'axis', scale: 'x', title: 'Growth' }, { type: 'axis', scale: 'y', title: 'Margin' }, { type: 'legend', scale: 'color' }, { type: 'legend', scale: 'size', position: 'bottom' }],
-      }));
+      const hn = BC.chart(
+        narrow,
+        bubbleSpec({
+          size: [width, 420],
+          scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'size', range: [0, 30] }, color: { type: 'color' } },
+          marks: [{ type: 'point', x: 'gdp', y: 'life', size: 'pop', color: 'c' }],
+          guides: [
+            { type: 'axis', scale: 'x', title: 'Growth' },
+            { type: 'axis', scale: 'y', title: 'Margin' },
+            { type: 'legend', scale: 'color' },
+            { type: 'legend', scale: 'size', position: 'bottom' },
+          ],
+        }),
+      );
       assert.deepStrictEqual(hn.diagnostics, []);
-      const keyRow = [...svgOf(narrow).matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"[^>]*class="bc-legend-size"[^>]*><\/circle><text x="([\d.]+)"/g)]
-        .map((m) => ({ cx: +m[1], cy: +m[2], r: +m[3], tx: +m[4] }));
+      const keyRow = [
+        ...svgOf(narrow).matchAll(
+          /<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"[^>]*class="bc-legend-size"[^>]*><\/circle><text x="([\d.]+)"/g,
+        ),
+      ].map((m) => ({ cx: +m[1], cy: +m[2], r: +m[3], tx: +m[4] }));
       assert.strictEqual(keyRow.length, 4);
-      assert(keyRow.every((k) => Math.abs(k.tx - (k.cx + k.r + 6)) < 1e-6), 'a label sits just past its own circle');
+      assert(
+        keyRow.every((k) => Math.abs(k.tx - (k.cx + k.r + 6)) < 1e-6),
+        'a label sits just past its own circle',
+      );
       assert(new Set(keyRow.map((k) => k.cy)).size > 1, `${width}: the key wraps onto a second line`);
-      assert(keyRow.every((k) => k.cx - k.r >= 0 && k.cx + k.r <= width), `${width}: and stays inside the chart`);
+      assert(
+        keyRow.every((k) => k.cx - k.r >= 0 && k.cx + k.r <= width),
+        `${width}: and stays inside the chart`,
+      );
       // the axes take their room after the legend measured itself: the wrap must not depend on it
-      assert(keyRow.every((k) => k.cy + k.r <= 420), `${width}: the last line is inside the room it measured: ${JSON.stringify(keyRow)}`);
+      assert(
+        keyRow.every((k) => k.cy + k.r <= 420),
+        `${width}: the last line is inside the room it measured: ${JSON.stringify(keyRow)}`,
+      );
       const plotBottom = Math.max(...bubblesIn(layer(svgOf(narrow), 'marks')).map((b) => b.y));
-      assert(keyRow.every((k) => k.cy - k.r > plotBottom), 'below the plot');
+      assert(
+        keyRow.every((k) => k.cy - k.r > plotBottom),
+        'below the plot',
+      );
     }
   });
 
@@ -2954,8 +4252,12 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   // rows deliberately out of order, one row with a category the domain does not list, one with no category
   BC.data('slope', [
-    { when: 'After', team: 'A', v: 7 }, { when: 'Before', team: 'A', v: 3 }, { when: 'Before', team: 'B', v: 6 },
-    { when: 'After', team: 'B', v: 4 }, { when: 'Later', team: 'B', v: 9 }, { when: null, team: 'A', v: 1 },
+    { when: 'After', team: 'A', v: 7 },
+    { when: 'Before', team: 'A', v: 3 },
+    { when: 'Before', team: 'B', v: 6 },
+    { when: 'After', team: 'B', v: 4 },
+    { when: 'Later', team: 'B', v: 9 },
+    { when: null, team: 'A', v: 1 },
   ]);
   const slopeSpec = (mark, extra) => ({
     data: 'slope',
@@ -2975,7 +4277,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(paths.length, 2, 'one line per team');
     for (const p of paths) {
       assert.strictEqual(p.length, 2, `a category outside the domain and a row without one draw nothing: ${JSON.stringify(p)}`);
-      assert(Math.abs(p[0].x - mid('Before')) < 0.01 && Math.abs(p[1].x - mid('After')) < 0.01, `centered in the bands: ${JSON.stringify(p)} vs ${mid('Before')} ${mid('After')}`);
+      assert(
+        Math.abs(p[0].x - mid('Before')) < 0.01 && Math.abs(p[1].x - mid('After')) < 0.01,
+        `centered in the bands: ${JSON.stringify(p)} vs ${mid('Before')} ${mid('After')}`,
+      );
     }
     const a = paths[0];
     assert(a[1].y < a[0].y, 'A goes up from Before (3) to After (7) although its After row comes first');
@@ -2988,7 +4293,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const mid = (c) => probed.scales.x(c) + probed.scales.x.bandwidth / 2;
     const labels = [...layer(svgOf(host), 'marks').matchAll(/<text x="([\d.-]+)"[^>]*>([^<]+)</g)].map((m) => ({ x: +m[1], text: m[2] }));
     assert.deepStrictEqual(labels.map((l) => l.text).sort(), ['A', 'B']);
-    assert(labels.every((l) => Math.abs(l.x - (mid('After') + 8)) < 0.01), `labels next to the last point: ${JSON.stringify(labels)}`);
+    assert(
+      labels.every((l) => Math.abs(l.x - (mid('After') + 8)) < 0.01),
+      `labels next to the last point: ${JSON.stringify(labels)}`,
+    );
 
     const [a] = [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
     const t = 0.5;
@@ -3000,7 +4308,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const h1 = BC.chart(one, slopeSpec({}, { view: { x: ['After'] } }));
     assert.deepStrictEqual(h1.diagnostics, []);
     const zoomed = [...layer(svgOf(one), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
-    assert(zoomed.every((p) => p.length === 1 && Math.abs(p[0].x - mid('After')) < 0.01), JSON.stringify(zoomed));
+    assert(
+      zoomed.every((p) => p.length === 1 && Math.abs(p[0].x - mid('After')) < 0.01),
+      JSON.stringify(zoomed),
+    );
     assert(!/NaN/.test(svgOf(one)));
 
     const area = new FakeNode('div');
@@ -3008,7 +4319,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(ha.diagnostics, []);
     const shapes = [...layer(svgOf(area), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
     assert.strictEqual(shapes.length, 2);
-    for (const s of shapes) assert(s.every((v) => Math.abs(v.x - mid('Before')) < 0.01 || Math.abs(v.x - mid('After')) < 0.01), `area vertices centered: ${JSON.stringify(s)}`);
+    for (const s of shapes)
+      assert(
+        s.every((v) => Math.abs(v.x - mid('Before')) < 0.01 || Math.abs(v.x - mid('After')) < 0.01),
+        `area vertices centered: ${JSON.stringify(s)}`,
+      );
   });
 
   const win = (cols, spec) => BC.get('transform.window').apply(T(cols), { type: 'window', ...spec });
@@ -3016,10 +4331,26 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('transform.window: running total, change from the previous row, per series in sort order', () => {
     // rows out of order, two series, a gap in A
-    const cols = { d: ['2024-03', '2024-01', '2024-02', '2024-01', '2024-02', '2024-04'], s: ['A', 'A', 'A', 'B', 'B', 'A'], v: [5, 2, null, 10, 12, 4] };
-    assert.deepStrictEqual(nan(win(cols, { field: 'v', op: 'cumsum', sort: 'd', group: 's' }).columns.cumsum_v), [7, 2, 'nan', 10, 22, 11], 'a gap adds nothing and has no total');
-    assert.deepStrictEqual(nan(win(cols, { field: 'v', op: 'diff', sort: 'd', group: 's', as: 'delta' }).columns.delta), ['nan', 'nan', 'nan', 'nan', 2, -1], 'next to a gap there is no change');
-    assert.deepStrictEqual(nan(win({ v: [10, 12, 0, 3, -4, -2] }, { field: 'v', op: 'pctChange' }).columns.pctChange_v), ['nan', 0.2, -1, 'nan', -2.333333333, 0.5], 'from 0 there is no percent; a negative base divides by its size');
+    const cols = {
+      d: ['2024-03', '2024-01', '2024-02', '2024-01', '2024-02', '2024-04'],
+      s: ['A', 'A', 'A', 'B', 'B', 'A'],
+      v: [5, 2, null, 10, 12, 4],
+    };
+    assert.deepStrictEqual(
+      nan(win(cols, { field: 'v', op: 'cumsum', sort: 'd', group: 's' }).columns.cumsum_v),
+      [7, 2, 'nan', 10, 22, 11],
+      'a gap adds nothing and has no total',
+    );
+    assert.deepStrictEqual(
+      nan(win(cols, { field: 'v', op: 'diff', sort: 'd', group: 's', as: 'delta' }).columns.delta),
+      ['nan', 'nan', 'nan', 'nan', 2, -1],
+      'next to a gap there is no change',
+    );
+    assert.deepStrictEqual(
+      nan(win({ v: [10, 12, 0, 3, -4, -2] }, { field: 'v', op: 'pctChange' }).columns.pctChange_v),
+      ['nan', 0.2, -1, 'nan', -2.333333333, 0.5],
+      'from 0 there is no percent; a negative base divides by its size',
+    );
     assert.deepStrictEqual(nan(win({ v: [1, 2, 3] }, { field: 'v', op: 'cumsum' }).columns.cumsum_v), [1, 3, 6], 'no sort: data order');
   });
 
@@ -3028,13 +4359,25 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(nan(win({ v }, { field: 'v', op: 'mean', size: 3 }).columns.mean_v), ['nan', 'nan', 2, 3, 4]);
     assert.deepStrictEqual(nan(win({ v }, { field: 'v', op: 'mean', size: 3, partial: true }).columns.mean_v), [1, 1.5, 2, 3, 4]);
     assert.deepStrictEqual(nan(win({ v }, { field: 'v', op: 'sum', size: 3, align: 'center' }).columns.sum_v), ['nan', 6, 9, 12, 'nan']);
-    assert.deepStrictEqual(nan(win({ v }, { field: 'v', op: 'max', size: 4, align: 'center', partial: true }).columns.max_v), [2, 3, 4, 5, 5], 'even size: two rows before, one after');
-    assert.deepStrictEqual(nan(win({ v: [3, null, 1, 8] }, { field: 'v', op: 'min', size: 2 }).columns.min_v), ['nan', 'nan', 1, 1], 'a missing row gets nothing, its neighbours skip it');
-    assert.deepStrictEqual(nan(win({ v }, { field: 'v', op: 'mean', size: 50 }).columns.mean_v), ['nan', 'nan', 'nan', 'nan', 'nan'], 'a window longer than the series');
+    assert.deepStrictEqual(
+      nan(win({ v }, { field: 'v', op: 'max', size: 4, align: 'center', partial: true }).columns.max_v),
+      [2, 3, 4, 5, 5],
+      'even size: two rows before, one after',
+    );
+    assert.deepStrictEqual(
+      nan(win({ v: [3, null, 1, 8] }, { field: 'v', op: 'min', size: 2 }).columns.min_v),
+      ['nan', 'nan', 1, 1],
+      'a missing row gets nothing, its neighbours skip it',
+    );
+    assert.deepStrictEqual(
+      nan(win({ v }, { field: 'v', op: 'mean', size: 50 }).columns.mean_v),
+      ['nan', 'nan', 'nan', 'nan', 'nan'],
+      'a window longer than the series',
+    );
 
     // the sliding sums and deques against a direct computation, on random data with gaps
     let seed = 7;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     for (let trial = 0; trial < 60; trial++) {
       const n = 1 + Math.floor(rnd() * 40);
       const vals = Array.from({ length: n }, () => (rnd() < 0.2 ? null : Math.round(rnd() * 200 - 100)));
@@ -3049,7 +4392,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
           const b = k + size - 1 - before;
           if (x === null || (!partial && (a < 0 || b >= n))) return 'nan';
           const w = vals.slice(Math.max(0, a), Math.min(n, b + 1)).filter((y) => y !== null);
-          const r = op === 'sum' ? w.reduce((p, q) => p + q, 0) : op === 'mean' ? w.reduce((p, q) => p + q, 0) / w.length : op === 'min' ? Math.min(...w) : Math.max(...w);
+          const r =
+            op === 'sum'
+              ? w.reduce((p, q) => p + q, 0)
+              : op === 'mean'
+                ? w.reduce((p, q) => p + q, 0) / w.length
+                : op === 'min'
+                  ? Math.min(...w)
+                  : Math.max(...w);
           return Math.round(r * 1e9) / 1e9;
         });
         assert.deepStrictEqual(got, want, `${op} size ${size} ${align} partial=${partial} on ${JSON.stringify(vals)}`);
@@ -3062,7 +4412,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.throws(() => win(cols, { field: 'v', op: 'median', size: 3 }), /"op" must be one of/);
     assert.throws(() => win(cols, { field: 'v' }), /"op" must be one of/);
     assert.throws(() => win(cols, { field: 'v', op: 'mean' }), /"mean" needs "size"/);
-    for (const size of [0, 2.5, -1, '3', NaN]) assert.throws(() => win(cols, { field: 'v', op: 'sum', size }), /needs "size"/, String(size));
+    for (const size of [0, 2.5, -1, '3', NaN])
+      assert.throws(() => win(cols, { field: 'v', op: 'sum', size }), /needs "size"/, String(size));
     assert.throws(() => win(cols, { field: 'v', op: 'cumsum', size: 3 }), /"size" applies to sum, mean, min and max/);
     assert.throws(() => win(cols, { field: 'v', op: 'sum', size: 2, align: 'left' }), /"align"/);
     assert.throws(() => win(cols, { field: 'nope', op: 'cumsum' }), /unknown field "nope"/);
@@ -3075,9 +4426,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     assert.deepStrictEqual(nan(win(cols, { field: 'v', op: 'cumsum', sort: 'd' }).columns.cumsum_v), [6, 2, 5], 'sorted by a number field');
     // dates as Date objects, a row without a date (NaN: left out), strings that are not numbers, mixed with numbers
-    const t = win({ v: [1, 1, 1, 1, 1], d: [new Date(3000), new Date(1000), null, new Date(NaN), new Date(2000)] }, { field: 'v', op: 'cumsum', sort: 'd' });
+    const t = win(
+      { v: [1, 1, 1, 1, 1], d: [new Date(3000), new Date(1000), null, new Date(NaN), new Date(2000)] },
+      { field: 'v', op: 'cumsum', sort: 'd' },
+    );
     assert.deepStrictEqual(nan(t.columns.cumsum_v), [3, 1, 'nan', 'nan', 2]);
-    assert.deepStrictEqual(nan(win({ v: [1, 1, 1], d: ['b', 2, 'a'] }, { field: 'v', op: 'cumsum', sort: 'd' }).columns.cumsum_v), [3, 1, 2], 'numbers first, then strings');
+    assert.deepStrictEqual(
+      nan(win({ v: [1, 1, 1], d: ['b', 2, 'a'] }, { field: 'v', op: 'cumsum', sort: 'd' }).columns.cumsum_v),
+      [3, 1, 2],
+      'numbers first, then strings',
+    );
     // values that are not numbers are missing; null and NaN groups are one group of their own; "1" and 1 are different
     const g = win({ v: ['5', 1, 2, 3, 4, true], s: [1, null, NaN, '1', 1, 1] }, { field: 'v', op: 'cumsum', group: 's' });
     assert.deepStrictEqual(nan(g.columns.cumsum_v), ['nan', 1, 3, 3, 4, 'nan']);
@@ -3089,25 +4447,41 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const t0 = Date.now();
     const r = win({ v: big }, { field: 'v', op: 'max', size: n / 10 });
     assert(Date.now() - t0 < 2000, `a window of 10,000 rows on 100,000 rows took ${Date.now() - t0} ms`);
-    assert.strictEqual(r.columns.max_v[n - 1], big.subarray(n - n / 10).reduce((a, b) => (b > a ? b : a)));
+    assert.strictEqual(
+      r.columns.max_v[n - 1],
+      big.subarray(n - n / 10).reduce((a, b) => (b > a ? b : a)),
+    );
   });
 
   test('transform.window: a moving average drawn as a line next to the raw values, its column known to validate', () => {
-    BC.data('daily', Array.from({ length: 30 }, (_, i) => ({ day: `2024-01-${String(i + 1).padStart(2, '0')}`, sales: 100 + (i % 7) * 10 })));
+    BC.data(
+      'daily',
+      Array.from({ length: 30 }, (_, i) => ({ day: `2024-01-${String(i + 1).padStart(2, '0')}`, sales: 100 + (i % 7) * 10 })),
+    );
     const spec = {
       data: 'daily',
       transforms: [{ type: 'window', field: 'sales', op: 'mean', size: 7, sort: 'day', as: 'avg7' }],
       scales: { x: { type: 'time' }, y: { type: 'linear', zero: true } },
-      marks: [{ type: 'line', x: 'day', y: 'sales' }, { type: 'line', x: 'day', y: 'avg7' }],
+      marks: [
+        { type: 'line', x: 'day', y: 'sales' },
+        { type: 'line', x: 'day', y: 'avg7' },
+      ],
     };
     assert.deepStrictEqual(BC.validate(spec), []);
     const bad = BC.validate({ ...spec, marks: [{ type: 'line', x: 'day', y: 'avg' }] });
-    assert(bad.some((d) => /avg/.test(d.message)), JSON.stringify(bad));
+    assert(
+      bad.some((d) => /avg/.test(d.message)),
+      JSON.stringify(bad),
+    );
     const host = new FakeNode('div');
     const h = BC.chart(host, spec);
     assert.deepStrictEqual(h.diagnostics, []);
     const paths = [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
-    assert.deepStrictEqual(paths.map((p) => p.length), [30, 24], 'the first six days have no full week');
+    assert.deepStrictEqual(
+      paths.map((p) => p.length),
+      [30, 24],
+      'the first six days have no full week',
+    );
     const ys = paths[1].map((p) => p.y);
     assert(Math.max(...ys) - Math.min(...ys) < 0.01, 'a weekly pattern averages out to a flat line');
   });
@@ -3116,7 +4490,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   const plain = (t) => Object.fromEntries(Object.entries(t.columns).map(([k, c]) => [k, Array.from(c)]));
 
   test('transform.fold: a wide table becomes a long one, one row per field, the other columns repeated', () => {
-    const t = fold({ month: ['Jan', 'Feb'], online: Float64Array.from([10, 20]), retail: Float64Array.from([5, NaN]) }, { fields: ['online', 'retail'] });
+    const t = fold(
+      { month: ['Jan', 'Feb'], online: Float64Array.from([10, 20]), retail: Float64Array.from([5, NaN]) },
+      { fields: ['online', 'retail'] },
+    );
     assert.strictEqual(t.length, 4);
     assert.deepStrictEqual(plain(t), {
       month: ['Jan', 'Jan', 'Feb', 'Feb'],
@@ -3128,7 +4505,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(t.columns.value instanceof Float64Array, 'numbers stay a typed column');
     assert(t.columns.online instanceof Float64Array);
     const named = fold({ m: [1], a: ['x'], b: [2] }, { fields: ['b', 'a'], key: 'channel', value: 'sales' });
-    assert.deepStrictEqual(plain(named), { m: [1, 1], a: ['x', 'x'], b: [2, 2], channel: ['b', 'a'], sales: [2, 'x'] }, 'the order of fields, not of columns; mixed values stay as they are');
+    assert.deepStrictEqual(
+      plain(named),
+      { m: [1, 1], a: ['x', 'x'], b: [2, 2], channel: ['b', 'a'], sales: [2, 'x'] },
+      'the order of fields, not of columns; mixed values stay as they are',
+    );
     assert(!(named.columns.sales instanceof Float64Array), 'a column of text is not forced into numbers');
     assert.deepStrictEqual(BC.get('transform.fold').outputs({ fields: ['a'] }), ['key', 'value']);
     assert.deepStrictEqual(BC.get('transform.fold').outputs({ fields: ['a'], key: 'k', value: 'v' }), ['k', 'v']);
@@ -3136,7 +4517,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('transform.fold: hostile input — bad params are clear errors, clashing names, an empty table, a wide one stays fast', () => {
     const cols = { m: ['a', 'b'], x: [1, 2], y: [3, 4] };
-    for (const fields of [undefined, [], 'x', [1], ['']]) assert.throws(() => fold(cols, { fields }), /"fields" must be a list/, JSON.stringify(fields));
+    for (const fields of [undefined, [], 'x', [1], ['']])
+      assert.throws(() => fold(cols, { fields }), /"fields" must be a list/, JSON.stringify(fields));
     assert.throws(() => fold(cols, { fields: ['x', 'nope'] }), /unknown field "nope"/);
     assert.throws(() => fold(cols, { fields: ['x', 'x'] }), /"x" is listed twice/);
     assert.throws(() => fold(cols, { fields: ['x'], key: 'm' }), /"m" is already a column/);
@@ -3162,7 +4544,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('transform.fold: series from a wide table drawn as colored lines, its columns known to validate', () => {
-    BC.data('wideSales', [{ month: '2024-01-01', online: 10, retail: 30 }, { month: '2024-02-01', online: 20, retail: 25 }, { month: '2024-03-01', online: 35, retail: 20 }]);
+    BC.data('wideSales', [
+      { month: '2024-01-01', online: 10, retail: 30 },
+      { month: '2024-02-01', online: 20, retail: 25 },
+      { month: '2024-03-01', online: 35, retail: 20 },
+    ]);
     const spec = {
       data: 'wideSales',
       transforms: [{ type: 'fold', fields: ['online', 'retail'], key: 'channel', value: 'sales' }],
@@ -3171,12 +4557,19 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     };
     assert.deepStrictEqual(BC.validate(spec), []);
     const bad = BC.validate({ ...spec, marks: [{ type: 'line', x: 'month', y: 'value', color: 'channel' }] });
-    assert(bad.some((d) => /unknown field "value"/.test(d.message)), JSON.stringify(bad));
+    assert(
+      bad.some((d) => /unknown field "value"/.test(d.message)),
+      JSON.stringify(bad),
+    );
     const host = new FakeNode('div');
     const h = BC.chart(host, spec);
     assert.deepStrictEqual(h.diagnostics, []);
     const paths = [...layer(svgOf(host), 'marks').matchAll(/<path d="([^"]+)"/g)].map((m) => vertices(m[1]));
-    assert.deepStrictEqual(paths.map((p) => p.length), [3, 3], 'one line per folded field');
+    assert.deepStrictEqual(
+      paths.map((p) => p.length),
+      [3, 3],
+      'one line per folded field',
+    );
     assert(paths[0][2].y < paths[0][0].y && paths[1][2].y > paths[1][0].y, 'online rises, retail falls');
   });
 
@@ -3191,10 +4584,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(filt(cols, { field: 'v', op: 'valid' }).k, ['a', 'c', 'd', 'e']);
     assert.deepStrictEqual(filt(cols, { field: 'k', op: 'in', value: ['e', 'a', 'zz'] }).k, ['a', 'e'], 'rows keep their order');
     assert.deepStrictEqual(filt(cols, { field: 'k', op: 'notIn', value: ['a'] }).k, ['b', 'c', 'd', 'e']);
-    assert(BC.get('transform.filter').apply(T(cols), { type: 'filter', field: 'v', op: 'valid' }).columns.v instanceof Float64Array, 'numbers stay typed');
+    assert(
+      BC.get('transform.filter').apply(T(cols), { type: 'filter', field: 'v', op: 'valid' }).columns.v instanceof Float64Array,
+      'numbers stay typed',
+    );
 
     const days = { d: ['2024-01-15', '2024-03-01', new Date(Date.UTC(2024, 5, 1)), '2024-02', null, 'soon'], n: [1, 2, 3, 4, 5, 6] };
-    assert.deepStrictEqual(filt(days, { field: 'd', op: '>=', value: '2024-02-01' }).n, [2, 3, 4], 'ISO strings and Dates as dates; "2024-02" is February');
+    assert.deepStrictEqual(
+      filt(days, { field: 'd', op: '>=', value: '2024-02-01' }).n,
+      [2, 3, 4],
+      'ISO strings and Dates as dates; "2024-02" is February',
+    );
     assert.deepStrictEqual(filt(days, { field: 'd', op: '<', value: '2024-03' }).n, [1, 4]);
     assert.deepStrictEqual(filt(days, { field: 'd', value: '2024-06-01' }).n, [3], 'a Date equals the ISO string of its time');
     assert.deepStrictEqual(filt(days, { field: 'd', op: 'in', value: ['2024-06-01', 'soon'] }).n, [3, 6]);
@@ -3214,7 +4614,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.throws(() => filt(cols, { op: 'valid' }), /"field"/);
     assert.throws(() => filt(cols, { field: 'v', op: '=~', value: 1 }), /"op" must be one of/);
     assert.throws(() => filt(cols, { field: 'v', op: '>' }), /needs "value"/);
-    for (const value of [null, {}, [1], NaN, Infinity]) assert.throws(() => filt(cols, { field: 'v', op: '>', value }), /"value"/, String(value));
+    for (const value of [null, {}, [1], NaN, Infinity])
+      assert.throws(() => filt(cols, { field: 'v', op: '>', value }), /"value"/, String(value));
     assert.throws(() => filt(cols, { field: 'v', op: '>', value: '' }), /empty/);
     assert.throws(() => filt(cols, { field: 'v', op: '<', value: true }), /not true \/ false/);
     assert.throws(() => filt(cols, { field: 'v', op: 'in', value: 1 }), /a list of values/);
@@ -3228,10 +4629,22 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(srt(cols, { field: 'v' }).p, ['f', 'a', 'd', 'e', 'b', 'c']);
     assert.deepStrictEqual(srt(cols, { field: 'v', order: 'desc' }).p, ['b', 'e', 'd', 'a', 'f', 'c'], 'missing last, descending too');
     assert.deepStrictEqual(srt(cols, { field: 'v', order: 'desc', limit: 2 }), { p: ['b', 'e'], r: ['S', 'N'], v: [9, 7] });
-    assert.deepStrictEqual(srt(cols, { field: 'v', order: 'desc', limit: 1, group: 'r' }).p, ['e', 'b', 'f'], 'the best of each group, groups in first-seen order');
+    assert.deepStrictEqual(
+      srt(cols, { field: 'v', order: 'desc', limit: 1, group: 'r' }).p,
+      ['e', 'b', 'f'],
+      'the best of each group, groups in first-seen order',
+    );
     assert.deepStrictEqual(srt(cols, { field: 'v', limit: 0 }).p, []);
-    assert.deepStrictEqual(srt({ k: [2, 'b', 1, 'a', 2], i: [0, 1, 2, 3, 4] }, { field: 'k' }).i, [2, 0, 4, 3, 1], 'numbers first, ties keep data order');
-    assert.deepStrictEqual(srt({ d: [new Date(3000), new Date(1000), new Date(NaN)], i: [0, 1, 2] }, { field: 'd' }).i, [1, 0, 2], 'dates by time, an invalid one missing');
+    assert.deepStrictEqual(
+      srt({ k: [2, 'b', 1, 'a', 2], i: [0, 1, 2, 3, 4] }, { field: 'k' }).i,
+      [2, 0, 4, 3, 1],
+      'numbers first, ties keep data order',
+    );
+    assert.deepStrictEqual(
+      srt({ d: [new Date(3000), new Date(1000), new Date(NaN)], i: [0, 1, 2] }, { field: 'd' }).i,
+      [1, 0, 2],
+      'dates by time, an invalid one missing',
+    );
     assert.deepStrictEqual(srt({ v: [] }, { field: 'v', limit: 3 }), { v: [] });
   });
 
@@ -3246,7 +4659,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const n = 200000;
     const big = Float64Array.from({ length: n }, (_, i) => (i * 7919) % n);
     const t0 = Date.now();
-    const t = BC.get('transform.sort').apply(T({ v: big, g: Array.from({ length: n }, (_, i) => 'g' + (i % 100)) }), { type: 'sort', field: 'v', order: 'desc', limit: 3, group: 'g' });
+    const t = BC.get('transform.sort').apply(T({ v: big, g: Array.from({ length: n }, (_, i) => 'g' + (i % 100)) }), {
+      type: 'sort',
+      field: 'v',
+      order: 'desc',
+      limit: 3,
+      group: 'g',
+    });
     assert(Date.now() - t0 < 3000, `sorting 200,000 rows took ${Date.now() - t0} ms`);
     assert.strictEqual(t.length, 300);
   });
@@ -3259,14 +4678,20 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     ]);
     const spec = {
       data: 'productSales',
-      transforms: [{ type: 'filter', field: 'year', value: 2024 }, { type: 'sort', field: 'revenue', order: 'desc', limit: 5 }],
+      transforms: [
+        { type: 'filter', field: 'year', value: 2024 },
+        { type: 'sort', field: 'revenue', order: 'desc', limit: 5 },
+      ],
       scales: { y: { type: 'band' }, x: { type: 'linear', zero: true } },
       marks: [{ type: 'rect', y: 'product', x: 'revenue' }],
       interaction: [{ type: 'probe2' }],
     };
     assert.deepStrictEqual(BC.validate(spec), []);
     const bad = BC.validate({ ...spec, transforms: [{ type: 'filter', field: 'yaer', value: 2024 }] });
-    assert(bad.some((d) => /unknown field "yaer"/.test(d.message)), JSON.stringify(bad));
+    assert(
+      bad.some((d) => /unknown field "yaer"/.test(d.message)),
+      JSON.stringify(bad),
+    );
     const h = BC.chart(new FakeNode('div'), spec);
     assert.deepStrictEqual(h.diagnostics, []);
     assert.deepStrictEqual(probed.scales.y.domain(), ['B', 'F', 'D', 'G', 'A'], 'the bands are the top five, best first');
@@ -3276,17 +4701,34 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
   test('transform.calculate: two fields or a field and a constant; not a number or a division by zero is NaN', () => {
     const cols = { profit: Float64Array.from([20, 5, NaN, 3]), revenue: [100, 0, 50, '30'], plan: Float64Array.from([90, 10, 40, 30]) };
-    assert.deepStrictEqual(nan(calc(cols, { a: 'profit', op: '/', b: 'revenue', as: 'margin' }).columns.margin), [0.2, 'nan', 'nan', 'nan'], 'by zero, NaN and text are missing');
+    assert.deepStrictEqual(
+      nan(calc(cols, { a: 'profit', op: '/', b: 'revenue', as: 'margin' }).columns.margin),
+      [0.2, 'nan', 'nan', 'nan'],
+      'by zero, NaN and text are missing',
+    );
     assert.deepStrictEqual(nan(calc(cols, { a: 'revenue', op: '-', b: 'plan', as: 'gap' }).columns.gap), [10, -10, 10, 'nan']);
     assert.deepStrictEqual(nan(calc(cols, { a: 'plan', op: '*', value: 1.5, as: 'x' }).columns.x), [135, 15, 60, 45]);
     assert.deepStrictEqual(nan(calc(cols, { a: 'plan', op: '+', value: -10, as: 'x' }).columns.x), [80, 0, 30, 20]);
-    assert.deepStrictEqual(nan(calc(cols, { a: 'plan', op: '/', value: 0, as: 'x' }).columns.x), ['nan', 'nan', 'nan', 'nan'], 'divided by a constant zero');
-    assert.deepStrictEqual(nan(calc({ v: [1e308] }, { a: 'v', op: '*', value: 10, as: 'x' }).columns.x), ['nan'], 'an overflow is not Infinity');
+    assert.deepStrictEqual(
+      nan(calc(cols, { a: 'plan', op: '/', value: 0, as: 'x' }).columns.x),
+      ['nan', 'nan', 'nan', 'nan'],
+      'divided by a constant zero',
+    );
+    assert.deepStrictEqual(
+      nan(calc({ v: [1e308] }, { a: 'v', op: '*', value: 10, as: 'x' }).columns.x),
+      ['nan'],
+      'an overflow is not Infinity',
+    );
     const t = calc(cols, { a: 'plan', op: '/', value: 10, as: 'plan' });
     assert.deepStrictEqual(nan(t.columns.plan), [9, 1, 4, 3], 'as = a replaces the column');
     assert.deepStrictEqual(Array.from(cols.plan), [90, 10, 40, 30], 'the input table is untouched');
     assert(t.columns.plan instanceof Float64Array);
-    assert.deepStrictEqual(Object.keys(calc(cols, { a: 'profit', op: '+', b: 'plan', as: 'sum' }).columns), ['profit', 'revenue', 'plan', 'sum']);
+    assert.deepStrictEqual(Object.keys(calc(cols, { a: 'profit', op: '+', b: 'plan', as: 'sum' }).columns), [
+      'profit',
+      'revenue',
+      'plan',
+      'sum',
+    ]);
     assert.deepStrictEqual(BC.get('transform.calculate').outputs({ a: 'x', op: '+', value: 1, as: 'y' }), ['y']);
   });
 
@@ -3300,13 +4742,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.throws(() => calc(cols, { a: 'a', op: '%', b: 'b', as: 'x' }), /"op" must be one of/);
     assert.throws(() => calc(cols, { a: 'a', op: '+', as: 'x' }), /either "b" .* or "value"/);
     assert.throws(() => calc(cols, { a: 'a', op: '+', b: 'b', value: 1, as: 'x' }), /not both/);
-    for (const value of ['2', NaN, Infinity, null]) assert.throws(() => calc(cols, { a: 'a', op: '+', value, as: 'x' }), /"value" must be a finite number|either "b"/, String(value));
+    for (const value of ['2', NaN, Infinity, null])
+      assert.throws(() => calc(cols, { a: 'a', op: '+', value, as: 'x' }), /"value" must be a finite number|either "b"/, String(value));
     assert.throws(() => calc(cols, { a: 'a', op: '+', b: 'b', as: 'c' }), /"c" is already a column/);
     assert.strictEqual(calc({ a: [], b: [] }, { a: 'a', op: '+', b: 'b', as: 'x' }).length, 0);
   });
 
   test('transform.calculate: a margin drawn as percent, its column known to validate', () => {
-    BC.data('pnl', [{ q: 'Q1', revenue: 200, profit: 30 }, { q: 'Q2', revenue: 250, profit: 50 }]);
+    BC.data('pnl', [
+      { q: 'Q1', revenue: 200, profit: 30 },
+      { q: 'Q2', revenue: 250, profit: 50 },
+    ]);
     const spec = {
       data: 'pnl',
       transforms: [{ type: 'calculate', a: 'profit', op: '/', b: 'revenue', as: 'margin' }],
@@ -3315,12 +4761,15 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       interaction: [{ type: 'probe2' }],
     };
     assert.deepStrictEqual(BC.validate(spec), []);
-    assert(BC.validate({ ...spec, marks: [{ type: 'rect', x: 'q', y: 'margins' }] }).some((d) => /unknown field "margins"/.test(d.message)));
+    assert(
+      BC.validate({ ...spec, marks: [{ type: 'rect', x: 'q', y: 'margins' }] }).some((d) => /unknown field "margins"/.test(d.message)),
+    );
     assert.deepStrictEqual(BC.chart(new FakeNode('div'), spec).diagnostics, []);
     assert.deepStrictEqual(Array.from(probed.channel(probed.spec.marks[0], 'y').raw), [0.15, 0.2]);
   });
 
-  const logOf = (sources, spec = {}, range = [0, 300]) => BC.get('scale.log').create({ type: 'log', ...spec }, { name: 'y', sources, range });
+  const logOf = (sources, spec = {}, range = [0, 300]) =>
+    BC.get('scale.log').create({ type: 'log', ...spec }, { name: 'y', sources, range });
 
   test('scale.log: equal ratios are equal steps; the domain from positive values, nice to powers of ten; ticks and labels', () => {
     const s = logOf([Float64Array.of(3, 0, -5, NaN, 4200)]);
@@ -3331,12 +4780,46 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(s(10000), 300);
     assert(Number.isNaN(s(0)) && Number.isNaN(s(-1)), 'no place for zero and negatives');
     assert(Math.abs(s.invert(s(42)) - 42) < 1e-9, 'invert');
-    assert.deepStrictEqual(s.ticks(6).map((t) => t.label), ['1', '10', '100', '1K', '10K'], 'four decades: the powers of ten');
-    assert.deepStrictEqual(logOf([[2, 90]]).ticks(6).map((t) => t.value), [1, 2, 5, 10, 20, 50, 100], 'two decades: 1, 2, 5 of each');
-    assert.deepStrictEqual(logOf([[1, 1e12]]).ticks(6).map((t) => t.label), ['1', '100', '10K', '1M', '100M', '10B', '1T'], 'many decades: every other one');
-    assert.deepStrictEqual(logOf([[0.002, 0.3]]).ticks(6).map((t) => t.label), ['0.001', '0.003', '0.01', '0.03', '0.1', '0.3', '1'], 'three decades: 1 and 3 of each');
-    assert.deepStrictEqual(logOf([[20, 80]], { nice: false }).ticks(6).map((t) => t.value), [20, 50], 'inside one decade');
-    assert.deepStrictEqual(logOf([[30, 40]], { nice: false }).ticks(6).map((t) => t.value), [30, 40], 'no round value inside: the two ends');
+    assert.deepStrictEqual(
+      s.ticks(6).map((t) => t.label),
+      ['1', '10', '100', '1K', '10K'],
+      'four decades: the powers of ten',
+    );
+    assert.deepStrictEqual(
+      logOf([[2, 90]])
+        .ticks(6)
+        .map((t) => t.value),
+      [1, 2, 5, 10, 20, 50, 100],
+      'two decades: 1, 2, 5 of each',
+    );
+    assert.deepStrictEqual(
+      logOf([[1, 1e12]])
+        .ticks(6)
+        .map((t) => t.label),
+      ['1', '100', '10K', '1M', '100M', '10B', '1T'],
+      'many decades: every other one',
+    );
+    assert.deepStrictEqual(
+      logOf([[0.002, 0.3]])
+        .ticks(6)
+        .map((t) => t.label),
+      ['0.001', '0.003', '0.01', '0.03', '0.1', '0.3', '1'],
+      'three decades: 1 and 3 of each',
+    );
+    assert.deepStrictEqual(
+      logOf([[20, 80]], { nice: false })
+        .ticks(6)
+        .map((t) => t.value),
+      [20, 50],
+      'inside one decade',
+    );
+    assert.deepStrictEqual(
+      logOf([[30, 40]], { nice: false })
+        .ticks(6)
+        .map((t) => t.value),
+      [30, 40],
+      'no round value inside: the two ends',
+    );
     assert.deepStrictEqual(logOf([[5, 5]]).domain(), [0.1, 100], 'one value: a decade either side, then nice');
     assert.deepStrictEqual(logOf([[0, -3]]).domain(), [1, 10], 'nothing positive: a default decade');
     const r = logOf([[1, 1000]], {}, [300, 0]);
@@ -3348,15 +4831,40 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   });
 
   test('scale.log: hostile input — a domain with zero or less is a clear error, odd values are left out', () => {
-    for (const domain of [[0, 100], [-1, 10], [1, Infinity], ['a', 10]]) assert.throws(() => logOf([[1, 2]], { domain }), /scale\.log: the domain must be two positive numbers/, JSON.stringify(domain));
-    assert.deepStrictEqual(logOf([['100', 'x', null, Infinity, 50, true]]).domain(), [1, 1000], 'only finite positive numbers: 50 alone, a decade either side');
+    for (const domain of [
+      [0, 100],
+      [-1, 10],
+      [1, Infinity],
+      ['a', 10],
+    ])
+      assert.throws(() => logOf([[1, 2]], { domain }), /scale\.log: the domain must be two positive numbers/, JSON.stringify(domain));
+    assert.deepStrictEqual(
+      logOf([['100', 'x', null, Infinity, 50, true]]).domain(),
+      [1, 1000],
+      'only finite positive numbers: 50 alone, a decade either side',
+    );
     assert.deepStrictEqual(logOf([[]]).domain(), [1, 10]);
   });
 
   test('scale.log: a line breaks at zero, bars start at the bottom of the domain, the axis takes a format', () => {
-    BC.data('logData', [{ k: 'a', v: 10 }, { k: 'b', v: 1000 }, { k: 'c', v: 0 }, { k: 'd', v: 100000 }, { k: 'e', v: 100 }]);
-    const base = { data: 'logData', size: [300, 220], padding: { top: 10, right: 10, bottom: 30, left: 50 }, scales: { x: { type: 'band' }, y: { type: 'log' } } };
-    const lineSpec = { ...base, guides: [{ type: 'axis', scale: 'y', format: { style: 'currency', currency: 'USD', notation: 'compact' } }], marks: [{ type: 'line', x: 'k', y: 'v' }] };
+    BC.data('logData', [
+      { k: 'a', v: 10 },
+      { k: 'b', v: 1000 },
+      { k: 'c', v: 0 },
+      { k: 'd', v: 100000 },
+      { k: 'e', v: 100 },
+    ]);
+    const base = {
+      data: 'logData',
+      size: [300, 220],
+      padding: { top: 10, right: 10, bottom: 30, left: 50 },
+      scales: { x: { type: 'band' }, y: { type: 'log' } },
+    };
+    const lineSpec = {
+      ...base,
+      guides: [{ type: 'axis', scale: 'y', format: { style: 'currency', currency: 'USD', notation: 'compact' } }],
+      marks: [{ type: 'line', x: 'k', y: 'v' }],
+    };
     assert.deepStrictEqual(BC.validate(lineSpec), []);
     const host = new FakeNode('div');
     const h = BC.chart(host, lineSpec);
@@ -3366,9 +4874,15 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(paths.join('').split('M').length - 1, 2, 'two pieces: the zero breaks the line');
     const ys = paths.flatMap((d) => vertices(d)).map((p) => p.y);
     // rows a 10, b 1000 | d 100000, e 100: equal ratios are equal steps, and 100 sits halfway between 10 and 1000
-    assert(Math.abs((ys[0] - ys[1]) - (ys[1] - ys[2])) < 0.01, JSON.stringify(ys));
+    assert(Math.abs(ys[0] - ys[1] - (ys[1] - ys[2])) < 0.01, JSON.stringify(ys));
     assert(Math.abs(ys[3] - (ys[0] + ys[1]) / 2) < 0.01, JSON.stringify(ys));
-    assert.deepStrictEqual(texts(svg).map((t) => t.text).filter((t) => t.startsWith('$')), ['$10', '$100', '$1K', '$10K', '$100K'], 'the axis format writes the log ticks');
+    assert.deepStrictEqual(
+      texts(svg)
+        .map((t) => t.text)
+        .filter((t) => t.startsWith('$')),
+      ['$10', '$100', '$1K', '$10K', '$100K'],
+      'the axis format writes the log ticks',
+    );
 
     const barHost = new FakeNode('div');
     const hb = BC.chart(barHost, { ...base, marks: [{ type: 'rect', x: 'k', y: 'v' }] });
@@ -3383,13 +4897,26 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const areaHost = new FakeNode('div');
     assert.deepStrictEqual(BC.chart(areaHost, { ...base, marks: [{ type: 'area', x: 'k', y: 'v' }] }).diagnostics, []);
     const edge = [...layer(svgOf(areaHost), 'marks').matchAll(/<path d="([^"]+)"/g)].flatMap((m) => vertices(m[1])).map((p) => p.y);
-    assert(edge.length && edge.every((y) => Number.isFinite(y) && y <= bottom + 0.01), `an area fills down to the bottom of the plot: ${edge}`);
+    assert(
+      edge.length && edge.every((y) => Number.isFinite(y) && y <= bottom + 0.01),
+      `an area fills down to the bottom of the plot: ${edge}`,
+    );
     assert(edge.filter((y) => Math.abs(y - bottom) < 0.01).length >= 2, 'its lower edge is the bottom of the domain');
   });
 
   test('scale.log with zoom and zoom-controls: steps are even on the screen, the value under the cursor stays put', async () => {
-    BC.data('logPts', [1, 10, 100, 1000, 10000].map((x) => ({ x, y: x })));
-    const spec = (interaction) => ({ data: 'logPts', size: [640, 400], padding: { top: 0, right: 0, bottom: 0, left: 0 }, scales: { x: { type: 'log' }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'x', y: 'y' }], interaction });
+    BC.data(
+      'logPts',
+      [1, 10, 100, 1000, 10000].map((x) => ({ x, y: x })),
+    );
+    const spec = (interaction) => ({
+      data: 'logPts',
+      size: [640, 400],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      scales: { x: { type: 'log' }, y: { type: 'linear' } },
+      marks: [{ type: 'point', x: 'x', y: 'y' }],
+      interaction,
+    });
     const host = new FakeNode('div');
     const h = BC.chart(host, spec([{ type: 'zoom', wheel: 'always' }]));
     assert.deepStrictEqual(h.diagnostics, []);
@@ -3418,11 +4945,19 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(Math.abs(Math.sqrt(c0 * c1) - 100) < 1e-6 && c0 > 1, `"+" zooms around the middle of the screen: ${c0}, ${c1}`);
   });
 
-  BC.data('wideLabels', ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((k, i) => ({ k, v: (i + 1) * 100, label: i === 3 ? '$34K' : '-$891.6K' })));
+  BC.data(
+    'wideLabels',
+    ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((k, i) => ({ k, v: (i + 1) * 100, label: i === 3 ? '$34K' : '-$891.6K' })),
+  );
   const labelled = (size, extra) => ({
-    data: 'wideLabels', size, padding: { top: 20, right: 10, bottom: 10, left: 10 },
+    data: 'wideLabels',
+    size,
+    padding: { top: 20, right: 10, bottom: 10, left: 10 },
     scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-    marks: [{ type: 'rect', x: 'k', y: 'v' }, { type: 'text', x: 'k', y: 'v', text: 'label', baseline: 'auto', dy: -4, weight: 600, ...extra }],
+    marks: [
+      { type: 'rect', x: 'k', y: 'v' },
+      { type: 'text', x: 'k', y: 'v', text: 'label', baseline: 'auto', dy: -4, weight: 600, ...extra },
+    ],
     interaction: [{ type: 'probe2' }],
   });
   const fontOf = (l) => +/font-size="([\d.]+)"/.exec(l.attrs)[1];
@@ -3446,14 +4981,29 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     const tiny = new FakeNode('div');
     BC.chart(tiny, labelled([220, 200]));
-    assert.deepStrictEqual(texts(layer(svgOf(tiny), 'marks')).map((l) => l.text), ['$34K'], 'only the label that fits at minSize is left');
+    assert.deepStrictEqual(
+      texts(layer(svgOf(tiny), 'marks')).map((l) => l.text),
+      ['$34K'],
+      'only the label that fits at minSize is left',
+    );
     const strict = new FakeNode('div');
     BC.chart(strict, labelled([340, 200], { minSize: 11 }));
-    assert.deepStrictEqual(texts(layer(svgOf(strict), 'marks')).map((l) => [l.text, fontOf(l)]), [['$34K', 11]], 'minSize = size: never smaller, only what fits');
+    assert.deepStrictEqual(
+      texts(layer(svgOf(strict), 'marks')).map((l) => [l.text, fontOf(l)]),
+      [['$34K', 11]],
+      'minSize = size: never smaller, only what fits',
+    );
     const turned = new FakeNode('div');
     BC.chart(turned, labelled([340, 200], { rotate: -90 }));
-    assert.deepStrictEqual(texts(layer(svgOf(turned), 'marks')).map(fontOf), [11, 11, 11, 11, 11, 11, 11], 'a rotated label is left to the author');
-    assert(BC.validate(labelled([340, 200], { minSize: 'x' })).some((d) => /minSize/.test(d.path)), 'minSize must be a number');
+    assert.deepStrictEqual(
+      texts(layer(svgOf(turned), 'marks')).map(fontOf),
+      [11, 11, 11, 11, 11, 11, 11],
+      'a rotated label is left to the author',
+    );
+    assert(
+      BC.validate(labelled([340, 200], { minSize: 'x' })).some((d) => /minSize/.test(d.path)),
+      'minSize must be a number',
+    );
     for (const bad of [0, -3, 40]) {
       const host = new FakeNode('div');
       BC.chart(host, labelled([340, 200], { minSize: bad }));
@@ -3472,9 +5022,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('mark.text with x2 / y2: a label fits its cell with dx / dy on both sides, shrinks if it must, and goes if it cannot', () => {
     const host = new FakeNode('div');
     const h = BC.chart(host, {
-      data: 'cells', size: [600, 300], padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      data: 'cells',
+      size: [600, 300],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
       scales: { x: { type: 'linear', domain: [0, 1] }, y: { type: 'linear', domain: [0, 1] } },
-      marks: [{ type: 'text', x: 'x0', x2: 'x1', y: 'y1', y2: 'y0', text: 'name', anchor: 'start', baseline: 'hanging', dx: 8, dy: 8, size: 12 }],
+      marks: [
+        { type: 'text', x: 'x0', x2: 'x1', y: 'y1', y2: 'y0', text: 'name', anchor: 'start', baseline: 'hanging', dx: 8, dy: 8, size: 12 },
+      ],
     });
     assert.deepStrictEqual(h.diagnostics, []);
     const got = Object.fromEntries(texts(layer(svgOf(host), 'marks')).map((l) => [l.text, fontOf(l)]));
@@ -3487,13 +5041,27 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
 
     const flat = new FakeNode('div');
     BC.chart(flat, {
-      data: 'cells', size: [600, 20], padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      data: 'cells',
+      size: [600, 20],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
       scales: { x: { type: 'linear', domain: [0, 1] }, y: { type: 'linear', domain: [0, 1] } },
-      marks: [{ type: 'text', x: 'x0', x2: 'x1', y: 'y1', y2: 'y0', text: 'name', anchor: 'start', baseline: 'hanging', dx: 8, dy: 8, size: 12 }],
+      marks: [
+        { type: 'text', x: 'x0', x2: 'x1', y: 'y1', y2: 'y0', text: 'name', anchor: 'start', baseline: 'hanging', dx: 8, dy: 8, size: 12 },
+      ],
     });
-    assert(!texts(layer(svgOf(flat), 'marks')).some((l) => l.text === 'Enterprise'), 'a 20 px tall cell less 2 × 8 px of margin has no room for a line');
+    assert(
+      !texts(layer(svgOf(flat), 'marks')).some((l) => l.text === 'Enterprise'),
+      'a 20 px tall cell less 2 × 8 px of margin has no room for a line',
+    );
 
-    const v = BC.validate({ data: 'cells', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'text', x: 'name', x2: 'name', y: 'y0', text: 'name' }] });
-    assert(v.some((d) => d.path === 'marks[0].x2'), JSON.stringify(v));
+    const v = BC.validate({
+      data: 'cells',
+      scales: { x: { type: 'band' }, y: { type: 'linear' } },
+      marks: [{ type: 'text', x: 'name', x2: 'name', y: 'y0', text: 'name' }],
+    });
+    assert(
+      v.some((d) => d.path === 'marks[0].x2'),
+      JSON.stringify(v),
+    );
   });
 };

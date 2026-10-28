@@ -5,7 +5,8 @@ const { El, createDocument, FakePath2D } = require('./fake-dom.js');
 
 function runPage(html, codeOverride, globals) {
   const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)].map((m) => ({ attrs: m[1], text: m[2] }));
-  const code = codeOverride === undefined ? scripts.filter((s) => !s.attrs.includes('application/json')) : [{ attrs: '', text: codeOverride }];
+  const code =
+    codeOverride === undefined ? scripts.filter((s) => !s.attrs.includes('application/json')) : [{ attrs: '', text: codeOverride }];
   const dataEl = scripts.find((s) => s.attrs.includes('id="bc-data"'));
   const chartEls = scripts.filter((s) => s.attrs.includes('data-bc-chart'));
 
@@ -19,15 +20,26 @@ function runPage(html, codeOverride, globals) {
 
   const errors = [];
   const sandbox = {
-    Path2D: FakePath2D, document: doc, console: { warn() {}, error: (...a) => errors.push(a.join(' ')), log() {} }, setTimeout() {}, getComputedStyle: () => ({ position: 'static' }),
+    Path2D: FakePath2D,
+    document: doc,
+    console: { warn() {}, error: (...a) => errors.push(a.join(' ')), log() {} },
+    setTimeout() {},
+    getComputedStyle: () => ({ position: 'static' }),
     // what a browser provides for encoded datasets
-    atob, Blob, DecompressionStream, TextDecoder,
+    atob,
+    Blob,
+    DecompressionStream,
+    TextDecoder,
     ...globals,
   };
   vm.createContext(sandbox);
   for (const s of code) vm.runInContext(s.text, sandbox);
   return { BC: sandbox.BC, handles: sandbox.BC.mount(doc), body, errors };
 }
-const countTags = (el, tag) => { let n = el.tag === tag ? 1 : 0; for (const c of el.children) n += countTags(c, tag); return n; };
+const countTags = (el, tag) => {
+  let n = el.tag === tag ? 1 : 0;
+  for (const c of el.children) n += countTags(c, tag);
+  return n;
+};
 
 module.exports = { runPage, countTags };

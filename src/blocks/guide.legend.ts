@@ -10,16 +10,27 @@
   const HIDDEN_OPACITY = 0.4;
 
   type Side = 'top' | 'right' | 'bottom' | 'left';
-  interface Item { label: string; color: string; w: number; hidden: boolean; index: number }
+  interface Item {
+    label: string;
+    color: string;
+    w: number;
+    hidden: boolean;
+    index: number;
+  }
 
   function scaleOf(spec: BC.GuideSpec, ctx: BC.ChartCtx): BC.Scale {
     const scale = spec.scale ? ctx.scales[spec.scale] : undefined;
-    if (!scale || (scale.kind !== 'color' && scale.kind !== 'sequential' && scale.kind !== 'size')) throw new Error('guide.legend needs a color, sequential or size scale');
+    if (!scale || (scale.kind !== 'color' && scale.kind !== 'sequential' && scale.kind !== 'size'))
+      throw new Error('guide.legend needs a color, sequential or size scale');
     return scale;
   }
 
   /** A size legend: a few round values as circles of their size, each with its label (pos = the radius). */
-  interface Sized { label: string; r: number; w: number }
+  interface Sized {
+    label: string;
+    r: number;
+    w: number;
+  }
   function sizesOf(scale: BC.Scale, spec: BC.GuideSpec, ctx: BC.ChartCtx): Sized[] {
     const ticks = barTicks(scale, spec, 3).filter((t) => isFinite(t.pos) && t.pos > 0);
     return ticks.map((t) => ({ label: t.label, r: t.pos, w: ctx.measure(t.label, FONT).w }));
@@ -104,7 +115,10 @@
     params: {
       scale: { kind: 'scale', required: true, doc: 'A color, sequential or size scale.' },
       position: { kind: 'enum', values: ['top', 'right', 'bottom', 'left'], default: 'right' },
-      format: { kind: 'any', doc: 'How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`.' },
+      format: {
+        kind: 'any',
+        doc: 'How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`.',
+      },
     },
     measure(spec, ctx) {
       const side = sideOf(spec);
@@ -114,9 +128,11 @@
       if (scale.kind === 'size') {
         const sizes = sizesOf(scale, spec, ctx);
         const rMax = sizes.reduce((m, s) => Math.max(m, s.r), 0);
-        out[side] = !sizes.length ? 0 : column
-          ? 2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0) + 2 * PAD
-          : sizeLines(sizes, rowRoom(ctx)).reduce((sum, l) => sum + l.h, 0) + PAD;
+        out[side] = !sizes.length
+          ? 0
+          : column
+            ? 2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0) + 2 * PAD
+            : sizeLines(sizes, rowRoom(ctx)).reduce((sum, l) => sum + l.h, 0) + PAD;
         return out;
       }
       if (scale.kind === 'sequential') {
@@ -126,7 +142,11 @@
         return out;
       }
       const items = itemsOf(scale, ctx);
-      out[side] = !items.length ? 0 : column ? SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD : linesOf(items, rowRoom(ctx)).length * ROW + PAD;
+      out[side] = !items.length
+        ? 0
+        : column
+          ? SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD
+          : linesOf(items, rowRoom(ctx)).length * ROW + PAD;
       return out;
     },
     render(spec, ctx, offset) {
@@ -140,7 +160,14 @@
         const sizes = sizesOf(scale, spec, ctx);
         const rMax = sizes.reduce((m, s) => Math.max(m, s.r), 0);
         const circle = (cx: number, cy: number, s: Sized, labelX: number) => {
-          prims.push({ type: 'circle', cx, cy, r: s.r, style: { fill: 'none', stroke: SIZE_STROKE, strokeWidth: 1 }, cls: 'bc-legend-size' });
+          prims.push({
+            type: 'circle',
+            cx,
+            cy,
+            r: s.r,
+            style: { fill: 'none', stroke: SIZE_STROKE, strokeWidth: 1 },
+            cls: 'bc-legend-size',
+          });
           prims.push({ type: 'text', x: labelX, y: cy, text: s.label, size: FONT, baseline: 'middle', style: { fill: TEXT } });
         };
         if (column) {
@@ -159,7 +186,10 @@
           const lines = sizeLines(sizes, rowRoom(ctx));
           let top = side === 'top' ? y - offset.top - (lines.reduce((sum, l) => sum + l.h, 0) + PAD) : y + h + offset.bottom + PAD / 2;
           for (const line of lines) {
-            let cx = Math.max(PAD, Math.min(x, ctx.size.w - PAD - line.items.reduce((sum, s, k) => sum + (k ? ITEM_GAP : 0) + sizeWidth(s), 0)));
+            let cx = Math.max(
+              PAD,
+              Math.min(x, ctx.size.w - PAD - line.items.reduce((sum, s, k) => sum + (k ? ITEM_GAP : 0) + sizeWidth(s), 0)),
+            );
             for (const s of line.items) {
               circle(cx + s.r, top + line.h / 2, s, cx + 2 * s.r + GAP);
               cx += sizeWidth(s) + ITEM_GAP;
@@ -182,14 +212,35 @@
         for (let k = 0; k < STEPS; k++) {
           const value = column ? d1 - ((k + 0.5) / STEPS) * (d1 - d0) : d0 + ((k + 0.5) / STEPS) * (d1 - d0);
           const color = scale(value);
-          prims.push(column
-            ? { type: 'rect', x: left, y: y + 4 + (k * length) / STEPS, w: BAR, h: slice, style: { fill: color }, cls: 'bc-legend-bar' }
-            : { type: 'rect', x: x + (k * length) / STEPS, y: top, w: slice, h: BAR, style: { fill: color }, cls: 'bc-legend-bar' });
+          prims.push(
+            column
+              ? { type: 'rect', x: left, y: y + 4 + (k * length) / STEPS, w: BAR, h: slice, style: { fill: color }, cls: 'bc-legend-bar' }
+              : { type: 'rect', x: x + (k * length) / STEPS, y: top, w: slice, h: BAR, style: { fill: color }, cls: 'bc-legend-bar' },
+          );
         }
         for (const t of ticks) {
-          prims.push(column
-            ? { type: 'text', x: left + BAR + GAP, y: y + 4 + (1 - t.pos) * length, text: t.label, size: FONT, baseline: 'middle', style: { fill: TEXT } }
-            : { type: 'text', x: x + t.pos * length, y: top + BAR + 3, text: t.label, size: FONT, anchor: 'middle', baseline: 'hanging', style: { fill: TEXT } });
+          prims.push(
+            column
+              ? {
+                  type: 'text',
+                  x: left + BAR + GAP,
+                  y: y + 4 + (1 - t.pos) * length,
+                  text: t.label,
+                  size: FONT,
+                  baseline: 'middle',
+                  style: { fill: TEXT },
+                }
+              : {
+                  type: 'text',
+                  x: x + t.pos * length,
+                  y: top + BAR + 3,
+                  text: t.label,
+                  size: FONT,
+                  anchor: 'middle',
+                  baseline: 'hanging',
+                  style: { fill: TEXT },
+                },
+          );
         }
         return { axes: prims };
       }
@@ -202,7 +253,16 @@
           data: { 'bc-legend-scale': String(spec.scale), 'bc-legend-index': String(it.index) },
           style: it.hidden ? { opacity: HIDDEN_OPACITY } : undefined,
           children: [
-            { type: 'rect', x: px, y: py + (ROW - SWATCH) / 2, w: SWATCH, h: SWATCH, r: SWATCH / 2, style: { fill: it.color }, cls: 'bc-legend-swatch' },
+            {
+              type: 'rect',
+              x: px,
+              y: py + (ROW - SWATCH) / 2,
+              w: SWATCH,
+              h: SWATCH,
+              r: SWATCH / 2,
+              style: { fill: it.color },
+              cls: 'bc-legend-swatch',
+            },
             { type: 'text', x: px + SWATCH + GAP, y: py + ROW / 2, text: it.label, size: FONT, baseline: 'middle', style: { fill: TEXT } },
           ],
         });

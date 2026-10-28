@@ -4,22 +4,61 @@ const path = require('path');
 const assert = require('assert');
 
 class FakeNode {
-  constructor(tag) { this.nodeType = 1; this.tag = tag; this.attrs = {}; this.children = []; this.text = ''; this.parentNode = null; this.listeners = {}; this.style = {}; }
-  addEventListener(t, fn) { (this.listeners[t] = this.listeners[t] || []).push(fn); }
-  removeEventListener(t, fn) { this.listeners[t] = (this.listeners[t] || []).filter((x) => x !== fn); }
-  getBoundingClientRect() { return { left: 0, top: 0, width: 640, height: 400 }; }
+  constructor(tag) {
+    this.nodeType = 1;
+    this.tag = tag;
+    this.attrs = {};
+    this.children = [];
+    this.text = '';
+    this.parentNode = null;
+    this.listeners = {};
+    this.style = {};
+  }
+  addEventListener(t, fn) {
+    (this.listeners[t] = this.listeners[t] || []).push(fn);
+  }
+  removeEventListener(t, fn) {
+    this.listeners[t] = (this.listeners[t] || []).filter((x) => x !== fn);
+  }
+  getBoundingClientRect() {
+    return { left: 0, top: 0, width: 640, height: 400 };
+  }
   setPointerCapture() {}
-  fire(t, ev) { for (const fn of this.listeners[t] || []) fn({ preventDefault() {}, ...ev }); }
-  setAttribute(k, v) { this.attrs[k] = String(v); }
-  getAttribute(k) { return k in this.attrs ? this.attrs[k] : null; }
-  removeAttribute(k) { delete this.attrs[k]; }
-  appendChild(c) { c.parentNode = this; this.children.push(c); return c; }
-  removeChild(c) { this.children = this.children.filter((x) => x !== c); c.parentNode = null; }
-  set textContent(t) { this.text = String(t); this.children = []; }
-  get textContent() { return this.text; }
-  get attributes() { return Object.keys(this.attrs).map((name) => ({ name, value: this.attrs[name] })); }
+  fire(t, ev) {
+    for (const fn of this.listeners[t] || []) fn({ preventDefault() {}, ...ev });
+  }
+  setAttribute(k, v) {
+    this.attrs[k] = String(v);
+  }
+  getAttribute(k) {
+    return k in this.attrs ? this.attrs[k] : null;
+  }
+  removeAttribute(k) {
+    delete this.attrs[k];
+  }
+  appendChild(c) {
+    c.parentNode = this;
+    this.children.push(c);
+    return c;
+  }
+  removeChild(c) {
+    this.children = this.children.filter((x) => x !== c);
+    c.parentNode = null;
+  }
+  set textContent(t) {
+    this.text = String(t);
+    this.children = [];
+  }
+  get textContent() {
+    return this.text;
+  }
+  get attributes() {
+    return Object.keys(this.attrs).map((name) => ({ name, value: this.attrs[name] }));
+  }
   serialize() {
-    const a = Object.entries(this.attrs).map(([k, v]) => ` ${k}="${v.replace(/"/g, '&quot;')}"`).join('');
+    const a = Object.entries(this.attrs)
+      .map(([k, v]) => ` ${k}="${v.replace(/"/g, '&quot;')}"`)
+      .join('');
     const inner = this.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + this.children.map((c) => c.serialize()).join('');
     return `<${this.tag}${a}>${inner}</${this.tag}>`;
   }
@@ -32,9 +71,15 @@ globalThis.document = {
   createElement: (tag) => new FakeNode(tag),
   querySelectorAll: () => noNodes,
   listeners: {},
-  addEventListener(t, fn) { (this.listeners[t] = this.listeners[t] || []).push(fn); },
-  removeEventListener(t, fn) { this.listeners[t] = (this.listeners[t] || []).filter((x) => x !== fn); },
-  fire(t, ev) { for (const fn of this.listeners[t] || []) fn(ev); },
+  addEventListener(t, fn) {
+    (this.listeners[t] = this.listeners[t] || []).push(fn);
+  },
+  removeEventListener(t, fn) {
+    this.listeners[t] = (this.listeners[t] || []).filter((x) => x !== fn);
+  },
+  fire(t, ev) {
+    for (const fn of this.listeners[t] || []) fn(ev);
+  },
 };
 const quiet = { warn: console.warn, error: console.error };
 const logged = { warn: [], error: [] };
@@ -47,7 +92,9 @@ for (const f of fs.readdirSync(`${dist}/blocks`)) require(`${dist}/blocks/${f}`)
 
 let passed = 0;
 const queue = [];
-function test(name, fn) { queue.push([name, fn]); }
+function test(name, fn) {
+  queue.push([name, fn]);
+}
 const flush = () => new Promise((r) => setTimeout(r, 10));
 const svgOf = (host) => host.children[0].serialize();
 const count = (s, re) => (s.match(re) || []).length;
@@ -55,7 +102,11 @@ const axisStarts = (svg) => [...svg.matchAll(/<path d="M([\d.]+) ([\d.]+)[^>]*cl
 const dSpec = () => ({
   data: 'sales',
   scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true }, y2: { type: 'linear', range: 'height' } },
-  guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }, { type: 'axis', line: 'on', ticks: true, scale: 'y2', position: 'right' }],
+  guides: [
+    { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+    { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+    { type: 'axis', line: 'on', ticks: true, scale: 'y2', position: 'right' },
+  ],
   marks: [
     { type: 'point', x: 'month', y: 'revenue', r: 4 },
     { type: 'point', x: 'month', y: { field: 'units', scale: 'y2' }, r: 3 },
@@ -63,17 +114,26 @@ const dSpec = () => ({
 });
 
 BC.data('sales', [
-  { month: 1, revenue: 120, units: 3400 }, { month: 2, revenue: 150, units: 3900 },
-  { month: 3, revenue: 130, units: 5200 }, { month: 4, revenue: 180, units: 4800 },
-  { month: 5, revenue: 210, units: 6100 }, { month: 6, revenue: 190, units: 7300 },
-  { month: 7, revenue: 260, units: 6900 }, { month: 8, revenue: 240, units: 8800 },
+  { month: 1, revenue: 120, units: 3400 },
+  { month: 2, revenue: 150, units: 3900 },
+  { month: 3, revenue: 130, units: 5200 },
+  { month: 4, revenue: 180, units: 4800 },
+  { month: 5, revenue: 210, units: 6100 },
+  { month: 6, revenue: 190, units: 7300 },
+  { month: 7, revenue: 260, units: 6900 },
+  { month: 8, revenue: 240, units: 8800 },
 ]);
 
 test('registry: blocks registered, define is idempotent', () => {
   // every block of the build is registered (tests add a few of their own, which are not part of the build)
   const real = Object.keys(JSON.parse(fs.readFileSync(`${dist}/manifest.json`, 'utf8')).blocks).sort();
   assert(real.length >= 20, `the manifest lists the blocks: ${real.length}`);
-  assert.deepStrictEqual(BC.blocks().filter((n) => real.includes(n)).sort(), real);
+  assert.deepStrictEqual(
+    BC.blocks()
+      .filter((n) => real.includes(n))
+      .sort(),
+    real,
+  );
   const before = BC.blocks().length;
   BC.define(BC.get('mark.point'));
   assert.strictEqual(BC.blocks().length, before);
@@ -86,9 +146,16 @@ test('registry: blocks registered, define is idempotent', () => {
 });
 
 test('data lake: null cells become NaN and are skipped, bad input throws', () => {
-  BC.data('mixed', [{ a: 1, b: 'x', c: null }, { a: 2, b: 'y', c: 3 }]);
+  BC.data('mixed', [
+    { a: 1, b: 'x', c: null },
+    { a: 2, b: 'y', c: 3 },
+  ]);
   const host = new FakeNode('div');
-  const h = BC.chart(host, { data: 'mixed', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'a', y: 'c' }] });
+  const h = BC.chart(host, {
+    data: 'mixed',
+    scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+    marks: [{ type: 'point', x: 'a', y: 'c' }],
+  });
   assert.strictEqual(h.diagnostics.filter((d) => d.level === 'error').length, 0);
   assert.strictEqual(count(svgOf(host), /<circle /g), 1, 'the row with a null c is skipped');
   assert.throws(() => BC.data('bad', { columns: { a: [1, 2], b: [1] } }), /column "b"/);
@@ -115,7 +182,11 @@ test('validate: catches dangling scale, missing block, unknown field, bad params
   s.guides.push({ type: 'axis' });
   s.scales.z = { type: 'symlog' };
   const d = BC.validate(s);
-  const has = (level, p, re) => assert(d.some((x) => x.level === level && x.path === p && re.test(x.message)), `${level} ${p} ${re}\n${JSON.stringify(d, null, 1)}`);
+  const has = (level, p, re) =>
+    assert(
+      d.some((x) => x.level === level && x.path === p && re.test(x.message)),
+      `${level} ${p} ${re}\n${JSON.stringify(d, null, 1)}`,
+    );
   has('error', 'marks[2].y', /scale "nope" is not declared/);
   has('error', 'marks[3].type', /"mark.hexbin" is not loaded/);
   has('error', 'marks[4].y', /unknown field "ghost"/);
@@ -134,7 +205,14 @@ test('validate: never throws on garbage', () => {
 });
 
 test('validate: transitive requires and channel scale kinds', () => {
-  BC.define({ role: 'mark', type: 'needy', version: 1, requires: ['scale.symlog'], channels: { x: { required: true, scales: ['symlog'] } }, render: () => [] });
+  BC.define({
+    role: 'mark',
+    type: 'needy',
+    version: 1,
+    requires: ['scale.symlog'],
+    channels: { x: { required: true, scales: ['symlog'] } },
+    render: () => [],
+  });
   const d = BC.validate({ data: 'sales', scales: { x: { type: 'linear' } }, marks: [{ type: 'needy', x: 'month' }] });
   assert(d.some((x) => /mark\.needy requires scale\.symlog/.test(x.message)));
   assert(d.some((x) => x.path === 'marks[0].x' && /does not accept a "linear" scale \(accepts: symlog\)/.test(x.message)));
@@ -149,7 +227,10 @@ test('chart: dual-axis renders every point, no NaN', () => {
   assert(!/NaN|undefined|Infinity/.test(svg));
   assert.strictEqual(count(svg, /class="bc-axis"/g), 3);
   assert(svg.includes('data-bc-mark="1" data-bc-row="7"'));
-  fs.writeFileSync(`${dist}/test.html`, `<!doctype html><meta charset="utf-8"><title>test</title><body style="margin:24px;max-width:720px;font-family:system-ui">${svg}`);
+  fs.writeFileSync(
+    `${dist}/test.html`,
+    `<!doctype html><meta charset="utf-8"><title>test</title><body style="margin:24px;max-width:720px;font-family:system-ui">${svg}`,
+  );
 });
 
 test('layout: two axes on one side stack', () => {
@@ -164,7 +245,8 @@ test('layout: two axes on one side stack', () => {
 });
 
 test('layout: title reserves space', () => {
-  const a = new FakeNode('div'), b = new FakeNode('div');
+  const a = new FakeNode('div'),
+    b = new FakeNode('div');
   BC.chart(a, dSpec());
   BC.chart(b, { ...dSpec(), title: 'Sales' });
   assert(svgOf(b).includes('>Sales<'));
@@ -182,7 +264,15 @@ test('chart: invalid spec renders an error box and does not throw', () => {
 });
 
 test('chart: a failing mark is reported, the rest still renders', () => {
-  BC.define({ role: 'mark', type: 'boom', version: 1, channels: { x: { required: true } }, render() { throw new Error('kaboom'); } });
+  BC.define({
+    role: 'mark',
+    type: 'boom',
+    version: 1,
+    channels: { x: { required: true } },
+    render() {
+      throw new Error('kaboom');
+    },
+  });
   const s = dSpec();
   s.marks.push({ type: 'boom', x: 'month' });
   const host = new FakeNode('div');
@@ -206,10 +296,18 @@ test('chart: update() rebuilds, destroy() empties the host', () => {
 });
 
 test('interaction: attach gets a live context, cleanup runs on update/destroy', () => {
-  let seen = null, cleaned = 0;
+  let seen = null,
+    cleaned = 0;
   BC.define({
-    role: 'interaction', type: 'probe', version: 1,
-    attach(spec, live) { seen = live; live.cleanup(() => { cleaned++; }); },
+    role: 'interaction',
+    type: 'probe',
+    version: 1,
+    attach(spec, live) {
+      seen = live;
+      live.cleanup(() => {
+        cleaned++;
+      });
+    },
   });
   const s = dSpec();
   s.interaction = [{ type: 'probe' }];
@@ -233,8 +331,15 @@ require('./test-edges.js')({ test, FakeNode, svgOf, count, logged, flush });
 
 (async () => {
   for (const [name, fn] of queue) {
-    try { await fn(); passed++; console.log('ok  ', name); }
-    catch (e) { console.log('FAIL', name); quiet.error(e); process.exitCode = 1; }
+    try {
+      await fn();
+      passed++;
+      console.log('ok  ', name);
+    } catch (e) {
+      console.log('FAIL', name);
+      quiet.error(e);
+      process.exitCode = 1;
+    }
   }
   console.log(`\n${passed} of ${queue.length} passed`);
 })();

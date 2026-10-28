@@ -32,7 +32,8 @@
       else if (ch.charCodeAt(0) < 0x2e80) em += 0.62;
       else em += 1; // CJK and other full-width characters
     }
-    const bold = weight === 'bold' || (typeof weight === 'number' && weight >= 700) ? 1.08 : typeof weight === 'number' && weight >= 600 ? 1.04 : 1;
+    const bold =
+      weight === 'bold' || (typeof weight === 'number' && weight >= 700) ? 1.08 : typeof weight === 'number' && weight >= 600 ? 1.04 : 1;
     return em * size * bold;
   }
 
@@ -55,23 +56,47 @@
       size: { kind: 'number', default: 11, doc: 'Font size in px.' },
       weight: { kind: 'any', doc: 'Font weight: a number (600) or a word ("bold").' },
       anchor: { kind: 'enum', values: ['start', 'middle', 'end'], default: 'middle', doc: 'Horizontal alignment to the anchor point.' },
-      baseline: { kind: 'enum', values: ['auto', 'middle', 'hanging'], default: 'middle', doc: '"auto" puts the text above the point, "hanging" below it, "middle" centers it.' },
+      baseline: {
+        kind: 'enum',
+        values: ['auto', 'middle', 'hanging'],
+        default: 'middle',
+        doc: '"auto" puts the text above the point, "hanging" below it, "middle" centers it.',
+      },
       dx: { kind: 'number', default: 0, doc: 'Move right by this many px.' },
-      dy: { kind: 'number', default: 0, doc: 'Move down by this many px (negative moves up, e.g. -4 with baseline "auto" for a label above a bar).' },
+      dy: {
+        kind: 'number',
+        default: 0,
+        doc: 'Move down by this many px (negative moves up, e.g. -4 with baseline "auto" for a label above a bar).',
+      },
       rotate: { kind: 'number', default: 0, doc: 'Degrees around the anchor point.' },
       decimals: { kind: 'number', doc: 'Fixed number of decimals for numeric text.' },
-      format: { kind: 'any', doc: 'How to write numbers (and dates): a preset ("percent", "compact", "integer", "date", ...) or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }; also "locale", "prefix", "suffix". Overrides `decimals`.' },
+      format: {
+        kind: 'any',
+        doc: 'How to write numbers (and dates): a preset ("percent", "compact", "integer", "date", ...) or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }; also "locale", "prefix", "suffix". Overrides `decimals`.',
+      },
       fill: { kind: 'string', doc: 'Any CSS color. Default: the theme text color.' },
-      minSize: { kind: 'number', default: 8, doc: 'The smallest font size a label that does not fit may shrink to; a label that would need less is not drawn. Set it to `size` to never shrink.' },
+      minSize: {
+        kind: 'number',
+        default: 8,
+        doc: 'The smallest font size a label that does not fit may shrink to; a label that would need less is not drawn. Set it to `size` to never shrink.',
+      },
     },
     channels: {
       x: { required: true, scales: ['linear', 'log', 'time', 'band'] },
       y: { required: true, scales: ['linear', 'log', 'time', 'band'] },
-      x2: { scales: ['linear', 'log', 'time'], sharesScale: 'x', doc: 'The other side of the box the label has to fit in (with y2: the cell it labels).' },
+      x2: {
+        scales: ['linear', 'log', 'time'],
+        sharesScale: 'x',
+        doc: 'The other side of the box the label has to fit in (with y2: the cell it labels).',
+      },
       y2: { scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'The other side of the box the label has to fit in, vertically.' },
       text: { required: true, unscaled: true, doc: 'Field with the text to show.' },
       color: { scales: ['color', 'sequential'], doc: 'Text color per row, from a color scale.' },
-      on: { scales: ['color', 'sequential'], sharesScale: 'color', doc: 'The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. Rows with no such color get no text.' },
+      on: {
+        scales: ['color', 'sequential'],
+        sharesScale: 'color',
+        doc: 'The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. Rows with no such color get no text.',
+      },
     },
     render(spec, ctx, index) {
       const cx = ctx.channel(spec, 'x');
@@ -138,7 +163,19 @@
           if (!(fit >= minSize)) continue;
           fit = Math.floor(fit * 2) / 2;
         }
-        out.push({ type: 'text', x, y, text, size: fit, weight, anchor, baseline, rotate, style: { fill: color }, ref: { mark: index, row: i } });
+        out.push({
+          type: 'text',
+          x,
+          y,
+          text,
+          size: fit,
+          weight,
+          anchor,
+          baseline,
+          rotate,
+          style: { fill: color },
+          ref: { mark: index, row: i },
+        });
       }
       // the labels of a row of categories read as one series: they share the size of the smallest (cells keep their own)
       if (bandRoom < Infinity && !y2) {

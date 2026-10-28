@@ -18,9 +18,20 @@
     replacesColumns: true,
     doc: 'The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row.',
     params: {
-      field: { kind: 'field', required: true, doc: 'Numeric field to summarize (the raw sample values). Missing and non-numeric values are ignored.' },
-      group: { kind: 'field', doc: 'A separate summary per value of this field (the boxplot\'s category axis). A missing value is a group of its own, like transform.aggregate. Default: one summary.' },
-      outliers: { kind: 'boolean', default: true, doc: 'true: whiskers stop at 1.5x IQR, points further out become their own "value" row. false: whiskers stretch to the true min/max, no outlier rows.' },
+      field: {
+        kind: 'field',
+        required: true,
+        doc: 'Numeric field to summarize (the raw sample values). Missing and non-numeric values are ignored.',
+      },
+      group: {
+        kind: 'field',
+        doc: "A separate summary per value of this field (the boxplot's category axis). A missing value is a group of its own, like transform.aggregate. Default: one summary.",
+      },
+      outliers: {
+        kind: 'boolean',
+        default: true,
+        doc: 'true: whiskers stop at 1.5x IQR, points further out become their own "value" row. false: whiskers stretch to the true min/max, no outlier rows.',
+      },
     },
     outputs(spec) {
       const group = typeof spec.group === 'string' ? spec.group : undefined;
@@ -60,8 +71,13 @@
       }
       const empty = (): BC.Table => {
         const columns: Record<string, BC.Column> = {
-          low: new Float64Array(0), q1: new Float64Array(0), median: new Float64Array(0),
-          q3: new Float64Array(0), high: new Float64Array(0), value: new Float64Array(0), count: new Float64Array(0),
+          low: new Float64Array(0),
+          q1: new Float64Array(0),
+          median: new Float64Array(0),
+          q3: new Float64Array(0),
+          high: new Float64Array(0),
+          value: new Float64Array(0),
+          count: new Float64Array(0),
         };
         if (groupField) columns[groupField] = [];
         return { length: 0, columns };
@@ -123,8 +139,12 @@
       }
 
       const columns: Record<string, BC.Column> = {
-        low: Float64Array.from(outLow), q1: Float64Array.from(outQ1), median: Float64Array.from(outMedian),
-        q3: Float64Array.from(outQ3), high: Float64Array.from(outHigh), value: Float64Array.from(outValue),
+        low: Float64Array.from(outLow),
+        q1: Float64Array.from(outQ1),
+        median: Float64Array.from(outMedian),
+        q3: Float64Array.from(outQ3),
+        high: Float64Array.from(outHigh),
+        value: Float64Array.from(outValue),
         count: Float64Array.from(outCount),
       };
       if (groupField) columns[groupField] = outGroup;

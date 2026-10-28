@@ -37,7 +37,8 @@
       if (spec.domain && spec.domain.length === 2) {
         b0 = Number(spec.domain[0]);
         b1 = Number(spec.domain[1]);
-        if (!(b0 > 0 && b1 > 0 && isFinite(b0) && isFinite(b1))) fail(`the domain must be two positive numbers, not [${spec.domain.join(', ')}]`);
+        if (!(b0 > 0 && b1 > 0 && isFinite(b0) && isFinite(b1)))
+          fail(`the domain must be two positive numbers, not [${spec.domain.join(', ')}]`);
       } else {
         const e = extent(ctx.sources);
         [b0, b1] = e || [1, 10];
@@ -55,7 +56,10 @@
       let r0 = Number(ctx.range[0]);
       let r1 = Number(ctx.range[1]);
 
-      const scale = ((v: number) => (v > 0 ? r0 + ((lg(v) - lg(d0)) / (lg(d1) - lg(d0))) * (r1 - r0) : NaN)) as unknown as BC.Scale<number, number>;
+      const scale = ((v: number) => (v > 0 ? r0 + ((lg(v) - lg(d0)) / (lg(d1) - lg(d0))) * (r1 - r0) : NaN)) as unknown as BC.Scale<
+        number,
+        number
+      >;
       Object.defineProperties(scale, {
         kind: { value: 'log' },
         domain: { value: () => [d0, d1] },

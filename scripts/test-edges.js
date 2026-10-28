@@ -40,29 +40,52 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
       assert.strictEqual(BC.time('2024-03-01'), Date.UTC(2024, 2, 1));
       assert.strictEqual(BC.time(new Date(utc)), utc);
       assert.strictEqual(BC.time(utc), utc);
-      for (const bad of ['', 'soon', '2024-13-45T99:99', null, undefined, {}, true, 1e20, NaN, Infinity]) assert(Number.isNaN(BC.time(bad)), String(bad));
+      for (const bad of ['', 'soon', '2024-13-45T99:99', null, undefined, {}, true, 1e20, NaN, Infinity])
+        assert(Number.isNaN(BC.time(bad)), String(bad));
     });
   });
 
   test('times without an offset: the scale, the bucket, the filter and the label all read the same UTC hour in any zone', () => {
     inZone('America/Los_Angeles', () => {
-      BC.data('hours', [{ t: '2024-03-01T09:00', v: 1 }, { t: '2024-03-01 21:00', v: 2 }, { t: '2024-03-02T09:00Z', v: 3 }]);
+      BC.data('hours', [
+        { t: '2024-03-01T09:00', v: 1 },
+        { t: '2024-03-01 21:00', v: 2 },
+        { t: '2024-03-02T09:00Z', v: 3 },
+      ]);
       const host = new FakeNode('div');
       const h = BC.chart(host, {
-        data: 'hours', size: [640, 300],
+        data: 'hours',
+        size: [640, 300],
         scales: { x: { type: 'time', domain: ['2024-03-01T00:00Z', '2024-03-03T00:00Z'] }, y: { type: 'linear' } },
         marks: [{ type: 'point', x: 't', y: 'v' }],
       });
-      assert.deepStrictEqual(h.diagnostics.filter((d) => d.level === 'error'), []);
+      assert.deepStrictEqual(
+        h.diagnostics.filter((d) => d.level === 'error'),
+        [],
+      );
       const xs = circles(host).map((c) => c.x);
       // the three points are 12 hours apart: equal steps, whatever the machine's zone
-      assert(Math.abs((xs[1] - xs[0]) - (xs[2] - xs[1])) < 0.01, 'equally spaced: ' + xs.join(', '));
-      const day = apply('aggregate', [{ t: '2024-03-01T02:00', v: 1 }, { t: '2024-03-01T23:00', v: 2 }], { groupby: [{ field: 't', unit: 'day' }], measures: [{ op: 'sum', field: 'v', as: 'sum' }] });
+      assert(Math.abs(xs[1] - xs[0] - (xs[2] - xs[1])) < 0.01, 'equally spaced: ' + xs.join(', '));
+      const day = apply(
+        'aggregate',
+        [
+          { t: '2024-03-01T02:00', v: 1 },
+          { t: '2024-03-01T23:00', v: 2 },
+        ],
+        { groupby: [{ field: 't', unit: 'day' }], measures: [{ op: 'sum', field: 'v', as: 'sum' }] },
+      );
       assert.strictEqual(day.length, 1, 'both on 1 March, not split by the local midnight');
       assert.strictEqual(Array.from(day.columns.sum)[0], 3);
-      const later = apply('filter', [{ t: '2024-03-01T09:00' }, { t: '2024-03-01T10:00' }], { field: 't', op: '>', value: '2024-03-01T09:30Z' });
+      const later = apply('filter', [{ t: '2024-03-01T09:00' }, { t: '2024-03-01T10:00' }], {
+        field: 't',
+        op: '>',
+        value: '2024-03-01T09:30Z',
+      });
       assert.strictEqual(later.length, 1, 'the filter compares UTC with UTC');
-      assert.strictEqual(BC.formatter({ hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC' })('2024-03-01T09:00'), '09:00');
+      assert.strictEqual(
+        BC.formatter({ hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC' })('2024-03-01T09:00'),
+        '09:00',
+      );
     });
   });
 
@@ -72,8 +95,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     for (const bad of [null, undefined, 5, 'x', []]) {
       const host = new FakeNode('div');
       let h;
-      assert.doesNotThrow(() => { h = BC.chart(host, bad); }, String(bad));
-      assert(h.diagnostics.some((d) => d.level === 'error'), JSON.stringify(bad) + ': ' + JSON.stringify(h.diagnostics));
+      assert.doesNotThrow(() => {
+        h = BC.chart(host, bad);
+      }, String(bad));
+      assert(
+        h.diagnostics.some((d) => d.level === 'error'),
+        JSON.stringify(bad) + ': ' + JSON.stringify(h.diagnostics),
+      );
       h.destroy();
     }
     logged.error.length = 0;
@@ -81,18 +109,29 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
 
   const page = (specs, elements = {}) => {
     const body = new FakeNode('body');
-    body.insertBefore = (c) => { c.parentNode = body; body.children.push(c); return c; };
+    body.insertBefore = (c) => {
+      c.parentNode = body;
+      body.children.push(c);
+      return c;
+    };
     const nodes = specs.map((s) => ({ textContent: typeof s === 'string' ? s : JSON.stringify(s), parentNode: body }));
     const created = [];
     const doc = {
-      createElement: (t) => { const n = new FakeNode(t); created.push(n); return n; },
+      createElement: (t) => {
+        const n = new FakeNode(t);
+        created.push(n);
+        return n;
+      },
       getElementById: (id) => elements[id] || created.find((n) => n.id === id) || null,
     };
     const scope = { ownerDocument: doc, querySelectorAll: (sel) => (sel === 'script[data-bc-chart]' ? nodes : []) };
     return { scope, body };
   };
   const dots = { data: 'edges', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'a', y: 'b' }] };
-  BC.data('edges', [{ a: 1, b: 2 }, { a: 2, b: 3 }]);
+  BC.data('edges', [
+    { a: 1, b: 2 },
+    { a: 2, b: 3 },
+  ]);
 
   test('mount(): a null spec, a spec that throws and bad JSON are logged, and the charts after them still draw', () => {
     logged.error.length = 0;
@@ -108,7 +147,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     logged.error.length = 0;
     const script = new FakeNode('script');
     script.tagName = 'SCRIPT';
-    const { scope } = page([{ ...dots, id: 'twin' }, { ...dots, id: 'twin' }, { ...dots, id: 'bc-data' }], { 'bc-data': script });
+    const { scope } = page(
+      [
+        { ...dots, id: 'twin' },
+        { ...dots, id: 'twin' },
+        { ...dots, id: 'bc-data' },
+      ],
+      { 'bc-data': script },
+    );
     const handles = BC.mount(scope);
     assert.strictEqual(handles.length, 3);
     assert.notStrictEqual(handles[0].host, handles[1].host, 'the second does not wipe out the first');
@@ -116,14 +162,24 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     assert.strictEqual(count(svgOf(handles[1].host), /<circle /g), 2);
     assert.notStrictEqual(handles[2].host, script, 'not drawn into the script');
     assert.strictEqual(script.children.length, 0);
-    assert(logged.error.some((m) => /"twin" is used by another chart/.test(m)), logged.error.join('\n'));
+    assert(
+      logged.error.some((m) => /"twin" is used by another chart/.test(m)),
+      logged.error.join('\n'),
+    );
     logged.error.length = 0;
   });
 
   test('update(): turning "responsive" on later follows the container like a chart that started with it', async () => {
     const observers = [];
     const savedRO = globalThis.ResizeObserver;
-    globalThis.ResizeObserver = class { constructor(cb) { this.cb = cb; observers.push(this); } observe() {} disconnect() {} };
+    globalThis.ResizeObserver = class {
+      constructor(cb) {
+        this.cb = cb;
+        observers.push(this);
+      }
+      observe() {}
+      disconnect() {}
+    };
     try {
       const host = new FakeNode('div');
       host.clientWidth = 320;
@@ -144,20 +200,40 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
 
   test('ctx.series: the split into series is made once per redraw and shared by everyone asking for the same xs', () => {
     let live = null;
-    BC.define({ role: 'interaction', type: 'seriesprobe', version: 1, attach(spec, ctx) { live = ctx; } });
-    BC.data('two', [{ a: 1, b: 1, g: 'x' }, { a: 2, b: 2, g: 'y' }, { a: 3, b: 3, g: 'x' }]);
+    BC.define({
+      role: 'interaction',
+      type: 'seriesprobe',
+      version: 1,
+      attach(spec, ctx) {
+        live = ctx;
+      },
+    });
+    BC.data('two', [
+      { a: 1, b: 1, g: 'x' },
+      { a: 2, b: 2, g: 'y' },
+      { a: 3, b: 3, g: 'x' },
+    ]);
     const host = new FakeNode('div');
-    BC.chart(host, { data: 'two', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 'a', y: 'b', group: 'g' }], interaction: [{ type: 'seriesprobe' }] });
+    BC.chart(host, {
+      data: 'two',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [{ type: 'line', x: 'a', y: 'b', group: 'g' }],
+      interaction: [{ type: 'seriesprobe' }],
+    });
     const mark = live.spec.marks[0];
     const xs = live.channel(mark, 'x').mapped;
     const a = live.series(mark, xs);
     assert.strictEqual(live.series(mark, xs), a, 'the same array the second time');
-    assert.deepStrictEqual(a.map((s) => s.rows), [[0, 2], [1]]);
+    assert.deepStrictEqual(
+      a.map((s) => s.rows),
+      [[0, 2], [1]],
+    );
   });
 
   // ── scales ──
 
-  const linear = (spec, sources = [[0, 10]]) => BC.get('scale.linear').create({ type: 'linear', ...spec }, { name: 'x', sources, range: [0, 100], color: () => '#000' });
+  const linear = (spec, sources = [[0, 10]]) =>
+    BC.get('scale.linear').create({ type: 'linear', ...spec }, { name: 'x', sources, range: [0, 100], color: () => '#000' });
 
   test('scale.linear: a domain of two equal numbers or of nonsense is a clear error; a reversed one has ticks', () => {
     for (const bad of [[5, 5], ['a', 1], [0, Infinity], [1], [null, 2]]) {
@@ -175,7 +251,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     for (const sources of [[[5, 5, 5]], [[1e-300, 2e-300]], [[-1e300, 1e300]], [[0.1, 0.1000000001]]]) {
       const s = linear({}, sources);
       const ticks = s.ticks(5);
-      assert(ticks.length <= 1000 && ticks.every((t) => isFinite(t.value) && isFinite(t.pos)), JSON.stringify(sources) + ': ' + ticks.length);
+      assert(
+        ticks.length <= 1000 && ticks.every((t) => isFinite(t.value) && isFinite(t.pos)),
+        JSON.stringify(sources) + ': ' + ticks.length,
+      );
     }
   });
 
@@ -199,39 +278,88 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
   // ── transforms that write columns ──
 
   test('transform.waterfall, funnel, treemap: a field that is not in the data is an error that names it', () => {
-    const rows = [{ k: 'a', v: 1, g: 'x' }, { k: 'b', v: 2, g: 'x' }];
+    const rows = [
+      { k: 'a', v: 1, g: 'x' },
+      { k: 'b', v: 2, g: 'x' },
+    ];
     assert.throws(() => apply('waterfall', rows, { field: 'ghost' }), /transform\.waterfall: unknown field "ghost" in "field"/);
     assert.throws(() => apply('waterfall', rows, { field: 'v', total: 'nope' }), /unknown field "nope" in "total"/);
     assert.throws(() => apply('funnel', rows, { field: 'ghost' }), /transform\.funnel: unknown field "ghost" in "field"/);
-    assert.throws(() => apply('treemap', rows, { field: 'v', name: 'k', group: 'nope' }), /transform\.treemap: unknown field "nope" in "group"/);
+    assert.throws(
+      () => apply('treemap', rows, { field: 'v', name: 'k', group: 'nope' }),
+      /transform\.treemap: unknown field "nope" in "group"/,
+    );
   });
 
   test('transform.waterfall, funnel, treemap: a new column never silently replaces one of the data or another new one', () => {
-    const rows = [{ k: 'a', v: 1, v0: 9, rate: 0.5, label: 'L' }, { k: 'b', v: 2, v0: 8, rate: 0.4, label: 'M' }];
-    assert.throws(() => apply('waterfall', rows, { field: 'v' }), /"v0" is already a column of the data: give the new one another name with "as\[0\]"/);
-    assert.throws(() => apply('funnel', rows.map(({ v0, ...r }) => r), { field: 'v' }), /"rate" is already a column of the data: give the new one another name with "rateAs"/);
-    assert.throws(() => apply('treemap', rows, { field: 'v', name: 'k' }), /"label" is already a column of the data: give the new one another name with "labelAs"/);
-    assert.throws(() => apply('funnel', [{ k: 'a', v: 1 }], { field: 'v', as: ['x', 'x'] }), /"as\[0\]" and "as\[1\]" both name the new column "x"/);
+    const rows = [
+      { k: 'a', v: 1, v0: 9, rate: 0.5, label: 'L' },
+      { k: 'b', v: 2, v0: 8, rate: 0.4, label: 'M' },
+    ];
+    assert.throws(
+      () => apply('waterfall', rows, { field: 'v' }),
+      /"v0" is already a column of the data: give the new one another name with "as\[0\]"/,
+    );
+    assert.throws(
+      () =>
+        apply(
+          'funnel',
+          rows.map(({ v0, ...r }) => r),
+          { field: 'v' },
+        ),
+      /"rate" is already a column of the data: give the new one another name with "rateAs"/,
+    );
+    assert.throws(
+      () => apply('treemap', rows, { field: 'v', name: 'k' }),
+      /"label" is already a column of the data: give the new one another name with "labelAs"/,
+    );
+    assert.throws(
+      () => apply('funnel', [{ k: 'a', v: 1 }], { field: 'v', as: ['x', 'x'] }),
+      /"as\[0\]" and "as\[1\]" both name the new column "x"/,
+    );
     // renamed, it works; and the field it stands for may be written over (a waterfall's amount, a funnel's value)
     assert.doesNotThrow(() => apply('waterfall', rows, { field: 'v', as: ['from', 'to'] }));
-    assert.doesNotThrow(() => apply('funnel', rows.map(({ v0, ...r }) => r), { field: 'v', rateAs: 'share' }));
+    assert.doesNotThrow(() =>
+      apply(
+        'funnel',
+        rows.map(({ v0, ...r }) => r),
+        { field: 'v', rateAs: 'share' },
+      ),
+    );
     assert.doesNotThrow(() => apply('treemap', rows, { field: 'v', name: 'k', labelAs: 'caption' }));
   });
 
   // ── guide.kpi ──
 
   test('guide.kpi: compare "previous" or "first" with a sum is refused with the way out; with "against" it is fine', () => {
-    BC.data('kpi-edge', [{ v: 10, t: 12 }, { v: 20, t: 25 }]);
+    BC.data('kpi-edge', [
+      { v: 10, t: 12 },
+      { v: 20, t: 25 },
+    ]);
     const tile = (g) => ({ data: 'kpi-edge', size: [300, 120], marks: [], guides: [{ type: 'kpi', field: 'v', ...g }] });
     const host = new FakeNode('div');
     const h = BC.chart(host, tile({ aggregate: 'sum', compare: 'previous' }));
-    assert(h.diagnostics.some((d) => d.level === 'error' && /compare "previous" compares one row with another.*give "against" a field/.test(d.message)), JSON.stringify(h.diagnostics));
+    assert(
+      h.diagnostics.some(
+        (d) => d.level === 'error' && /compare "previous" compares one row with another.*give "against" a field/.test(d.message),
+      ),
+      JSON.stringify(h.diagnostics),
+    );
     const ok = new FakeNode('div');
     const h2 = BC.chart(ok, tile({ aggregate: 'sum', compare: 'previous', against: 't' }));
-    assert.deepStrictEqual(h2.diagnostics.filter((d) => d.level === 'error'), []);
-    assert(texts(svgOf(ok)).some((t) => /▼/.test(t)), '30 against 37: down');
+    assert.deepStrictEqual(
+      h2.diagnostics.filter((d) => d.level === 'error'),
+      [],
+    );
+    assert(
+      texts(svgOf(ok)).some((t) => /▼/.test(t)),
+      '30 against 37: down',
+    );
     const last = new FakeNode('div');
-    assert.deepStrictEqual(BC.chart(last, tile({ compare: 'first' })).diagnostics.filter((d) => d.level === 'error'), []);
+    assert.deepStrictEqual(
+      BC.chart(last, tile({ compare: 'first' })).diagnostics.filter((d) => d.level === 'error'),
+      [],
+    );
     logged.error.length = 0;
   });
 };

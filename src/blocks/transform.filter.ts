@@ -40,7 +40,8 @@
       return op === 'in' ? (v) => !missing(v) && set.has(identity(v)) : (v) => !missing(v) && !set.has(identity(v));
     }
     const target = spec.value;
-    if (typeof target !== 'number' && typeof target !== 'string' && typeof target !== 'boolean') fail(`"${op}" needs "value": a number, a string or a date`);
+    if (typeof target !== 'number' && typeof target !== 'string' && typeof target !== 'boolean')
+      fail(`"${op}" needs "value": a number, a string or a date`);
     if (typeof target === 'number' && !isFinite(target)) fail('"value" must be a finite number');
     if (target === '') fail('"value" is empty: to keep the rows that have a value, use "op": "valid"');
     if (op === '==' || op === '!=') {
@@ -49,7 +50,14 @@
     }
     if (typeof target === 'boolean') fail(`"${op}" compares numbers, dates or text, not true / false`);
     const t = comparable(target)!;
-    const less = op === '<' ? (x: number | string) => x < t.at : op === '<=' ? (x: number | string) => x <= t.at : op === '>' ? (x: number | string) => x > t.at : (x: number | string) => x >= t.at;
+    const less =
+      op === '<'
+        ? (x: number | string) => x < t.at
+        : op === '<='
+          ? (x: number | string) => x <= t.at
+          : op === '>'
+            ? (x: number | string) => x > t.at
+            : (x: number | string) => x >= t.at;
     // a number compares with numbers, a date with dates, text with text; a row of another kind never passes
     return (v) => {
       const x = comparable(v);

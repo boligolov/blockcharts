@@ -31,7 +31,8 @@
       if (typeof spec.a !== 'string' || !spec.a) fail('"a" must be the name of a numeric field');
       if (!has(spec.a)) fail(`unknown field "${spec.a}"`);
       if (typeof spec.op !== 'string' || OPS.indexOf(spec.op) < 0) fail(`"op" must be one of: ${OPS.join(' ')}`);
-      if ((spec.b === undefined) === (spec.value === undefined)) fail('give either "b" (a field) or "value" (a number), not both or neither');
+      if ((spec.b === undefined) === (spec.value === undefined))
+        fail('give either "b" (a field) or "value" (a number), not both or neither');
       if (spec.b !== undefined && !has(spec.b)) fail(`unknown field "${spec.b}"`);
       if (spec.value !== undefined && !(typeof spec.value === 'number' && isFinite(spec.value))) fail('"value" must be a finite number');
       if (has(as) && as !== spec.a && as !== spec.b) fail(`"${as}" is already a column: name the new one differently`);

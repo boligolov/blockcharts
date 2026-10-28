@@ -17,7 +17,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     BC.data('enc-gz', enc(rows(7), 'gzip+base64'));
     BC.data('enc-cols', enc({ columns: { a: [1, 2, 3], b: [4, 5, 6] } }, 'gzip+base64'));
     await BC.ready();
-    for (const [name, n] of [['enc-b64', 5], ['enc-gz', 7], ['enc-cols', 3]]) {
+    for (const [name, n] of [
+      ['enc-b64', 5],
+      ['enc-gz', 7],
+      ['enc-cols', 3],
+    ]) {
       const host = new FakeNode('div');
       const h = BC.chart(host, spec(name));
       assert.deepStrictEqual(h.diagnostics, [], name);
@@ -31,7 +35,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     const h = BC.chart(host, spec('slow'));
     assert.strictEqual(host.children.length, 1);
     assert.strictEqual(host.children[0].attrs.class, 'bc-loading', 'a loading placeholder, not an error');
-    assert(BC.validate(spec('slow')).some((d) => /still being decoded \(await BC\.ready\(\)\)/.test(d.message)), 'validate says why');
+    assert(
+      BC.validate(spec('slow')).some((d) => /still being decoded \(await BC\.ready\(\)\)/.test(d.message)),
+      'validate says why',
+    );
     await h.ready;
     assert.strictEqual(host.children[0].tag, 'svg');
     assert.strictEqual(circles(host), 6);
@@ -40,13 +47,28 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
   });
 
   test('encoded data: UTF-8 survives, and so does base64 wrapped over several lines', async () => {
-    BC.data('utf', enc([{ k: 'Регион Север', v: 3 }, { k: '東京', v: 5 }, { k: 'naïve ☃', v: 4 }], 'gzip+base64'));
+    BC.data(
+      'utf',
+      enc(
+        [
+          { k: 'Регион Север', v: 3 },
+          { k: '東京', v: 5 },
+          { k: 'naïve ☃', v: 4 },
+        ],
+        'gzip+base64',
+      ),
+    );
     const wrapped = enc(rows(4), 'gzip+base64');
     wrapped.data = wrapped.data.replace(/(.{20})/g, '$1\r\n  ');
     BC.data('wrapped', wrapped);
     await BC.ready();
     const host = new FakeNode('div');
-    const h = BC.chart(host, { data: 'utf', scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } }, guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }], marks: [{ type: 'rect', x: 'k', y: 'v' }] });
+    const h = BC.chart(host, {
+      data: 'utf',
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }],
+      marks: [{ type: 'rect', x: 'k', y: 'v' }],
+    });
     assert.deepStrictEqual(h.diagnostics, []);
     for (const label of ['Регион Север', '東京', 'naïve ☃']) assert(svgOf(host).includes(`>${label}<`), label);
     const w = new FakeNode('div');
@@ -57,10 +79,28 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
   const bad = [
     ['not base64 at all', { encoding: 'gzip+base64', data: '***not base64***' }, /not valid base64/],
     ['base64 length that cannot exist', { encoding: 'base64', data: 'A' }, /not valid base64/],
-    ['base64 that is not gzip', { encoding: 'gzip+base64', data: Buffer.from('hello, this is plain text').toString('base64') }, /not valid gzip/],
-    ['a gzip stream that was cut off', { encoding: 'gzip+base64', data: zlib.gzipSync(Buffer.from(JSON.stringify(rows(200)))).subarray(0, 40).toString('base64') }, /not valid gzip/],
+    [
+      'base64 that is not gzip',
+      { encoding: 'gzip+base64', data: Buffer.from('hello, this is plain text').toString('base64') },
+      /not valid gzip/,
+    ],
+    [
+      'a gzip stream that was cut off',
+      {
+        encoding: 'gzip+base64',
+        data: zlib
+          .gzipSync(Buffer.from(JSON.stringify(rows(200))))
+          .subarray(0, 40)
+          .toString('base64'),
+      },
+      /not valid gzip/,
+    ],
     ['gzip of something that is not JSON', enc('this is { not json', 'gzip+base64'), /not UTF-8 JSON/],
-    ['gzip of invalid UTF-8', { encoding: 'gzip+base64', data: zlib.gzipSync(Buffer.from([0xff, 0xfe, 0xfd])).toString('base64') }, /not UTF-8 JSON/],
+    [
+      'gzip of invalid UTF-8',
+      { encoding: 'gzip+base64', data: zlib.gzipSync(Buffer.from([0xff, 0xfe, 0xfd])).toString('base64') },
+      /not UTF-8 JSON/,
+    ],
     ['an unknown encoding', { encoding: 'rot13', data: 'abc' }, /unknown encoding "rot13"/],
     ['no data string', { encoding: 'base64' }, /needs a "data" string/],
     ['an encoded dataset inside an encoded dataset', enc(enc(rows(2), 'base64'), 'gzip+base64'), /cannot contain another encoded dataset/],
@@ -79,7 +119,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
       assert.strictEqual(host.children[0].attrs.class, 'bc-error', 'an error box in place of the chart');
       assert(message.test(host.children[0].text), host.children[0].text);
       assert(/could not be loaded/.test(host.children[0].text));
-      assert(logged.error.some((l) => message.test(l)), 'and it is in the console');
+      assert(
+        logged.error.some((l) => message.test(l)),
+        'and it is in the console',
+      );
       assert(h.diagnostics.some((d) => d.level === 'error' && d.path === 'data'));
       logged.error.length = 0;
     });
@@ -167,7 +210,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     const dataNode = { textContent: JSON.stringify({ mounted: enc(rows(8), 'gzip+base64') }) };
     const chartNode = { textContent: JSON.stringify(spec('mounted')), parentNode: null };
     const body = new FakeNode('body');
-    body.insertBefore = (c, ref) => { c.parentNode = body; body.children.push(c); return c; };
+    body.insertBefore = (c, ref) => {
+      c.parentNode = body;
+      body.children.push(c);
+      return c;
+    };
     chartNode.parentNode = body;
     const scope = {
       ownerDocument: { createElement: (t) => new FakeNode(t), getElementById: () => null },
@@ -180,13 +227,23 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
   });
 
   // ── binary columns ──
-  const line = (data) => ({ data, scales: { x: { type: 'linear' }, y: { type: 'linear' } }, guides: [{ type: 'axis', line: 'on', ticks: true, scale: 'x' }, { type: 'axis', line: 'on', ticks: true, scale: 'y' }], marks: [{ type: 'point', x: 'a', y: 'b' }] });
+  const line = (data) => ({
+    data,
+    scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+    guides: [
+      { type: 'axis', line: 'on', ticks: true, scale: 'x' },
+      { type: 'axis', line: 'on', ticks: true, scale: 'y' },
+    ],
+    marks: [{ type: 'point', x: 'a', y: 'b' }],
+  });
   const same = async (name, binary, plain) => {
     BC.data(name + '-bin', binary);
     BC.data(name + '-plain', plain);
     await BC.ready();
-    const a = new FakeNode('div'), b = new FakeNode('div');
-    const ha = BC.chart(a, line(name + '-bin')), hb = BC.chart(b, line(name + '-plain'));
+    const a = new FakeNode('div'),
+      b = new FakeNode('div');
+    const ha = BC.chart(a, line(name + '-bin')),
+      hb = BC.chart(b, line(name + '-plain'));
     assert.deepStrictEqual(ha.diagnostics, [], name);
     assert.deepStrictEqual(hb.diagnostics, [], name);
     assert(circles(a) > 0);
@@ -203,7 +260,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     await same('f64-plain-base64', encodeColumns(cols, { gzip: false }), { columns: cols });
     const f32 = { a: cols.a, b: cols.b.map(Math.fround) };
     await same('f32', encodeColumns(cols, { dtypes: { b: 'float32' } }), { columns: f32 });
-    for (const [dtype, values] of [['int8', [-128, -1, 0, 1, 127]], ['int16', [-32768, 5, 32767, 0, 1]], ['int32', [-2147483648, 7, 2147483647, 0, 1]], ['uint8', [0, 1, 200, 255, 3]], ['uint16', [0, 65535, 300, 2, 9]], ['uint32', [0, 4294967295, 70000, 5, 1]]]) {
+    for (const [dtype, values] of [
+      ['int8', [-128, -1, 0, 1, 127]],
+      ['int16', [-32768, 5, 32767, 0, 1]],
+      ['int32', [-2147483648, 7, 2147483647, 0, 1]],
+      ['uint8', [0, 1, 200, 255, 3]],
+      ['uint16', [0, 65535, 300, 2, 9]],
+      ['uint32', [0, 4294967295, 70000, 5, 1]],
+    ]) {
       const c = { a: [1, 2, 3, 4, 5], b: values };
       const e = encodeColumns(c, { dtypes: { b: dtype } });
       assert.strictEqual(e.columns.b.dtype, dtype);
@@ -224,11 +288,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     assert.strictEqual(t([1, null]), 'float64', 'a missing value needs NaN');
     assert.strictEqual(encodeColumns({ v: [1, 2, 3], s: ['a', 'b', 'c'] }).columns.s.join(), 'a,b,c', 'text stays text');
     const values = Array.from({ length: 5000 }, (_, i) => (i * 37) % 200);
-    assert(JSON.stringify(encodeColumns({ v: values })).length < JSON.stringify({ columns: { v: values } }).length / 4, 'much smaller than the JSON text');
+    assert(
+      JSON.stringify(encodeColumns({ v: values })).length < JSON.stringify({ columns: { v: values } }).length / 4,
+      'much smaller than the JSON text',
+    );
   });
 
   test('binary columns: the encoder refuses what it cannot store faithfully', () => {
-    assert.throws(() => encodeColumns({ v: [1, null] }, { dtypes: { v: 'int8' } }), /column "v" has a missing value at 1, which int8 cannot hold/);
+    assert.throws(
+      () => encodeColumns({ v: [1, null] }, { dtypes: { v: 'int8' } }),
+      /column "v" has a missing value at 1, which int8 cannot hold/,
+    );
     assert.throws(() => encodeColumns({ v: [1, 300] }, { dtypes: { v: 'uint8' } }), /300 at 1 does not fit uint8/);
     assert.throws(() => encodeColumns({ v: [1.5] }, { dtypes: { v: 'int16' } }), /1\.5 at 0 does not fit int16/);
     assert.throws(() => encodeColumns({ v: [1e300] }, { dtypes: { v: 'float32' } }), /too large for float32/);
@@ -246,7 +316,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     BC.data('gaps-bin', encodeColumns(cols));
     await BC.ready();
     const host = new FakeNode('div');
-    BC.chart(host, { data: 'gaps-bin', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'a', y: 'b' }, { type: 'text', x: 'a', y: 'b', text: 'label' }] });
+    BC.chart(host, {
+      data: 'gaps-bin',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [
+        { type: 'point', x: 'a', y: 'b' },
+        { type: 'text', x: 'a', y: 'b', text: 'label' },
+      ],
+    });
     assert.strictEqual(circles(host), 3);
   });
 
@@ -269,8 +346,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
       ['an unknown encoding', { a: good.a, b: { dtype: 'float64', encoding: 'rot13', data: '' } }, /column "b": unknown encoding "rot13"/],
       ['no data string', { a: good.a, b: { dtype: 'float64', encoding: 'base64' } }, /column "b": a binary column needs a "data" string/],
       ['not base64', { a: good.a, b: { dtype: 'float64', encoding: 'base64', data: '***' } }, /column "b": the data is not valid base64/],
-      ['not gzip', { a: good.a, b: { dtype: 'float64', encoding: 'gzip+base64', data: b64('plain text!') } }, /column "b": the data is not valid gzip/],
-      ['a byte count that is not a whole number of values', { a: good.a, b: { dtype: 'float64', encoding: 'base64', data: b64([1, 2, 3, 4, 5, 6, 7, 8, 9]) } }, /column "b": 9 bytes is not a whole number of float64 values/],
+      [
+        'not gzip',
+        { a: good.a, b: { dtype: 'float64', encoding: 'gzip+base64', data: b64('plain text!') } },
+        /column "b": the data is not valid gzip/,
+      ],
+      [
+        'a byte count that is not a whole number of values',
+        { a: good.a, b: { dtype: 'float64', encoding: 'base64', data: b64([1, 2, 3, 4, 5, 6, 7, 8, 9]) } },
+        /column "b": 9 bytes is not a whole number of float64 values/,
+      ],
       ['a column of another length', { a: good.a, b: encodeColumns({ b: [1, 2] }).columns.b }, /column "b" has 2 values, expected 3/],
     ];
     for (const [what, columns, message] of bad) {
@@ -282,7 +367,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
       await BC.ready();
       assert.strictEqual(host.children[0].attrs.class, 'bc-error', what);
       assert(message.test(host.children[0].text), what + ': ' + host.children[0].text);
-      assert(logged.error.some((e) => message.test(e)), what + ' reaches the console');
+      assert(
+        logged.error.some((e) => message.test(e)),
+        what + ' reaches the console',
+      );
     }
     logged.error.length = 0;
   });

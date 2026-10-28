@@ -13,7 +13,10 @@ const { zipSync } = require('fflate');
 
 const repo = path.join(__dirname, '..');
 const SKILL_DIR = path.join(repo, 'skills', 'blockcharts');
-const cell = (v) => String(v === undefined ? '' : v).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+const cell = (v) =>
+  String(v === undefined ? '' : v)
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, ' ');
 const code = (v) => '`' + String(v).replace(/`/g, "'") + '`';
 
 function paramRows(params) {
@@ -29,7 +32,13 @@ function channelRows(channels) {
   return Object.keys(channels).map((name) => {
     const c = channels[name];
     const scales = c.unscaled ? 'none (a plain field)' : c.scales ? c.scales.map(code).join(', ') : 'any';
-    const extra = [c.sharesScale ? `uses the scale of ${code(c.sharesScale)} unless told otherwise` : '', c.default !== undefined ? `default ${code(JSON.stringify(c.default))}` : '', c.doc || ''].filter(Boolean).join('. ');
+    const extra = [
+      c.sharesScale ? `uses the scale of ${code(c.sharesScale)} unless told otherwise` : '',
+      c.default !== undefined ? `default ${code(JSON.stringify(c.default))}` : '',
+      c.doc || '',
+    ]
+      .filter(Boolean)
+      .join('. ');
     return `| ${code(name)} | ${c.required ? '**required**' : 'optional'} | ${scales} | ${cell(extra)} |`;
   });
 }
@@ -39,7 +48,9 @@ function renderReference(manifest) {
   const out = [];
   out.push('# Block reference');
   out.push('');
-  out.push('Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec refers to a block by its `type`: `{"type": "rect"}` is `mark.rect`.');
+  out.push(
+    'Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec refers to a block by its `type`: `{"type": "rect"}` is `mark.rect`.',
+  );
   out.push('');
   out.push('- **scale**: maps data to positions or colors. Declared once per chart under `scales`, by name.');
   out.push('- **transform**: prepares the dataset before anything is drawn (`transforms`).');
@@ -58,11 +69,22 @@ function renderReference(manifest) {
   out.push('| chart | `size` | `[width, height]` of the drawing, default `[640, 400]`; the chart scales to its container |');
   out.push('| chart | `title` | text above the plot |');
   out.push('| chart | `padding` | `{top, right, bottom, left}` in drawing units, default 16 each |');
-  out.push('| chart | `transforms`, `scales`, `guides`, `marks`, `interaction` | lists of blocks (`scales` is an object of named scales) |');
+  out.push(
+    '| chart | `transforms`, `scales`, `guides`, `marks`, `interaction` | lists of blocks (`scales` is an object of named scales) |',
+  );
   out.push('| chart | `view` | starting zoom: `{"x": [from, to]}` (dates as ISO strings or milliseconds) |');
-  out.push(`| scale | \`type\` | the scale block: ${names.filter((n) => n.startsWith('scale.')).map((n) => code(n.slice(6))).join(', ')} |`);
-  out.push('| scale | `domain` | fixed domain instead of the inferred one: `[min, max]` for linear and time, a list of values for band and color |');
-  out.push('| scale | `range` | `"width"` or `"height"` (the default of `x` and `y`), or an explicit list, e.g. colors for a color scale |');
+  out.push(
+    `| scale | \`type\` | the scale block: ${names
+      .filter((n) => n.startsWith('scale.'))
+      .map((n) => code(n.slice(6)))
+      .join(', ')} |`,
+  );
+  out.push(
+    '| scale | `domain` | fixed domain instead of the inferred one: `[min, max]` for linear and time, a list of values for band and color |',
+  );
+  out.push(
+    '| scale | `range` | `"width"` or `"height"` (the default of `x` and `y`), or an explicit list, e.g. colors for a color scale |',
+  );
   out.push('| scale | `field` | an extra field to include when inferring the domain |');
   out.push('| guide | `scale` | name of the scale the guide belongs to |');
   out.push('| guide | `position` | `top`, `right`, `bottom` or `left`; the default follows the scale (height: left, width: bottom) |');
@@ -117,13 +139,22 @@ function buildSkill(outDir, options) {
   const dist = path.resolve(opts.distDir || (fs.existsSync(path.join(built, 'min', 'manifest.json')) ? path.join(built, 'min') : built));
   const skillDir = path.resolve(opts.skillDir || SKILL_DIR);
   const out = path.resolve(outDir || skillDir);
-  const forbidden = [path.parse(out).root, repo, dist, built, path.join(repo, 'skills'), path.join(repo, 'src'), path.join(repo, 'scripts')];
+  const forbidden = [
+    path.parse(out).root,
+    repo,
+    dist,
+    built,
+    path.join(repo, 'skills'),
+    path.join(repo, 'src'),
+    path.join(repo, 'scripts'),
+  ];
   if (forbidden.includes(out)) throw new Error(`refusing to build the skill into ${out}`);
 
   const manifestFile = path.join(dist, 'manifest.json');
   if (!fs.existsSync(manifestFile)) throw new Error(`${manifestFile} not found: run npm run build and npm run manifest first`);
   const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
-  for (const rel of ['SKILL.md', 'recipes']) if (!fs.existsSync(path.join(skillDir, rel))) throw new Error(`${path.join(skillDir, rel)} not found`);
+  for (const rel of ['SKILL.md', 'recipes'])
+    if (!fs.existsSync(path.join(skillDir, rel))) throw new Error(`${path.join(skillDir, rel)} not found`);
 
   // only the folders this script owns are cleared, so stale files of removed blocks or recipes cannot linger
   const owned = out === skillDir ? GENERATED_DIRS : ['recipes', ...GENERATED_DIRS];
@@ -137,7 +168,10 @@ function buildSkill(outDir, options) {
     if (out !== skillDir) copyFile(path.join(skillDir, rel), path.join(out, rel));
     put(rel);
   }
-  for (const f of fs.readdirSync(path.join(skillDir, 'recipes')).filter((n) => n.endsWith('.json') || n.endsWith('.csv')).sort()) {
+  for (const f of fs
+    .readdirSync(path.join(skillDir, 'recipes'))
+    .filter((n) => n.endsWith('.json') || n.endsWith('.csv'))
+    .sort()) {
     if (out !== skillDir) copyFile(path.join(skillDir, 'recipes', f), path.join(out, 'recipes', f));
     put(`recipes/${f}`);
   }

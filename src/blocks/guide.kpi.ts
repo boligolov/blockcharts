@@ -27,13 +27,19 @@
     if (how === 'count') return values.length;
     if (!values.length) return NaN;
     switch (how) {
-      case 'first': return values[0];
-      case 'sum': return values.reduce((a, b) => a + b, 0);
-      case 'mean': return values.reduce((a, b) => a + b, 0) / values.length;
+      case 'first':
+        return values[0];
+      case 'sum':
+        return values.reduce((a, b) => a + b, 0);
+      case 'mean':
+        return values.reduce((a, b) => a + b, 0) / values.length;
       // a loop, not Math.min(...values): spreading a long series overflows the call stack
-      case 'min': return values.reduce((a, b) => (b < a ? b : a));
-      case 'max': return values.reduce((a, b) => (b > a ? b : a));
-      default: return values[values.length - 1];
+      case 'min':
+        return values.reduce((a, b) => (b < a ? b : a));
+      case 'max':
+        return values.reduce((a, b) => (b > a ? b : a));
+      default:
+        return values[values.length - 1];
     }
   }
 
@@ -51,7 +57,12 @@
     if (typeof spec.against === 'string') {
       base = reduce(numbers(ctx.table.columns[spec.against]), how);
     } else {
-      const compare = spec.compare === 'first' || spec.compare === 'none' || spec.compare === 'previous' ? spec.compare : how === 'last' ? 'previous' : 'none';
+      const compare =
+        spec.compare === 'first' || spec.compare === 'none' || spec.compare === 'previous'
+          ? spec.compare
+          : how === 'last'
+            ? 'previous'
+            : 'none';
       if (compare === 'previous' && values.length > 1) base = values[values.length - 2];
       else if (compare === 'first' && values.length > 1) base = values[0];
     }
@@ -71,12 +82,29 @@
     params: {
       field: { kind: 'field', required: true, doc: 'The numeric field the figure comes from.' },
       label: { kind: 'string', doc: 'What the figure is ("Revenue", "Active users"), above it.' },
-      aggregate: { kind: 'enum', values: AGGREGATES, default: 'last', doc: 'How the rows make one number: the last row (the latest period, in data order), the first, or the sum, mean, min, max or count of the field.' },
-      compare: { kind: 'enum', values: ['previous', 'first', 'none'], doc: 'What the change is measured against: the row before the last ("previous", the default with aggregate "last"), the first row ("first": change over the period), or nothing. "previous" and "first" compare single rows, so they go with aggregate "last" only; a sum or a mean is compared through `against`.' },
+      aggregate: {
+        kind: 'enum',
+        values: AGGREGATES,
+        default: 'last',
+        doc: 'How the rows make one number: the last row (the latest period, in data order), the first, or the sum, mean, min, max or count of the field.',
+      },
+      compare: {
+        kind: 'enum',
+        values: ['previous', 'first', 'none'],
+        doc: 'What the change is measured against: the row before the last ("previous", the default with aggregate "last"), the first row ("first": change over the period), or nothing. "previous" and "first" compare single rows, so they go with aggregate "last" only; a sum or a mean is compared through `against`.',
+      },
       against: { kind: 'field', doc: 'Compare with another field instead, aggregated the same way (a target, the same period last year).' },
-      delta: { kind: 'enum', values: ['percent', 'absolute'], default: 'percent', doc: 'The change as a percentage of the comparison, or as a difference written with `format`.' },
+      delta: {
+        kind: 'enum',
+        values: ['percent', 'absolute'],
+        default: 'percent',
+        doc: 'The change as a percentage of the comparison, or as a difference written with `format`.',
+      },
       better: { kind: 'enum', values: ['up', 'down'], default: 'up', doc: 'Which way is good: "down" for costs, churn, response times.' },
-      format: { kind: 'any', doc: 'How to write the value (a preset such as "compact" or "percent", or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }).' },
+      format: {
+        kind: 'any',
+        doc: 'How to write the value (a preset such as "compact" or "percent", or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }).',
+      },
       note: { kind: 'string', doc: 'A few words after the change: "vs last month", "vs target".' },
       size: { kind: 'number', default: VALUE_SIZE, doc: 'Font size of the value, px.' },
     },
@@ -84,7 +112,9 @@
       // compare compares single rows; next to a sum or a mean that is a change against one row, which means nothing
       const how = typeof spec.aggregate === 'string' ? spec.aggregate : 'last';
       if ((spec.compare === 'previous' || spec.compare === 'first') && how !== 'last' && typeof spec.against !== 'string') {
-        throw new Error(`guide.kpi: compare "${spec.compare}" compares one row with another, so it needs aggregate "last" (not "${how}"); to compare a ${how} with something, give "against" a field`);
+        throw new Error(
+          `guide.kpi: compare "${spec.compare}" compares one row with another, so it needs aggregate "last" (not "${how}"); to compare a ${how} with something, give "against" a field`,
+        );
       }
       return { top: height(spec) };
     },
@@ -96,12 +126,33 @@
       let y = ctx.plot.y - offset.top - height(spec);
       const out: BC.Prim[] = [];
       if (label) {
-        out.push({ type: 'text', x: left, y, text: label, size: LABEL_SIZE, weight: 500, baseline: 'hanging', style: { fill: LABEL }, cls: 'bc-kpi-label' });
+        out.push({
+          type: 'text',
+          x: left,
+          y,
+          text: label,
+          size: LABEL_SIZE,
+          weight: 500,
+          baseline: 'hanging',
+          style: { fill: LABEL },
+          cls: 'bc-kpi-label',
+        });
         y += LABEL_SIZE + GAP;
       }
       const { value, base } = figures(spec, ctx);
-      const write = spec.format !== undefined ? BC.formatter(spec.format as BC.FormatSpec | string) : (v: unknown) => BC.formatter('compact')(v);
-      out.push({ type: 'text', x: left, y, text: isFinite(value) ? write(value) : '–', size, weight: 650, baseline: 'hanging', style: { fill: VALUE }, cls: 'bc-kpi-value' });
+      const write =
+        spec.format !== undefined ? BC.formatter(spec.format as BC.FormatSpec | string) : (v: unknown) => BC.formatter('compact')(v);
+      out.push({
+        type: 'text',
+        x: left,
+        y,
+        text: isFinite(value) ? write(value) : '–',
+        size,
+        weight: 650,
+        baseline: 'hanging',
+        style: { fill: VALUE },
+        cls: 'bc-kpi-value',
+      });
       y += size + GAP;
 
       if (isFinite(value) && isFinite(base)) {
@@ -119,10 +170,29 @@
         }
         const arrow = flat ? '■' : up ? '▲' : '▼';
         const change = `${arrow} ${text}`.trim();
-        out.push({ type: 'text', x: left, y, text: change, size: DELTA_SIZE, weight: 600, baseline: 'hanging', style: { fill: color }, cls: 'bc-kpi-delta' });
+        out.push({
+          type: 'text',
+          x: left,
+          y,
+          text: change,
+          size: DELTA_SIZE,
+          weight: 600,
+          baseline: 'hanging',
+          style: { fill: color },
+          cls: 'bc-kpi-delta',
+        });
         if (typeof spec.note === 'string' && spec.note) {
           const w = ctx.measure(change, DELTA_SIZE).w;
-          out.push({ type: 'text', x: left + w + 6, y, text: spec.note, size: DELTA_SIZE, baseline: 'hanging', style: { fill: LABEL }, cls: 'bc-kpi-note' });
+          out.push({
+            type: 'text',
+            x: left + w + 6,
+            y,
+            text: spec.note,
+            size: DELTA_SIZE,
+            baseline: 'hanging',
+            style: { fill: LABEL },
+            cls: 'bc-kpi-note',
+          });
         }
       }
       return { axes: out };

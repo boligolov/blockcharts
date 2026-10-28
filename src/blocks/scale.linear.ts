@@ -53,7 +53,11 @@
     params: {
       nice: { kind: 'boolean', default: true, doc: 'Extend the inferred domain to round tick values.' },
       zero: { kind: 'boolean', default: false, doc: 'Include 0 in the inferred domain (bars need it).' },
-      padding: { kind: 'number', default: 0, doc: 'Extra room around the data extent, as a fraction of its span (0.05 keeps edge points off the axes).' },
+      padding: {
+        kind: 'number',
+        default: 0,
+        doc: 'Extra room around the data extent, as a fraction of its span (0.05 keeps edge points off the axes).',
+      },
     },
     create(spec, ctx) {
       let b0: number, b1: number;
@@ -64,7 +68,8 @@
         b0 = num(d[0]);
         b1 = num(d[1]);
         // [high, low] is fine (an axis that runs the other way); one value, or something that is not a number, is not a domain
-        if (!isFinite(b0) || !isFinite(b1) || b0 === b1) throw new Error(`scale.linear: the domain must be two different numbers, not ${JSON.stringify(spec.domain)}`);
+        if (!isFinite(b0) || !isFinite(b1) || b0 === b1)
+          throw new Error(`scale.linear: the domain must be two different numbers, not ${JSON.stringify(spec.domain)}`);
       } else {
         [b0, b1] = extent(ctx.sources);
         if (spec.zero) {
@@ -111,7 +116,8 @@
         },
         invert: { value: (px: number) => d0 + ((px - r0) / (r1 - r0)) * (d1 - d0) },
         ticks: {
-          value: (approxCount: number = NICE_COUNT): BC.Tick[] => roundTicks(d0, d1, approxCount).map((t) => ({ ...t, pos: scale(t.value) })),
+          value: (approxCount: number = NICE_COUNT): BC.Tick[] =>
+            roundTicks(d0, d1, approxCount).map((t) => ({ ...t, pos: scale(t.value) })),
         },
       });
       return scale;

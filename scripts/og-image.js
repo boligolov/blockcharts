@@ -7,7 +7,15 @@ const { chromium } = require('playwright-core');
 
 const dist = path.join(__dirname, '..', 'site', 'dist');
 const out = path.join(__dirname, '..', 'site', 'public', 'og.png');
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json', '.woff2': 'font/woff2', '.png': 'image/png' };
+const TYPES = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.svg': 'image/svg+xml',
+  '.json': 'application/json',
+  '.woff2': 'font/woff2',
+  '.png': 'image/png',
+};
 
 function serve() {
   const server = http.createServer((req, res) => {
@@ -31,7 +39,10 @@ async function main() {
     await page.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: 'networkidle' });
     await page.waitForSelector('.hero svg');
     // the hero alone, centred in a desktop-wide frame and scaled down to 1200×630: no header, no caption, no animation half-way
-    await page.addStyleTag({ content: 'header.site{display:none} *{transition:none!important;animation:none!important} .hero{min-height:735px;display:flex;align-items:center;padding:0} .hero .window-caption{display:none}' });
+    await page.addStyleTag({
+      content:
+        'header.site{display:none} *{transition:none!important;animation:none!important} .hero{min-height:735px;display:flex;align-items:center;padding:0} .hero .window-caption{display:none}',
+    });
     await page.evaluate(() => document.fonts.ready);
     if (errors.length) throw new Error(`the landing page has errors: ${errors.join('; ')}`);
     await page.screenshot({ path: out, clip: { x: 0, y: 0, width: 1400, height: 735 } });
@@ -42,4 +53,7 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error(e.message); process.exit(1); });
+main().catch((e) => {
+  console.error(e.message);
+  process.exit(1);
+});

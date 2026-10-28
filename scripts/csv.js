@@ -37,8 +37,16 @@ function parseRecords(text, delimiter) {
   let started = false; // has anything been read in this record (a quoted empty string counts)
   let line = 1; // the line being read
   let recordLine = 1; // the line the current record started on, for error messages
-  const begin = () => { if (!started) { started = true; recordLine = line; } };
-  const endField = () => { record.push(field); field = ''; };
+  const begin = () => {
+    if (!started) {
+      started = true;
+      recordLine = line;
+    }
+  };
+  const endField = () => {
+    record.push(field);
+    field = '';
+  };
   const endRecord = () => {
     endField();
     if (started || record.length > 1 || record[0] !== '') records.push({ fields: record, line: recordLine });
@@ -49,16 +57,26 @@ function parseRecords(text, delimiter) {
     const c = text[i];
     if (quoted) {
       if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i++; }
-        else quoted = false;
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else quoted = false;
       } else {
         if (c === '\n') line++;
         field += c;
       }
       continue;
     }
-    if (c === '"' && field === '') { begin(); quoted = true; continue; }
-    if (c === delimiter) { begin(); endField(); continue; }
+    if (c === '"' && field === '') {
+      begin();
+      quoted = true;
+      continue;
+    }
+    if (c === delimiter) {
+      begin();
+      endField();
+      continue;
+    }
     if (c === '\r' || c === '\n') {
       if (c === '\r' && text[i + 1] === '\n') i++;
       endRecord();
@@ -84,7 +102,8 @@ function parseCsv(text, options) {
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   if (!text.trim()) throw new CsvError('the CSV is empty');
   const delimiter = opts.delimiter === undefined ? detectDelimiter(text) : opts.delimiter;
-  if (typeof delimiter !== 'string' || delimiter.length !== 1 || delimiter === '"' || delimiter === '\n' || delimiter === '\r') throw new CsvError('"delimiter" must be one character, such as "," or ";"');
+  if (typeof delimiter !== 'string' || delimiter.length !== 1 || delimiter === '"' || delimiter === '\n' || delimiter === '\r')
+    throw new CsvError('"delimiter" must be one character, such as "," or ";"');
   const nulls = new Set(opts.nullValues === undefined ? DEFAULT_NULLS : opts.nullValues);
   const records = parseRecords(text, delimiter);
   const header = records[0].fields.map((h) => h.trim());
@@ -104,7 +123,8 @@ function parseCsv(text, options) {
   const columns = {};
   header.forEach((name, c) => {
     const forced = opts.types && opts.types[name];
-    if (opts.types && forced !== undefined && forced !== 'number' && forced !== 'string') throw new CsvError(`types.${name} must be "number" or "string"`);
+    if (opts.types && forced !== undefined && forced !== 'number' && forced !== 'string')
+      throw new CsvError(`types.${name} must be "number" or "string"`);
     const cells = raw[c].map((v) => (nulls.has(v.trim()) || nulls.has(v) ? null : v));
     const present = cells.filter((v) => v !== null);
     const allNumbers = present.length > 0 && present.every((v) => NUMBER.test(v.trim()));
@@ -124,8 +144,12 @@ function parseCsv(text, options) {
  */
 function readCsvFile(file, baseDir) {
   if (typeof file !== 'string' || !file) throw new CsvError('"csvFile" must be a file name');
-  if (!baseDir) throw new CsvError('"csvFile" needs to know the folder it is relative to (the composer option "baseDir"; the command line uses the folder of the page json)');
-  if (path.isAbsolute(file) || /^[a-zA-Z]:/.test(file)) throw new CsvError(`"csvFile" must be relative to the page json, not absolute: ${file}`);
+  if (!baseDir)
+    throw new CsvError(
+      '"csvFile" needs to know the folder it is relative to (the composer option "baseDir"; the command line uses the folder of the page json)',
+    );
+  if (path.isAbsolute(file) || /^[a-zA-Z]:/.test(file))
+    throw new CsvError(`"csvFile" must be relative to the page json, not absolute: ${file}`);
   const root = fs.realpathSync(path.resolve(baseDir));
   const target = path.resolve(root, file);
   const inside = (p) => p === root || p.startsWith(root + path.sep);

@@ -34,7 +34,8 @@
       if (!has(spec.field)) fail(`unknown field "${spec.field}"`);
       if (spec.group !== undefined && (typeof spec.group !== 'string' || !has(spec.group))) fail(`unknown field "${spec.group}"`);
       if (spec.order !== undefined && spec.order !== 'asc' && spec.order !== 'desc') fail('"order" must be "asc" or "desc"');
-      if (spec.limit !== undefined && !(typeof spec.limit === 'number' && spec.limit >= 0 && Math.floor(spec.limit) === spec.limit)) fail('"limit" must be a whole number of rows, at least 0');
+      if (spec.limit !== undefined && !(typeof spec.limit === 'number' && spec.limit >= 0 && Math.floor(spec.limit) === spec.limit))
+        fail('"limit" must be a whole number of rows, at least 0');
       const dir = spec.order === 'desc' ? -1 : 1;
       const col = table.columns[spec.field];
       const groupCol = typeof spec.group === 'string' ? table.columns[spec.group] : undefined;

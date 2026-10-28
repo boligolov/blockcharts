@@ -67,12 +67,15 @@
     "release": "npm run build && npm run manifest && node scripts/build-dist.js",
     "og": "node scripts/og-image.js",
     "site": "npm run build && npm run manifest && npm --prefix site run build && node scripts/check-site.js",
-    "prepack": "npm run release"
+    "prepack": "npm run release",
+    "format": "prettier --write \"src/**/*.ts\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs",
+    "format:check": "prettier --check \"src/**/*.ts\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
     "fflate": "^0.8.3",
     "playwright-core": "^1.64.1",
+    "prettier": "^3.9.10",
     "typescript": "^7.0.2"
   }
 }

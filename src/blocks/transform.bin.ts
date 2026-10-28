@@ -11,7 +11,8 @@
   function outputNames(spec: BC.TransformSpec): [string, string, string] {
     const as = spec.as;
     if (as === undefined) return ['bin0', 'bin1', 'count'];
-    if (Array.isArray(as) && as.length === 3 && as.every((n) => typeof n === 'string' && n) && new Set(as).size === 3) return [as[0], as[1], as[2]];
+    if (Array.isArray(as) && as.length === 3 && as.every((n) => typeof n === 'string' && n) && new Set(as).size === 3)
+      return [as[0], as[1], as[2]];
     throw new Error('transform.bin: "as" must be three different column names, e.g. ["bin0", "bin1", "count"]');
   }
 
@@ -64,7 +65,15 @@
         hi = b;
       } else if (!any) {
         if (notNumbers) throw new Error(`transform.bin: field "${field}" has no numeric values`);
-        return { length: 0, columns: { [as0]: new Float64Array(0), [as1]: new Float64Array(0), [asN]: new Float64Array(0), ...(groupField ? { [groupField]: [] } : {}) } };
+        return {
+          length: 0,
+          columns: {
+            [as0]: new Float64Array(0),
+            [as1]: new Float64Array(0),
+            [asN]: new Float64Array(0),
+            ...(groupField ? { [groupField]: [] } : {}),
+          },
+        };
       }
       if (lo === hi) {
         lo -= 0.5;
