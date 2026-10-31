@@ -737,6 +737,127 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(sixty.length < 60 && sixty.length > 5, 'sixty categories on 640 px are thinned: ' + sixty.length);
   });
 
+  test('band axis: on a narrow chart text categories all go at an angle, dates and numbers are thinned', () => {
+    const cats = ['Chrome', 'Safari', 'Edge', 'Firefox', 'Samsung Internet', 'Opera', 'Everything else entirely'];
+    BC.data(
+      'slant',
+      cats.map((k, i) => ({ k, v: i + 1 })),
+    );
+    const spec = (data, w) => ({
+      data,
+      size: [w, 300],
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      guides: [
+        { type: 'axis', scale: 'y' },
+        { type: 'axis', scale: 'x' },
+      ],
+      marks: [{ type: 'rect', x: 'k', y: 'v' }],
+    });
+    const labels = (svg) => [...layer(svg, 'axes').matchAll(/<text ([^>]*)class="bc-axis-label"[^>]*>([^<]*)<\/text>/g)];
+    const narrow = labels(draw(spec('slant', 220)).svg).filter((m) => /rotate/.test(m[1]));
+    assert.strictEqual(narrow.length, 7, 'all seven are there, at an angle: ' + narrow.map((m) => m[2]).join('|'));
+    assert(
+      narrow.every((m) => m[2].length <= 20),
+      'a long one is cut, it would eat the plot',
+    );
+    const wide = labels(draw(spec('slant', 900)).svg);
+    assert(
+      wide.every((m) => !/rotate/.test(m[1])),
+      'with room nothing is turned',
+    );
+    assert.deepStrictEqual(draw(spec('slant', 220)).h.diagnostics, []);
+
+    BC.data(
+      'ordered',
+      Array.from({ length: 6 }, (_, i) => ({ k: '2024-' + String(i + 1).padStart(2, '0') + '-01', v: i })),
+    );
+    const months = labels(draw(spec('ordered', 220)).svg).filter((m) => m[2].startsWith('2024'));
+    assert(months.length > 1 && months.length < 6, 'months that do not fit are thinned: ' + months.length);
+    assert(
+      months.every((m) => !/rotate/.test(m[1])),
+      'a sequence is not turned',
+    );
+  });
+
+  test('a constant on a position is in the units of its scale, on every mark', () => {
+    BC.data('cst', [
+      { k: 'a', v: 1 },
+      { k: 'b', v: 3 },
+    ]);
+    const base = (mark, y = { type: 'linear', domain: [0, 4] }) => ({
+      data: 'cst',
+      size: [400, 200],
+      padding: 0,
+      scales: { x: { type: 'linear', domain: [0, 10] }, y },
+      guides: [],
+      marks: [mark],
+    });
+    const { svg, h } = draw(base({ type: 'text', x: { value: 5 }, y: { value: 2 }, text: 'k' }));
+    assert.deepStrictEqual(h.diagnostics, []);
+    const m = /<text [^>]*x="([\d.]+)" y="([\d.]+)"/.exec(layer(svg, 'marks'));
+    assert(near(+m[1], 200, 1) && near(+m[2], 100, 1), 'in the middle of the plot, not at 5 px: ' + m.slice(1));
+
+    // the scale makes room for it, on a domain of its own
+    const inferred = draw(base({ type: 'rule', y: { value: 100 } }, { type: 'linear' }));
+    assert.deepStrictEqual(inferred.h.diagnostics, []);
+    assert.strictEqual(paths(layer(inferred.svg, 'marks')).length, 1, 'drawn, at the top of a domain that reaches it');
+    // a color and a size stay what they are
+    const dot = draw(base({ type: 'point', x: 'v', y: 'v', color: { value: '#f00000' } }));
+    assert.deepStrictEqual(dot.h.diagnostics, []);
+    assert(/#f00000/.test(layer(dot.svg, 'marks')), 'a color stays a color, with no scale');
+
+    const outside = draw(base({ type: 'text', x: { value: 50 }, y: 'v', text: 'k' }));
+    assert(
+      outside.h.diagnostics.some((d) => d.level === 'warn' && /outside scale "x"/.test(d.message)),
+      'a value past a domain given by hand is reported',
+    );
+    const nocat = draw({
+      ...base({ type: 'rule', x: { value: 'nope' } }),
+      scales: { x: { type: 'band', domain: ['a', 'b'] }, y: { type: 'linear', domain: [0, 4] } },
+    });
+    assert(
+      nocat.h.diagnostics.some((d) => /outside scale "x"/.test(d.message)),
+      'so is a category that is not there',
+    );
+    const noscale = BC.validate({
+      data: 'cst',
+      scales: { y: { type: 'linear' } },
+      marks: [{ type: 'text', x: { value: 5 }, y: 'v', text: 'k' }],
+    });
+    assert(
+      noscale.some((d) => d.level === 'error' && /scale "x" is not declared/.test(d.message)),
+      'no scale to be a value of: an error',
+    );
+  });
+
+  test('guide.kpi: deltaFormat writes the change in its own unit, with one sign', () => {
+    const kpi = (extra) =>
+      kpiTexts(
+        draw(
+          monthly({
+            guides: [{ type: 'kpi', field: 'rev', compare: 'first', format: { suffix: '%' }, ...extra }],
+          }),
+        ).svg,
+      );
+    assert.strictEqual(kpi({ delta: 'absolute' }).delta.text, '▲ +60%', 'the old way reads as a percentage');
+    assert.strictEqual(kpi({ delta: 'absolute', deltaFormat: { suffix: ' pp' } }).delta.text, '▲ +60 pp');
+    assert.strictEqual(
+      kpi({ delta: 'absolute', deltaFormat: { signDisplay: 'exceptZero', suffix: ' pp' } }).delta.text,
+      '▲ +60 pp',
+      'a format that signs is not signed twice',
+    );
+    assert.strictEqual(
+      kpi({ deltaFormat: { style: 'percent', maximumFractionDigits: 0 } }).delta.text,
+      '▲ +60%',
+      'with delta "percent" too',
+    );
+    BC.data('falling', [{ v: 5 }, { v: 3 }]);
+    const down = kpiTexts(
+      draw({ data: 'falling', marks: [], guides: [{ type: 'kpi', field: 'v', delta: 'absolute', deltaFormat: { suffix: ' pp' } }] }).svg,
+    );
+    assert.strictEqual(down.delta.text, '▼ -2 pp', 'a fall keeps its own minus');
+  });
+
   // ───────────────────────── the card tooltip ─────────────────────────
 
   const tipOf = (host) => host.children.find((c) => c.attrs.class === 'bc-tooltip');
@@ -745,6 +866,42 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     host.children[0].fire('pointermove', { clientX: x, clientY: y, buttons: 0 });
     await flush();
   };
+
+  test('interaction.tooltip: labels name the fields, without touching data or formats', async () => {
+    const warned = [];
+    const was = console.warn;
+    console.warn = (...a) => warned.push(a.join(' '));
+    try {
+      const host = new FakeNode('div');
+      BC.chart(
+        host,
+        monthly({
+          interaction: [
+            {
+              type: 'tooltip',
+              fields: ['rev', 'cost'],
+              formats: { rev: { suffix: ' USD' } },
+              labels: { rev: 'Revenue', typo: 'Nothing', cost: 7 },
+            },
+          ],
+        }),
+      );
+      const d = paths(layer(svgOf(host), 'marks'))[0].d;
+      const [x, y] = /L([\d.]+) ([\d.]+)/.exec(d).slice(1).map(Number);
+      await hover(host, x, y);
+      const lines = partOf(tipOf(host), 'bc-tooltip-lines').children.map((c) => c.text);
+      assert.strictEqual(lines[0], 'Revenue');
+      assert(/ USD$/.test(lines[1]), 'the format is keyed by the field, as before: ' + lines[1]);
+      assert.strictEqual(lines[2], 'cost', 'a label that is not text is dropped');
+      assert(
+        warned.some((w) => /label of "typo" ignored: no such field/.test(w)),
+        'a typo is reported',
+      );
+      assert(warned.some((w) => /label of "cost" must be text/.test(w)));
+    } finally {
+      console.warn = was;
+    }
+  });
 
   test('interaction.tooltip: the date heads the card, the dot takes the series color, no crosshair of its own', async () => {
     const host = new FakeNode('div');

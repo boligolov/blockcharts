@@ -24,9 +24,41 @@
     return spec.scale && ctx.orientation(spec.scale) === 'vertical' ? 'left' : 'bottom';
   }
 
+  /** Axes whose categories lie at an angle, as decided when the space was measured: the render has to keep to what was reserved. */
+  const slanted = new WeakSet<BC.GuideSpec>();
+  /** cos 45°: how much of a slanted label's length it takes across and along the axis. */
+  const SLANT = 0.71;
+  const MIN_SLANT_STEP = 15;
+  const MAX_SLANT_CHARS = 20;
+  const SEQUENCE = /^\s*-?\d[\d.,:\/-]*(T[\d:.]+Z?)?\s*$/;
+
+  /** Text categories name things, so reading only some of them is no use: when they do not fit, they all go at an angle.
+   *  Dates and numbers run in order, so every few of them say enough, and sixty months are never slanted. */
+  function needsSlant(spec: BC.GuideSpec, ctx: BC.ChartCtx, side: Side): boolean {
+    const scale = spec.scale ? ctx.scales[spec.scale as string] : undefined;
+    if (!scale || scale.kind !== 'band' || side === 'left' || side === 'right' || ctx.orientation(spec.scale as string) !== 'horizontal')
+      return false;
+    const cats = scale.domain() as unknown[];
+    // the plot is not final yet: the vertical axes have still to take their room out of it
+    let length = ctx.plot.w;
+    for (const g of ctx.spec.guides || []) {
+      if (g === spec || g.type !== 'axis' || !g.scale) continue;
+      const other = sideOf(g, ctx);
+      if (other === 'left' || other === 'right') length -= (def.measure as NonNullable<BC.GuideDef['measure']>)(g, ctx)[other] || 0;
+    }
+    if (cats.length < 2 || length / cats.length < MIN_SLANT_STEP) return false;
+    if (cats.every((c) => typeof c === 'number' || c instanceof Date || SEQUENCE.test(String(c)))) return false;
+    return ctx.bandLabels(spec.scale as string, length) < cats.length;
+  }
+
+  const shorten = (label: string) => (label.length > MAX_SLANT_CHARS ? label.slice(0, MAX_SLANT_CHARS - 1) + '…' : label);
+
   /** The ticks of the scale with their labels, written the way `format` says (numbers and dates; categories are as they are). */
   function labelled(spec: BC.GuideSpec, ctx: BC.ChartCtx): BC.Tick[] {
-    const ticks = ctx.ticks(spec.scale as string);
+    const scale = ctx.scales[spec.scale as string];
+    const ticks = slanted.has(spec)
+      ? ctx.ticks(spec.scale as string, (scale.domain() as unknown[]).length)
+      : ctx.ticks(spec.scale as string);
     if (spec.format === undefined) return ticks;
     const kind = ctx.scales[spec.scale as string].kind;
     if (kind !== 'linear' && kind !== 'log' && kind !== 'time' && kind !== 'band') return ticks;
@@ -35,6 +67,9 @@
     const write = BC.formatter(spec.format as BC.FormatSpec | string, kind === 'time' ? 'date' : kind === 'band' ? undefined : 'number');
     return ticks.map((t) => ({ value: t.value, pos: t.pos, label: write(t.value) }));
   }
+
+  const written = (spec: BC.GuideSpec, ctx: BC.ChartCtx): BC.Tick[] =>
+    slanted.has(spec) ? labelled(spec, ctx).map((t) => ({ ...t, label: shorten(t.label) })) : labelled(spec, ctx);
 
   const title = (spec: BC.GuideSpec): string => (typeof spec.title === 'string' ? spec.title : '');
   const LINE = FONT * 1.25;
@@ -60,8 +95,8 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 8,
-    doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines.',
+    version: 9,
+    doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.',
     params: {
       scale: { kind: 'scale', required: true },
       position: { kind: 'enum', values: ['top', 'right', 'bottom', 'left'] },
@@ -82,6 +117,23 @@
       if (!spec.scale) return {};
       const side = sideOf(spec, ctx);
       const vertical = side === 'left' || side === 'right';
+      if (needsSlant(spec, ctx, side)) slanted.add(spec);
+      else slanted.delete(spec);
+      if (slanted.has(spec)) {
+        let across = 0;
+        let left = 0;
+        let right = 0;
+        for (const t of written(spec, ctx)) {
+          const reachAlong = ctx.measure(t.label, FONT).w * SLANT;
+          across = Math.max(across, reachAlong);
+          // a label ends at its tick and runs away from it, to the left of the tick below the axis and to the right above it
+          if (side === 'bottom') left = Math.max(left, ctx.plot.x - (t.pos - reachAlong));
+          else right = Math.max(right, t.pos + reachAlong - (ctx.plot.x + ctx.plot.w));
+        }
+        const out: BC.GuideMeasure = { overhang: { top: 0, right, bottom: 0, left } };
+        out[side] = reach(spec) + across + FONT * SLANT + PAD + (title(spec) ? TITLE_ROOM : 0);
+        return out;
+      }
       let label = 0;
       // labels are centered on their tick, so the first and last one can stick out past the plot edge
       const over: Partial<BC.Insets> = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -113,7 +165,7 @@
       if (!spec.scale) return {};
       const side = sideOf(spec, ctx);
       const { x, y, w, h } = ctx.plot;
-      const ticks = labelled(spec, ctx);
+      const ticks = written(spec, ctx);
       const texts: BC.Prim[] = [];
       const name = title(spec);
       let d: string;
@@ -163,6 +215,22 @@
         const wrap = wrapper(spec, ctx, side);
         for (const t of ticks) {
           if (marks) d += `M${t.pos} ${y0}V${y0 + dir * TICK}`;
+          if (slanted.has(spec)) {
+            labelSpace = Math.max(labelSpace, ctx.measure(t.label, FONT).w * SLANT + FONT * SLANT);
+            texts.push({
+              type: 'text',
+              x: t.pos,
+              y: y0 + dir * r,
+              text: t.label,
+              size: FONT,
+              anchor: dir < 0 ? 'start' : 'end',
+              baseline: 'middle',
+              rotate: -45,
+              style: { fill: LABEL },
+              cls: 'bc-axis-label',
+            });
+            continue;
+          }
           const lines = wrap(t.label);
           labelSpace = Math.max(labelSpace, lines.length > 1 ? lines.length * LINE : ctx.measure(t.label, FONT).h);
           // lines stack away from the axis: downwards below it, upwards above it

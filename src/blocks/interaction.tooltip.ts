@@ -17,13 +17,17 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 7,
+    version: 8,
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.',
     params: {
       fields: { kind: 'list', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
       formats: {
         kind: 'any',
         doc: 'How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits).',
+      },
+      labels: {
+        kind: 'any',
+        doc: 'What to call the fields, per field: { "median": "Median, ms", "rev": "Revenue" }. Fields without one are shown under their own name.',
       },
       content: {
         kind: 'any',
@@ -53,6 +57,18 @@
         }
       } else if (spec.formats !== undefined) {
         console.warn('[blockcharts] interaction.tooltip: "formats" must be an object of field name to format; ignored');
+      }
+      const labels: Record<string, string> = {};
+      if (spec.labels && typeof spec.labels === 'object' && !Array.isArray(spec.labels)) {
+        const given = spec.labels as Record<string, unknown>;
+        for (const field of Object.keys(given)) {
+          if (!live.table.columns[field]) console.warn(`[blockcharts] interaction.tooltip: label of "${field}" ignored: no such field`);
+          else if (typeof given[field] !== 'string')
+            console.warn(`[blockcharts] interaction.tooltip: label of "${field}" must be text; ignored`);
+          else labels[field] = given[field] as string;
+        }
+      } else if (spec.labels !== undefined) {
+        console.warn('[blockcharts] interaction.tooltip: "labels" must be an object of field name to text; ignored');
       }
       const only = Array.isArray(spec.fields) ? (spec.fields as unknown[]).filter((f): f is string => typeof f === 'string') : null;
 
@@ -205,7 +221,7 @@
           const col = live.table.columns[field];
           if (!col || seen.has(field)) return;
           seen.add(field);
-          out.push([field, write(field, row)]);
+          out.push([labels[field] || field, write(field, row)]);
         };
         if (only) {
           only.forEach(add);
@@ -297,8 +313,9 @@
           const grid = doc.createElement('div');
           grid.setAttribute('class', 'bc-tooltip-lines');
           Object.assign(grid.style, { display: 'grid', gridTemplateColumns: 'auto auto', columnGap: '16px', rowGap: '1px' });
+          const headingLabel = heading ? labels[heading] || heading : null;
           for (const [label, value] of rows) {
-            if (label === heading) continue;
+            if (label === headingLabel) continue;
             const name = doc.createElement('span');
             name.textContent = label;
             name.style.opacity = '0.68';
@@ -345,9 +362,16 @@
         tip.style.display = 'block';
         const w = tip.offsetWidth || 0;
         const h = tip.offsetHeight || 0;
-        const left = ax + OFFSET + w > hostBox.width ? ax - OFFSET - w : ax + OFFSET;
+        // a chart wider than its scrolling card reaches past the screen: what counts is the part the reader sees
+        const view = (doc.defaultView || globalThis) as { innerWidth?: number };
+        const seenLeft = Math.max(0, -hostBox.left);
+        const seenRight =
+          typeof view.innerWidth === 'number' && view.innerWidth > 0
+            ? Math.min(hostBox.width, view.innerWidth - hostBox.left)
+            : hostBox.width;
+        const left = ax + OFFSET + w > seenRight ? ax - OFFSET - w : ax + OFFSET;
         const top = ay - OFFSET - h >= 0 ? ay - OFFSET - h : ay + OFFSET;
-        tip.style.left = Math.max(0, left) + 'px';
+        tip.style.left = Math.max(seenLeft, left) + 'px';
         tip.style.top = Math.max(0, top) + 'px';
       }
 

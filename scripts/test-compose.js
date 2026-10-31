@@ -579,6 +579,55 @@ test('compose: a dashboard grid — columns, spans, a heading and a subtitle; ba
   assert.throws(() => compose({ data: DATA, charts: [{ spec: bars(), span: 2 }] }), /from 1 to 1/, 'a span needs a grid to span');
 });
 
+test('compose: sections head groups of cards, and paths still name the entry of the list', () => {
+  const page = compose({
+    data: DATA,
+    layout: { columns: 4 },
+    charts: [
+      { section: 'Sales <all>', note: 'Q3 & Q4' },
+      { title: 'One', spec: bars(), span: 2 },
+      { section: 'Costs' },
+      { title: 'Two', spec: bars() },
+    ],
+  });
+  const h = page.html;
+  assert(h.includes('<div class="bc-group"><h2>Sales &lt;all&gt;</h2><p>Q3 &amp; Q4</p></div>'), 'the heading, escaped');
+  assert(h.indexOf('Sales &lt;all&gt;') < h.indexOf('>One<') && h.indexOf('>One<') < h.indexOf('>Costs<'), 'in the order given');
+  assert(h.includes('<h3>One</h3>') && !h.includes('<h2>One</h2>'), 'card titles go one level down');
+  assert(compose({ data: DATA, charts: [{ title: 'One', spec: bars() }] }).html.includes('<h2>One</h2>'), 'without sections they stay h2');
+  assert.strictEqual([...h.matchAll(/<script type="application\/json" data-bc-chart>/g)].length, 2);
+
+  const broken = bars();
+  broken.marks = [{ type: 'rect', x: 'nope', y: 'revenue' }];
+  assert.throws(
+    () => compose({ data: DATA, charts: [{ section: 'A' }, bars(), broken] }),
+    (e) =>
+      e instanceof ComposeError && e.diagnostics.length > 0 && e.diagnostics.every((d) => d.chart === 2 && d.path.startsWith('charts[2].')),
+    'the path is the place in the list the author wrote',
+  );
+  for (const [charts, re] of [
+    [[{ section: '' }, bars()], /section must be the text/],
+    [[{ section: 5 }, bars()], /section must be the text/],
+    [[{ section: 'A', spec: bars() }], /both "section" and "spec"/],
+    [[{ section: 'A', span: 2 }, bars()], /not "span"/],
+    [[{ section: 'A', note: 1 }, bars()], /note must be text/],
+    [[{ section: 'A' }], /at least one chart/],
+  ])
+    assert.throws(
+      () => compose({ data: DATA, charts }),
+      (e) => e instanceof ComposeError && re.test(e.message),
+      String(re),
+    );
+});
+
+test('compose: minWidth keeps a chart wide inside a card that scrolls; bad values are refused', () => {
+  const h = compose({ data: DATA, charts: [{ spec: bars(), minWidth: 560 }, bars()] }).html;
+  assert(h.includes('<div class="bc-scroll"><div style="min-width:560px"><script type="application/json" data-bc-chart>'));
+  assert.strictEqual([...h.matchAll(/class="bc-scroll"/g)].length, 1, 'only that chart');
+  for (const minWidth of [0, -1, '560px', 1e9, NaN])
+    assert.throws(() => compose({ data: DATA, charts: [{ spec: bars(), minWidth }] }), /minWidth must be a width/, String(minWidth));
+});
+
 test('compose: a page is readable without any CSS from the caller, and the caller can add to it or drop it', () => {
   const styles = (html) => html.match(/<style>[\s\S]*?<\/style>/g) || [];
   const base = compose({ data: DATA, charts: [bars()] });

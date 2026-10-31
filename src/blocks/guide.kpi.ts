@@ -80,7 +80,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'kpi',
-    version: 4,
+    version: 5,
     doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.',
     params: {
       field: { kind: 'field', required: true, doc: 'The numeric field the figure comes from.' },
@@ -101,7 +101,11 @@
         kind: 'enum',
         values: ['percent', 'absolute'],
         default: 'percent',
-        doc: 'The change as a percentage of the comparison, or as a difference written with `format`.',
+        doc: 'The change as a percentage of the comparison, or as a difference written with `format` (or `deltaFormat`).',
+      },
+      deltaFormat: {
+        kind: 'any',
+        doc: 'How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { "maximumFractionDigits": 1, "suffix": " pp" }. A preset or an object of Intl options, as in `format`. With delta "percent" it gets the change as a fraction (0.12 for 12%).',
       },
       better: { kind: 'enum', values: ['up', 'down'], default: 'up', doc: 'Which way is good: "down" for costs, churn, response times.' },
       format: {
@@ -164,12 +168,16 @@
         const flat = diff === 0;
         const good = spec.better === 'down' ? !up : up;
         const color = flat ? FLAT : good ? GOOD : BAD;
+        const given = spec.deltaFormat !== undefined ? BC.formatter(spec.deltaFormat as BC.FormatSpec | string) : null;
+        // a format may write the sign itself (signDisplay)
+        const signed = (s: string) => (up && !/^[+]/.test(s) ? '+' + s : s);
         let text: string;
         if (spec.delta === 'absolute') {
-          text = (up ? '+' : '') + write(diff);
+          text = signed((given || write)(diff));
         } else {
           // a change from zero has no percentage
-          text = base !== 0 ? (up ? '+' : '') + BC.formatter({ style: 'percent', maximumFractionDigits: 1 })(diff / Math.abs(base)) : '';
+          const percent = given || BC.formatter({ style: 'percent', maximumFractionDigits: 1 });
+          text = base !== 0 ? signed(percent(diff / Math.abs(base))) : '';
         }
         const arrow = flat ? '■' : up ? '▲' : '▼';
         const change = `${arrow} ${text}`.trim();

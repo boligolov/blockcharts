@@ -4,26 +4,12 @@
 
   /** The segment a row draws, in px, or null. A channel on a band scale spans (a share of) the band; a continuous channel
    *  with its `2` partner spans between the two; a continuous channel alone is a position the other axis runs across. */
-  function segments(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number) {
-    const n = ctx.table.length;
-    // a constant is a value in the data's terms ({ value: 50000 } is 50 000 on the y scale), not a pixel position
-    const resolve = (name: string, scaleName: string): BC.ChannelData | null => {
-      const v = spec[name];
-      if (v === undefined) return null;
-      if (v && typeof v === 'object' && (v as { field?: unknown }).field === undefined && (v as { value?: unknown }).value !== undefined) {
-        const o = v as { value: unknown; scale?: unknown };
-        const scale = ctx.scales[typeof o.scale === 'string' ? o.scale : scaleName];
-        if (!scale) return null;
-        const px = scale(o.value);
-        const mapped = new Array(n).fill(px);
-        return { raw: new Array(n).fill(o.value), mapped, scale, half: scale.bandwidth !== undefined ? scale.bandwidth / 2 : 0 };
-      }
-      return ctx.channel(spec, name);
-    };
-    const cx = resolve('x', 'x');
-    const cy = resolve('y', 'y');
-    const cx2 = resolve('x2', 'x');
-    const cy2 = resolve('y2', 'y');
+  function segments(spec: BC.MarkSpec, ctx: BC.ChartCtx) {
+    const resolve = (name: string): BC.ChannelData | null => (spec[name] === undefined ? null : ctx.channel(spec, name));
+    const cx = resolve('x');
+    const cy = resolve('y');
+    const cx2 = resolve('x2');
+    const cy2 = resolve('y2');
     const share = typeof spec.thickness === 'number' && spec.thickness > 0 ? Math.min(1, spec.thickness) : 0.7;
     const { x, y, w, h } = ctx.plot;
     const span = (c: BC.ChannelData | null, c2: BC.ChannelData | null, i: number, lo: number, hi: number): [number, number] | null => {
@@ -54,8 +40,8 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rule',
-    version: 3,
-    doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale — keep it inside the scale domain); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.',
+    version: 4,
+    doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.',
     params: {
       stroke: { kind: 'string', doc: 'Any CSS color. Default: the theme text color.' },
       strokeWidth: { kind: 'number', default: 2 },
@@ -73,7 +59,7 @@
     },
     render(spec, ctx, index) {
       if (spec.x === undefined && spec.y === undefined) return [];
-      const seg = segments(spec, ctx, index);
+      const seg = segments(spec, ctx);
       const stroke = typeof spec.stroke === 'string' ? spec.stroke : 'var(--bc-text, #444)';
       const width = typeof spec.strokeWidth === 'number' ? spec.strokeWidth : 2;
       const dash = Array.isArray(spec.dash) ? (spec.dash as number[]) : undefined;

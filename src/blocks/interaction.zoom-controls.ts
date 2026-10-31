@@ -1,10 +1,14 @@
 (function () {
   type Pair = [number, number];
 
+  /** From the edge of the chart past the buttons, with a gap: "100%" alone, and with "−" and "+". */
+  const WIDTH_RESET = 64;
+  const WIDTH_ALL = 120;
+
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'zoom-controls',
-    version: 3,
+    version: 4,
     doc: 'A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).',
     params: {
       scales: {
@@ -25,6 +29,12 @@
         default: 'top-right',
         doc: 'Which corner of the chart the buttons sit in.',
       },
+    },
+    corner(spec, ctx) {
+      const [edge, side] = (typeof spec.corner === 'string' ? spec.corner : 'top-right').split('-') as ['top' | 'bottom', 'left' | 'right'];
+      const scales = Array.isArray(spec.scales) ? (spec.scales as unknown[]) : ['x'];
+      const continuous = scales.some((n) => typeof n === 'string' && !!ctx.scales[n] && !!ctx.scales[n].invert);
+      return { edge, side, width: continuous ? WIDTH_ALL : WIDTH_RESET };
     },
     attach(spec, live) {
       const requested = Array.isArray(spec.scales) ? (spec.scales as unknown[]).filter((n): n is string => typeof n === 'string') : ['x'];

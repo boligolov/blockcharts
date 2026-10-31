@@ -285,7 +285,7 @@ declare namespace BC {
     readonly scale?: Scale;
     /** Column values (or a constant expanded to table length). */
     readonly raw: Column;
-    /** `scale(raw[i])`; for constants, the constant itself. Marks read this. */
+    /** `scale(raw[i])`; a constant goes through the scale of a position, and is itself on a channel without a scale. Marks read this. */
     readonly mapped: ArrayLike<any>;
     /** Half the band of a band scale, 0 for any other: `mapped[i] + half` is the middle of the row's band. */
     readonly half: number;
@@ -321,6 +321,10 @@ declare namespace BC {
     color(index: number): string;
     /** Rough text measurement for layout (no DOM access). */
     measure(text: string, size?: number): { w: number; h: number };
+    /** The px an overlay (InteractionDef.corner) takes from the left and the right end of the chart's top or bottom edge. */
+    edgeTaken(edge: 'top' | 'bottom'): { left: number; right: number };
+    /** How many labels of a band scale fit along `length` px, the way an axis writes them. */
+    bandLabels(scale: string, length: number): number;
   }
 
   /** Available to interactions once the chart is in the DOM. */
@@ -468,6 +472,9 @@ declare namespace BC {
 
   interface InteractionDef extends BlockBase {
     role: 'interaction';
+    /** For an overlay that sits in a corner of the chart: which one, and how far along its edge from the end of the chart.
+     *  Read at layout, so what is drawn along that edge can keep clear of it. */
+    corner?(spec: InteractionSpec, ctx: ChartCtx): { edge: 'top' | 'bottom'; side: 'left' | 'right'; width: number } | null;
     attach(spec: InteractionSpec, live: LiveCtx): void;
   }
 

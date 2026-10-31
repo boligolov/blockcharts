@@ -738,8 +738,8 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   **`transform.funnel`** (bars centered on 0, `rate`, `stepRate`), **`transform.treemap`** (squarified, one
   or two levels, corners in 0..1, labels only for cells big enough). Static transforms: a view-dependent
   one would not take part in domain inference, so the treemap takes the plot's `aspect` as a parameter.
-- **`mark.rule`** — lines at values: a constant `{ "value": 50000 }` is mapped through the scale (in the
-  core a constant channel is a pixel value, so the rule maps it itself); on a band it spans the band
+- **`mark.rule`** — lines at values: a constant `{ "value": 50000 }` is a value on the scale, like a
+  constant on any position (see "What a real dashboard found"); on a band it spans the band
   (`thickness`): the bullet chart's target tick. Repeated rows draw one line. **`mark.rect` `thickness`**
   (v8) makes the slim bar of a bullet chart.
 - **The dashboard look**, as new defaults and options:
@@ -902,6 +902,33 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
   - The composer read encoded data with Node's `Buffer.from`, which takes base64url and skips characters it does not
     know, and with an unlimited gunzip; the page reads it with `atob()` and a 64 MB limit. A page could compose clean
     and show "not valid base64" in the browser. The composer now reads data the browser's way, with the same limit.
+
+## What a real dashboard found
+
+Fifty-two charts of browser statistics, built with the skill as a user would (`dashboards/browsers`), showed five
+gaps no test had. The first was a trap, the others cost workarounds.
+
+- **A constant on a position is a value on its scale, on every mark.** It was a pixel on `mark.text` and every other
+  mark and a value on `mark.rule`, which mapped it itself; the composer let both pass and the labels were simply gone.
+  The core now maps it. Only x and y and the channels sharing them: a color or a radius is the thing itself. The scale
+  takes the constant into its domain, which is what "keep it inside the domain" asked the author to do by hand; past a
+  `domain` given by hand, or a category that is not in the data, it warns.
+- **`deltaFormat` on `guide.kpi`.** A change need not have the unit of the value: a share of 66% that moved by 1.8
+  points read "+1.8%", which is another number.
+- **`{ "section" }` in `charts`.** A heading over the whole grid. A page entry, not a block: the composer owns the page.
+  Diagnostics keep the index the author sees, so `charts[i]` counts the sections too. Under sections card titles are h3.
+- **Narrow screens.** Text categories go at -45° when even two lines do not fit, since a category you cannot read is
+  a bar you cannot name; dates and numbers are a sequence, so every few say enough, and sixty months never turn. The
+  decision is made in `measure`, before the plot is final, so it subtracts the vertical axes (a fixed discount turned
+  labels that wrapped fine), and is kept for `render`, which must stay in the room reserved. Cell labels are not
+  solved by shrinking: `minWidth` on a `charts` entry keeps the chart wide in a scrolling wrapper. The wrapper is around
+  the host, not the host itself, so tooltips still position against a box that does not scroll; they now flip on the
+  part of the host that is on screen.
+- **An overlay says which corner it takes.** The zoom buttons are HTML over the chart, so a top legend ran under them
+  on a phone. `InteractionDef.corner` declares the corner and the width, `ctx.edgeTaken` adds them up, and a row
+  legend packs into what is left. The legend does not know the zoom buttons by name: anything drawn in a corner can say so.
+- **`labels` on the tooltip.** Field names are for the spec. Without this a Russian page needed Russian columns, and a
+  `calculate` copy for every output of a transform.
 
 ## Next steps
 

@@ -40,7 +40,17 @@
   /** The width a row legend (categories or a size key) is packed into. Not the plot's: measure sees the plot before the axes take their room and render
    *  after, so the two would wrap differently and the last line would fall outside the room measured. The chart's width
    *  is the same for both. */
-  const rowRoom = (ctx: BC.ChartCtx) => Math.max(1, ctx.size.w - 2 * PAD);
+  const rowRoom = (ctx: BC.ChartCtx, side: Side) => {
+    const t = taken(ctx, side);
+    return Math.max(1, ctx.size.w - Math.max(PAD, t.left) - Math.max(PAD, t.right));
+  };
+  /** What an overlay in a corner (the zoom buttons) keeps of the edge this row sits on. */
+  const taken = (ctx: BC.ChartCtx, side: Side) => (side === 'top' || side === 'bottom' ? ctx.edgeTaken(side) : { left: 0, right: 0 });
+  /** Where a row of this width starts: under the plot's left edge, unless that runs it into something. */
+  const rowStart = (ctx: BC.ChartCtx, side: Side, x: number, width: number) => {
+    const t = taken(ctx, side);
+    return Math.max(Math.max(PAD, t.left), Math.min(x, ctx.size.w - Math.max(PAD, t.right) - width));
+  };
   /** A row key packed into lines no wider than the plot (a phone), each as tall as its biggest circle. */
   function sizeLines(sizes: Sized[], width: number): { items: Sized[]; h: number }[] {
     const lines: { items: Sized[]; h: number }[] = [];
@@ -110,7 +120,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 7,
+    version: 8,
     doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
       scale: { kind: 'scale', required: true, doc: 'A color, sequential or size scale.' },
@@ -132,7 +142,7 @@
           ? 0
           : column
             ? 2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0) + 2 * PAD
-            : sizeLines(sizes, rowRoom(ctx)).reduce((sum, l) => sum + l.h, 0) + PAD;
+            : sizeLines(sizes, rowRoom(ctx, side)).reduce((sum, l) => sum + l.h, 0) + PAD;
         return out;
       }
       if (scale.kind === 'sequential') {
@@ -146,7 +156,7 @@
         ? 0
         : column
           ? SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD
-          : linesOf(items, rowRoom(ctx)).length * ROW + PAD;
+          : linesOf(items, rowRoom(ctx, side)).length * ROW + PAD;
       return out;
     },
     render(spec, ctx, offset) {
@@ -183,12 +193,14 @@
           }
         } else {
           // left to right, each label right after its own circle; lines wrap on a narrow plot
-          const lines = sizeLines(sizes, rowRoom(ctx));
+          const lines = sizeLines(sizes, rowRoom(ctx, side));
           let top = side === 'top' ? y - offset.top - (lines.reduce((sum, l) => sum + l.h, 0) + PAD) : y + h + offset.bottom + PAD / 2;
           for (const line of lines) {
-            let cx = Math.max(
-              PAD,
-              Math.min(x, ctx.size.w - PAD - line.items.reduce((sum, s, k) => sum + (k ? ITEM_GAP : 0) + sizeWidth(s), 0)),
+            let cx = rowStart(
+              ctx,
+              side,
+              x,
+              line.items.reduce((sum, s, k) => sum + (k ? ITEM_GAP : 0) + sizeWidth(s), 0),
             );
             for (const s of line.items) {
               circle(cx + s.r, top + line.h / 2, s, cx + 2 * s.r + GAP);
@@ -273,10 +285,15 @@
         const left = side === 'right' ? x + w + offset.right : x - offset.left - width;
         items.forEach((it, i) => put(left + PAD, y + 4 + i * ROW, it));
       } else {
-        const lines = linesOf(items, rowRoom(ctx));
+        const lines = linesOf(items, rowRoom(ctx, side));
         const top = side === 'top' ? y - offset.top - (lines.length * ROW + PAD) : y + h + offset.bottom + PAD / 2;
         lines.forEach((line, k) => {
-          let cx = Math.max(PAD, Math.min(x, ctx.size.w - PAD - line.reduce((sum, it, j) => sum + (j ? ITEM_GAP : 0) + itemWidth(it), 0)));
+          let cx = rowStart(
+            ctx,
+            side,
+            x,
+            line.reduce((sum, it, j) => sum + (j ? ITEM_GAP : 0) + itemWidth(it), 0),
+          );
           for (const it of line) {
             put(cx, top + k * ROW, it);
             cx += itemWidth(it) + ITEM_GAP;

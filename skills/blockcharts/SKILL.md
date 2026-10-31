@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.12.1"
+  version: "0.13.1"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -37,9 +37,9 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 - `data`: named datasets. A dataset can also be CSV: `{"csv": "date,region,amount
 2024-01-05,North,1200
 ..."}`, or `{"csvFile": "orders.csv"}` for a file next to `page.json` (it must stay inside that folder). The first CSV row names the columns; numbers and ISO dates are recognized by themselves. Rows (`[{...}]`) or columns (`{"columns": {"a": [..], "b": [..]}}`). Every row has the same keys. Missing value = `null`. Numbers are numbers, not strings. **Dates are ISO strings** (`"2024-03-01"` or `"2024-03-01T12:00:00Z"`), read as UTC. Several charts may use the same dataset.
-- `charts`: each entry is a chart spec, or `{title, note, spec, span}` to get a heading and a sentence around it. Every chart sits in a card.
+- `charts`: each entry is a chart spec, or `{title, note, spec, span}` to get a heading and a sentence around it. Every chart sits in a card. An entry `{"section": "Devices", "note": "One line."}` is a heading over the whole width that starts a group of cards: give a page of more than about ten charts sections.
 - `title` and `subtitle`: the page heading and one line under it (the period, the scope, the unit: "FY2025 · all regions · USD").
-- `layout`: `{"columns": 4}` turns the page into a dashboard grid; each chart takes `span` columns (default: the whole row). Put KPI tiles first, `span: 1` each, then the charts (`span: 2` or `3`). On a phone every card takes the full width. Size a chart for its card: about 280 px wide per column.
+- `layout`: `{"columns": 4}` turns the page into a dashboard grid; each chart takes `span` columns (default: the whole row). Put KPI tiles first, `span: 1` each, then the charts (`span: 2` or `3`). On a phone every card takes the full width. Size a chart for its card: about 280 px wide per column. A chart that cannot be read narrow (a heatmap with a number in every cell) takes `"minWidth": 560` next to `spec`: below that width it stays wide and its card scrolls sideways.
 - Optional: `css` (extra stylesheet text), `compress` (`"auto"` by default: big datasets are stored gzipped when that saves more than the decoder it adds, which you do not have to think about).
 
 ## Chart spec
@@ -58,7 +58,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Scales are declared once and given names.** `x` and `y` are the horizontal and vertical positions by convention. Every other name (`color`, `y2`, ...) is yours to choose.
 
-**Marks read data through channels.** `"x": "region"` means "the field `region`, on the scale named `x`". Spelled out: `{"field": "units", "scale": "y2"}`. A constant: `{"value": 5}`. A channel that names a scale you did not declare is an error. The scale's type must suit the mark (a `line` needs `linear` or `time` on y, and also takes `band` on x for categories in order; a `rect` accepts `band` on either).
+**Marks read data through channels.** `"x": "region"` means "the field `region`, on the scale named `x`". Spelled out: `{"field": "units", "scale": "y2"}`. A constant: `{"value": 5}`. On a position (`x`, `y`, `x2`, `y2`) it is a value on the scale, in the units of the data, on every mark; the scale makes room for it unless you gave a `domain`. A channel that names a scale you did not declare is an error. The scale's type must suit the mark (a `line` needs `linear` or `time` on y, and also takes `band` on x for categories in order; a `rect` accepts `band` on either).
 
 **Guides are attached to scales, not marks**: `{"type":"axis","scale":"y"}`. Two marks on the same scales share one axis. A second axis on the same orientation needs `position` (`"right"`, `"top"`, ...). Guides that take space on a side (axis, legend) stack outward in the order you list them.
 
@@ -88,7 +88,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Legend as a filter**: `{"type": "legend-filter"}` lets the reader click legend items to hide or show categories (double-click isolates one). It works with any chart that has a `color` scale and a legend. Add `"fit": ["y"]` to make the y axis follow the visible categories, but not together with a `zoom` that already has `fit`.
 
-**Tooltip**: `{"type":"tooltip"}`; `"fields": [...]` picks what it shows. On a line chart it shows the nearest point of the nearest series. Values are shown raw (numbers to 6 digits), so add `"formats": {"revenue": {"style":"currency","currency":"USD"}, "share": "percent", "day": "date"}` to write them properly.
+**Tooltip**: `{"type":"tooltip"}`; `"fields": [...]` picks what it shows, `"labels": {"median": "Median, ms"}` names them (formats stay keyed by the field). On a line chart it shows the nearest point of the nearest series. Values are shown raw (numbers to 6 digits), so add `"formats": {"revenue": {"style":"currency","currency":"USD"}, "share": "percent", "day": "date"}` to write them properly.
 
 **Summarize before drawing**: `{"type": "aggregate", "groupby": [...], "measures": [...]}` in `transforms` turns raw rows into one row per group: `"groupby": ["region"]` or `[{"field": "date", "unit": "month", "as": "month"}]` (units: year, quarter, month, week, day, hour); measures `{"op": "sum" | "mean" | "min" | "max" | "median" | "count" | "distinct", "field": "amount", "as": "revenue"}`; `sort` (an output column), `order` (`"asc"`/`"desc"`), `limit`. After it only the group-by fields and measure names exist as columns. A monthly total is `groupby` month + `sum`, drawn on a `time` x scale. See `recipes/report-from-csv.json`.
 
@@ -106,13 +106,13 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Survey / Likert answers**: count with `aggregate` (`groupby` question and answer, `count`), stack with `normalize: true`, put the question on the band scale and format the axis as percent.
 
-**KPI tile**: a chart whose guides include `{"type": "kpi", "field": "revenue", "label": "Revenue", "format": ..., "note": "vs last month"}`. It shows the value of the last row in large type and its change against the row before, green when it rises (`"better": "down"` for costs and churn). `aggregate` (sum, mean, ...) makes one number of all rows; `against` compares with another field (a target); `compare: "first"` shows the change over the period. It takes the room it needs at the top: a line plus an area under it in the same chart become the sparkline (y scale without `zero`, the area with `toBottom: true`). A tile may also be the guide alone, with `"marks": []`. Size it about [280, 150] with small padding. See `recipes/executive-dashboard.json`.
+**KPI tile**: a chart whose guides include `{"type": "kpi", "field": "revenue", "label": "Revenue", "format": ..., "note": "vs last month"}`. It shows the value of the last row in large type and its change against the row before, green when it rises (`"better": "down"` for costs and churn). `aggregate` (sum, mean, ...) makes one number of all rows; `against` compares with another field (a target); `compare: "first"` shows the change over the period. `delta: "absolute"` writes the change as a difference with `format`; when it has another unit than the value (a share in %, its change in points) give it `"deltaFormat": {"maximumFractionDigits": 1, "suffix": " pp"}`. It takes the room it needs at the top: a line plus an area under it in the same chart become the sparkline (y scale without `zero`, the area with `toBottom: true`). A tile may also be the guide alone, with `"marks": []`. Size it about [280, 150] with small padding. See `recipes/executive-dashboard.json`.
 
 **Waterfall (bridge)**: `transform.waterfall` (`field` = the change of each row, `total` = a field that marks subtotal rows) writes `<field>0`, `<field>1`, `step` (increase / decrease / total), `amount` and `top`. Draw a `rect` with y = `<field>1`, y2 = `<field>0`, `color: "step"` on a color scale with `domain` ["increase", "decrease", "total"] and your three colors as `range`; label with a `text` at y = `top`, text = `amount`. See `recipes/waterfall.json`.
 
 **Funnel**: `transform.funnel` (`field` = how many reached the stage, stages in row order) writes `<field>0`, `<field>1` (centered on zero), `rate` and `stepRate`. Draw a `rect` with x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale, and a `text` of `rate` at x = `<field>1`. See `recipes/funnel.json`.
 
-**Targets and thresholds**: `mark.rule` draws lines at values. `{"type": "rule", "y": {"value": 50000}, "dash": [4, 4], "label": "Target"}` is a horizontal line at 50 000 on the y scale (keep it inside the domain). On a band scale it becomes a short tick across the band: a bullet chart is three grey `rect` bands, a slim `rect` of the result (`thickness: 0.36`) and a `rule` of the target. See `recipes/bullet.json`.
+**Targets and thresholds**: `mark.rule` draws lines at values. `{"type": "rule", "y": {"value": 50000}, "dash": [4, 4], "label": "Target"}` is a horizontal line at 50 000 on the y scale. On a band scale it becomes a short tick across the band: a bullet chart is three grey `rect` bands, a slim `rect` of the result (`thickness: 0.36`) and a `rule` of the target. See `recipes/bullet.json`.
 
 **Treemap**: `transform.treemap` (`field` = size, `group` = block, `name` = label, `aspect` = plot width / height) writes x0, x1, y0, y1 in 0..1 and `label`. Draw a `rect` (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with `domain: [0, 1]`, no axes, colored by the group; a `text` of `label` at (x0, y1) with `x2` = x1, `y2` = y0 (so a label that does not fit its cell shrinks or is left out) and `on` set to the color field. See `recipes/treemap.json`.
 
@@ -127,7 +127,8 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 - `{"type": "crosshair"}` with the tooltip on time series: a line that follows the pointer to the nearest date.
 - `{"type": "animate"}`: the chart plays in once (bars grow, lines draw); readers who ask for less motion get none.
 - On a phone a chart is laid out again at the screen width, so keep `size` for the desktop card and do not
-  shrink it for phones.
+  shrink it for phones. Text categories that no longer fit go at an angle by themselves; labels inside cells that
+  do not fit are left out, so give such a chart `minWidth` in its `charts` entry.
 
 ## Recipes
 

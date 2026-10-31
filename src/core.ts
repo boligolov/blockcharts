@@ -307,7 +307,11 @@
     if (v && typeof v === 'object') {
       const o = v as { field?: unknown; scale?: unknown; value?: unknown };
       if (typeof o.field === 'string') return { field: o.field, scale: typeof o.scale === 'string' ? o.scale : dflt };
-      if (o.value !== undefined) return { value: o.value };
+      if (o.value !== undefined) {
+        // a constant on a position is a value on its scale, like any other value there; a color or a size is itself
+        const scale = typeof o.scale === 'string' ? o.scale : dflt === 'x' || dflt === 'y' ? dflt : undefined;
+        return scale !== undefined ? { value: o.value, scale } : { value: o.value };
+      }
     }
     return undefined;
   }
@@ -708,7 +712,10 @@
         const def = markDef(m);
         for (const ch of Object.keys(def.channels)) {
           const ref = channelRef(m, ch, def.channels[ch]);
-          if (ref && ref.scale === name && ref.field !== undefined) sources.push(table.columns[ref.field]);
+          if (!ref || ref.scale !== name) continue;
+          if (ref.field !== undefined) sources.push(table.columns[ref.field]);
+          // a constant has to be on the scale it is a value of (a band takes its categories from the data)
+          else if (s.type !== 'band') sources.push([ref.value] as unknown as BC.Column);
         }
       }
       if (typeof s.field === 'string') sources.push(table.columns[s.field]);
@@ -722,6 +729,23 @@
       if (scaleSpecs[name] && !(name in initial)) view[name] = (keptView as Record<string, unknown[]>)[name];
     }
     applyView();
+
+    // a constant the scale has no place for (a domain given by hand, a category that is not in the data) draws nothing
+    spec.marks.forEach((m, i) => {
+      const def = markDef(m);
+      for (const ch of Object.keys(def.channels)) {
+        const ref = channelRef(m, ch, def.channels[ch]);
+        const scale = ref && ref.field === undefined && ref.scale !== undefined ? scales[ref.scale] : undefined;
+        if (!ref || !scale || (scale.kind !== 'band' && scale.kind !== 'linear' && scale.kind !== 'log' && scale.kind !== 'time')) continue;
+        const px = scale(ref.value) as number;
+        const [a, b] = scale.range() as number[];
+        if (!(px >= Math.min(a, b) - 0.5 && px <= Math.max(a, b) + 0.5))
+          warn(
+            `marks[${i}].${ch}`,
+            `the constant ${String(ref.value)} is outside scale "${ref.scale}", so it is not drawn where you meant`,
+          );
+      }
+    });
 
     // Culling. A column that runs in one direction through a scale (sorted data, the usual shape of a time series)
     // lets the rows inside the visible window be found by binary search instead of visiting every row. The direction
@@ -846,27 +870,42 @@
             : Math.max(2, Math.round(o === 'vertical' ? plot.h / 40 : o === 'horizontal' ? plot.w / 80 : 6));
         // categories are named, not sampled: show every label that fits (measured), thin them only when they do not
         if (approxCount === undefined && scale.kind === 'band' && o) {
-          const labels = scale.domain() as unknown[];
-          let widest = 0;
-          for (const v of labels) {
-            const text = String(v);
-            if (o === 'vertical') {
-              widest = Math.max(widest, ctx.measure(text, 11).h);
-              continue;
-            }
-            // a horizontal axis wraps a long label onto two lines, so what has to fit is about half of it (or its longest word)
-            const full = ctx.measure(text, 11).w;
-            const word = text.split(/\s+/).reduce((m, part) => Math.max(m, ctx.measure(part, 11).w), 0);
-            widest = Math.max(widest, Math.min(full, Math.max(word, full / 2)));
-          }
-          // measure() is deliberately generous (layout must never clip), so real labels are narrower than it says: allow for that
-          const fit = Math.floor((o === 'horizontal' ? plot.w : plot.h) / (o === 'horizontal' ? widest * 0.9 + 4 : widest + 3));
-          count = Math.max(count, Math.min(labels.length, fit));
+          count = Math.max(
+            count,
+            Math.min((scale.domain() as unknown[]).length, ctx.bandLabels(name, o === 'horizontal' ? plot.w : plot.h)),
+          );
         }
         const key = `${name}:${count}`;
         let t = tickCache.get(key);
         if (!t) tickCache.set(key, (t = scale.ticks(count)));
         return t;
+      },
+      edgeTaken(edge) {
+        const taken = { left: 0, right: 0 };
+        for (const s of spec.interaction || []) {
+          const def = registry.get(`interaction.${s.type}`) as BC.InteractionDef | undefined;
+          const c = def && def.corner ? def.corner(s, ctx) : null;
+          if (c && c.edge === edge) taken[c.side] = Math.max(taken[c.side], c.width);
+        }
+        return taken;
+      },
+      bandLabels(name, length) {
+        const scale = scales[name];
+        const horizontal = ctx.orientation(name) === 'horizontal';
+        let widest = 0;
+        for (const v of scale.domain() as unknown[]) {
+          const text = String(v);
+          if (!horizontal) {
+            widest = Math.max(widest, ctx.measure(text, 11).h);
+            continue;
+          }
+          // a horizontal axis wraps a long label onto two lines, so what has to fit is about half of it (or its longest word)
+          const full = ctx.measure(text, 11).w;
+          const word = text.split(/\s+/).reduce((m, part) => Math.max(m, ctx.measure(part, 11).w), 0);
+          widest = Math.max(widest, Math.min(full, Math.max(word, full / 2)));
+        }
+        // measure() is deliberately generous (layout must never clip), so real labels are narrower than it says: allow for that
+        return Math.floor(length / (horizontal ? widest * 0.9 + 4 : widest + 3));
       },
       rows(mark) {
         let r = rowsCache.get(mark);
@@ -917,9 +956,10 @@
           if (cdef && cdef.required) throw new Error(`mark.${mark.type}: channel "${name}" is required`);
           result = { raw: [], mapped: [], half: 0 };
         } else if (ref.field === undefined) {
-          const fill = new Array(table.length);
-          for (let i = 0; i < fill.length; i++) fill[i] = ref.value;
-          result = { raw: fill, mapped: fill, half: 0 };
+          const scale = ref.scale !== undefined ? scales[ref.scale] : undefined;
+          const raw = new Array(table.length).fill(ref.value);
+          const mapped = scale ? new Array(table.length).fill(scale(ref.value)) : raw;
+          result = { raw, mapped, scale, half: scale && scale.bandwidth !== undefined ? scale.bandwidth / 2 : 0 };
         } else {
           const raw = table.columns[ref.field];
           const scale = ref.scale !== undefined ? scales[ref.scale] : undefined;

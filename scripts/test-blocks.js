@@ -2689,6 +2689,50 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(probed.getView().x.length, 4, '"100%" clears a category selection too');
   });
 
+  test('zoom-controls: a row legend keeps clear of the buttons, on the edge they sit on and only there', () => {
+    BC.data(
+      'clear',
+      ['Chrome', 'Safari', 'Edge', 'Firefox', 'Samsung', 'Opera'].flatMap((b, i) => [
+        { t: 1, v: i, b },
+        { t: 2, v: i + 1, b },
+      ]),
+    );
+    const chart = (corner, position, w) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'clear',
+        size: [w, 320],
+        scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'color' } },
+        guides: [{ type: 'legend', scale: 'color', position }],
+        marks: [{ type: 'line', x: 't', y: 'v', color: 'b' }],
+        interaction: corner ? [{ type: 'zoom-controls', corner }] : [],
+      });
+      assert.deepStrictEqual(h.diagnostics, []);
+      const xs = [...svgOf(host).matchAll(/<rect [^>]*class="bc-legend-swatch"[^>]*>/g)].map((m) => {
+        const a = (n) => +new RegExp(' ' + n + '="([\\d.]+)"').exec(m[0])[1];
+        return { x: a('x'), y: a('y') };
+      });
+      const texts = [
+        ...svgOf(host).matchAll(/<text [^>]*x="([\d.]+)" y="([\d.]+)"[^>]*>(Chrome|Safari|Edge|Firefox|Samsung|Opera)<\/text>/g),
+      ];
+      return { xs, right: Math.max(...texts.map((t) => +t[1] + t[3].length * 11 * 0.62)), rows: new Set(xs.map((p) => p.y)).size };
+    };
+    const free = chart(null, 'top', 330);
+    const right = chart('top-right', 'top', 330);
+    assert(free.right > 330 - 108, 'without buttons the row runs into that corner: ' + free.right);
+    assert(right.right <= 330 - 108, 'with them it stops short: ' + right.right);
+    const inFirstRow = (c) => c.xs.filter((p) => p.y === c.xs[0].y).length;
+    assert(inFirstRow(right) < inFirstRow(free), 'fewer items beside the buttons, the rest wrap');
+    assert(
+      chart('top-left', 'top', 330).xs.every((p) => p.x >= 120),
+      'in the left corner the row starts past them',
+    );
+    assert.deepStrictEqual(chart('bottom-right', 'top', 330).xs, free.xs, 'buttons on the other edge change nothing');
+    assert.strictEqual(inFirstRow(chart('bottom-right', 'bottom', 330)), inFirstRow(right), 'at the bottom the same');
+    const left = chart('top-right', 'left', 330);
+    assert.strictEqual(left.rows, 6, 'a column legend is left alone');
+  });
+
   test('zoom-controls: misconfigured scales, no positional scale at all, corner placement, and cleanup', () => {
     logged.warn.length = 0;
     const bad = new FakeNode('div');
