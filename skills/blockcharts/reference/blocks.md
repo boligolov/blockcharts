@@ -372,7 +372,7 @@ Version 9, 2.4 KB. Rectangles. On a band scale a channel spans the band; on a co
 
 ## mark.rule
 
-Version 3, 2.4 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale — keep it inside the scale domain); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.
+Version 4, 2.0 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -421,7 +421,7 @@ Version 5, 3.7 KB. A text label per row at (x, y): value labels on bars, annotat
 
 ## guide.axis
 
-Version 8, 3.2 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines.
+Version 9, 4.5 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -442,7 +442,7 @@ Version 1, 0.4 KB. Grid lines at the ticks of a positional scale (the same ticks
 
 ## guide.kpi
 
-Version 4, 3.1 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
+Version 5, 3.3 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -451,7 +451,8 @@ Version 4, 3.1 KB. A key figure as the heading of a chart: a label, the value in
 | `aggregate` | one of `last`, `first`, `sum`, `mean`, `min`, `max`, `count` | `"last"` | How the rows make one number: the last row (the latest period, in data order), the first, or the sum, mean, min, max or count of the field. |
 | `compare` | one of `previous`, `first`, `none` |  | What the change is measured against: the row before the last ("previous", the default with aggregate "last"), the first row ("first": change over the period), or nothing. "previous" and "first" compare single rows, so they go with aggregate "last" only; a sum or a mean is compared through `against`. |
 | `against` | field |  | Compare with another field instead, aggregated the same way (a target, the same period last year). |
-| `delta` | one of `percent`, `absolute` | `"percent"` | The change as a percentage of the comparison, or as a difference written with `format`. |
+| `delta` | one of `percent`, `absolute` | `"percent"` | The change as a percentage of the comparison, or as a difference written with `format` (or `deltaFormat`). |
+| `deltaFormat` | any |  | How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { "maximumFractionDigits": 1, "suffix": " pp" }. A preset or an object of Intl options, as in `format`. With delta "percent" it gets the change as a fraction (0.12 for 12%). |
 | `better` | one of `up`, `down` | `"up"` | Which way is good: "down" for costs, churn, response times. |
 | `format` | any |  | How to write the value (a preset such as "compact" or "percent", or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }). |
 | `note` | string |  | A few words after the change: "vs last month", "vs target". |
@@ -459,7 +460,7 @@ Version 4, 3.1 KB. A key figure as the heading of a chart: a label, the value in
 
 ## guide.legend
 
-Version 7, 4.3 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
+Version 8, 4.5 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -508,12 +509,13 @@ Version 1, 1.9 KB. Click an item of a categorical legend to hide or show that ca
 
 ## interaction.tooltip
 
-Version 7, 7.8 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.
+Version 8, 8.4 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `fields` | list |  | Fields to show. Default: the fields the mark reads (its channels and group). |
 | `formats` | any |  | How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits). |
+| `labels` | any |  | What to call the fields, per field: { "median": "Median, ms", "rev": "Revenue" }. Fields without one are shown under their own name. |
 | `content` | any |  | Name of a function registered with BC.defineFn (or, in a spec built in JS, the function itself). It gets a TooltipDatum and returns what to show: a string (text), { html }, a DOM Node, an array of those, null/false to hide the tooltip, or undefined for the default content. { html } is set with innerHTML and is not escaped — build it from trusted strings, never straight from a row value the data may contain. |
 | `marker` | one of `auto`, `dot`, `box`, `none` | `"auto"` | "dot" draws a small circle at the point; "box" highlights the whole shape (used automatically for rect marks like bar/heatmap, where a dot would land on an edge); "auto" picks box when the mark reports its bounds and dot otherwise; "none" shows the tooltip text without a marker. |
 
@@ -531,7 +533,7 @@ Version 5, 3.2 KB. Wheel zoom around the cursor, drag to pan, double-click to re
 
 ## interaction.zoom-controls
 
-Version 3, 2.5 KB. A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).
+Version 4, 2.8 KB. A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |

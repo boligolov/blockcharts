@@ -10,7 +10,9 @@
 //   data    { name: rows | { columns } | { csv: "text" } | { csvFile: "file.csv" } }   the data lake. CSV: the first row names the
 //           columns; numbers are recognized per column, "", NA, null... are missing values; optional delimiter, nullValues and
 //           types ({ col: "string" }). csvFile is relative to `baseDir` and must stay inside it.
-//   charts  [ spec | { spec, title?, note?, noteHtml?, span? } ]   each chart sits in a card; span = how many grid columns it takes
+//   charts  [ spec | { spec, title?, note?, noteHtml?, span?, minWidth? } | { section, note? } ]   each chart sits in a card; span =
+//           how many grid columns it takes; minWidth = the px below which the chart keeps its width and its card scrolls sideways.
+//           { section } is a heading over the whole width that starts a group of cards
 //   title / subtitle  the page heading (and the <title>) and one line under it
 //   layout  { columns: 1..12 } a dashboard grid: charts fill it left to right, a card takes `span` columns (default: the full row);
 //           on a narrow screen every card takes the full width
@@ -74,10 +76,12 @@ const DEFAULT_CSS = [
   '.bc-header{margin:0 0 20px}.bc-header h1{font-size:24px;line-height:1.2;letter-spacing:-.02em;margin:0 0 4px}.bc-header p{margin:0;color:var(--muted)}',
   '.bc-grid{display:grid;grid-template-columns:repeat(var(--bc-cols,1),minmax(0,1fr));gap:16px}',
   '.bc-section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 14px;min-width:0;box-shadow:0 1px 2px rgba(16,24,40,.04)}',
-  '.bc-section h2{font-size:14px;font-weight:600;margin:0 0 2px}.bc-section p{margin:0 0 10px;color:var(--muted);font-size:13px}',
+  '.bc-section h2,.bc-section h3{font-size:14px;font-weight:600;margin:0 0 2px}.bc-section p{margin:0 0 10px;color:var(--muted);font-size:13px}',
+  '.bc-group{grid-column:1/-1;margin:16px 0 -4px}.bc-group:first-child{margin-top:0}.bc-group h2{font-size:18px;line-height:1.3;letter-spacing:-.01em;font-weight:650;margin:0}.bc-group p{margin:2px 0 0;color:var(--muted)}',
+  '.bc-scroll{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}',
   '.bc-chart{user-select:none}.bc-chart text{font-variant-numeric:tabular-nums}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}',
   '@media (max-width:720px){.bc-grid{grid-template-columns:1fr}.bc-grid>.bc-section{grid-column:auto!important}.bc-page{padding:20px 12px 40px}}',
-  '@media print{body{background:#fff}.bc-page,.bc-page.bc-wide{max-width:none;padding:0}.bc-section{box-shadow:none;break-inside:avoid}}',
+  '@media print{body{background:#fff}.bc-page,.bc-page.bc-wide{max-width:none;padding:0}.bc-section{box-shadow:none;break-inside:avoid}.bc-group{break-after:avoid}.bc-scroll{overflow:visible}}',
 ].join('\n');
 
 const COMPRESS_MIN_CHARS = 2048;
@@ -276,8 +280,19 @@ function compose(opts) {
   if (!Number.isInteger(columns) || columns < 1 || columns > 12)
     throw new ComposeError('layout.columns must be a whole number from 1 to 12');
   const ids = new Map();
-  const charts = options.charts.map((c, i) => {
-    const entry = c && c.spec ? c : { spec: c };
+  const entries = options.charts.map((c, i) => {
+    if (c && c.section !== undefined) {
+      if (typeof c.section !== 'string' || !c.section.trim())
+        throw new ComposeError(`charts[${i}].section must be the text of the heading`);
+      if (c.spec !== undefined) throw new ComposeError(`charts[${i}] has both "section" and "spec": a section is a heading of its own`);
+      if (c.note !== undefined && typeof c.note !== 'string') throw new ComposeError(`charts[${i}].note must be text`);
+      const stray = Object.keys(c).filter((k) => k !== 'section' && k !== 'note');
+      if (stray.length) throw new ComposeError(`charts[${i}]: a section takes "section" and "note", not "${stray.join('", "')}"`);
+      return c;
+    }
+    const entry = c && c.spec ? { ...c, index: i } : { spec: c, index: i };
+    if (entry.minWidth !== undefined && (!Number.isFinite(entry.minWidth) || entry.minWidth <= 0 || entry.minWidth > 4000))
+      throw new ComposeError(`charts[${i}].minWidth must be a width in px, from 1 to 4000`);
     if (entry.span !== undefined && (!Number.isInteger(entry.span) || entry.span < 1 || entry.span > columns)) {
       throw new ComposeError(`charts[${i}].span must be a whole number from 1 to ${columns} (layout.columns)`);
     }
@@ -296,6 +311,8 @@ function compose(opts) {
     }
     return entry;
   });
+  const charts = entries.filter((e) => e.section === undefined);
+  if (!charts.length) throw new ComposeError('charts must have at least one chart, not only sections');
 
   // a sandbox with only the core: it answers BC.needs and, once the blocks are in, BC.validate
   // what the core and blocks say to the console while charts are tried out is collected, not lost
@@ -337,7 +354,7 @@ function compose(opts) {
     }
   }
   const diagnostics = [];
-  charts.forEach(({ spec }, i) => {
+  charts.forEach(({ spec, index: i }) => {
     for (const d of plain(Array.from(BC.validate(spec))))
       diagnostics.push({ ...d, chart: i, path: `charts[${i}].${d.path}`.replace(/\.$/, '') });
   });
@@ -349,7 +366,7 @@ function compose(opts) {
     sandbox.setTimeout = () => 0;
     sandbox.Path2D = FakePath2D;
     const known = new Set(diagnostics.map((d) => `${d.chart}|${d.level}|${d.path}|${d.message}`));
-    charts.forEach(({ spec }, i) => {
+    charts.forEach(({ spec, index: i }) => {
       // a chart that already failed validation has nothing more to say
       if (diagnostics.some((d) => d.chart === i && d.level === 'error')) return;
       const mark = captured.length;
@@ -431,11 +448,16 @@ function compose(opts) {
   const bytes = scripts.reduce((n, s) => n + Buffer.byteLength(s), 0);
 
   // every chart is a card in the grid; a card spans `span` columns (the whole row by default)
-  const section = ({ spec, title, note, noteHtml, span }) => {
-    const tag = `<script type="application/json" data-bc-chart>${jsonForScript(spec)}</script>`;
+  // under section headings a card's title is one level down
+  const titleTag = entries.length > charts.length ? 'h3' : 'h2';
+  const section = ({ spec, title, note, noteHtml, span, minWidth }) => {
+    const script = `<script type="application/json" data-bc-chart>${jsonForScript(spec)}</script>`;
+    const tag = minWidth ? `<div class="bc-scroll"><div style="min-width:${minWidth}px">${script}</div></div>` : script;
     const width = columns > 1 ? ` style="grid-column:span ${span || columns}"` : '';
-    return `<section class="bc-section"${width}>${title ? `<h2>${escapeText(title)}</h2>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
+    return `<section class="bc-section"${width}>${title ? `<${titleTag}>${escapeText(title)}</${titleTag}>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
   };
+  const heading = ({ section: text, note }) =>
+    `<div class="bc-group"><h2>${escapeText(text)}</h2>${note ? `<p>${escapeText(note)}</p>` : ''}</div>`;
   const header =
     options.title || options.subtitle
       ? `<header class="bc-header">${options.title ? `<h1>${escapeText(options.title)}</h1>` : ''}${options.subtitle ? `<p>${escapeText(options.subtitle)}</p>` : ''}</header>`
@@ -451,7 +473,7 @@ function compose(opts) {
     header,
     options.before || '',
     `<div class="bc-grid"${columns > 1 ? ` style="--bc-cols:${columns}"` : ''}>`,
-    charts.map(section).join('\n'),
+    entries.map((e) => (e.section === undefined ? section(e) : heading(e))).join('\n'),
     '</div></main>',
     scripts.map(script).join('\n'),
     `<script type="application/json" id="bc-data">${jsonForScript(stored)}</script>`,

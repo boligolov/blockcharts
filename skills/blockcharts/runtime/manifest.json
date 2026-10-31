@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 27724,
+    "bytes": 28677,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 22450,
+        "bytes": 23404,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 19440,
+        "bytes": 20394,
         "off": [
           "CHECKS",
           "DECODE"
@@ -1158,8 +1158,8 @@
     },
     "mark.rule": {
       "file": "blocks/mark.rule.js",
-      "bytes": 2421,
-      "version": 3,
+      "bytes": 2074,
+      "version": 4,
       "requires": [],
       "closure": [
         "mark.rule"
@@ -1233,7 +1233,7 @@
           "doc": "Line color per row, from a color scale."
         }
       },
-      "doc": "Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ \"value\": 50000 }` for a constant, in the units of the y scale — keep it inside the scale domain); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it."
+      "doc": "Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ \"value\": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it."
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
@@ -1368,8 +1368,8 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 3313,
-      "version": 8,
+      "bytes": 4570,
+      "version": 9,
       "requires": [],
       "closure": [
         "guide.axis"
@@ -1412,7 +1412,7 @@
           "doc": "Small tick marks at the labels."
         }
       },
-      "doc": "Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines."
+      "doc": "Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few."
     },
     "guide.grid": {
       "file": "blocks/guide.grid.js",
@@ -1432,8 +1432,8 @@
     },
     "guide.kpi": {
       "file": "blocks/guide.kpi.js",
-      "bytes": 3223,
-      "version": 4,
+      "bytes": 3348,
+      "version": 5,
       "requires": [],
       "closure": [
         "guide.kpi"
@@ -1482,7 +1482,11 @@
             "absolute"
           ],
           "default": "percent",
-          "doc": "The change as a percentage of the comparison, or as a difference written with `format`."
+          "doc": "The change as a percentage of the comparison, or as a difference written with `format` (or `deltaFormat`)."
+        },
+        "deltaFormat": {
+          "kind": "any",
+          "doc": "How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { \"maximumFractionDigits\": 1, \"suffix\": \" pp\" }. A preset or an object of Intl options, as in `format`. With delta \"percent\" it gets the change as a fraction (0.12 for 12%)."
         },
         "better": {
           "kind": "enum",
@@ -1511,8 +1515,8 @@
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",
-      "bytes": 4374,
-      "version": 7,
+      "bytes": 4568,
+      "version": 8,
       "requires": [],
       "closure": [
         "guide.legend"
@@ -1662,8 +1666,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 7968,
-      "version": 7,
+      "bytes": 8652,
+      "version": 8,
       "requires": [],
       "closure": [
         "interaction.tooltip"
@@ -1676,6 +1680,10 @@
         "formats": {
           "kind": "any",
           "doc": "How to write values, per field: { \"revenue\": { \"style\": \"currency\", \"currency\": \"USD\" }, \"share\": \"percent\", \"date\": \"date\" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits)."
+        },
+        "labels": {
+          "kind": "any",
+          "doc": "What to call the fields, per field: { \"median\": \"Median, ms\", \"rev\": \"Revenue\" }. Fields without one are shown under their own name."
         },
         "content": {
           "kind": "any",
@@ -1739,8 +1747,8 @@
     },
     "interaction.zoom-controls": {
       "file": "blocks/interaction.zoom-controls.js",
-      "bytes": 2595,
-      "version": 3,
+      "bytes": 2824,
+      "version": 4,
       "requires": [],
       "closure": [
         "interaction.zoom-controls"
