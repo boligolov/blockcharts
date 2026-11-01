@@ -17,7 +17,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 8,
+    version: 9,
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.',
     params: {
       fields: { kind: 'list', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
@@ -58,6 +58,7 @@
       } else if (spec.formats !== undefined) {
         console.warn('[blockcharts] interaction.tooltip: "formats" must be an object of field name to format; ignored');
       }
+      const writeDate = BC.formatter('date');
       const labels: Record<string, string> = {};
       if (spec.labels && typeof spec.labels === 'object' && !Array.isArray(spec.labels)) {
         const given = spec.labels as Record<string, unknown>;
@@ -305,8 +306,7 @@
               }
               return false;
             })();
-            t.textContent =
-              !formats[heading] && isTime ? BC.formatter('date')(col[pick.row]) || write(heading, pick.row) : write(heading, pick.row);
+            t.textContent = !formats[heading] && isTime ? writeDate(col[pick.row]) || write(heading, pick.row) : write(heading, pick.row);
             head.appendChild(t);
             tip.appendChild(head);
           }

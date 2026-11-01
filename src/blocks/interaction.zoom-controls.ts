@@ -8,7 +8,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'zoom-controls',
-    version: 4,
+    version: 5,
     doc: 'A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).',
     params: {
       scales: {
@@ -23,6 +23,10 @@
         doc: 'How much "−"/"+" grow or shrink a continuous scale\'s span, as a factor of the current span (0.5 = double/halve).',
       },
       maxZoom: { kind: 'number', default: 50, doc: 'How far "+" can go, as a multiple of the full domain.' },
+      titles: {
+        kind: 'any',
+        doc: 'What the buttons say to a mouse and to a screen reader, in the language of the page: { "reset": "...", "out": "...", "in": "..." }. Default English.',
+      },
       corner: {
         kind: 'enum',
         values: ['top-right', 'top-left', 'bottom-right', 'bottom-left'],
@@ -140,10 +144,12 @@
         return b;
       };
 
-      button('100%', 'Reset zoom to the full range', reset);
+      const given = (spec.titles && typeof spec.titles === 'object' ? spec.titles : {}) as Record<string, unknown>;
+      const say = (name: string, fallback: string) => (typeof given[name] === 'string' ? (given[name] as string) : fallback);
+      button('100%', say('reset', 'Reset zoom to the full range'), reset);
       if (zoomable.length) {
-        button('−', 'Zoom out', () => zoomBy(1 / step));
-        button('+', 'Zoom in', () => zoomBy(step));
+        button('−', say('out', 'Zoom out'), () => zoomBy(1 / step));
+        button('+', say('in', 'Zoom in'), () => zoomBy(step));
       }
 
       // The bar is positioned against the host, like the tooltip and the brush overlay.

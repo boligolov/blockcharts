@@ -80,7 +80,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'kpi',
-    version: 5,
+    version: 6,
     doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.',
     params: {
       field: { kind: 'field', required: true, doc: 'The numeric field the figure comes from.' },
@@ -105,7 +105,12 @@
       },
       deltaFormat: {
         kind: 'any',
-        doc: 'How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { "maximumFractionDigits": 1, "suffix": " pp" }. A preset or an object of Intl options, as in `format`. With delta "percent" it gets the change as a fraction (0.12 for 12%).',
+        doc: 'How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { "maximumFractionDigits": 1, "suffix": " pp" }. A preset or an object of Intl options, as in `format`. With delta "percent" it gets the change as a fraction (0.12 for 12%). It writes the difference in the units of the field, so a share kept as 0..1 needs `deltaScale`.',
+      },
+      deltaScale: {
+        kind: 'number',
+        default: 1,
+        doc: 'What an absolute change is multiplied by before it is written: 100 for a share kept as 0..1 that moved by 0.093 and is to read "+9.3 pp".',
       },
       better: { kind: 'enum', values: ['up', 'down'], default: 'up', doc: 'Which way is good: "down" for costs, churn, response times.' },
       format: {
@@ -173,7 +178,7 @@
         const signed = (s: string) => (up && !/^[+]/.test(s) ? '+' + s : s);
         let text: string;
         if (spec.delta === 'absolute') {
-          text = signed((given || write)(diff));
+          text = signed((given || write)(diff * (typeof spec.deltaScale === 'number' && isFinite(spec.deltaScale) ? spec.deltaScale : 1)));
         } else {
           // a change from zero has no percentage
           const percent = given || BC.formatter({ style: 'percent', maximumFractionDigits: 1 });

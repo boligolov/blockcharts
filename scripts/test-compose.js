@@ -620,6 +620,33 @@ test('compose: sections head groups of cards, and paths still name the entry of 
     );
 });
 
+test('compose: lang sets the page, a section and a chart, and the language of their numbers', () => {
+  const h = compose({
+    data: DATA,
+    lang: 'ko',
+    charts: [
+      bars(),
+      { section: '石油', lang: 'zh-CN' },
+      bars(),
+      { spec: bars(), lang: 'ja' },
+      { spec: { ...bars(), locale: 'de' } },
+      { section: 'B' },
+      bars(),
+    ],
+  }).html;
+  assert(h.includes('<html lang="ko">'));
+  assert(h.includes('<div class="bc-group" lang="zh-CN">'));
+  assert.strictEqual([...h.matchAll(/<section class="bc-section" lang="zh-CN"/g)].length, 2, 'a section lasts until the next');
+  assert.strictEqual([...h.matchAll(/<section class="bc-section" lang="ja"/g)].length, 1);
+  const locales = [...h.matchAll(/data-bc-chart>(.*?)<\/script>/g)].map((m) => JSON.parse(m[1]).locale);
+  assert.deepStrictEqual(locales, ['ko', 'zh-CN', 'ja', 'de', 'ko'], 'a locale the spec sets itself stays');
+  assert(compose({ data: DATA, charts: [bars()] }).html.includes('<html lang="en">'), 'without one, as before');
+  for (const lang of ['"><script>', 'k', 5, '']) {
+    assert.throws(() => compose({ data: DATA, lang, charts: [bars()] }), /language tag/, String(lang));
+    assert.throws(() => compose({ data: DATA, charts: [{ section: 'a', lang }, bars()] }), /language tag/, String(lang));
+  }
+});
+
 test('compose: minWidth keeps a chart wide inside a card that scrolls; bad values are refused', () => {
   const h = compose({ data: DATA, charts: [{ spec: bars(), minWidth: 560 }, bars()] }).html;
   assert(h.includes('<div class="bc-scroll"><div style="min-width:560px"><script type="application/json" data-bc-chart>'));

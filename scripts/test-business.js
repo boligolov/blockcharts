@@ -858,6 +858,300 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.strictEqual(down.delta.text, '▼ -2 pp', 'a fall keeps its own minus');
   });
 
+  // ───────────────────────── text in Chinese, Japanese and Korean ─────────────────────────
+
+  test('Chinese, Japanese and Korean are measured a full em wide, so space is reserved for them', () => {
+    const left = (k) => {
+      BC.data('cjk', [{ k, v: 1 }]);
+      const { svg } = draw({
+        data: 'cjk',
+        size: [560, 200],
+        scales: { y: { type: 'band' }, x: { type: 'linear', zero: true } },
+        guides: [{ type: 'axis', scale: 'y' }],
+        marks: [{ type: 'rect', x: 'v', y: 'k' }],
+      });
+      return +/<rect [^>]*x="([\d.]+)"/.exec(layer(svg, 'marks'))[1];
+    };
+    assert(left('액화석유가스액화석유가스') >= 12 * 11, 'twelve characters at 11 px: ' + left('액화석유가스액화석유가스'));
+    assert(left('LLLLLLLLLLLL') < 12 * 11, 'Latin stays narrower');
+    for (const k of ['石油', '石油製品', 'ガソリン', '휘발유', 'ＡＢ']) assert(left(k) >= k.length * 11, k);
+  });
+
+  test('a band label without spaces breaks between characters; if that is not enough it goes at an angle', () => {
+    const cats = ['直営サービスステーション', '煤油与航空煤油', '運輸物流事業者向け', '公共発電事業者向け'];
+    BC.data(
+      'nospace',
+      cats.map((k, i) => ({ k, v: i + 1 })),
+    );
+    const spec = (w) => ({
+      data: 'nospace',
+      size: [w, 300],
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      guides: [{ type: 'axis', scale: 'x' }],
+      marks: [{ type: 'rect', x: 'k', y: 'v' }],
+    });
+    const axis = (w) => [...layer(draw(spec(w)).svg, 'axes').matchAll(/<text ([^>]*)class="bc-axis-label"[^>]*>([^<]*)<\/text>/g)];
+    const two = axis(460);
+    assert(
+      two.every((m) => !/rotate/.test(m[1])),
+      'upright',
+    );
+    assert.strictEqual(two.map((m) => m[2]).join(''), cats.join(''), 'all of it, on two lines: ' + two.map((m) => m[2]));
+    assert(two.length > cats.length, 'broken');
+    const narrow = axis(200);
+    assert.strictEqual(narrow.length, cats.length, 'one label each');
+    assert(
+      narrow.every((m) => /rotate/.test(m[1])),
+      'at an angle',
+    );
+  });
+
+  test('band axis: labels too close for 45° stand upright, and stay apart', () => {
+    BC.data(
+      'fifteen',
+      Array.from({ length: 15 }, (_, i) => ({ k: '사우디아라비아' + i, v: i + 1 })),
+    );
+    const { svg } = draw({
+      data: 'fifteen',
+      size: [300, 300],
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      guides: [{ type: 'axis', scale: 'x' }],
+      marks: [{ type: 'rect', x: 'k', y: 'v' }],
+    });
+    const labels = [...layer(svg, 'axes').matchAll(/<text ([^>]*)class="bc-axis-label"/g)];
+    assert.strictEqual(labels.length, 15);
+    assert(
+      labels.every((m) => /rotate\(-90/.test(m[1])),
+      labels[0][1],
+    );
+  });
+
+  test('band axis: room taken by a legend counts, so categories are not dropped on a phone', () => {
+    const cats = ['Chrome', 'Safari', 'Firefox', 'Samsung', 'Opera', 'Everything'];
+    BC.data(
+      'heatlike',
+      cats.map((k, i) => ({ k, r: 'a', v: i })),
+    );
+    const { svg } = draw({
+      data: 'heatlike',
+      // the labels would fit the plot as it is before the legend takes its room, and do not fit what is left
+      size: [440, 200],
+      scales: { x: { type: 'band' }, y: { type: 'band' }, color: { type: 'sequential' } },
+      guides: [
+        { type: 'axis', scale: 'x' },
+        { type: 'axis', scale: 'y' },
+        { type: 'legend', scale: 'color' },
+      ],
+      marks: [{ type: 'rect', x: 'k', y: 'r', color: 'v' }],
+    });
+    const labels = [...layer(svg, 'axes').matchAll(/class="bc-axis-label"[^>]*>([^<]*)</g)].map((m) => m[1]);
+    for (const c of cats) assert(labels.includes(c), c + ' is on the axis: ' + labels);
+  });
+
+  test('date ticks: a label is never repeated, and labels wider than the space between them are thinned', () => {
+    BC.data(
+      'years',
+      Array.from({ length: 120 }, (_, i) => ({ d: new Date(Date.UTC(2015, i, 1)).toISOString().slice(0, 10), v: i })),
+    );
+    const axis = (w, format, view) => {
+      const { svg } = draw({
+        data: 'years',
+        size: [w, 200],
+        view,
+        scales: { x: { type: 'time' }, y: { type: 'linear' } },
+        guides: [{ type: 'axis', scale: 'x', format }],
+        marks: [{ type: 'line', x: 'd', y: 'v' }],
+      });
+      return [...layer(svg, 'axes').matchAll(/<text [^>]*x="([\d.]+)"[^>]*class="bc-axis-label"[^>]*>([^<]*)</g)].map((m) => ({
+        x: +m[1],
+        t: m[2],
+      }));
+    };
+    const zoomed = axis(800, { year: 'numeric', locale: 'ja-JP' }, { x: ['2020-01-01', '2021-06-01'] });
+    assert.strictEqual(new Set(zoomed.map((l) => l.t)).size, zoomed.length, 'no year twice: ' + zoomed.map((l) => l.t));
+    const crowded = axis(300, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', locale: 'ko-KR' });
+    assert(crowded.length >= 1, 'at least one stays');
+    for (let i = 1; i < crowded.length; i++) {
+      const room = crowded[i].x - crowded[i - 1].x;
+      assert(room >= crowded[i].t.length * 9, 'labels stay apart: ' + JSON.stringify(crowded));
+    }
+  });
+
+  test('a vertical axis title in these scripts stands upright, one character under the other; mixed text turns as before', () => {
+    const axisTitle = (title) => {
+      const { svg } = draw(monthly({ guides: [{ type: 'axis', scale: 'y', title }] }));
+      return [...layer(svg, 'axes').matchAll(/<text ([^>]*)class="bc-axis-title"[^>]*>([^<]*)</g)];
+    };
+    const upright = axisTitle('販売数量');
+    assert.deepStrictEqual(
+      upright.map((m) => m[2]),
+      ['販', '売', '数', '量'],
+    );
+    assert(upright.every((m) => !/rotate/.test(m[1])));
+    const ys = upright.map((m) => +/ y="([\d.]+)"/.exec(m[1])[1]);
+    assert(
+      ys.every((y, i) => !i || y > ys[i - 1]),
+      'downwards',
+    );
+    const mixed = axisTitle('Volume, 千kL');
+    assert.strictEqual(mixed.length, 1);
+    assert(/rotate/.test(mixed[0][1]));
+  });
+
+  test('mark.rule: x to x2 on a band runs along the middle of the band, straight', () => {
+    BC.data('range', [{ k: 'a', lo: 1, hi: 3 }]);
+    const { svg } = draw({
+      data: 'range',
+      size: [400, 200],
+      scales: { y: { type: 'band' }, x: { type: 'linear', domain: [0, 4] } },
+      guides: [],
+      marks: [{ type: 'rule', x: 'lo', x2: 'hi', y: 'k' }],
+    });
+    const m = /^M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)$/
+      .exec(paths(layer(svg, 'marks'))[0].d)
+      .slice(1)
+      .map(Number);
+    assert.strictEqual(m[1], m[3], 'level: ' + m);
+    assert(near(m[1], 100, 25), 'in the middle of the band: ' + m);
+  });
+
+  test('mark.rect: with no band, bars stand at their positions, a step wide, and do not reach back to 1970', () => {
+    const { svg, h } = draw({
+      ...monthly({}),
+      size: [640, 300],
+      scales: { x: { type: 'time' }, y: { type: 'linear', zero: true } },
+      guides: [],
+      marks: [{ type: 'rect', x: 'm', y: 'rev' }],
+    });
+    assert.deepStrictEqual(h.diagnostics, []);
+    const rects = [...layer(svg, 'marks').matchAll(/<rect [^>]*>/g)].map((m) => ({
+      x: +/ x="([\d.-]+)"/.exec(m[0])[1],
+      w: +/ width="([\d.-]+)"/.exec(m[0])[1],
+    }));
+    assert(rects.length >= 3);
+    assert(
+      rects.every((r) => r.w > 20 && r.w < 300),
+      'as wide as a step: ' + JSON.stringify(rects),
+    );
+    for (let i = 1; i < rects.length; i++)
+      assert(rects[i].x >= rects[i - 1].x + rects[i - 1].w - 1e-6, 'side by side, not over each other');
+
+    BC.data('lone', [{ m: '2024-01-01', v: 1 }]);
+    const lone = draw({
+      data: 'lone',
+      size: [640, 300],
+      scales: { x: { type: 'time' }, y: { type: 'linear', zero: true } },
+      guides: [],
+      marks: [{ type: 'rect', x: 'm', y: 'v' }],
+    });
+    assert.strictEqual(/ width="([\d.]+)"/.exec(layer(lone.svg, 'marks'))[1] > 0, true, 'one bar still shows');
+  });
+
+  test('mark.text: a label with x2 or y2 and no side to start from sits in the middle of the box', () => {
+    BC.data('box', [{ a: 0, b: 10, y: 5, k: 'cell' }]);
+    const drawn = (extra) => {
+      const { svg } = draw({
+        data: 'box',
+        size: [400, 200],
+        padding: 0,
+        scales: { x: { type: 'linear', domain: [0, 10], nice: false }, y: { type: 'linear', domain: [0, 10], nice: false } },
+        guides: [],
+        marks: [{ type: 'text', text: 'k', ...extra }],
+      });
+      return /<text [^>]*x="([\d.]+)" y="([\d.]+)"/.exec(layer(svg, 'marks'));
+    };
+    const m = drawn({ x: 'y', y: 'a', y2: 'b' });
+    assert(m, 'it is drawn');
+    assert(near(+m[2], 100, 1), 'halfway up: ' + m[2]);
+    assert(drawn({ x: 'a', x2: 'b', y: 'y' }), 'the same across');
+  });
+
+  test('a line under a crosshair gives its value at any height; without one the pointer has to be near', async () => {
+    const hoverFar = async (interaction) => {
+      const host = new FakeNode('div');
+      BC.chart(host, monthly({ interaction }));
+      const d = paths(layer(svgOf(host), 'marks'))[0].d;
+      const [x, y] = /L([\d.]+) ([\d.]+)/.exec(d).slice(1).map(Number);
+      await hover(host, x, y > 200 ? y - 120 : y + 120);
+      return tipOf(host).style.display;
+    };
+    assert.strictEqual(await hoverFar([{ type: 'tooltip' }, { type: 'crosshair' }]), 'block');
+    assert.notStrictEqual(await hoverFar([{ type: 'tooltip' }]), 'block');
+  });
+
+  test('a chart speaks its locale: presets, quarters, tooltip date headings, and a format that names its own wins', () => {
+    const write = (locale, format, v) => {
+      let out;
+      const name = 'probe_' + Math.random().toString(36).slice(2);
+      BC.define({ role: 'guide', type: name, version: 1, doc: 'test', params: {}, render: () => ((out = BC.formatter(format)(v)), {}) });
+      draw(monthly({ locale, guides: [{ type: name }] }));
+      return out;
+    };
+    assert.strictEqual(write(undefined, 'quarter', '2024-04-01'), 'Q2 2024');
+    assert.strictEqual(write('ko', 'quarter', '2024-04-01'), '2024년 2분기');
+    assert.strictEqual(write('zh-CN', 'quarter', '2024-04-01'), '2024年第2季度');
+    assert.strictEqual(write('ja', 'quarter', '2024-04-01'), '2024年第2四半期');
+    assert(/年/.test(write('ja', 'month', '2024-04-01')), 'a preset follows the chart');
+    assert.strictEqual(write('de', 'integer', 1234567), '1.234.567');
+    assert.strictEqual(write('de', { maximumFractionDigits: 0, locale: 'en-US' }, 1234567), '1,234,567');
+    assert.strictEqual(write(undefined, 'integer', 1234567), '1,234,567', 'the next chart is not left in the last language');
+    assert.throws(() => BC.formatter({ preset: 'quarter', locale: 'ko-KR' }), /"preset" is not known/);
+    assert.throws(() => BC.formatter({ maxFractionDigits: 1 }), /"maxFractionDigits" is not known/);
+  });
+
+  test('guide.kpi: deltaScale turns a share kept as 0..1 into points', () => {
+    BC.data('share', [{ s: 0.2 }, { s: 0.293 }]);
+    const k = kpiTexts(
+      draw({
+        data: 'share',
+        marks: [],
+        guides: [
+          {
+            type: 'kpi',
+            field: 's',
+            format: 'percent',
+            delta: 'absolute',
+            deltaScale: 100,
+            deltaFormat: { maximumFractionDigits: 1, suffix: ' pp' },
+          },
+        ],
+      }).svg,
+    );
+    assert.strictEqual(k.delta.text, '▲ +9.3 pp');
+  });
+
+  test('scale.linear: zero is a floor that padding does not cross, and a twelve-color palette before it repeats', () => {
+    const s = BC.get('scale.linear').create(
+      { type: 'linear', zero: true, padding: 0.1, nice: false },
+      { name: 'y', sources: [[10, 100]], range: [0, 100] },
+    );
+    assert.deepStrictEqual(s.domain()[0], 0);
+    assert(s.domain()[1] > 100);
+    BC.data(
+      'many',
+      Array.from({ length: 13 }, (_, i) => ({ k: 'c' + i, v: 1 })),
+    );
+    const { svg } = draw({
+      data: 'many',
+      size: [640, 300],
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
+      guides: [],
+      marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
+    });
+    const colors = [...layer(svg, 'marks').matchAll(/var\(--bc-c(\d+)/g)].map((m) => m[1]);
+    assert.strictEqual(new Set(colors).size, 12);
+  });
+
+  test('zoom-controls: titles say what the page wants', () => {
+    const host = new FakeNode('div');
+    BC.chart(host, monthly({ interaction: [{ type: 'zoom-controls', titles: { reset: '元に戻す', in: '拡大', out: '縮小' } }] }));
+    const bar = host.children.find((c) => c.attrs.class === 'bc-zoom-controls');
+    assert.deepStrictEqual(
+      bar.children.map((b) => b.title),
+      ['元に戻す', '縮小', '拡大'],
+    );
+  });
+
   // ───────────────────────── the card tooltip ─────────────────────────
 
   const tipOf = (host) => host.children.find((c) => c.attrs.class === 'bc-tooltip');

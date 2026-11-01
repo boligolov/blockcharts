@@ -176,6 +176,8 @@
       const xs = xsOf(spec, ctx);
       const ys = ctx.channel(spec, 'y').mapped;
       const colorCh = spec.color !== undefined ? ctx.channel(spec, 'color') : null;
+      // a crosshair follows the pointer at any height, so the value it points at has to as well
+      const reach = (ctx.spec.interaction || []).some((s) => s.type === 'crosshair') ? Infinity : REACH;
       let best: BC.Pick | null = null;
       for (const { rows } of ctx.series(spec, xs)) {
         if (colorCh && !colorCh.mapped[rows[0]]) continue;
@@ -197,7 +199,7 @@
         const t = span > 0 ? Math.min(1, Math.max(0, (px - xs[a]) / span)) : 0;
         const lineY = ys[a] + (ys[b] - ys[a]) * t;
         const dist = Math.abs(py - lineY);
-        if (dist > REACH || (best && dist >= best.dist)) continue;
+        if (dist > reach || (best && dist >= best.dist)) continue;
         const row = Math.abs(px - xs[a]) <= Math.abs(px - xs[b]) ? a : b;
         best = { row, x: xs[row], y: ys[row], dist };
       }

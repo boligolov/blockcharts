@@ -48,7 +48,7 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'linear',
-    version: 3,
+    version: 4,
     doc: 'Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.',
     params: {
       nice: { kind: 'boolean', default: true, doc: 'Extend the inferred domain to round tick values.' },
@@ -82,8 +82,9 @@
         }
         if (typeof spec.padding === 'number' && spec.padding > 0) {
           const pad = (b1 - b0) * spec.padding;
-          b0 -= pad;
-          b1 += pad;
+          // `zero` is a floor: room around the data must not take the axis past it
+          b0 = spec.zero && b0 === 0 ? 0 : b0 - pad;
+          b1 = spec.zero && b1 === 0 ? 0 : b1 + pad;
         }
         if (spec.nice !== false) {
           const step = niceStep(b1 - b0, NICE_COUNT);

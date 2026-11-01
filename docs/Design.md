@@ -930,6 +930,29 @@ gaps no test had. The first was a trap, the others cost workarounds.
 - **`labels` on the tooltip.** Field names are for the spec. Without this a Russian page needed Russian columns, and a
   `calculate` copy for every output of a transform.
 
+## What a dashboard in Chinese, Japanese and Korean found
+
+A second dashboard, 73 charts in three languages, built by an agent that knew only the skill. Most of what it found had
+one cause and the rest were places where Latin had been taken for granted.
+
+- **`measure()` took every character as 0.6 em.** A full-width character is 1 em, so axes, legends and end labels
+  reserved about half the room they needed. It now counts them as wide. This is deliberately still an estimate, and a
+  generous one: layout must not depend on fonts being loaded.
+- **Text without spaces breaks between characters** on a band axis; it had nothing to wrap at.
+- **`lang` on the page, a section or a chart entry.** One setting does the three jobs: `<html lang>` for screen readers,
+  a font per language (`:lang()` rules, or Japanese is drawn with Chinese glyphs), and `spec.locale`, the default
+  language of every format including presets. The locale is a variable set at the start of each build and draw, not a
+  parameter, because formatters are made in many blocks; what is written at hover time is made while attaching.
+  Quarters are spelled by hand, since Intl has no such unit.
+- **Format objects reject unknown keys.** Intl skips them, so `{"preset": ...}` did nothing, silently.
+- **Numeric and date ticks drop repeated labels and thin out** when their text is wider than the space between them:
+  ticks are spaced by count, and only the format knows what they will say.
+- **Bars with no band** used to grow from 0 on both axes, which on a time axis means from 1970. The axis that holds
+  positions is now chosen, and bars take their width from the smallest step.
+- **Upright vertical axis titles** are one text per character, so both renderers draw them with no contract change.
+- **A report can be wrong.** The agent reported the legend filter dead on canvas; the filter worked and its clicks had
+  missed. Findings are reproduced before they are fixed.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

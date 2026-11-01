@@ -50,8 +50,8 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'text',
-    version: 5,
-    doc: 'A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell\'s color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap). A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.',
+    version: 6,
+    doc: 'A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell\'s color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.',
     params: {
       size: { kind: 'number', default: 11, doc: 'Font size in px.' },
       weight: { kind: 'any', doc: 'Font weight: a number (600) or a word ("bold").' },
@@ -150,8 +150,11 @@
       const { from, to } = ctx.rows(spec);
       const out: BC.Prim[] = [];
       for (let i = from; i < to; i++) {
-        const x = cx.mapped[i] + halfX + dx;
-        const y = cy.mapped[i] + halfY + dy;
+        // centered in its box, or `x` and `x2` would both be edges with no room around the anchor
+        const xMid = x2 && !halfX && anchor === 'middle' && rotate === undefined && isFinite(x2[i]);
+        const yMid = y2 && !halfY && baseline === 'middle' && rotate === undefined && isFinite(y2[i]);
+        const x = (xMid ? (cx.mapped[i] + (x2 as ArrayLike<number>)[i]) / 2 : cx.mapped[i] + halfX) + dx;
+        const y = (yMid ? (cy.mapped[i] + (y2 as ArrayLike<number>)[i]) / 2 : cy.mapped[i] + halfY) + dy;
         const text = write ? write(labels[i]) : format(labels[i], decimals);
         const color = backgrounds ? (backgrounds[i] ? readableOn(backgrounds[i]) || fill : '') : colors ? colors[i] : fill;
         if (!text || !isFinite(x) || !isFinite(y) || !color) continue;

@@ -4899,8 +4899,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       logOf([[2, 90]])
         .ticks(6)
         .map((t) => t.value),
-      [1, 2, 5, 10, 20, 50, 100],
-      'two decades: 1, 2, 5 of each',
+      [2, 5, 10, 20, 50, 100],
+      'under two decades: 1, 2, 5 of each, the domain no wider than that',
     );
     assert.deepStrictEqual(
       logOf([[1, 1e12]])
@@ -4938,6 +4938,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(r(10), 300);
     r.setDomain(null);
     assert.deepStrictEqual(r.domain(), [1, 1000]);
+  });
+
+  test('scale.log: data under two decades does not get a plot half empty', () => {
+    assert.deepStrictEqual(logOf([[1441, 10118]]).domain(), [1000, 20000]);
+    assert.deepStrictEqual(logOf([[3, 700]]).domain(), [1, 1000], 'more than two decades: whole powers');
   });
 
   test('scale.log: hostile input — a domain with zero or less is a clear error, odd values are left out', () => {

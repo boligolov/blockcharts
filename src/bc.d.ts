@@ -81,6 +81,8 @@ declare namespace BC {
     responsive?: boolean;
     /** Default "svg". */
     renderer?: string;
+    /** The language numbers and dates are written in where a format names no `locale`. Default "en-US". */
+    locale?: string;
   }
 
   interface TransformSpec extends BlockSpec {}
@@ -321,6 +323,8 @@ declare namespace BC {
     color(index: number): string;
     /** Rough text measurement for layout (no DOM access). */
     measure(text: string, size?: number): { w: number; h: number };
+    /** Whether a text has characters a full em wide (Chinese, Japanese, Korean): such text can break between any two. */
+    wide(text: string): boolean;
     /** The px an overlay (InteractionDef.corner) takes from the left and the right end of the chart's top or bottom edge. */
     edgeTaken(edge: 'top' | 'bottom'): { left: number; right: number };
     /** How many labels of a band scale fit along `length` px, the way an axis writes them. */

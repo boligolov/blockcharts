@@ -590,7 +590,20 @@
 
   // ───────────────────────── pipeline ─────────────────────────
 
-  const PALETTE = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948', '#b07aa1', '#ff9da7'];
+  const PALETTE = [
+    '#4e79a7',
+    '#f28e2b',
+    '#e15759',
+    '#76b7b2',
+    '#59a14f',
+    '#edc948',
+    '#b07aa1',
+    '#ff9da7',
+    '#9c755f',
+    '#bab0ac',
+    '#2f6f73',
+    '#a0522d',
+  ];
 
   function colorAt(index: number): string {
     const i = ((index % PALETTE.length) + PALETTE.length) % PALETTE.length;
@@ -606,8 +619,25 @@
     viewState(): Record<string, unknown[]>;
   }
 
+  /** Hangul, kana, CJK ideographs, full-width forms: a full em, against about half of one for Latin. */
+  const wideCode = (c: number) =>
+    (c >= 0x1100 && c <= 0x11ff) ||
+    (c >= 0x2e80 && c <= 0xa4cf) ||
+    (c >= 0xac00 && c <= 0xd7a3) ||
+    (c >= 0xf900 && c <= 0xfaff) ||
+    (c >= 0xfe30 && c <= 0xfe6f) ||
+    (c >= 0xff00 && c <= 0xff60) ||
+    (c >= 0xd840 && c <= 0xd87f); // the first half of an ideograph outside the basic plane
+
+  function wide(text: string): boolean {
+    for (let i = 0; i < text.length; i++) if (wideCode(text.charCodeAt(i))) return true;
+    return false;
+  }
+
   function measure(text: string, size: number = 11): { w: number; h: number } {
-    return { w: text.length * size * 0.6, h: size * 1.2 };
+    let em = 0;
+    for (let i = 0; i < text.length; i++) em += wideCode(text.charCodeAt(i)) ? 1 : 0.6;
+    return { w: em * size, h: size * 1.2 };
   }
 
   function insetsPlot(size: { w: number; h: number }, ins: BC.Insets): BC.Rect {
@@ -625,6 +655,10 @@
 
   /** Stages 1-4 run once (table, transforms, scales, layout — frozen afterwards); `draw` is stages 5-7 and reruns on every view change. */
   function build(host: HTMLElement, spec: BC.ChartSpec, cleanups: (() => void)[], keptView?: Record<string, unknown[]>): Built {
+    const speak = () => {
+      chartLocale = typeof spec.locale === 'string' && spec.locale ? spec.locale : undefined;
+    };
+    speak();
     const diagnostics: BC.Diagnostic[] = [];
     const fail = (path: string, e: unknown) => {
       const message = e instanceof Error ? e.message : String(e);
@@ -856,6 +890,7 @@
       },
       scales,
       measure,
+      wide,
       orientation(name) {
         const r = scaleSpecs[name] && rangeSetting(name, scaleSpecs[name]);
         return r === 'width' ? 'horizontal' : r === 'height' ? 'vertical' : null;
@@ -901,7 +936,8 @@
           }
           // a horizontal axis wraps a long label onto two lines, so what has to fit is about half of it (or its longest word)
           const full = ctx.measure(text, 11).w;
-          const word = text.split(/\s+/).reduce((m, part) => Math.max(m, ctx.measure(part, 11).w), 0);
+          // text without spaces in Chinese, Japanese or Korean breaks anywhere, so a word of it is no limit
+          const word = text.split(/\s+/).reduce((m, part) => Math.max(m, ctx.measure(part, 11).w / (wide(part) ? 2 : 1)), 0);
           widest = Math.max(widest, Math.min(full, Math.max(word, full / 2)));
         }
         // measure() is deliberately generous (layout must never clip), so real labels are narrower than it says: allow for that
@@ -1009,6 +1045,7 @@
     // 5 + 6: ticks are computed lazily through ctx.ticks; marks and guides emit primitives
     let list!: BC.DisplayList;
     function draw(): void {
+      speak();
       if (dynamicSpecs.length) {
         let t = baseTable;
         dynamicSpecs.forEach((ts, i) => {
@@ -1511,6 +1548,36 @@
     datetime: { kind: 'date', dateStyle: 'medium', timeStyle: 'short' },
   };
   const formatters = new Map<string, (value: unknown) => string>();
+  /** What the chart being built or drawn asks for. Set at the start of both; a tooltip makes its formatters while attached. */
+  let chartLocale: string | undefined;
+  const NUMBER_OPTIONS = [
+    'style',
+    'currency',
+    'currencyDisplay',
+    'currencySign',
+    'unit',
+    'unitDisplay',
+    'notation',
+    'compactDisplay',
+    'signDisplay',
+    'useGrouping',
+    'minimumIntegerDigits',
+    'minimumFractionDigits',
+    'maximumFractionDigits',
+    'minimumSignificantDigits',
+    'maximumSignificantDigits',
+    'roundingMode',
+    'roundingIncrement',
+    'roundingPriority',
+    'trailingZeroDisplay',
+    'numberingSystem',
+  ];
+  /** Intl has no quarters. */
+  const QUARTERS: Record<string, (q: number, y: number) => string> = {
+    ko: (q, y) => `${y}년 ${q}분기`,
+    zh: (q, y) => `${y}年第${q}季度`,
+    ja: (q, y) => `${y}年第${q}四半期`,
+  };
 
   function formatter(spec: string | BC.FormatSpec, kind?: 'number' | 'date'): (value: unknown) => string {
     let o: BC.FormatSpec;
@@ -1525,7 +1592,8 @@
     }
     // Intl has no quarters: the preset writes the year with Intl and puts "Q1".."Q4" before it
     const quarter = o === PRESETS.quarter;
-    const key = (kind || '') + '|' + (quarter ? 'quarter' : JSON.stringify(o));
+    const language = (typeof o.locale === 'string' && o.locale) || chartLocale || DEFAULT_LOCALE;
+    const key = (kind || '') + '|' + language + '|' + (quarter ? 'quarter' : JSON.stringify(o));
     const known = formatters.get(key);
     if (known) return known;
 
@@ -1537,15 +1605,35 @@
     ] as const)
       if (v !== undefined && typeof v !== 'string') throw new Error(`format "${name}" must be a string`);
     if (declared !== undefined && declared !== 'number' && declared !== 'date') throw new Error('format "kind" must be "number" or "date"');
+    // Intl skips what it does not know, so a misspelled option would quietly do nothing
+    for (const k of Object.keys(options))
+      if (
+        NUMBER_OPTIONS.indexOf(k) < 0 &&
+        DATE_OPTIONS.indexOf(k) < 0 &&
+        k !== 'timeZone' &&
+        k !== 'calendar' &&
+        k !== 'era' &&
+        k !== 'dayPeriod'
+      )
+        throw new Error(
+          `format option "${k}" is not known (a preset is written as the format itself, "quarter", and the language comes from "locale" or the chart)`,
+        );
     const wantDate = (kind || declared || (Object.keys(options).some((k) => DATE_OPTIONS.indexOf(k) >= 0) ? 'date' : 'number')) === 'date';
     let nf: Intl.NumberFormat | undefined;
     let df: Intl.DateTimeFormat | undefined;
     try {
-      if (wantDate) df = new Intl.DateTimeFormat(locale || DEFAULT_LOCALE, { timeZone: 'UTC', ...options } as Intl.DateTimeFormatOptions);
-      else nf = new Intl.NumberFormat(locale || DEFAULT_LOCALE, options as Intl.NumberFormatOptions);
+      if (wantDate) df = new Intl.DateTimeFormat(language, { timeZone: 'UTC', ...options } as Intl.DateTimeFormatOptions);
+      else nf = new Intl.NumberFormat(language, options as Intl.NumberFormatOptions);
     } catch (e) {
       throw new Error(`invalid format ${JSON.stringify(spec)}: ${e instanceof Error ? e.message : String(e)}`);
     }
+    const quarterIn = QUARTERS[language.split('-')[0].toLowerCase()];
+    const dated = (ms: number): string => {
+      if (!quarter) return (df as Intl.DateTimeFormat).format(ms);
+      const d = new Date(ms);
+      const q = Math.floor(d.getUTCMonth() / 3) + 1;
+      return quarterIn ? quarterIn(q, d.getUTCFullYear()) : 'Q' + q + ' ' + (df as Intl.DateTimeFormat).format(ms);
+    };
     const fn = (v: unknown): string => {
       if (v == null || (typeof v === 'number' && isNaN(v))) return '';
       let text: string;
@@ -1553,9 +1641,7 @@
         text = typeof v === 'number' && isFinite(v) ? nf.format(v) : String(v);
       } else {
         const ms = time(v);
-        text = isFinite(ms)
-          ? (quarter ? 'Q' + (Math.floor(new Date(ms).getUTCMonth() / 3) + 1) + ' ' : '') + (df as Intl.DateTimeFormat).format(ms)
-          : String(v);
+        text = isFinite(ms) ? dated(ms) : String(v);
       }
       return (prefix || '') + text + (suffix || '');
     };
