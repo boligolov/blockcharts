@@ -2,6 +2,8 @@
   const TEXT = 'var(--bc-text, #444)';
   const DARK = '#111';
   const LIGHT = '#fff';
+  /** Relative luminance of DARK, which is not black: comparing with black favors dark text on mid blues. */
+  const DARK_LUMINANCE = 0.0056;
 
   /** Black or white, whichever reads better on a background color given as #rgb / #rrggbb (also inside var(--x, #hex)). */
   function readableOn(background: unknown): string | null {
@@ -15,7 +17,7 @@
     };
     const lum = 0.2126 * lin(0) + 0.7152 * lin(2) + 0.0722 * lin(4);
     // WCAG contrast of each candidate against the background: (L1 + 0.05) / (L2 + 0.05)
-    return (lum + 0.05) / 0.05 >= 1.05 / (lum + 0.05) ? DARK : LIGHT;
+    return (lum + 0.05) / (DARK_LUMINANCE + 0.05) >= 1.05 / (lum + 0.05) ? DARK : LIGHT;
   }
 
   /** Width of a label in px, from the widths of its characters in a sans-serif such as Inter (measured in Chrome),
@@ -50,7 +52,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'text',
-    version: 6,
+    version: 7,
     doc: 'A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell\'s color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.',
     params: {
       size: { kind: 'number', default: 11, doc: 'Font size in px.' },
@@ -75,6 +77,18 @@
         doc: 'How to write numbers (and dates): a preset ("percent", "compact", "integer", "date", ...) or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }; also "locale", "prefix", "suffix". Overrides `decimals`.',
       },
       fill: { kind: 'string', doc: 'Any CSS color. Default: the theme text color.' },
+      negative: {
+        kind: 'enum',
+        values: ['same', 'flip'],
+        default: 'same',
+        doc: '"flip" mirrors the placement of a row whose value is below zero, so that the label of a negative bar sits past its end, not inside it: `baseline` and `dy` on a value y, `anchor` and `dx` on a value x (with a band y, as in horizontal bars).',
+      },
+      collide: {
+        kind: 'enum',
+        values: ['show', 'hide'],
+        default: 'show',
+        doc: '"hide" keeps labels off each other, for names on points: in row order, a label that would touch one already placed tries the other side of its point (mirrored `baseline` and `dy`) and is left out if that is taken too. Sort the rows to choose which labels win.',
+      },
       minSize: {
         kind: 'number',
         default: 8,
@@ -147,14 +161,33 @@
         }
         return [w, h];
       };
+      const flipNegative = spec.negative === 'flip';
+      const flipX = flipNegative && !!cy.half && !cx.half;
+      const values = flipNegative ? (flipX ? cx : cy).raw : null;
+      const hideOverlaps = spec.collide === 'hide' && rotate === undefined;
+      const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
+      /** The box of a label, from its anchor point. */
+      const boxOf = (text: string, px: number, py: number, base: string, fontSize: number) => {
+        const w = widthOf(text, fontSize, weight);
+        const x0 = anchor === 'start' ? px : anchor === 'end' ? px - w : px - w / 2;
+        const y0 = base === 'hanging' ? py : base === 'auto' ? py - fontSize : py - fontSize / 2;
+        return { x0, x1: x0 + w, y0, y1: y0 + fontSize };
+      };
+      const free = (b: (typeof placed)[number]) => !placed.some((o) => b.x0 < o.x1 && o.x0 < b.x1 && b.y0 < o.y1 && o.y0 < b.y1);
+      const mirrored = (b: 'auto' | 'middle' | 'hanging') => (b === 'auto' ? 'hanging' : b === 'hanging' ? 'auto' : b);
       const { from, to } = ctx.rows(spec);
       const out: BC.Prim[] = [];
       for (let i = from; i < to; i++) {
+        const below = values !== null && typeof values[i] === 'number' && (values[i] as number) < 0;
+        const rowAnchor = below && flipX ? (anchor === 'start' ? 'end' : anchor === 'end' ? 'start' : anchor) : anchor;
+        const rowDx = below && flipX ? -dx : dx;
+        let rowBaseline: 'auto' | 'middle' | 'hanging' = below && !flipX ? mirrored(baseline) : baseline;
+        let rowDy = below && !flipX ? -dy : dy;
         // centered in its box, or `x` and `x2` would both be edges with no room around the anchor
         const xMid = x2 && !halfX && anchor === 'middle' && rotate === undefined && isFinite(x2[i]);
         const yMid = y2 && !halfY && baseline === 'middle' && rotate === undefined && isFinite(y2[i]);
-        const x = (xMid ? (cx.mapped[i] + (x2 as ArrayLike<number>)[i]) / 2 : cx.mapped[i] + halfX) + dx;
-        const y = (yMid ? (cy.mapped[i] + (y2 as ArrayLike<number>)[i]) / 2 : cy.mapped[i] + halfY) + dy;
+        const x = (xMid ? (cx.mapped[i] + (x2 as ArrayLike<number>)[i]) / 2 : cx.mapped[i] + halfX) + rowDx;
+        let y = (yMid ? (cy.mapped[i] + (y2 as ArrayLike<number>)[i]) / 2 : cy.mapped[i] + halfY) + rowDy;
         const text = write ? write(labels[i]) : format(labels[i], decimals);
         const color = backgrounds ? (backgrounds[i] ? readableOn(backgrounds[i]) || fill : '') : colors ? colors[i] : fill;
         if (!text || !isFinite(x) || !isFinite(y) || !color) continue;
@@ -166,6 +199,19 @@
           if (!(fit >= minSize)) continue;
           fit = Math.floor(fit * 2) / 2;
         }
+        if (hideOverlaps) {
+          let box = boxOf(text, x, y, rowBaseline, fit);
+          if (!free(box)) {
+            const otherY = y - 2 * rowDy;
+            const other = boxOf(text, x, otherY, mirrored(rowBaseline), fit);
+            if (rowBaseline === 'middle' || !free(other)) continue;
+            y = otherY;
+            rowBaseline = mirrored(rowBaseline);
+            rowDy = -rowDy;
+            box = other;
+          }
+          placed.push(box);
+        }
         out.push({
           type: 'text',
           x,
@@ -173,8 +219,8 @@
           text,
           size: fit,
           weight,
-          anchor,
-          baseline,
+          anchor: rowAnchor,
+          baseline: rowBaseline,
           rotate,
           style: { fill: color },
           ref: { mark: index, row: i },

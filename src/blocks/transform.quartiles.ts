@@ -14,9 +14,9 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'quartiles',
-    version: 1,
+    version: 2,
     replacesColumns: true,
-    doc: 'The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row.',
+    doc: 'The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has.',
     params: {
       field: {
         kind: 'field',
@@ -148,7 +148,7 @@
         count: Float64Array.from(outCount),
       };
       if (groupField) columns[groupField] = outGroup;
-      return { length: outLow.length, columns };
+      return { length: outLow.length, columns, sparse: true };
     },
   };
 

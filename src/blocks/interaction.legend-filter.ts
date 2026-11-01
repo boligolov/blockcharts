@@ -6,13 +6,18 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'legend-filter',
-    version: 1,
+    version: 2,
     doc: 'Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.',
     params: {
       scale: { kind: 'scale', doc: 'The color scale to filter. Default: the scale of the first legend.' },
+      legend: {
+        kind: 'string',
+        doc: 'The id of a legend outside the chart, in the page, shared by several charts. Its items are elements with `data-bc-legend-index`. The composer writes this for facets; there is no need to set it by hand.',
+      },
       fit: { kind: 'list', doc: 'Scales to refit to the visible rows after a change (usually ["y"]); by default they keep their domain.' },
     },
     attach(spec, live) {
+      const outer = typeof spec.legend === 'string' ? spec.legend : null;
       const legends = (live.spec.guides || []).filter((g) => g.type === 'legend' && typeof g.scale === 'string');
       const name = typeof spec.scale === 'string' ? spec.scale : legends.length ? (legends[0].scale as string) : undefined;
       const scale = name ? live.scales[name] : undefined;
@@ -29,6 +34,9 @@
       });
       const root = live.root as Element;
       const base = scale.baseDomain();
+      const doc = live.host.ownerDocument || document;
+      const shared = outer ? doc.getElementById(outer) : null;
+      if (outer && !shared) return; // the composer's dry run has no page, and without the legend there is nothing to click
 
       // Stateless: what is visible is whatever the view of the scale says, so setView and clicks agree.
       const visible = (): unknown[] => live.getView()[name] as unknown[];
@@ -36,8 +44,20 @@
         // everything or nothing visible = no filter (hiding the last category would leave an empty chart)
         live.setView(name, next.length === 0 || next.length === base.length ? null : next);
         for (const f of fitNames) live.setView(f, live.fit(f, name));
+        if (shared) {
+          const shown = next.length ? next : base;
+          shared.querySelectorAll('[data-bc-legend-index]').forEach((el) => {
+            const on = shown.indexOf(base[Number(el.getAttribute('data-bc-legend-index'))]) >= 0;
+            el.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+        }
       };
       const itemOf = (ev: Event): { value: unknown } | null => {
+        if (shared) {
+          const el = (ev.target as Element | null)?.closest?.('[data-bc-legend-index]');
+          const at = el ? Number(el.getAttribute('data-bc-legend-index')) : NaN;
+          return Number.isInteger(at) && at >= 0 && at < base.length ? { value: base[at] } : null;
+        }
         const data = live.dataAt(ev as MouseEvent);
         if (!data || data[ATTR_SCALE] !== name) return null;
         const index = Number(data[ATTR_INDEX]);
@@ -65,8 +85,9 @@
         apply(shown.length === 1 && shown[0] === item.value ? base.slice() : [item.value]);
       };
 
-      root.addEventListener('click', onClick);
-      root.addEventListener('dblclick', onDblClick);
+      const target: EventTarget = shared || root;
+      target.addEventListener('click', onClick);
+      target.addEventListener('dblclick', onDblClick);
       // a canvas has no legend elements for a stylesheet to give a pointer cursor: it is set while the pointer is over an item
       let savedCursor: string | null = null;
       const onMove = (ev: Event) => {
@@ -80,14 +101,14 @@
           savedCursor = null;
         }
       };
-      const isCanvas = typeof (root as HTMLCanvasElement).getContext === 'function';
+      const isCanvas = !shared && typeof (root as HTMLCanvasElement).getContext === 'function';
       if (isCanvas) root.addEventListener('pointermove', onMove);
       // lets a stylesheet show a pointer cursor on legend items only when they can be clicked
       const previousClass = root.getAttribute('class');
       root.setAttribute('class', ((previousClass || '') + ' ' + CLASS).trim());
       live.cleanup(() => {
-        root.removeEventListener('click', onClick);
-        root.removeEventListener('dblclick', onDblClick);
+        target.removeEventListener('click', onClick);
+        target.removeEventListener('dblclick', onDblClick);
         if (isCanvas) root.removeEventListener('pointermove', onMove);
         if (previousClass === null) root.removeAttribute ? root.removeAttribute('class') : root.setAttribute('class', '');
         else root.setAttribute('class', previousClass);

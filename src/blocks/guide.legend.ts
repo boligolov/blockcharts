@@ -87,7 +87,24 @@
     return ticks.map((t) => ({ value: t.value, pos: t.pos, label: write(t.value) }));
   }
 
-  const sideOf = (spec: BC.GuideSpec): Side => spec.position || 'right';
+  const titleOf = (spec: BC.GuideSpec) => (typeof spec.title === 'string' && spec.title ? spec.title : '');
+  /** Height of the title's line, when there is one. */
+  const headOf = (spec: BC.GuideSpec) => (titleOf(spec) ? ROW : 0);
+  /** A column has to be as wide as its title. */
+  const titleWidth = (spec: BC.GuideSpec, ctx: BC.ChartCtx) => (titleOf(spec) ? ctx.measure(titleOf(spec), FONT).w : 0);
+  /** The widest a column may get with `auto`: past this it would squeeze the plot more than a third line of a row does. */
+  const AUTO_COLUMN = 0.4;
+  /** `auto`: a row on top while it takes one or two lines, a column on the right when its labels are too long for that, and
+   *  a row again when they are too long for a column too (a phone). */
+  function autoSide(scale: BC.Scale, ctx: BC.ChartCtx): Side {
+    if (scale.kind !== 'color') return 'right';
+    const items = itemsOf(scale, ctx);
+    if (linesOf(items, rowRoom(ctx, 'top')).length <= 2) return 'top';
+    const width = SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD;
+    return width <= ctx.size.w * AUTO_COLUMN ? 'right' : 'top';
+  }
+  const sideOf = (spec: BC.GuideSpec, scale: BC.Scale, ctx: BC.ChartCtx): Side =>
+    (spec.position as string) === 'auto' ? autoSide(scale, ctx) : spec.position || 'right';
   const isColumn = (side: Side) => side === 'left' || side === 'right';
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -120,20 +137,28 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 8,
+    version: 9,
     doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
       scale: { kind: 'scale', required: true, doc: 'A color, sequential or size scale.' },
-      position: { kind: 'enum', values: ['top', 'right', 'bottom', 'left'], default: 'right' },
+      position: {
+        kind: 'enum',
+        values: ['top', 'right', 'bottom', 'left', 'auto'],
+        default: 'right',
+        doc: '"auto" is a row on top while the items fit on two lines, and a column on the right when long labels would need more; it is decided again when the chart changes width.',
+      },
+      title: { kind: 'string', doc: 'What the legend shows, on a line above it: "Region", "Revenue, $M".' },
       format: {
         kind: 'any',
         doc: 'How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`.',
       },
     },
     measure(spec, ctx) {
-      const side = sideOf(spec);
       const scale = scaleOf(spec, ctx);
+      const side = sideOf(spec, scale, ctx);
       const column = isColumn(side);
+      const head = headOf(spec);
+      const title = titleWidth(spec, ctx);
       const out: Partial<BC.Insets> = {};
       if (scale.kind === 'size') {
         const sizes = sizesOf(scale, spec, ctx);
@@ -141,30 +166,46 @@
         out[side] = !sizes.length
           ? 0
           : column
-            ? 2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0) + 2 * PAD
-            : sizeLines(sizes, rowRoom(ctx, side)).reduce((sum, l) => sum + l.h, 0) + PAD;
+            ? Math.max(2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0), title) + 2 * PAD
+            : sizeLines(sizes, rowRoom(ctx, side)).reduce((sum, l) => sum + l.h, 0) + PAD + head;
         return out;
       }
       if (scale.kind === 'sequential') {
         const labels = barTicks(scale, spec);
         const widest = labels.reduce((m, t) => Math.max(m, ctx.measure(t.label, FONT).w), 0);
-        out[side] = column ? BAR + GAP + widest + 2 * PAD : BAR + ctx.measure('0', FONT).h + 2 * PAD;
+        out[side] = column ? Math.max(BAR + GAP + widest, title) + 2 * PAD : BAR + ctx.measure('0', FONT).h + 2 * PAD + head;
         return out;
       }
       const items = itemsOf(scale, ctx);
       out[side] = !items.length
         ? 0
         : column
-          ? SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD
-          : linesOf(items, rowRoom(ctx, side)).length * ROW + PAD;
+          ? Math.max(SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0), title) + 2 * PAD
+          : linesOf(items, rowRoom(ctx, side)).length * ROW + PAD + head;
       return out;
     },
     render(spec, ctx, offset) {
-      const side = sideOf(spec);
       const scale = scaleOf(spec, ctx);
+      const side = sideOf(spec, scale, ctx);
       const column = isColumn(side);
       const { x, y, w, h } = ctx.plot;
       const prims: BC.Prim[] = [];
+      const head = headOf(spec);
+      const title = titleWidth(spec, ctx);
+      const writeTitle = (px: number, py: number) => {
+        if (head)
+          prims.push({
+            type: 'text',
+            x: px,
+            y: py + ROW / 2,
+            text: titleOf(spec),
+            size: FONT,
+            weight: 600,
+            baseline: 'middle',
+            style: { fill: TEXT },
+            cls: 'bc-legend-title',
+          });
+      };
 
       if (scale.kind === 'size') {
         const sizes = sizesOf(scale, spec, ctx);
@@ -181,11 +222,12 @@
           prims.push({ type: 'text', x: labelX, y: cy, text: s.label, size: FONT, baseline: 'middle', style: { fill: TEXT } });
         };
         if (column) {
-          const width = 2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0) + 2 * PAD;
+          const width = Math.max(2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0), title) + 2 * PAD;
           const left = (side === 'right' ? x + w + offset.right : x - offset.left - width) + PAD;
+          writeTitle(left, y + 4);
           // stacked downwards on one center line, each in a slot as tall as the circle (never shorter than a line of
           // text); the labels line up past the biggest circle
-          let top = y + 4;
+          let top = y + 4 + head;
           for (const s of sizes) {
             const slot = Math.max(2 * s.r, ROW) + 4;
             circle(left + rMax, top + slot / 2, s, left + 2 * rMax + GAP);
@@ -194,7 +236,10 @@
         } else {
           // left to right, each label right after its own circle; lines wrap on a narrow plot
           const lines = sizeLines(sizes, rowRoom(ctx, side));
-          let top = side === 'top' ? y - offset.top - (lines.reduce((sum, l) => sum + l.h, 0) + PAD) : y + h + offset.bottom + PAD / 2;
+          let top =
+            side === 'top' ? y - offset.top - (lines.reduce((sum, l) => sum + l.h, 0) + PAD + head) : y + h + offset.bottom + PAD / 2;
+          writeTitle(rowStart(ctx, side, x, title), top);
+          top += head;
           for (const line of lines) {
             let cx = rowStart(
               ctx,
@@ -217,16 +262,21 @@
         const length = barLength(column, ctx);
         const ticks = barTicks(scale, spec);
         const widest = ticks.reduce((m, t) => Math.max(m, ctx.measure(t.label, FONT).w), 0);
-        const boxW = BAR + GAP + widest + 2 * PAD;
+        const boxW = Math.max(BAR + GAP + widest, title) + 2 * PAD;
         const left = side === 'right' ? x + w + offset.right + PAD : x - offset.left - boxW + PAD;
-        const top = side === 'top' ? y - offset.top - (BAR + ctx.measure('0', FONT).h + 2 * PAD) + PAD : y + h + offset.bottom + PAD;
+        const start =
+          side === 'top' ? y - offset.top - (BAR + ctx.measure('0', FONT).h + 2 * PAD + head) + PAD : y + h + offset.bottom + PAD;
+        const top = start + head;
+        const barTop = y + 4 + head;
+        if (column) writeTitle(left, y + 4);
+        else writeTitle(rowStart(ctx, side, x, title), start);
         const slice = (length / STEPS) * 1.05; // a hair of overlap hides seams between slices
         for (let k = 0; k < STEPS; k++) {
           const value = column ? d1 - ((k + 0.5) / STEPS) * (d1 - d0) : d0 + ((k + 0.5) / STEPS) * (d1 - d0);
           const color = scale(value);
           prims.push(
             column
-              ? { type: 'rect', x: left, y: y + 4 + (k * length) / STEPS, w: BAR, h: slice, style: { fill: color }, cls: 'bc-legend-bar' }
+              ? { type: 'rect', x: left, y: barTop + (k * length) / STEPS, w: BAR, h: slice, style: { fill: color }, cls: 'bc-legend-bar' }
               : { type: 'rect', x: x + (k * length) / STEPS, y: top, w: slice, h: BAR, style: { fill: color }, cls: 'bc-legend-bar' },
           );
         }
@@ -236,7 +286,7 @@
               ? {
                   type: 'text',
                   x: left + BAR + GAP,
-                  y: y + 4 + (1 - t.pos) * length,
+                  y: barTop + (1 - t.pos) * length,
                   text: t.label,
                   size: FONT,
                   baseline: 'middle',
@@ -281,12 +331,15 @@
       };
 
       if (column) {
-        const width = SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD;
+        const width = Math.max(SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0), title) + 2 * PAD;
         const left = side === 'right' ? x + w + offset.right : x - offset.left - width;
-        items.forEach((it, i) => put(left + PAD, y + 4 + i * ROW, it));
+        writeTitle(left + PAD, y + 4);
+        items.forEach((it, i) => put(left + PAD, y + 4 + head + i * ROW, it));
       } else {
         const lines = linesOf(items, rowRoom(ctx, side));
-        const top = side === 'top' ? y - offset.top - (lines.length * ROW + PAD) : y + h + offset.bottom + PAD / 2;
+        const start = side === 'top' ? y - offset.top - (lines.length * ROW + PAD + head) : y + h + offset.bottom + PAD / 2;
+        const top = start + head;
+        writeTitle(rowStart(ctx, side, x, title), start);
         lines.forEach((line, k) => {
           let cx = rowStart(
             ctx,

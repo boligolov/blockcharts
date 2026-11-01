@@ -19,13 +19,18 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'bin',
-    version: 2,
+    version: 3,
     replacesColumns: true,
-    doc: 'Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.',
+    doc: 'Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.',
     params: {
       field: { kind: 'field', required: true, doc: 'Numeric field to count. Missing and non-numeric values are ignored.' },
       bins: { kind: 'number', default: 10, doc: 'Approximate number of bins; the width is rounded to 1, 2, 5 × 10^n.' },
       width: { kind: 'number', doc: 'Exact bin width; overrides `bins`.' },
+      log: {
+        kind: 'boolean',
+        default: false,
+        doc: 'Bins of equal ratio, for x on a log scale. `width` is then in powers of ten (1 = one bin per decade); `bins` is rounded the same way.',
+      },
       extent: { kind: 'list', doc: '[min, max] to bin; values outside are ignored. Default: the range of the data.' },
       group: { kind: 'field', doc: 'Count separately for every value of this field.' },
       as: { kind: 'list', doc: 'Names of the three new columns: [start, end, count].' },
@@ -42,6 +47,10 @@
       const groups = groupField ? table.columns[groupField] : undefined;
       if (groupField && !groups) throw new Error(`transform.bin: unknown field "${groupField}"`);
       const [as0, as1, asN] = outputNames(spec);
+      const log = spec.log === true;
+      /** The position of a value on the axis the bins are even on; NaN has no place on it. */
+      const at = (v: number) => (log ? (v > 0 ? Math.log10(v) : NaN) : v);
+      const back = (v: number) => (log ? Math.pow(10, v) : v);
 
       let lo = Infinity;
       let hi = -Infinity;
@@ -53,18 +62,22 @@
           if (v != null) notNumbers = true;
           continue;
         }
-        if (!isFinite(v)) continue;
+        const p = at(v);
+        if (!isFinite(p)) continue;
         any = true;
-        if (v < lo) lo = v;
-        if (v > hi) hi = v;
+        if (p < lo) lo = p;
+        if (p > hi) hi = p;
       }
       if (Array.isArray(spec.extent)) {
         const [a, b] = spec.extent.map(Number);
         if (!isFinite(a) || !isFinite(b) || a >= b) throw new Error('transform.bin: "extent" must be [min, max] with min < max');
-        lo = a;
-        hi = b;
+        if (log && a <= 0) throw new Error('transform.bin: with "log" the "extent" must be positive');
+        lo = at(a);
+        hi = at(b);
       } else if (!any) {
         if (notNumbers) throw new Error(`transform.bin: field "${field}" has no numeric values`);
+        if (log && Array.prototype.some.call(values, (v: unknown) => typeof v === 'number' && isFinite(v)))
+          throw new Error(`transform.bin: field "${field}" has no positive values, and "log" needs them`);
         return {
           length: 0,
           columns: {
@@ -113,8 +126,10 @@
       }
       const counts = new Float64Array(count * keys.length);
       for (let i = 0; i < table.length; i++) {
-        const v = values[i];
-        if (typeof v !== 'number' || !isFinite(v) || v < first || v > upper + 1e-9 * step) continue;
+        const raw = values[i];
+        if (typeof raw !== 'number') continue;
+        const v = at(raw);
+        if (!isFinite(v) || v < first || v > upper + 1e-9 * step) continue;
         let bin = Math.floor((v - first) / step + 1e-9);
         if (bin >= count) bin = count - 1; // the top edge belongs to the last bin
         if (bin < 0) continue;
@@ -130,8 +145,8 @@
         for (let k = 0; k < keys.length; k++) {
           const r = b * keys.length + k;
           // multiplication (not accumulation) keeps 0.1-wide edges from drifting
-          c0[r] = +(first + b * step).toPrecision(12);
-          c1[r] = +(first + (b + 1) * step).toPrecision(12);
+          c0[r] = +back(first + b * step).toPrecision(12);
+          c1[r] = +back(first + (b + 1) * step).toPrecision(12);
           cn[r] = counts[r];
           if (groups) cg[r] = keys[k];
         }

@@ -481,26 +481,316 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       { d: '2024-01-08', v: 8 },
     ];
     const t = apply('calendar', rows, { field: 'd' });
-    assert.deepStrictEqual(t.columns.day, ['Mon', 'Mon', 'Wed', 'Sun']);
-    assert.deepStrictEqual(t.columns.v, [1, 8, 3, 7], 'the rest of the row goes along');
-    assert.deepStrictEqual(t.columns.week, ['2024-01-01', '2024-01-08', '2024-01-01', '2024-01-01']);
-    assert.deepStrictEqual(t.columns.weekEnd, ['2024-01-08', '2024-01-15', '2024-01-08', '2024-01-08']);
+    const dated = (list) => list.filter((_, i) => t.columns.week[i] !== null);
+    assert.deepStrictEqual(dated(t.columns.day), ['Mon', 'Mon', 'Wed', 'Sun']);
+    assert.deepStrictEqual(dated(t.columns.v), [1, 8, 3, 7], 'the rest of the row goes along');
+    assert.deepStrictEqual(dated(t.columns.week), ['2024-01-01', '2024-01-08', '2024-01-01', '2024-01-01']);
+    assert.deepStrictEqual(dated(t.columns.weekEnd), ['2024-01-08', '2024-01-15', '2024-01-08', '2024-01-08']);
     const sunday = apply('calendar', rows, { field: 'd', weekStart: 'sunday' });
     assert.strictEqual(sunday.columns.day[0], 'Sun');
     assert.deepStrictEqual(sunday.columns.week.slice(0, 2), ['2024-01-07', '2023-12-31']);
   });
 
+  test('transform.calendar: a weekday with no rows keeps its place, and is not drawn', () => {
+    const t = apply(
+      'calendar',
+      [
+        { d: '2024-01-01', v: 1 },
+        { d: '2024-01-03', v: 3 },
+      ],
+      { field: 'd' },
+    );
+    assert.deepStrictEqual(Array.from(new Set(t.columns.day)), ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+    assert.strictEqual(t.length, 7);
+    const tue = t.columns.day.indexOf('Tue');
+    assert.strictEqual(t.columns.week[tue], null);
+    assert.strictEqual(t.columns.v[tue], null);
+    const sunday = apply('calendar', [{ d: '2024-01-03' }], { field: 'd', weekStart: 'sunday' });
+    assert.deepStrictEqual(Array.from(new Set(sunday.columns.day)), ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+    BC.data('cal-gap', [
+      { d: '2024-01-01', v: 1 },
+      { d: '2024-01-10', v: 3 },
+    ]);
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      data: 'cal-gap',
+      transforms: [{ type: 'calendar', field: 'd' }],
+      scales: { x: { type: 'time' }, y: { type: 'band' }, color: { type: 'sequential' } },
+      marks: [{ type: 'rect', x: 'week', x2: 'weekEnd', y: 'day', color: 'v' }],
+    });
+    assert.deepStrictEqual(h.diagnostics, []);
+    assert.strictEqual((h.getView().y || []).length, 7, 'seven rows on the axis');
+    assert.strictEqual((host.children[0].serialize().match(/<rect/g) || []).filter(Boolean).length >= 2, true);
+    h.destroy();
+  });
+
   test('transform.calendar: before 1970, across a year, hostile rows and names', () => {
     const t = apply('calendar', [{ d: '1969-12-03' }, { d: '2023-12-31' }, { d: 'soon' }, { d: null }, { d: '' }], { field: 'd' });
-    assert.strictEqual(t.length, 2, 'rows without a date are left out');
-    assert.deepStrictEqual(t.columns.day, ['Wed', 'Sun']);
-    assert.deepStrictEqual(t.columns.week, ['1969-12-01', '2023-12-25']);
+    assert.strictEqual(t.columns.week.filter(Boolean).length, 2, 'rows without a date are left out');
+    assert.deepStrictEqual(t.columns.week.filter(Boolean), ['1969-12-01', '2023-12-25']);
+    assert.deepStrictEqual(Array.from(new Set(t.columns.day)).slice(2, 3), ['Wed']);
     assert.strictEqual(apply('calendar', [{ d: 'x' }], { field: 'd' }).length, 0);
     assert.throws(() => apply('calendar', [{ d: '2024-01-01' }], { field: 'nope' }), /unknown field "nope"/);
     assert.throws(() => apply('calendar', [{ d: '2024-01-01', week: 1 }], { field: 'd' }), /"week" is already a column/);
     assert.doesNotThrow(() => apply('calendar', [{ d: '2024-01-01', week: 1 }], { field: 'd', as: ['w', 'e', 'n'] }));
     assert.throws(() => apply('calendar', [{ d: '2024-01-01' }], { field: 'd', as: ['a', 'a', 'b'] }), /three different/);
     assert.throws(() => apply('calendar', [{ d: '2024-01-01' }], { field: 'd', weekStart: 'friday' }), /"weekStart"/);
+  });
+
+  // ───────────────────────── what the dashboards left open ────
+  test('scale.time: month labels follow the language of the chart, and stay as they were without one', () => {
+    BC.data('time-labels', [
+      { d: '2024-01-01', v: 1 },
+      { d: '2024-12-01', v: 2 },
+    ]);
+    const labels = (locale) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'time-labels',
+        ...(locale ? { locale } : {}),
+        scales: { x: { type: 'time' }, y: { type: 'linear' } },
+        guides: [{ type: 'axis', scale: 'x' }],
+        marks: [{ type: 'line', x: 'd', y: 'v' }],
+      });
+      const out = texts(svgOf(host));
+      h.destroy();
+      return out;
+    };
+    assert(
+      labels().some((t) => /^Jan 2024$/.test(t)),
+      labels().join(),
+    );
+    assert(
+      labels('ja').some((t) => t === '2024年1月'),
+      labels('ja').join(),
+    );
+    assert(
+      labels('ko').some((t) => t === '2024년 1월'),
+      labels('ko').join(),
+    );
+    assert(
+      labels().some((t) => /^Jan 2024$/.test(t)),
+      'one chart in Japanese does not change the next',
+    );
+  });
+
+  test('mark.text: flip puts the label of a negative value past its end, on either axis', () => {
+    BC.data('neg', [
+      { k: 'a', v: 5 },
+      { k: 'b', v: -5 },
+    ]);
+    const prims = (s) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, { data: 'neg', scales: s.scales, marks: [s.mark] });
+      const out = h.diagnostics.length ? h.diagnostics : host.children[0].serialize();
+      h.destroy();
+      return out;
+    };
+    const up = prims({
+      scales: { x: { type: 'band' }, y: { type: 'linear' } },
+      mark: { type: 'text', x: 'k', y: 'v', text: 'v', baseline: 'auto', dy: -4, negative: 'flip' },
+    });
+    assert.strictEqual(count(up, /dominant-baseline="hanging"/g), 1, up);
+    const side = prims({
+      scales: { x: { type: 'linear' }, y: { type: 'band' } },
+      mark: { type: 'text', x: 'v', y: 'k', text: 'v', anchor: 'start', dx: 4, negative: 'flip' },
+    });
+    assert.strictEqual(count(side, /text-anchor="end"/g), 1, side);
+    const same = prims({
+      scales: { x: { type: 'band' }, y: { type: 'linear' } },
+      mark: { type: 'text', x: 'k', y: 'v', text: 'v', baseline: 'auto', dy: -4 },
+    });
+    assert.strictEqual(count(same, /dominant-baseline="hanging"/g), 0, 'off by default');
+  });
+
+  test('mark.text: collide hide tries the other side of the point, then leaves the label out', () => {
+    BC.data('close', [
+      { x: 1, y: 1, n: 'first' },
+      { x: 1, y: 1, n: 'second' },
+      { x: 1, y: 1, n: 'third' },
+      { x: 9, y: 9, n: 'far' },
+    ]);
+    const labels = (collide) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'close',
+        scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+        marks: [{ type: 'text', x: 'x', y: 'y', text: 'n', baseline: 'auto', dy: -6, ...(collide ? { collide } : {}) }],
+      });
+      const svg = host.children[0].serialize();
+      h.destroy();
+      return svg;
+    };
+    assert.strictEqual(count(labels(), /<text/g) - count(labels('hide'), /<text/g), 1, 'one label had nowhere to go');
+    const svg = labels('hide');
+    assert(svg.includes('first') && svg.includes('second') && !svg.includes('third') && svg.includes('far'));
+  });
+
+  test('mark.text: a mid blue cell gets light text, a pale one dark', () => {
+    BC.data('cells', [{ k: 'a', c: 'blue' }]);
+    const on = (color) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'cells',
+        scales: { x: { type: 'band' }, y: { type: 'band' }, color: { type: 'color', range: [color] } },
+        marks: [{ type: 'text', x: 'k', y: 'k', text: 'k', on: 'c' }],
+      });
+      const svg = host.children[0].serialize();
+      h.destroy();
+      return svg;
+    };
+    assert(on('#4e79a7').includes('#fff'));
+    assert(on('#edc948').includes('#111'));
+  });
+
+  test('transform.bin: log bins are equal ratios, and only positive values count', () => {
+    const rows = [1, 3, 10, 30, 100, 1000, 0, -5, null].map((v) => ({ v }));
+    const t = apply('bin', rows, { field: 'v', log: true, width: 1 });
+    assert.deepStrictEqual(Array.from(t.columns.bin0), [1, 10, 100]);
+    assert.deepStrictEqual(Array.from(t.columns.bin1), [10, 100, 1000]);
+    assert.deepStrictEqual(Array.from(t.columns.count), [2, 2, 2]);
+    const fine = apply('bin', rows, { field: 'v', log: true, bins: 6 });
+    const ratios = Array.from(fine.columns.bin0, (b, i) => fine.columns.bin1[i] / b);
+    assert(
+      ratios.every((r) => Math.abs(r - ratios[0]) < 1e-6),
+      'one ratio: ' + ratios,
+    );
+    assert.strictEqual(
+      Array.from(fine.columns.count).reduce((a, b) => a + b, 0),
+      6,
+    );
+    assert.throws(() => apply('bin', [{ v: 0 }, { v: -1 }], { field: 'v', log: true }), /no positive values/);
+    assert.throws(() => apply('bin', rows, { field: 'v', log: true, extent: [0, 10] }), /must be positive/);
+    assert.strictEqual(apply('bin', [{ v: null }], { field: 'v', log: true }).length, 0);
+  });
+
+  test('transform.treemap: a third level keeps each subgroup in one block inside its group', () => {
+    const rows = [];
+    for (const g of ['A', 'B']) for (const s of ['x', 'y']) for (const n of [1, 2, 3]) rows.push({ g, s, n: g + s + n, v: 10 * n });
+    const t = apply('treemap', rows, { field: 'v', group: 'g', subgroup: 's', aspect: 1 });
+    const box = (test) => {
+      const at = rows.map((r, i) => (test(r) ? i : -1)).filter((i) => i >= 0);
+      return {
+        l: Math.min(...at.map((i) => t.columns.x0[i])),
+        r: Math.max(...at.map((i) => t.columns.x1[i])),
+        b: Math.min(...at.map((i) => t.columns.y0[i])),
+        t: Math.max(...at.map((i) => t.columns.y1[i])),
+      };
+    };
+    const apart = (a, b) => a.r <= b.l + 1e-9 || b.r <= a.l + 1e-9 || a.t <= b.b + 1e-9 || b.t <= a.b + 1e-9;
+    assert(
+      apart(
+        box((r) => r.g === 'A'),
+        box((r) => r.g === 'B'),
+      ),
+      'the groups do not mix',
+    );
+    assert(
+      apart(
+        box((r) => r.g === 'A' && r.s === 'x'),
+        box((r) => r.g === 'A' && r.s === 'y'),
+      ),
+      'nor do the subgroups',
+    );
+    const area = rows.reduce((sum, _, i) => sum + (t.columns.x1[i] - t.columns.x0[i]) * (t.columns.y1[i] - t.columns.y0[i]), 0);
+    assert(area > 0.9 && area <= 1);
+    assert.throws(() => apply('treemap', rows, { field: 'v', subgroup: 's' }), /needs "group"/);
+    assert.throws(() => apply('treemap', rows, { field: 'v', group: 'g', subgroup: 'nope' }), /unknown field "nope"/);
+  });
+
+  test('transform.stack: follows closes the stack up after a legend filter, and a 100% stack adds up again', async () => {
+    BC.data('mix', [
+      { m: 'a', s: 'x', v: 50 },
+      { m: 'a', s: 'y', v: 30 },
+      { m: 'a', s: 'z', v: 20 },
+    ]);
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      data: 'mix',
+      transforms: [{ type: 'stack', field: 'v', by: 'm', group: 's', normalize: true, follows: 'color' }],
+      scales: { x: { type: 'band' }, y: { type: 'linear', domain: [0, 1], nice: false }, color: { type: 'color' } },
+      marks: [{ type: 'rect', x: 'm', y: 'v1', y2: 'v0', color: 's' }],
+    });
+    assert.deepStrictEqual(h.diagnostics, []);
+    const heights = () => rects(svgOf(host).replace(/<clipPath[\s\S]*?<\/clipPath>/g, '')).map((r) => r.h);
+    const full = heights().reduce((a, b) => a + b, 0);
+    h.setView('color', ['x', 'z']);
+    await flush();
+    const left = heights();
+    assert.strictEqual(left.length, 2);
+    assert(Math.abs(left.reduce((a, b) => a + b, 0) - full) < 1, 'two series fill the whole height: ' + left + ' of ' + full);
+    h.destroy();
+    assert.throws(() => apply('stack', [{ m: 'a', v: 1 }], { field: 'v', by: 'm', follows: 'color' }), /needs "group"/);
+  });
+
+  test('transform.stack: without follows the domains and the table are what they were', () => {
+    const t = apply('stack', [{ m: 'a', s: 'x', v: 1 }], { field: 'v', by: 'm', group: 's' });
+    assert.deepStrictEqual(Array.from(t.columns.v1), [1]);
+    assert.strictEqual(BC.get('transform.stack').viewDependent({}), false);
+  });
+
+  test('guide.legend: a title takes a line of its own, on every kind of legend and side', () => {
+    BC.data('leg', [
+      { k: 'a', v: 1 },
+      { k: 'b', v: 2 },
+    ]);
+    for (const position of ['top', 'right', 'bottom', 'left']) {
+      const draw = (title) => {
+        const host = new FakeNode('div');
+        const h = BC.chart(host, {
+          data: 'leg',
+          scales: { x: { type: 'band' }, y: { type: 'linear' }, color: { type: 'color' } },
+          guides: [{ type: 'legend', scale: 'color', position, ...(title ? { title } : {}) }],
+          marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
+        });
+        const svg = host.children[0].serialize();
+        h.destroy();
+        return { svg, diagnostics: h.diagnostics };
+      };
+      const { svg, diagnostics } = draw('Region');
+      assert.deepStrictEqual(diagnostics, []);
+      assert.strictEqual(count(svg, /bc-legend-title/g), 1, position);
+      assert(svg.includes('Region'));
+      assert.strictEqual(count(draw().svg, /bc-legend-title/g), 0);
+    }
+  });
+
+  test('guide.legend: auto is a row, a column for long labels, and a row again when a column would not fit', () => {
+    const place = (labels, width) => {
+      BC.data(
+        'auto',
+        labels.map((k) => ({ k, v: 1 })),
+      );
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'auto',
+        size: [width, 400],
+        scales: { x: { type: 'band' }, y: { type: 'linear' }, color: { type: 'color' } },
+        guides: [{ type: 'legend', scale: 'color', position: 'auto' }],
+        marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
+      });
+      assert.deepStrictEqual(h.diagnostics, []);
+      const m = /class="bc-legend-item"[\s\S]*?<rect[^>]* x="([\d.]+)"[^>]* y="([\d.]+)"/.exec(host.children[0].serialize());
+      const out = { x: +m[1], y: +m[2] };
+      h.destroy();
+      return out;
+    };
+    assert(place(['a', 'b'], 640).y < 40, 'short labels: a row on top');
+    const long = Array.from({ length: 30 }, (_, i) => `A rather long category name ${i}`);
+    assert(place(long, 1400).x > 900, 'long labels on a wide chart: a column on the right');
+    assert(place(long, 400).y < 60, 'a phone has no room for that column');
+  });
+
+  test('tooltip: a table that says so has no lines for the fields a row does not have', async () => {
+    BC.data('box', [
+      { s: 'a', ms: 10 },
+      { s: 'a', ms: 11 },
+      { s: 'a', ms: 12 },
+      { s: 'a', ms: 13 },
+      { s: 'a', ms: 500 },
+    ]);
+    const t = apply('quartiles', [{ s: 'a', v: 1 }], { field: 'v', group: 's' });
+    assert.strictEqual(t.sparse, true);
   });
 
   // ───────────────────────── transform.marimekko ────
@@ -523,7 +813,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       assert(near((c.x1[i] - c.x0[i]) * (c.y1[i] - c.y0[i]), rows[i].v / 100), 'the area of a cell is its share of the whole');
     }
     assert(near(area, 1));
-    assert.deepStrictEqual(c.label, ['A', null, 'B', null]);
+    assert.deepStrictEqual(c.label, ['A', null, null, 'B'], 'on the tallest cell of each column');
     const gapped = apply('marimekko', rows, { field: 'v', category: 'c', gap: 0.02 }).columns;
     assert(gapped.x0[2] > gapped.x1[0], 'a gap between the columns');
   });

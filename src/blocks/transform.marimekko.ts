@@ -19,8 +19,8 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'marimekko',
-    version: 1,
-    doc: 'A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the top cell of its column, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out.',
+    version: 2,
+    doc: 'A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the tallest cell of its column, the one with room for it, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out.',
     params: {
       field: { kind: 'field', required: true, doc: 'The size of each cell (positive numbers; others are left out).' },
       category: { kind: 'field', required: true, doc: 'The field that makes the columns.' },
@@ -81,7 +81,7 @@
           share[i] = part;
           y -= part;
         }
-        label[g.rows[0]] = String(c);
+        label[g.rows.reduce((a, b) => ((values[b] as number) > (values[a] as number) ? b : a))] = String(c);
         left += width;
       });
 

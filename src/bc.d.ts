@@ -28,6 +28,8 @@ declare namespace BC {
   interface Table {
     readonly length: number;
     readonly columns: Readonly<Record<string, Column>>;
+    /** NaN in this table means the row has no such field, not that a value is missing: a tooltip leaves such a line out. */
+    readonly sparse?: boolean;
   }
 
   /** A dataset stored as text: the UTF-8 JSON of rows or { columns }, base64-encoded, optionally gzipped first.
@@ -420,7 +422,7 @@ declare namespace BC {
     /** true = the result depends on what is visible (level of detail, bins that refine when zooming). The transform,
      *  and every transform after it, runs again at every redraw with `view`; the ones before it run once. Scale
      *  domains are still inferred from the full data. */
-    viewDependent?: boolean;
+    viewDependent?: boolean | ((spec: TransformSpec) => boolean);
     apply(table: Table, spec: TransformSpec, view?: TransformView): Table;
     /** Names of the columns `apply` adds, so validation still knows every field after the transform ran. */
     outputs?(spec: TransformSpec): string[];
@@ -443,6 +445,8 @@ declare namespace BC {
     /** For a shape that stands for several rows, not for one (a Sankey node): what a tooltip shows instead of `row`'s fields.
      *  `row` still has to be a row of the table. A custom `content` function is not called for it. */
     card?: { title: string; color?: string; lines: [string, string][] };
+    /** Shapes a tooltip lights up while this is hovered, as SVG paths in chart coordinates (the flows of a Sankey node). */
+    flows?: { d: string; fill: string }[];
   }
 
   interface MarkDef extends BlockBase {
@@ -581,6 +585,8 @@ declare namespace BC {
     needs(spec: ChartSpec): BlockName[];
     /** Missing blocks, unknown params, dangling scale/field references. Never throws. */
     validate(spec: ChartSpec): Diagnostic[];
+    /** A dataset as a table, for the composer. Not on a composed page. */
+    table?(name: string): Table | undefined;
 
     chart(host: HTMLElement, spec: ChartSpec): ChartHandle;
     /** Load #bc-data, find every <script data-bc-chart>, mount. Runs automatically on DOMContentLoaded, unless

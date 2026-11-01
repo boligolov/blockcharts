@@ -237,8 +237,8 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'sankey',
-    version: 1,
-    doc: 'A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).',
+    version: 2,
+    doc: 'A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).',
     params: {
       nodeWidth: { kind: 'number', default: NODE_WIDTH, doc: 'Width of a node, in px.' },
       nodeGap: { kind: 'number', default: MAX_GAP, doc: 'Space between the nodes of a column, in px; it shrinks when a column is full.' },
@@ -269,20 +269,34 @@
       const right = ctx.plot.x + ctx.plot.w;
       const columns = Array.from(new Set(g.nodes.map((n) => n.x))).sort((a, b) => a - b);
       const room = (columns.length > 1 ? columns[1] - columns[0] : ctx.plot.w) - width - LABEL_GAP * 2;
+      // a label goes towards the middle of the chart: the last column writes it to its left, the rest to their right
+      const leftward = (n: Node) => n.x + width >= right - 0.5 && g.nodes.some((o) => o.x < n.x);
+      const total = (n: Node) => (write ? write(n.value) : null);
+      const widthAt = (n: Node) => ctx.measure(fitted(ctx, n.name, total(n), room), LABEL_SIZE).w;
+      // the last gap is written into from both sides: two labels at one height that do not fit together take half of it each
+      const limit = new Map<Node, number>();
+      const beforeLast = columns[columns.length - 2];
+      const labelled = g.nodes.filter((n) => n.h >= labelMin);
+      for (const a of labelled.filter((n) => n.x === beforeLast && !leftward(n)))
+        for (const b of labelled.filter(leftward)) {
+          const sameHeight = Math.abs(a.y + a.h / 2 - (b.y + b.h / 2)) < LABEL_SIZE + 2;
+          if (!sameHeight || widthAt(a) + widthAt(b) + LABEL_GAP <= room) continue;
+          limit.set(a, (room - LABEL_GAP) / 2);
+          limit.set(b, (room - LABEL_GAP) / 2);
+        }
       for (const n of g.nodes) {
         out.push({ type: 'rect', x: r2(n.x), y: r2(n.y), w: width, h: r2(Math.max(1, n.h)), style: { fill: n.color } });
         if (n.h < labelMin) continue;
-        // a label goes towards the middle of the chart: the last column writes it to its left, the rest to their right
-        const leftward = n.x + width >= right - 0.5 && g.nodes.some((o) => o.x < n.x);
-        const text = fitted(ctx, n.name, write ? write(n.value) : null, room);
+        const toLeft = leftward(n);
+        const text = fitted(ctx, n.name, total(n), limit.get(n) ?? room);
         if (!text) continue;
         out.push({
           type: 'text',
-          x: r2(leftward ? n.x - LABEL_GAP : n.x + width + LABEL_GAP),
+          x: r2(toLeft ? n.x - LABEL_GAP : n.x + width + LABEL_GAP),
           y: r2(n.y + n.h / 2),
           text,
           size: LABEL_SIZE,
-          anchor: leftward ? 'end' : 'start',
+          anchor: toLeft ? 'end' : 'start',
           baseline: 'middle',
           style: { fill: TEXT },
         });
@@ -314,6 +328,7 @@
           dist: 0,
           box: { x: n.x, y: n.y, w: width, h: Math.max(1, n.h) },
           card: { title: n.name, color: n.color, lines },
+          flows: n.ins.concat(n.outs).map((l) => ({ d: ribbon(l, width), fill: l.from.color })),
         };
       }
       // what is on top is what the pointer is on: the thinnest ribbons are drawn last

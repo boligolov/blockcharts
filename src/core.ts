@@ -556,8 +556,9 @@
               checkParams(path, s, def, ['scale', 'position']);
               if (s.scale !== undefined && (typeof s.scale !== 'string' || !scales[s.scale]))
                 err(`${path}.scale`, `scale "${String(s.scale)}" is not declared in scales`);
-              if (s.position !== undefined && SIDES.indexOf(s.position) < 0)
-                err(`${path}.position`, `position must be one of: ${SIDES.join(', ')}`);
+              const places: readonly string[] = s.type === 'legend' ? [...SIDES, 'auto'] : SIDES;
+              if (s.position !== undefined && places.indexOf(s.position) < 0)
+                err(`${path}.position`, `position must be one of: ${places.join(', ')}`);
             });
           }
 
@@ -700,7 +701,10 @@
     // 1 table + transforms. Transforms before the first view-dependent one run once; that one and the rest run at every
     // redraw (see draw), on the table the static ones produced. Scale domains come from that static table: the full data.
     const transformSpecs = spec.transforms || [];
-    const viewDependent = (ts: BC.TransformSpec) => !!(registry.get(`transform.${ts.type}`) as BC.TransformDef).viewDependent;
+    const viewDependent = (ts: BC.TransformSpec) => {
+      const v = (registry.get(`transform.${ts.type}`) as BC.TransformDef).viewDependent;
+      return typeof v === 'function' ? v(ts) : !!v;
+    };
     const firstDynamic = transformSpecs.findIndex(viewDependent);
     const staticCount = firstDynamic < 0 ? transformSpecs.length : firstDynamic;
     let table = lake.get(spec.data)!;
@@ -711,6 +715,13 @@
     });
     const baseTable = table;
     const dynamicSpecs = transformSpecs.slice(staticCount);
+    // Scales take their domains from `table` next. A transform that needs a view only when asked to follow one can also run
+    // without it, and what it writes may be what a scale reads; decimate cannot.
+    for (const ts of dynamicSpecs) {
+      const def = registry.get(`transform.${ts.type}`) as BC.TransformDef;
+      if (def.viewDependent === true) break;
+      table = def.apply(table, ts);
+    }
 
     // 2 layout, first guess
     const size = { w: spec.size ? spec.size[0] : 640, h: spec.size ? spec.size[1] : 400 };
@@ -1668,6 +1679,7 @@
     // without CHECKS they are not there at all: a page script that calls them fails loudly instead of being told "no problems"
     needs,
     validate,
+    table: (name) => lake.get(name),
     chart,
     mount,
   };

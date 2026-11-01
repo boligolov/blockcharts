@@ -115,11 +115,12 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'treemap',
-    version: 2,
-    doc: 'A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.',
+    version: 3,
+    doc: 'A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.',
     params: {
       field: { kind: 'field', required: true, doc: 'The size of each cell (positive numbers; others are left out).' },
       group: { kind: 'field', doc: 'Field that gathers cells into blocks, one per distinct value.' },
+      subgroup: { kind: 'field', doc: 'Field that gathers the cells of a block into smaller blocks: a third level. Needs `group`.' },
       name: { kind: 'field', doc: "Field with each cell's name, copied to `label` for cells that are big enough." },
       aspect: {
         kind: 'number',
@@ -146,6 +147,7 @@
         [
           ['field', spec.field],
           ['group', spec.group],
+          ['subgroup', spec.subgroup],
           ['name', spec.name],
         ],
         [
@@ -159,6 +161,8 @@
       );
       const values = table.columns[String(spec.field)] || [];
       const groups = typeof spec.group === 'string' ? table.columns[spec.group] : undefined;
+      const subgroups = typeof spec.subgroup === 'string' ? table.columns[spec.subgroup] : undefined;
+      if (subgroups && !groups) fail('"subgroup" divides the blocks of "group", so it needs "group"');
       const labels = typeof spec.name === 'string' ? table.columns[spec.name] : undefined;
       const aspect = typeof spec.aspect === 'number' && spec.aspect > 0 && isFinite(spec.aspect) ? spec.aspect : 1.6;
       const pad = typeof spec.padding === 'number' && spec.padding >= 0 ? Math.min(0.1, spec.padding) : 0.004;
@@ -176,23 +180,24 @@
       // the layout works in a box as wide as the plot is (height 1), then is divided back into 0..1
       const box: Box = { x: 0, y: 0, w: aspect, h: 1 };
       const cells = new Map<number, Box>();
-      if (groups) {
+      /** Lays items into a box, gathered by each of `levels` in turn: a block per value, then the next level inside it. */
+      const lay = (list: Item[], into: Box, levels: BC.Column[]): void => {
+        if (!levels.length) return squarify(scaled(list, into), into, cells);
         const byGroup = new Map<unknown, Item[]>();
-        for (const it of items) {
-          const g = groups[it.i];
+        for (const it of list) {
+          const g = levels[0][it.i];
           if (!byGroup.has(g)) byGroup.set(g, []);
           byGroup.get(g)!.push(it);
         }
-        const blocks = Array.from(byGroup.values()).map((list, k) => ({ i: k, v: list.reduce((a, it) => a + it.v, 0), list }));
+        const blocks = Array.from(byGroup.values()).map((part, k) => ({ i: k, v: part.reduce((a, it) => a + it.v, 0), part }));
         const blockBoxes = new Map<number, Box>();
-        squarify(scaled(blocks, box), box, blockBoxes);
+        squarify(scaled(blocks, into), into, blockBoxes);
         blocks.forEach((b) => {
           const bb = blockBoxes.get(b.i);
-          if (bb) squarify(scaled(b.list, bb), bb, cells);
+          if (bb) lay(b.part, bb, levels.slice(1));
         });
-      } else {
-        squarify(scaled(items, box), box, cells);
-      }
+      };
+      lay(items, box, groups ? (subgroups ? [groups, subgroups] : [groups]) : []);
 
       const x0 = new Float64Array(table.length).fill(NaN);
       const x1 = new Float64Array(table.length).fill(NaN);

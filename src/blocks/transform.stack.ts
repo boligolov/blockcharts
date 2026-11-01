@@ -11,17 +11,22 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'stack',
-    version: 1,
-    doc: "Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area.",
+    version: 2,
+    viewDependent: (spec) => typeof spec.follows === 'string',
+    doc: "Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again.",
     params: {
       field: { kind: 'field', required: true, doc: 'Numeric field to stack.' },
       by: { kind: 'field', required: true, doc: 'Field whose values are the stacks (the x of a stacked bar).' },
       group: { kind: 'field', doc: 'Field that tells the series apart. Without it rows stack in data order.' },
       as: { kind: 'list', doc: 'Names of the two new columns: [start, end].' },
       normalize: { kind: 'boolean', default: false, doc: 'Scale every stack to 0..1 (100% stacked).' },
+      follows: {
+        kind: 'scale',
+        doc: 'The color scale of `group`: series it does not show (a legend filter hid them) are left out of the stack. Without it they leave a gap, and a 100% stack keeps counting them.',
+      },
     },
     outputs: (spec) => outputNames(spec),
-    apply(table, spec) {
+    apply(table, spec, ctx) {
       const field = spec.field as string;
       const by = spec.by as string;
       const values = table.columns[field];
@@ -32,6 +37,10 @@
       if (typeof spec.group === 'string' && !groups) throw new Error(`transform.stack: unknown field "${spec.group}"`);
       const [as0, as1] = outputNames(spec);
       const n = table.length;
+      if (typeof spec.follows === 'string' && !groups) throw new Error('transform.stack: "follows" needs "group"');
+      // before the scales exist (their domains are read from this table), everything is shown
+      const follow = ctx && typeof spec.follows === 'string' ? ctx.scales[spec.follows] : undefined;
+      const shown = follow ? new Set(follow.domain() as unknown[]) : null;
 
       // series order = first appearance in the data, the same for every stack
       const rank = new Map<unknown, number>();
@@ -53,7 +62,7 @@
         let down = 0;
         for (const i of rows) {
           const v = values[i];
-          if (typeof v !== 'number' || !isFinite(v)) {
+          if (typeof v !== 'number' || !isFinite(v) || (shown && !shown.has((groups as BC.Column)[i]))) {
             start[i] = NaN;
             end[i] = NaN;
           } else if (v >= 0) {

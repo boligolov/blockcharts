@@ -7,7 +7,6 @@
   const MONTH = YEAR / 12;
   const FIXED = [1 * S, 5 * S, 15 * S, 30 * S, M, 5 * M, 15 * M, 30 * M, H, 3 * H, 6 * H, 12 * H, D, 2 * D, 7 * D];
   const MONTHS = [1, 3, 6];
-  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   // 1970-01-01 is a Thursday; shift 7-day steps so weeks start on Monday.
   const WEEK_OFFSET = 4 * D;
 
@@ -34,7 +33,7 @@
 
   function labelFixed(t: number, step: number): string {
     const d = new Date(t);
-    if (step >= D) return `${MON[d.getUTCMonth()]} ${d.getUTCDate()}`;
+    if (step >= D) return BC.formatter({ month: 'short', day: 'numeric' }, 'date')(t);
     const hm = `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
     return step < M ? `${hm}:${pad2(d.getUTCSeconds())}` : hm;
   }
@@ -59,7 +58,7 @@
         const t = Date.UTC(Math.floor(idx / 12), idx % 12, 1);
         if (!isFinite(t) || t > d1) break;
         if (t < d0) continue;
-        out.push({ t, label: `${MON[idx % 12]} ${Math.floor(idx / 12)}` });
+        out.push({ t, label: BC.formatter({ month: 'short', year: 'numeric' }, 'date')(t) });
       }
       return out;
     }
@@ -77,8 +76,8 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'time',
-    version: 3,
-    doc: 'Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years). Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.',
+    version: 4,
+    doc: 'Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.',
     params: {
       padding: { kind: 'number', default: 0, doc: 'Extra room around the data extent, as a fraction of its span.' },
     },

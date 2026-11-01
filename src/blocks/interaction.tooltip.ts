@@ -17,7 +17,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 11,
+    version: 12,
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.',
     params: {
       fields: { kind: 'list', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
@@ -128,6 +128,11 @@
         outline: '1.5px solid var(--bc-tooltip-highlight-line, rgba(127,127,127,.45))',
         outlineOffset: '-1.5px',
       });
+      // the flows a hovered shape lights up: over the chart, so it works the same on SVG and canvas
+      const flows = doc.createElementNS('http://www.w3.org/2000/svg', 'svg') as unknown as SVGSVGElement;
+      flows.setAttribute('class', 'bc-tooltip-flows');
+      Object.assign(flows.style, { position: 'absolute', display: 'none', pointerEvents: 'none' });
+      host.appendChild(flows);
       host.appendChild(dot);
       host.appendChild(highlight);
       host.appendChild(tip);
@@ -174,6 +179,7 @@
         tip.style.display = 'none';
         dot.style.display = 'none';
         highlight.style.display = 'none';
+        flows.style.display = 'none';
       };
 
       const toLogical = (ev: MouseEvent) => {
@@ -227,6 +233,8 @@
           const col = live.table.columns[field];
           if (!col || seen.has(field)) return;
           seen.add(field);
+          // the summary and outlier rows of transform.quartiles do not share their fields
+          if (live.table.sparse && typeof col[row] === 'number' && isNaN(col[row] as number)) return;
           out.push([labels[field] || field, write(field, row)]);
         };
         if (only) {
@@ -347,6 +355,24 @@
         const k = rect.width / live.size.w;
         const ax = rect.left - hostBox.left + pick.x * k;
         const ay = rect.top - hostBox.top + pick.y * k;
+        flows.textContent = '';
+        for (const f of pick.flows || []) {
+          const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', f.d);
+          path.setAttribute('fill', f.fill);
+          path.setAttribute('fill-opacity', '0.5');
+          flows.appendChild(path);
+        }
+        if (pick.flows && pick.flows.length) {
+          flows.setAttribute('viewBox', `0 0 ${live.size.w} ${live.size.h}`);
+          Object.assign(flows.style, {
+            left: rect.left - hostBox.left + 'px',
+            top: rect.top - hostBox.top + 'px',
+            width: rect.width + 'px',
+            height: rect.height + 'px',
+            display: 'block',
+          });
+        } else flows.style.display = 'none';
         const useBox = markerMode === 'box' || (markerMode === 'auto' && !!pick.box);
         if (useBox && pick.box) {
           Object.assign(highlight.style, {
@@ -435,7 +461,7 @@
         root.removeEventListener('pointercancel', onCancel);
         root.removeEventListener('wheel', onCancel);
         if (typeof doc.removeEventListener === 'function') doc.removeEventListener('pointerdown', onOutside, true);
-        for (const el of [tip, dot, highlight]) if (el.parentNode) el.parentNode.removeChild(el);
+        for (const el of [tip, dot, highlight, flows]) if (el.parentNode) el.parentNode.removeChild(el);
         releasePosition();
       });
     },

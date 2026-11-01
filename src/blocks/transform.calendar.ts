@@ -18,8 +18,8 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'calendar',
-    version: 1,
-    doc: 'The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first.',
+    version: 2,
+    doc: 'The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week; a weekday with no rows gets one empty row, with no `week` to be drawn at, so that it keeps its place on the axis. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first.',
     params: {
       field: { kind: 'field', required: true, doc: 'The date of each row.' },
       weekStart: { kind: 'enum', values: ['monday', 'sunday'], default: 'monday', doc: 'The first day of a week.' },
@@ -50,15 +50,20 @@
         const into = (((day / DAY + EPOCH_WEEKDAY - first) % 7) + 7) % 7;
         rows.push({ row, day, into });
       }
+      // the band scale lists what it meets, so a weekday the data never falls on needs a row of its own to stay on the axis
+      if (rows.length) {
+        for (let into = 0; into < 7; into++)
+          if (!rows.some((r) => r.into === into)) rows.push({ row: -1, day: (into + first + 3) * DAY, into });
+      }
       rows.sort((a, b) => a.into - b.into || a.day - b.day || a.row - b.row);
 
       const columns: Record<string, BC.Column> = {};
       for (const name of Object.keys(table.columns)) {
         const from = table.columns[name];
-        columns[name] = rows.map((r) => from[r.row]) as BC.Column;
+        columns[name] = rows.map((r) => (r.row < 0 ? null : from[r.row])) as BC.Column;
       }
-      columns[n.week] = rows.map((r) => isoDay(r.day - r.into * DAY));
-      columns[n.weekEnd] = rows.map((r) => isoDay(r.day + (7 - r.into) * DAY));
+      columns[n.week] = rows.map((r) => (r.row < 0 ? null : isoDay(r.day - r.into * DAY))) as BC.Column;
+      columns[n.weekEnd] = rows.map((r) => (r.row < 0 ? null : isoDay(r.day + (7 - r.into) * DAY))) as BC.Column;
       columns[n.day] = rows.map((r) => writeDay(r.day));
       return { length: rows.length, columns };
     },
