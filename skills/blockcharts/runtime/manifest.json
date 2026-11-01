@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 28677,
+    "bytes": 30048,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 23404,
+        "bytes": 24778,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 20394,
+        "bytes": 21766,
         "off": [
           "CHECKS",
           "DECODE"
@@ -66,8 +66,8 @@
     },
     "scale.linear": {
       "file": "blocks/scale.linear.js",
-      "bytes": 1880,
-      "version": 3,
+      "bytes": 1914,
+      "version": 4,
       "requires": [],
       "closure": [
         "scale.linear"
@@ -93,8 +93,8 @@
     },
     "scale.log": {
       "file": "blocks/scale.log.js",
-      "bytes": 1697,
-      "version": 1,
+      "bytes": 1864,
+      "version": 2,
       "requires": [],
       "closure": [
         "scale.log"
@@ -103,10 +103,10 @@
         "nice": {
           "kind": "boolean",
           "default": true,
-          "doc": "Extend the inferred domain to whole powers of ten."
+          "doc": "Extend the inferred domain to round values."
         }
       },
-      "doc": "Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain."
+      "doc": "Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten, or to 1, 2 or 5 of a power when the data spans less than two of them. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain."
     },
     "scale.sequential": {
       "file": "blocks/scale.sequential.js",
@@ -918,7 +918,7 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3622,
+      "bytes": 3685,
       "version": 12,
       "requires": [
         "lib.curve"
@@ -1069,8 +1069,8 @@
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",
-      "bytes": 2449,
-      "version": 9,
+      "bytes": 3212,
+      "version": 10,
       "requires": [],
       "closure": [
         "mark.rect"
@@ -1154,12 +1154,12 @@
           "doc": "Field that splits the band-scale axis into side-by-side bars, one per distinct value (grouped bar). Usually the same field as `color`. One distinct value (or none) draws a plain bar, unchanged."
         }
       },
-      "doc": "Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field)."
+      "doc": "Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field)."
     },
     "mark.rule": {
       "file": "blocks/mark.rule.js",
-      "bytes": 2074,
-      "version": 4,
+      "bytes": 2105,
+      "version": 5,
       "requires": [],
       "closure": [
         "mark.rule"
@@ -1233,12 +1233,12 @@
           "doc": "Line color per row, from a color scale."
         }
       },
-      "doc": "Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ \"value\": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it."
+      "doc": "Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ \"value\": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it."
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 3747,
-      "version": 5,
+      "bytes": 3897,
+      "version": 6,
       "requires": [],
       "closure": [
         "mark.text"
@@ -1364,12 +1364,12 @@
           "doc": "The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. Rows with no such color get no text."
         }
       },
-      "doc": "A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as \"percent\" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap). A label that does not fit is drawn smaller, down to `minSize`, and is left out below that."
+      "doc": "A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as \"percent\" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline \"middle\" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that."
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 4570,
-      "version": 9,
+      "bytes": 5629,
+      "version": 10,
       "requires": [],
       "closure": [
         "guide.axis"
@@ -1432,8 +1432,8 @@
     },
     "guide.kpi": {
       "file": "blocks/guide.kpi.js",
-      "bytes": 3348,
-      "version": 5,
+      "bytes": 3456,
+      "version": 6,
       "requires": [],
       "closure": [
         "guide.kpi"
@@ -1486,7 +1486,12 @@
         },
         "deltaFormat": {
           "kind": "any",
-          "doc": "How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { \"maximumFractionDigits\": 1, \"suffix\": \" pp\" }. A preset or an object of Intl options, as in `format`. With delta \"percent\" it gets the change as a fraction (0.12 for 12%)."
+          "doc": "How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { \"maximumFractionDigits\": 1, \"suffix\": \" pp\" }. A preset or an object of Intl options, as in `format`. With delta \"percent\" it gets the change as a fraction (0.12 for 12%). It writes the difference in the units of the field, so a share kept as 0..1 needs `deltaScale`."
+        },
+        "deltaScale": {
+          "kind": "number",
+          "default": 1,
+          "doc": "What an absolute change is multiplied by before it is written: 100 for a share kept as 0..1 that moved by 0.093 and is to read \"+9.3 pp\"."
         },
         "better": {
           "kind": "enum",
@@ -1666,8 +1671,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 8652,
-      "version": 8,
+      "bytes": 8658,
+      "version": 9,
       "requires": [],
       "closure": [
         "interaction.tooltip"
@@ -1747,8 +1752,8 @@
     },
     "interaction.zoom-controls": {
       "file": "blocks/interaction.zoom-controls.js",
-      "bytes": 2824,
-      "version": 4,
+      "bytes": 2960,
+      "version": 5,
       "requires": [],
       "closure": [
         "interaction.zoom-controls"
@@ -1774,6 +1779,10 @@
           "kind": "number",
           "default": 50,
           "doc": "How far \"+\" can go, as a multiple of the full domain."
+        },
+        "titles": {
+          "kind": "any",
+          "doc": "What the buttons say to a mouse and to a screen reader, in the language of the page: { \"reset\": \"...\", \"out\": \"...\", \"in\": \"...\" }. Default English."
         },
         "corner": {
           "kind": "enum",

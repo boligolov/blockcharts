@@ -13,6 +13,8 @@
 //   charts  [ spec | { spec, title?, note?, noteHtml?, span?, minWidth? } | { section, note? } ]   each chart sits in a card; span =
 //           how many grid columns it takes; minWidth = the px below which the chart keeps its width and its card scrolls sideways.
 //           { section } is a heading over the whole width that starts a group of cards
+//   lang    the language of the page ("ko", "ja", "zh-CN"): <html lang>, the font for that language, and the language numbers
+//           and dates are written in. A { section } or a chart entry can take a lang of its own; a section's lasts until the next
 //   title / subtitle  the page heading (and the <title>) and one line under it
 //   layout  { columns: 1..12 } a dashboard grid: charts fill it left to right, a card takes `span` columns (default: the full row);
 //           on a narrow screen every card takes the full width
@@ -66,12 +68,16 @@ const plain = (v) => JSON.parse(JSON.stringify(v));
 const DEFAULT_CSS = [
   ':root{--bg:#f4f5f7;--card:#fff;--fg:#0f172a;--muted:#64748b;--line:#e4e7ec;',
   '--bc-text:#1e293b;--bc-label:#64748b;--bc-axis:#cbd2dc;--bc-grid:#edf0f4;--bc-tooltip-bg:#fff;--bc-kpi:#0f172a;--bc-good:#11a05a;--bc-bad:#e5484d;',
-  '--bc-c0:#3a6fe4;--bc-c1:#16a39d;--bc-c2:#f29b38;--bc-c3:#e0527a;--bc-c4:#8a6be8;--bc-c5:#5d718f;--bc-c6:#2e9e62;--bc-c7:#ea7b4f}',
+  '--bc-c0:#3a6fe4;--bc-c1:#16a39d;--bc-c2:#f29b38;--bc-c3:#e0527a;--bc-c4:#8a6be8;--bc-c5:#5d718f;--bc-c6:#2e9e62;--bc-c7:#ea7b4f;--bc-c8:#8c6d46;--bc-c9:#a3ad3a;--bc-c10:#1f7a9c;--bc-c11:#b0479a}',
   '@media (prefers-color-scheme:dark){:root{--bg:#0c1016;--card:#141a22;--fg:#e8edf4;--muted:#8a96a8;--line:#232b36;',
   '--bc-text:#d9e0ea;--bc-label:#8a96a8;--bc-axis:#3a4452;--bc-grid:#212a35;--bc-tooltip-bg:#1b2330;--bc-kpi:#f3f6fa;--bc-good:#3dc57f;--bc-bad:#ff6b6f;',
-  '--bc-c0:#6f98f4;--bc-c1:#3cc7c0;--bc-c2:#f6b25e;--bc-c3:#f27b9b;--bc-c4:#a88ff3;--bc-c5:#8fa2bd;--bc-c6:#55c68b;--bc-c7:#f69a73}}',
+  '--bc-c0:#6f98f4;--bc-c1:#3cc7c0;--bc-c2:#f6b25e;--bc-c3:#f27b9b;--bc-c4:#a88ff3;--bc-c5:#8fa2bd;--bc-c6:#55c68b;--bc-c7:#f69a73;--bc-c8:#c4a57a;--bc-c9:#c6d05e;--bc-c10:#58b4d6;--bc-c11:#dc7cc6}}',
   '*{box-sizing:border-box}',
   'body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased}',
+  ':lang(ja){font-family:Inter,"Hiragino Sans","Yu Gothic UI","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif}',
+  ':lang(ko){font-family:Inter,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans CJK KR",sans-serif}',
+  ':lang(zh){font-family:Inter,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif}',
+  ':lang(zh-Hant),:lang(zh-TW),:lang(zh-HK){font-family:Inter,"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif}',
   '.bc-page{max-width:880px;margin:0 auto;padding:32px 20px 56px}.bc-page.bc-wide{max-width:1240px}',
   '.bc-header{margin:0 0 20px}.bc-header h1{font-size:24px;line-height:1.2;letter-spacing:-.02em;margin:0 0 4px}.bc-header p{margin:0;color:var(--muted)}',
   '.bc-grid{display:grid;grid-template-columns:repeat(var(--bc-cols,1),minmax(0,1fr));gap:16px}',
@@ -280,17 +286,28 @@ function compose(opts) {
   if (!Number.isInteger(columns) || columns < 1 || columns > 12)
     throw new ComposeError('layout.columns must be a whole number from 1 to 12');
   const ids = new Map();
+  const validLang = (v, where) => {
+    if (v !== undefined && (typeof v !== 'string' || !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(v)))
+      throw new ComposeError(`${where} must be a language tag like "ko" or "zh-CN"`);
+    return v;
+  };
+  const pageLang = validLang(options.lang, 'lang');
+  let groupLang = pageLang;
   const entries = options.charts.map((c, i) => {
     if (c && c.section !== undefined) {
       if (typeof c.section !== 'string' || !c.section.trim())
         throw new ComposeError(`charts[${i}].section must be the text of the heading`);
       if (c.spec !== undefined) throw new ComposeError(`charts[${i}] has both "section" and "spec": a section is a heading of its own`);
       if (c.note !== undefined && typeof c.note !== 'string') throw new ComposeError(`charts[${i}].note must be text`);
-      const stray = Object.keys(c).filter((k) => k !== 'section' && k !== 'note');
-      if (stray.length) throw new ComposeError(`charts[${i}]: a section takes "section" and "note", not "${stray.join('", "')}"`);
-      return c;
+      const stray = Object.keys(c).filter((k) => k !== 'section' && k !== 'note' && k !== 'lang');
+      if (stray.length) throw new ComposeError(`charts[${i}]: a section takes "section", "note" and "lang", not "${stray.join('", "')}"`);
+      groupLang = validLang(c.lang, `charts[${i}].lang`) || pageLang;
+      return { ...c, lang: groupLang };
     }
     const entry = c && c.spec ? { ...c, index: i } : { spec: c, index: i };
+    entry.lang = validLang(entry.lang, `charts[${i}].lang`) || groupLang;
+    if (entry.lang && entry.spec && typeof entry.spec === 'object' && entry.spec.locale === undefined)
+      entry.spec = { ...entry.spec, locale: entry.lang };
     if (entry.minWidth !== undefined && (!Number.isFinite(entry.minWidth) || entry.minWidth <= 0 || entry.minWidth > 4000))
       throw new ComposeError(`charts[${i}].minWidth must be a width in px, from 1 to 4000`);
     if (entry.span !== undefined && (!Number.isInteger(entry.span) || entry.span < 1 || entry.span > columns)) {
@@ -450,14 +467,15 @@ function compose(opts) {
   // every chart is a card in the grid; a card spans `span` columns (the whole row by default)
   // under section headings a card's title is one level down
   const titleTag = entries.length > charts.length ? 'h3' : 'h2';
-  const section = ({ spec, title, note, noteHtml, span, minWidth }) => {
+  const langAttr = (lang) => (lang && lang !== pageLang ? ` lang="${lang}"` : '');
+  const section = ({ spec, title, note, noteHtml, span, minWidth, lang }) => {
     const script = `<script type="application/json" data-bc-chart>${jsonForScript(spec)}</script>`;
     const tag = minWidth ? `<div class="bc-scroll"><div style="min-width:${minWidth}px">${script}</div></div>` : script;
     const width = columns > 1 ? ` style="grid-column:span ${span || columns}"` : '';
-    return `<section class="bc-section"${width}>${title ? `<${titleTag}>${escapeText(title)}</${titleTag}>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
+    return `<section class="bc-section"${langAttr(lang)}${width}>${title ? `<${titleTag}>${escapeText(title)}</${titleTag}>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
   };
-  const heading = ({ section: text, note }) =>
-    `<div class="bc-group"><h2>${escapeText(text)}</h2>${note ? `<p>${escapeText(note)}</p>` : ''}</div>`;
+  const heading = ({ section: text, note, lang }) =>
+    `<div class="bc-group"${langAttr(lang)}><h2>${escapeText(text)}</h2>${note ? `<p>${escapeText(note)}</p>` : ''}</div>`;
   const header =
     options.title || options.subtitle
       ? `<header class="bc-header">${options.title ? `<h1>${escapeText(options.title)}</h1>` : ''}${options.subtitle ? `<p>${escapeText(options.subtitle)}</p>` : ''}</header>`
@@ -465,7 +483,7 @@ function compose(opts) {
 
   const html = [
     '<!doctype html>',
-    '<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">',
+    `<html lang="${pageLang || 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`,
     `<title>${escapeText(options.title || 'Charts')}</title>`,
     styleTag([options.defaultCss === false ? '' : DEFAULT_CSS, options.css ? String(options.css) : '']),
     '</head><body>',

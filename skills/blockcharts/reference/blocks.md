@@ -48,7 +48,7 @@ Version 2, 0.8 KB. Categorical color scale: one color per distinct value, in fir
 
 ## scale.linear
 
-Version 3, 1.8 KB. Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.
+Version 4, 1.9 KB. Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -58,11 +58,11 @@ Version 3, 1.8 KB. Continuous numeric scale. Domain is inferred from bound chann
 
 ## scale.log
 
-Version 1, 1.7 KB. Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain.
+Version 2, 1.8 KB. Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten, or to 1, 2 or 5 of a power when the data spans less than two of them. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `nice` | boolean | `true` | Extend the inferred domain to whole powers of ten. |
+| `nice` | boolean | `true` | Extend the inferred domain to round values. |
 
 ## scale.sequential
 
@@ -308,7 +308,7 @@ Version 2, 2.7 KB. A box (q1 to q3), a line across it at the median, and whisker
 
 ## mark.line
 
-Version 12, 3.5 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
+Version 12, 3.6 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
 
 Needs: `lib.curve`.
 
@@ -350,7 +350,7 @@ Version 9, 1.6 KB. One circle per row. Channels x and y, optional color (a field
 
 ## mark.rect
 
-Version 9, 2.4 KB. Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field).
+Version 10, 3.1 KB. Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field).
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -372,7 +372,7 @@ Version 9, 2.4 KB. Rectangles. On a band scale a channel spans the band; on a co
 
 ## mark.rule
 
-Version 4, 2.0 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values. The same line is drawn once however many rows repeat it.
+Version 5, 2.1 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -393,7 +393,7 @@ Version 4, 2.0 KB. Lines at values: a target, a threshold, an average, the targe
 
 ## mark.text
 
-Version 5, 3.7 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap). A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
+Version 6, 3.8 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -421,7 +421,7 @@ Version 5, 3.7 KB. A text label per row at (x, y): value labels on bars, annotat
 
 ## guide.axis
 
-Version 9, 4.5 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.
+Version 10, 5.5 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -442,7 +442,7 @@ Version 1, 0.4 KB. Grid lines at the ticks of a positional scale (the same ticks
 
 ## guide.kpi
 
-Version 5, 3.3 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
+Version 6, 3.4 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -452,7 +452,8 @@ Version 5, 3.3 KB. A key figure as the heading of a chart: a label, the value in
 | `compare` | one of `previous`, `first`, `none` |  | What the change is measured against: the row before the last ("previous", the default with aggregate "last"), the first row ("first": change over the period), or nothing. "previous" and "first" compare single rows, so they go with aggregate "last" only; a sum or a mean is compared through `against`. |
 | `against` | field |  | Compare with another field instead, aggregated the same way (a target, the same period last year). |
 | `delta` | one of `percent`, `absolute` | `"percent"` | The change as a percentage of the comparison, or as a difference written with `format` (or `deltaFormat`). |
-| `deltaFormat` | any |  | How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { "maximumFractionDigits": 1, "suffix": " pp" }. A preset or an object of Intl options, as in `format`. With delta "percent" it gets the change as a fraction (0.12 for 12%). |
+| `deltaFormat` | any |  | How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { "maximumFractionDigits": 1, "suffix": " pp" }. A preset or an object of Intl options, as in `format`. With delta "percent" it gets the change as a fraction (0.12 for 12%). It writes the difference in the units of the field, so a share kept as 0..1 needs `deltaScale`. |
+| `deltaScale` | number | `1` | What an absolute change is multiplied by before it is written: 100 for a share kept as 0..1 that moved by 0.093 and is to read "+9.3 pp". |
 | `better` | one of `up`, `down` | `"up"` | Which way is good: "down" for costs, churn, response times. |
 | `format` | any |  | How to write the value (a preset such as "compact" or "percent", or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }). |
 | `note` | string |  | A few words after the change: "vs last month", "vs target". |
@@ -509,7 +510,7 @@ Version 1, 1.9 KB. Click an item of a categorical legend to hide or show that ca
 
 ## interaction.tooltip
 
-Version 8, 8.4 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.
+Version 9, 8.5 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -533,7 +534,7 @@ Version 5, 3.2 KB. Wheel zoom around the cursor, drag to pan, double-click to re
 
 ## interaction.zoom-controls
 
-Version 4, 2.8 KB. A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).
+Version 5, 2.9 KB. A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -541,6 +542,7 @@ Version 4, 2.8 KB. A small button bar over one corner of the chart: "100%" clear
 | `fit` | list |  | Scales to refit after a "−"/"+" click (usually ["y"]), the same as interaction.zoom's `fit`. |
 | `step` | number | `0.5` | How much "−"/"+" grow or shrink a continuous scale's span, as a factor of the current span (0.5 = double/halve). |
 | `maxZoom` | number | `50` | How far "+" can go, as a multiple of the full domain. |
+| `titles` | any |  | What the buttons say to a mouse and to a screen reader, in the language of the page: { "reset": "...", "out": "...", "in": "..." }. Default English. |
 | `corner` | one of `top-right`, `top-left`, `bottom-right`, `bottom-left` | `"top-right"` | Which corner of the chart the buttons sit in. |
 
 ## renderer.canvas
