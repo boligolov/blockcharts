@@ -1,0 +1,34 @@
+{
+  "title": "Small multiples",
+  "data": {
+    "sales": { "csv": "month,region,product,units\n2024-01-01,North,Coffee,120\n2024-01-01,North,Tea,80\n2024-02-01,North,Coffee,132\n2024-02-01,North,Tea,84\n2024-03-01,North,Coffee,141\n2024-03-01,North,Tea,79\n2024-04-01,North,Coffee,150\n2024-04-01,North,Tea,88\n2024-01-01,South,Coffee,64\n2024-01-01,South,Tea,110\n2024-02-01,South,Coffee,70\n2024-02-01,South,Tea,118\n2024-03-01,South,Coffee,73\n2024-03-01,South,Tea,126\n2024-04-01,South,Coffee,81\n2024-04-01,South,Tea,133\n2024-01-01,East,Coffee,35\n2024-01-01,East,Tea,42\n2024-02-01,East,Coffee,39\n2024-02-01,East,Tea,41\n2024-03-01,East,Coffee,44\n2024-03-01,East,Tea,46\n2024-04-01,East,Coffee,52\n2024-04-01,East,Tea,47\n2024-01-01,West,Coffee,91\n2024-01-01,West,Tea,30\n2024-02-01,West,Coffee,88\n2024-02-01,West,Tea,33\n2024-03-01,West,Coffee,95\n2024-03-01,West,Tea,31\n2024-04-01,West,Coffee,102\n2024-04-01,West,Tea,36\n" }
+  },
+  "charts": [
+    {
+      "title": "Units by product, one panel per region",
+      "note": "`facet` draws the chart once for each value of a field, on the same axes, so the panels can be compared at a glance. The legend is drawn once, above them.",
+      "facet": { "field": "region", "columns": 2 },
+      "spec": {
+        "data": "sales",
+        "size": [300, 180],
+        "padding": { "top": 8, "right": 8, "bottom": 8, "left": 8 },
+        "scales": {
+          "x": { "type": "time" },
+          "y": { "type": "linear", "zero": true },
+          "color": { "type": "color" }
+        },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x", "format": { "month": "short" } },
+          { "type": "axis", "scale": "y" },
+          { "type": "legend", "scale": "color", "position": "top" }
+        ],
+        "marks": [{ "type": "line", "x": "month", "y": "units", "color": "product", "curve": "smooth" }],
+        "interaction": [
+          { "type": "tooltip", "fields": ["month", "product", "units"], "formats": { "month": "month" } },
+          { "type": "crosshair" }
+        ]
+      }
+    }
+  ]
+}

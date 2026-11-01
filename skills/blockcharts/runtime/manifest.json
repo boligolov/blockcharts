@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 30048,
+    "bytes": 30057,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 24778,
+        "bytes": 24787,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 21766,
+        "bytes": 21775,
         "off": [
           "CHECKS",
           "DECODE"
