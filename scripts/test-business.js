@@ -643,6 +643,18 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(on('#edc948').includes('#111'));
   });
 
+  test('mark.text: on a palette color the text is what the page says reads on it, with a fallback', () => {
+    BC.data('palette', [{ k: 'a' }]);
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      data: 'palette',
+      scales: { x: { type: 'band' }, y: { type: 'band' }, color: { type: 'color' } },
+      marks: [{ type: 'text', x: 'k', y: 'k', text: 'k', on: 'k' }],
+    });
+    assert(/var\(--bc-on-c0, #(fff|111)\)/.test(svgOf(host)), svgOf(host));
+    h.destroy();
+  });
+
   test('transform.bin: log bins are equal ratios, and only positive values count', () => {
     const rows = [1, 3, 10, 30, 100, 1000, 0, -5, null].map((v) => ({ v }));
     const t = apply('bin', rows, { field: 'v', log: true, width: 1 });

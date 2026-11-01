@@ -5,6 +5,15 @@
   /** Relative luminance of DARK, which is not black: comparing with black favors dark text on mid blues. */
   const DARK_LUMINANCE = 0.0056;
 
+  /** The text color for a background. A palette color can differ per page and theme, and only the browser knows which one
+   *  is on, so a page says what reads on it with --bc-on-c<N>; the value worked out from the fallback is for a page that
+   *  does not. A renderer resolves it like any variable, also when the theme changes. */
+  function inkOn(background: unknown): string | null {
+    const ink = readableOn(background);
+    const palette = typeof background === 'string' ? /^var\(--bc-c(\d+),/.exec(background) : null;
+    return ink && palette ? `var(--bc-on-c${palette[1]}, ${ink})` : ink;
+  }
+
   /** Black or white, whichever reads better on a background color given as #rgb / #rrggbb (also inside var(--x, #hex)). */
   function readableOn(background: unknown): string | null {
     const m = typeof background === 'string' ? /#([0-9a-f]{6}|[0-9a-f]{3})\b/i.exec(background) : null;
@@ -52,7 +61,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'text',
-    version: 7,
+    version: 8,
     doc: 'A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell\'s color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.',
     params: {
       size: { kind: 'number', default: 11, doc: 'Font size in px.' },
@@ -109,7 +118,7 @@
       on: {
         scales: ['color', 'sequential'],
         sharesScale: 'color',
-        doc: 'The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. Rows with no such color get no text.',
+        doc: 'The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. On a palette color a theme can set the text with `--bc-on-c<N>`. Rows with no such color get no text.',
       },
     },
     render(spec, ctx, index) {
@@ -189,7 +198,7 @@
         const x = (xMid ? (cx.mapped[i] + (x2 as ArrayLike<number>)[i]) / 2 : cx.mapped[i] + halfX) + rowDx;
         let y = (yMid ? (cy.mapped[i] + (y2 as ArrayLike<number>)[i]) / 2 : cy.mapped[i] + halfY) + rowDy;
         const text = write ? write(labels[i]) : format(labels[i], decimals);
-        const color = backgrounds ? (backgrounds[i] ? readableOn(backgrounds[i]) || fill : '') : colors ? colors[i] : fill;
+        const color = backgrounds ? (backgrounds[i] ? inkOn(backgrounds[i]) || fill : '') : colors ? colors[i] : fill;
         if (!text || !isFinite(x) || !isFinite(y) || !color) continue;
         let fit = size;
         const [w, h] = roomAt(i, x, y);

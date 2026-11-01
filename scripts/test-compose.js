@@ -6,7 +6,7 @@ const vm = require('vm');
 const zlib = require('zlib');
 const assert = require('assert');
 const { buildManifest } = require('./build-manifest.js');
-const { compose, ComposeError } = require('./compose.js');
+const { compose, ComposeError, DEFAULT_CSS } = require('./compose.js');
 
 let passed = 0;
 let failed = 0;
@@ -293,6 +293,27 @@ test('compose: warnings do not stop the page, unused data is reported', () => {
   });
   assert(r.diagnostics.some((d) => d.level === 'warn' && d.path === 'charts[0].marks[0].shade'));
   assert.deepStrictEqual(r.unusedData.sort(), ['pts', 'spare']);
+});
+
+test('compose: the text set on each palette color is the one with more contrast, in both themes', () => {
+  const lum = (hex) => {
+    const part = (i) => {
+      const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * part(0) + 0.7152 * part(2) + 0.0722 * part(4);
+  };
+  const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  const colors = [...DEFAULT_CSS.matchAll(/--bc-c(\d+):#([0-9a-f]{6})/g)];
+  const inks = [...DEFAULT_CSS.matchAll(/--bc-on-c(\d+):#(fff|111)/g)];
+  assert.strictEqual(colors.length, 24, 'twelve colors, two themes');
+  assert.strictEqual(inks.length, 24);
+  colors.forEach(([, n, hex], i) => {
+    assert.strictEqual(inks[i][1], n);
+    const light = contrast(lum(hex), 1);
+    const dark = contrast(lum(hex), lum('111111'));
+    assert.strictEqual(inks[i][2], dark >= light ? '111' : 'fff', `--bc-c${n}: #${hex}`);
+  });
 });
 
 test('compose: unused datasets stay off the page, unless a script of the page may read them', () => {
