@@ -18,10 +18,10 @@
   "charts": [
     {
       "title": "Traffic mix (100%)",
-      "note": "normalize: true scales every stack to 0..1, so the areas show shares rather than totals.",
+      "note": "normalize: true scales every stack to 0..1, so the areas show shares rather than totals. follows: the stack is rebuilt when the legend hides a series, so the rest add up to 100% again.",
       "spec": {
         "data": "sources",
-        "transforms": [{ "type": "stack", "field": "visits", "by": "month", "group": "source", "normalize": true }],
+        "transforms": [{ "type": "stack", "field": "visits", "by": "month", "group": "source", "normalize": true, "follows": "color" }],
         "scales": {
           "x": { "type": "time" },
           "y": { "type": "linear", "domain": [0, 1] },
@@ -31,10 +31,10 @@
           { "type": "grid", "scale": "y" },
           { "type": "axis", "scale": "x" },
           { "type": "axis", "scale": "y" },
-          { "type": "legend", "scale": "color", "position": "top" }
+          { "type": "legend", "scale": "color", "position": "top", "title": "Source" }
         ],
         "marks": [{ "type": "area", "x": "month", "y": "visits1", "y2": "visits0", "color": "source" }],
-        "interaction": [{ "type": "tooltip", "fields": ["month", "source", "visits"] }]
+        "interaction": [{ "type": "tooltip", "fields": ["month", "source", "visits"] }, { "type": "legend-filter" }]
       }
     }
   ]

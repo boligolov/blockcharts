@@ -78,7 +78,7 @@ Version 2, 1.8 KB. Numbers to circle radii, so that the area of a circle (not it
 
 ## scale.time
 
-Version 3, 2.6 KB. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years). Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.
+Version 4, 2.6 KB. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -98,13 +98,14 @@ Version 1, 4.8 KB. Group-by: one row per distinct combination of the `groupby` f
 
 ## transform.bin
 
-Version 2, 2.7 KB. Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.
+Version 3, 3.1 KB. Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `field` | field, **required** |  | Numeric field to count. Missing and non-numeric values are ignored. |
 | `bins` | number | `10` | Approximate number of bins; the width is rounded to 1, 2, 5 × 10^n. |
 | `width` | number |  | Exact bin width; overrides `bins`. |
+| `log` | boolean | `false` | Bins of equal ratio, for x on a log scale. `width` is then in powers of ten (1 = one bin per decade); `bins` is rounded the same way. |
 | `extent` | list |  | [min, max] to bin; values outside are ignored. Default: the range of the data. |
 | `group` | field |  | Count separately for every value of this field. |
 | `as` | list |  | Names of the three new columns: [start, end, count]. |
@@ -123,7 +124,7 @@ Version 1, 1.4 KB. A new column `as` from two numbers of each row: field `a` and
 
 ## transform.calendar
 
-Version 1, 1.6 KB. The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first.
+Version 2, 1.7 KB. The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week; a weekday with no rows gets one empty row, with no `week` to be drawn at, so that it keeps its place on the axis. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -177,7 +178,7 @@ Version 2, 1.6 KB. A conversion funnel: stages in row order (visits, sign-ups, t
 
 ## transform.marimekko
 
-Version 1, 1.9 KB. A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the top cell of its column, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out.
+Version 2, 2.0 KB. A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the tallest cell of its column, the one with room for it, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -190,7 +191,7 @@ Version 1, 1.9 KB. A Marimekko (mosaic) chart: one column per `category`, as wid
 
 ## transform.quartiles
 
-Version 1, 2.1 KB. The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row.
+Version 2, 2.1 KB. The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -211,7 +212,7 @@ Version 1, 1.7 KB. Puts the rows in the order of `field` (`order` "asc" or "desc
 
 ## transform.stack
 
-Version 1, 1.4 KB. Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area.
+Version 2, 1.7 KB. Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -220,15 +221,17 @@ Version 1, 1.4 KB. Stacks the values of `field` on top of each other within ever
 | `group` | field |  | Field that tells the series apart. Without it rows stack in data order. |
 | `as` | list |  | Names of the two new columns: [start, end]. |
 | `normalize` | boolean | `false` | Scale every stack to 0..1 (100% stacked). |
+| `follows` | scale |  | The color scale of `group`: series it does not show (a legend filter hid them) are left out of the stack. Without it they leave a gap, and a 100% stack keeps counting them. |
 
 ## transform.treemap
 
-Version 2, 3.2 KB. A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.
+Version 3, 3.5 KB. A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `field` | field, **required** |  | The size of each cell (positive numbers; others are left out). |
 | `group` | field |  | Field that gathers cells into blocks, one per distinct value. |
+| `subgroup` | field |  | Field that gathers the cells of a block into smaller blocks: a third level. Needs `group`. |
 | `name` | field |  | Field with each cell's name, copied to `label` for cells that are big enough. |
 | `aspect` | number | `1.6` | Width / height of the plot the treemap fills (for a 640 × 400 chart with no axes, about 1.6). |
 | `padding` | number | `0.004` | Space between cells, as a share of the plot height. |
@@ -436,7 +439,7 @@ Version 5, 2.1 KB. Lines at values: a target, a threshold, an average, the targe
 
 ## mark.sankey
 
-Version 1, 5.5 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
+Version 2, 5.9 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -455,7 +458,7 @@ Version 1, 5.5 KB. A Sankey diagram: one row per flow, from `source` to `target`
 
 ## mark.text
 
-Version 6, 3.8 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
+Version 7, 4.6 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped. To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -479,6 +482,8 @@ Version 6, 3.8 KB. A text label per row at (x, y): value labels on bars, annotat
 | `decimals` | number |  | Fixed number of decimals for numeric text. |
 | `format` | any |  | How to write numbers (and dates): a preset ("percent", "compact", "integer", "date", ...) or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }; also "locale", "prefix", "suffix". Overrides `decimals`. |
 | `fill` | string |  | Any CSS color. Default: the theme text color. |
+| `negative` | one of `same`, `flip` | `"same"` | "flip" mirrors the placement of a row whose value is below zero, so that the label of a negative bar sits past its end, not inside it: `baseline` and `dy` on a value y, `anchor` and `dx` on a value x (with a band y, as in horizontal bars). |
+| `collide` | one of `show`, `hide` | `"show"` | "hide" keeps labels off each other, for names on points: in row order, a label that would touch one already placed tries the other side of its point (mirrored `baseline` and `dy`) and is left out if that is taken too. Sort the rows to choose which labels win. |
 | `minSize` | number | `8` | The smallest font size a label that does not fit may shrink to; a label that would need less is not drawn. Set it to `size` to never shrink. |
 
 ## guide.axis
@@ -523,12 +528,13 @@ Version 6, 3.4 KB. A key figure as the heading of a chart: a label, the value in
 
 ## guide.legend
 
-Version 8, 4.5 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
+Version 9, 5.2 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `scale` | scale, **required** |  | A color, sequential or size scale. |
-| `position` | one of `top`, `right`, `bottom`, `left` | `"right"` |  |
+| `position` | one of `top`, `right`, `bottom`, `left`, `auto` | `"right"` | "auto" is a row on top while the items fit on two lines, and a column on the right when long labels would need more; it is decided again when the chart changes width. |
+| `title` | string |  | What the legend shows, on a line above it: "Region", "Revenue, $M". |
 | `format` | any |  | How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`. |
 
 ## interaction.animate
@@ -563,16 +569,17 @@ Version 3, 2.8 KB. A vertical line across the plot that follows the pointer, so 
 
 ## interaction.legend-filter
 
-Version 1, 1.9 KB. Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.
+Version 2, 2.5 KB. Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `scale` | scale |  | The color scale to filter. Default: the scale of the first legend. |
+| `legend` | string |  | The id of a legend outside the chart, in the page, shared by several charts. Its items are elements with `data-bc-legend-index`. The composer writes this for facets; there is no need to set it by hand. |
 | `fit` | list |  | Scales to refit to the visible rows after a change (usually ["y"]); by default they keep their domain. |
 
 ## interaction.tooltip
 
-Version 11, 8.6 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.
+Version 12, 9.4 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |

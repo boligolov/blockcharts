@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 30057,
+    "bytes": 30277,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 24787,
+        "bytes": 24957,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 21775,
+        "bytes": 21945,
         "off": [
           "CHECKS",
           "DECODE"
@@ -138,8 +138,8 @@
     },
     "scale.time": {
       "file": "blocks/scale.time.js",
-      "bytes": 2684,
-      "version": 3,
+      "bytes": 2643,
+      "version": 4,
       "requires": [],
       "closure": [
         "scale.time"
@@ -151,7 +151,7 @@
           "doc": "Extra room around the data extent, as a fraction of its span."
         }
       },
-      "doc": "Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset (\"2024-03-01\", \"2024-03-01T09:00\", \"2024-03-01 09:00\") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years). Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it."
+      "doc": "Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset (\"2024-03-01\", \"2024-03-01T09:00\", \"2024-03-01 09:00\") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it."
     },
     "transform.aggregate": {
       "file": "blocks/transform.aggregate.js",
@@ -197,8 +197,8 @@
     },
     "transform.bin": {
       "file": "blocks/transform.bin.js",
-      "bytes": 2760,
-      "version": 2,
+      "bytes": 3153,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.bin"
@@ -218,6 +218,11 @@
           "kind": "number",
           "doc": "Exact bin width; overrides `bins`."
         },
+        "log": {
+          "kind": "boolean",
+          "default": false,
+          "doc": "Bins of equal ratio, for x on a log scale. `width` is then in powers of ten (1 = one bin per decade); `bins` is rounded the same way."
+        },
         "extent": {
           "kind": "list",
           "doc": "[min, max] to bin; values outside are ignored. Default: the range of the data."
@@ -231,7 +236,7 @@
           "doc": "Names of the three new columns: [start, end, count]."
         }
       },
-      "doc": "Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count."
+      "doc": "Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count."
     },
     "transform.calculate": {
       "file": "blocks/transform.calculate.js",
@@ -276,8 +281,8 @@
     },
     "transform.calendar": {
       "file": "blocks/transform.calendar.js",
-      "bytes": 1622,
-      "version": 1,
+      "bytes": 1758,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.calendar"
@@ -302,7 +307,7 @@
           "doc": "Names of the three new columns. Default [week, weekEnd, day]."
         }
       },
-      "doc": "The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first."
+      "doc": "The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week; a weekday with no rows gets one empty row, with no `week` to be drawn at, so that it keeps its place on the axis. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first."
     },
     "transform.decimate": {
       "file": "blocks/transform.decimate.js",
@@ -441,8 +446,8 @@
     },
     "transform.marimekko": {
       "file": "blocks/transform.marimekko.js",
-      "bytes": 1990,
-      "version": 1,
+      "bytes": 2016,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.marimekko"
@@ -478,12 +483,12 @@
           "doc": "Name of the label column."
         }
       },
-      "doc": "A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the top cell of its column, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out."
+      "doc": "A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the tallest cell of its column, the one with room for it, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out."
     },
     "transform.quartiles": {
       "file": "blocks/transform.quartiles.js",
-      "bytes": 2117,
-      "version": 1,
+      "bytes": 2127,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.quartiles"
@@ -504,7 +509,7 @@
           "doc": "true: whiskers stop at 1.5x IQR, points further out become their own \"value\" row. false: whiskers stretch to the true min/max, no outlier rows."
         }
       },
-      "doc": "The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row."
+      "doc": "The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has."
     },
     "transform.sort": {
       "file": "blocks/transform.sort.js",
@@ -542,8 +547,8 @@
     },
     "transform.stack": {
       "file": "blocks/transform.stack.js",
-      "bytes": 1475,
-      "version": 1,
+      "bytes": 1749,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.stack"
@@ -571,14 +576,18 @@
           "kind": "boolean",
           "default": false,
           "doc": "Scale every stack to 0..1 (100% stacked)."
+        },
+        "follows": {
+          "kind": "scale",
+          "doc": "The color scale of `group`: series it does not show (a legend filter hid them) are left out of the stack. Without it they leave a gap, and a 100% stack keeps counting them."
         }
       },
-      "doc": "Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area."
+      "doc": "Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again."
     },
     "transform.treemap": {
       "file": "blocks/transform.treemap.js",
-      "bytes": 3321,
-      "version": 2,
+      "bytes": 3561,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.treemap"
@@ -592,6 +601,10 @@
         "group": {
           "kind": "field",
           "doc": "Field that gathers cells into blocks, one per distinct value."
+        },
+        "subgroup": {
+          "kind": "field",
+          "doc": "Field that gathers the cells of a block into smaller blocks: a third level. Needs `group`."
         },
         "name": {
           "kind": "field",
@@ -622,7 +635,7 @@
           "doc": "Name of the label column."
         }
       },
-      "doc": "A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square."
+      "doc": "A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square."
     },
     "transform.waterfall": {
       "file": "blocks/transform.waterfall.js",
@@ -1390,8 +1403,8 @@
     },
     "mark.sankey": {
       "file": "blocks/mark.sankey.js",
-      "bytes": 5645,
-      "version": 1,
+      "bytes": 5996,
+      "version": 2,
       "requires": [],
       "closure": [
         "mark.sankey"
@@ -1443,12 +1456,12 @@
           "doc": "Numeric field: the size of the flow."
         }
       },
-      "doc": "A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name. Give the same name to the same node in `source` and `target`, and different names to different stages (a \"Direct\" channel and a \"Direct\" segment would be one node)."
+      "doc": "A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a \"Direct\" channel and a \"Direct\" segment would be one node)."
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 3897,
-      "version": 6,
+      "bytes": 4672,
+      "version": 7,
       "requires": [],
       "closure": [
         "mark.text"
@@ -1509,6 +1522,24 @@
         "fill": {
           "kind": "string",
           "doc": "Any CSS color. Default: the theme text color."
+        },
+        "negative": {
+          "kind": "enum",
+          "values": [
+            "same",
+            "flip"
+          ],
+          "default": "same",
+          "doc": "\"flip\" mirrors the placement of a row whose value is below zero, so that the label of a negative bar sits past its end, not inside it: `baseline` and `dy` on a value y, `anchor` and `dx` on a value x (with a band y, as in horizontal bars)."
+        },
+        "collide": {
+          "kind": "enum",
+          "values": [
+            "show",
+            "hide"
+          ],
+          "default": "show",
+          "doc": "\"hide\" keeps labels off each other, for names on points: in row order, a label that would touch one already placed tries the other side of its point (mirrored `baseline` and `dy`) and is left out if that is taken too. Sort the rows to choose which labels win."
         },
         "minSize": {
           "kind": "number",
@@ -1730,8 +1761,8 @@
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",
-      "bytes": 4568,
-      "version": 8,
+      "bytes": 5285,
+      "version": 9,
       "requires": [],
       "closure": [
         "guide.legend"
@@ -1748,9 +1779,15 @@
             "top",
             "right",
             "bottom",
-            "left"
+            "left",
+            "auto"
           ],
-          "default": "right"
+          "default": "right",
+          "doc": "\"auto\" is a row on top while the items fit on two lines, and a column on the right when long labels would need more; it is decided again when the chart changes width."
+        },
+        "title": {
+          "kind": "string",
+          "doc": "What the legend shows, on a line above it: \"Region\", \"Revenue, $M\"."
         },
         "format": {
           "kind": "any",
@@ -1861,8 +1898,8 @@
     },
     "interaction.legend-filter": {
       "file": "blocks/interaction.legend-filter.js",
-      "bytes": 1983,
-      "version": 1,
+      "bytes": 2528,
+      "version": 2,
       "requires": [],
       "closure": [
         "interaction.legend-filter"
@@ -1871,6 +1908,10 @@
         "scale": {
           "kind": "scale",
           "doc": "The color scale to filter. Default: the scale of the first legend."
+        },
+        "legend": {
+          "kind": "string",
+          "doc": "The id of a legend outside the chart, in the page, shared by several charts. Its items are elements with `data-bc-legend-index`. The composer writes this for facets; there is no need to set it by hand."
         },
         "fit": {
           "kind": "list",
@@ -1881,8 +1922,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 8845,
-      "version": 11,
+      "bytes": 9588,
+      "version": 12,
       "requires": [],
       "closure": [
         "interaction.tooltip"
