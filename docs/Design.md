@@ -965,6 +965,38 @@ above the panels as HTML, since repeated it would cost each panel the same room 
 with it, as there is no way yet to filter several charts at once, and the composer warns about it. Panels are one chart per element rather than one SVG, so
 on a phone they reflow like any other cards. The price is that it works only through the composer, not in BC.chart.
 
+## Sankey
+
+`mark.sankey` is one mark rather than a transform and two marks, as a treemap is. A treemap keeps one row per cell, but
+a Sankey has two kinds of shape, nodes that are not rows and ribbons that are, and a table cannot hold both. So the mark
+takes the flows and owns the layout, and `geometry()` is shared by render and pick. A node goes one column past
+everything that flows into it, and a node nothing leaves goes to the last column. Columns are ordered by sweeping
+barycenters, which is cheap and good enough at the size people read a Sankey at; there is no relaxation of the vertical
+positions, so each column is centered. A loop throws: the usual alternative, cutting a back edge, would silently draw
+less than the data says. A tooltip used to be one row, and a node is many, so `Pick` gained `card`: a title and lines the mark
+writes itself, which the tooltip shows in its usual card. A custom `content` function is not called for one, because the
+row it would get does not stand for the shape. Lighting up a node's flows on hover is still not there. Labels fit the space between two
+columns by losing the total, then the end of the name; two labels that face each other across the last gap can still
+touch, since each one gets the whole gap.
+
+## Candlesticks and calendars
+
+`mark.candlestick` follows `mark.boxplot`: five channels, the prices sharing the scale of `y`. On a time scale a body is
+as wide as the two nearest candles allow, the same rule as a rect. The pointer picks by x alone, as on a line, since on a
+dense chart a wick is too thin to aim at. A row with a price missing draws nothing rather than half a candle.
+
+A calendar is not a mark at all: `transform.calendar` writes a week and a weekday and `mark.rect` does the rest. On a time
+axis the months land where they really are, which a band of weeks could not do, and it can be faceted by year like
+any chart. The rows are put in weekday order because a band scale lists its values as it meets them; the alternative,
+a `domain` of day names, would have to be written in the language of the page.
+
+## Marimekko
+
+It was going to be only a recipe, but the corners depend on totals per column, which no spec can express, so a recipe
+would have meant coordinates worked out before the page. `transform.marimekko` writes the corners like a treemap does and
+`mark.rect` draws them, on linear scales of 0..1, so it has real axes in percent of the whole. The columns keep the order
+of the data rather than being sorted, because the order of regions or years often means something.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

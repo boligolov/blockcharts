@@ -401,6 +401,353 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(isNaN(zero.columns.rate[0]) && isNaN(zero.columns.stepRate[1]), 'nothing is divided by zero');
   });
 
+  const marks = (svg) => layer(svg, 'marks');
+  // ───────────────────────── mark.candlestick ────
+  const candlesOf = (rows, extra = {}, x = { type: 'time' }) => {
+    BC.data('ohlc', rows);
+    return draw({
+      data: 'ohlc',
+      size: [600, 300],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      scales: { x, y: { type: 'linear', domain: [0, 100], nice: false } },
+      marks: [{ type: 'candlestick', x: 'd', open: 'o', high: 'h', low: 'l', close: 'c', ...extra }],
+    });
+  };
+  const OHLC = [
+    { d: '2024-01-01', o: 20, h: 60, l: 10, c: 50 },
+    { d: '2024-02-01', o: 50, h: 55, l: 25, c: 30 },
+    { d: '2024-03-01', o: 30, h: 30, l: 30, c: 30 },
+  ];
+
+  test('mark.candlestick: body from open to close, wick from low to high, color by direction', () => {
+    const svg = marks(candlesOf(OHLC).svg);
+    const bodies = rects(svg);
+    assert.strictEqual(bodies.length, 3);
+    const y = (v) => 300 - v * 3;
+    assert(near(bodies[0].y, y(50), 0.01) && near(bodies[0].h, 90, 0.01), 'a rise: ' + JSON.stringify(bodies[0]));
+    assert(near(bodies[1].y, y(50), 0.01) && near(bodies[1].h, 60, 0.01), 'a fall hangs from its open');
+    assert(bodies[2].h >= 1, 'open equal to close still shows');
+    const wicks = paths(svg);
+    assert.strictEqual(wicks[0].d.split('L')[0].split(' ')[1], String(y(60)));
+    assert.strictEqual(wicks[0].d.split('L')[1].split(' ')[1], String(y(10)));
+    assert(/--bc-good/.test(wicks[0].attrs) && /--bc-bad/.test(wicks[1].attrs) && /--bc-good/.test(wicks[2].attrs));
+    const other = paths(marks(candlesOf(OHLC, { up: '#111111', down: '#222222' }).svg));
+    assert(/#111111/.test(other[0].attrs) && /#222222/.test(other[1].attrs));
+  });
+
+  test('mark.candlestick: a row with a price missing has no candle; widths stay real', () => {
+    const svg = marks(
+      candlesOf([
+        ...OHLC,
+        { d: '2024-04-01', o: null, h: 60, l: 10, c: 50 },
+        { d: '2024-05-01', o: 'x', h: 60, l: 10, c: 50 },
+        { d: 'never', o: 1, h: 60, l: 10, c: 50 },
+      ]).svg,
+    );
+    assert.strictEqual(rects(svg).length, 3);
+    assert(!/NaN|Infinity/.test(svg));
+    const lone = rects(marks(candlesOf([OHLC[0]], {}, { type: 'time', domain: ['2024-01-01', '2024-03-01'] }).svg));
+    assert(lone[0].w > 0 && lone[0].w < 100, 'one candle: ' + lone[0].w);
+    const band = rects(marks(candlesOf(OHLC, {}, { type: 'band' }).svg));
+    assert(band[0].w > 50 && band[1].x > band[0].x + band[0].w, 'a band takes its share');
+    assert(rects(marks(candlesOf(OHLC, { width: 5 }).svg))[0].w <= 300, 'a width past 1 is the whole step');
+  });
+
+  test('mark.candlestick: pick takes the nearest candle by x, and nothing far from any', () => {
+    const { h } = candlesOf(OHLC);
+    const ctx = {
+      channel: (_s, n) => ({
+        scale: {},
+        mapped: { x: [100, 300, 500], open: [100, 100, 100], high: [50, 50, 50], low: [200, 200, 200], close: [80, 120, 100] }[n],
+        raw: [1, 1, 1],
+      }),
+      rows: () => ({ from: 0, to: 3 }),
+      plot: { x: 0, y: 0, w: 600, h: 300 },
+    };
+    const pick = (x) => BC.get('mark.candlestick').pick({ type: 'candlestick' }, ctx, 0, x, 10);
+    assert.strictEqual(pick(104).row, 0);
+    assert.strictEqual(pick(296).row, 1);
+    assert.strictEqual(pick(200), null, 'halfway across a wide step is not on a candle');
+    assert(pick(100).box.h === 20);
+    h.destroy();
+  });
+
+  // ───────────────────────── transform.calendar ────
+  test('transform.calendar: weeks, weekdays in order, at any start of the week', () => {
+    const rows = [
+      { d: '2024-01-07', v: 7 }, // a Sunday
+      { d: '2024-01-01', v: 1 }, // a Monday
+      { d: '2024-01-03', v: 3 },
+      { d: '2024-01-08', v: 8 },
+    ];
+    const t = apply('calendar', rows, { field: 'd' });
+    assert.deepStrictEqual(t.columns.day, ['Mon', 'Mon', 'Wed', 'Sun']);
+    assert.deepStrictEqual(t.columns.v, [1, 8, 3, 7], 'the rest of the row goes along');
+    assert.deepStrictEqual(t.columns.week, ['2024-01-01', '2024-01-08', '2024-01-01', '2024-01-01']);
+    assert.deepStrictEqual(t.columns.weekEnd, ['2024-01-08', '2024-01-15', '2024-01-08', '2024-01-08']);
+    const sunday = apply('calendar', rows, { field: 'd', weekStart: 'sunday' });
+    assert.strictEqual(sunday.columns.day[0], 'Sun');
+    assert.deepStrictEqual(sunday.columns.week.slice(0, 2), ['2024-01-07', '2023-12-31']);
+  });
+
+  test('transform.calendar: before 1970, across a year, hostile rows and names', () => {
+    const t = apply('calendar', [{ d: '1969-12-03' }, { d: '2023-12-31' }, { d: 'soon' }, { d: null }, { d: '' }], { field: 'd' });
+    assert.strictEqual(t.length, 2, 'rows without a date are left out');
+    assert.deepStrictEqual(t.columns.day, ['Wed', 'Sun']);
+    assert.deepStrictEqual(t.columns.week, ['1969-12-01', '2023-12-25']);
+    assert.strictEqual(apply('calendar', [{ d: 'x' }], { field: 'd' }).length, 0);
+    assert.throws(() => apply('calendar', [{ d: '2024-01-01' }], { field: 'nope' }), /unknown field "nope"/);
+    assert.throws(() => apply('calendar', [{ d: '2024-01-01', week: 1 }], { field: 'd' }), /"week" is already a column/);
+    assert.doesNotThrow(() => apply('calendar', [{ d: '2024-01-01', week: 1 }], { field: 'd', as: ['w', 'e', 'n'] }));
+    assert.throws(() => apply('calendar', [{ d: '2024-01-01' }], { field: 'd', as: ['a', 'a', 'b'] }), /three different/);
+    assert.throws(() => apply('calendar', [{ d: '2024-01-01' }], { field: 'd', weekStart: 'friday' }), /"weekStart"/);
+  });
+
+  // ───────────────────────── transform.marimekko ────
+  test('transform.marimekko: widths and heights are shares, and the columns fill the whole', () => {
+    const rows = [
+      { c: 'A', s: 'x', v: 30 },
+      { c: 'A', s: 'y', v: 10 },
+      { c: 'B', s: 'x', v: 15 },
+      { c: 'B', s: 'y', v: 45 },
+    ];
+    const t = apply('marimekko', rows, { field: 'v', category: 'c', gap: 0 });
+    const c = t.columns;
+    assert(near(c.x0[0], 0) && near(c.x1[0], 0.4), 'A is 40 of 100 wide');
+    assert(near(c.x0[2], 0.4) && near(c.x1[2], 1), 'B takes the rest');
+    assert(near(c.y1[0], 1) && near(c.y0[0], 0.25) && near(c.y1[1], 0.25) && near(c.y0[1], 0), 'A stacks from the top to the bottom');
+    assert(near(c.share[3], 0.75));
+    let area = 0;
+    for (let i = 0; i < 4; i++) {
+      area += (c.x1[i] - c.x0[i]) * (c.y1[i] - c.y0[i]);
+      assert(near((c.x1[i] - c.x0[i]) * (c.y1[i] - c.y0[i]), rows[i].v / 100), 'the area of a cell is its share of the whole');
+    }
+    assert(near(area, 1));
+    assert.deepStrictEqual(c.label, ['A', null, 'B', null]);
+    const gapped = apply('marimekko', rows, { field: 'v', category: 'c', gap: 0.02 }).columns;
+    assert(gapped.x0[2] > gapped.x1[0], 'a gap between the columns');
+  });
+
+  test('transform.marimekko: hostile rows and names', () => {
+    const t = apply(
+      'marimekko',
+      [
+        { c: 'A', v: 10 },
+        { c: 'A', v: -1 },
+        { c: 'A', v: 0 },
+        { c: 'A', v: 'many' },
+        { c: null, v: 5 },
+        { c: '', v: 5 },
+        { c: 'B', v: Infinity },
+      ],
+      { field: 'v', category: 'c', gap: 0 },
+    );
+    assert.strictEqual(t.length, 7, 'rows stay, for the other marks');
+    assert(near(t.columns.x1[0], 1), 'only the real one counts');
+    for (let i = 1; i < 7; i++) assert(isNaN(t.columns.x0[i]), 'row ' + i + ' has no cell');
+    assert.strictEqual(apply('marimekko', [{ c: 'A', v: 0 }], { field: 'v', category: 'c' }).columns.label[0], null);
+    const thin = apply(
+      'marimekko',
+      [
+        { c: 'A', v: 1 },
+        { c: 'B', v: 1e9 },
+      ],
+      { field: 'v', category: 'c', gap: 0.05 },
+    ).columns;
+    assert(thin.x1[0] >= thin.x0[0], 'a thin column does not turn inside out');
+    assert.throws(() => apply('marimekko', [{ c: 'A', v: 1 }], { field: 'nope', category: 'c' }), /unknown field "nope" in "field"/);
+    assert.throws(() => apply('marimekko', [{ c: 'A', v: 1 }], { field: 'v', category: 'nope' }), /unknown field "nope" in "category"/);
+    assert.throws(() => apply('marimekko', [{ c: 'A', v: 1, share: 2 }], { field: 'v', category: 'c' }), /"share" is already a column/);
+    assert.throws(() => apply('marimekko', [{ c: 'A', v: 1 }], { field: 'v', category: 'c', shareAs: 'x0' }), /different names/);
+  });
+
+  // ───────────────────────── mark.sankey ────
+  const flows = (rows, extra = {}) => {
+    BC.data('flows', rows);
+    return draw({
+      data: 'flows',
+      size: [600, 400],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      marks: [{ type: 'sankey', source: 's', target: 't', value: 'v', ...extra }],
+    });
+  };
+  const nodeRects = (svg) => rects(marks(svg));
+
+  test('mark.sankey: columns from the flows, heights in proportion, a node as tall as what passes through it', () => {
+    const { svg } = flows([
+      { s: 'A', t: 'B', v: 30 },
+      { s: 'A', t: 'C', v: 10 },
+      { s: 'B', t: 'D', v: 30 },
+      { s: 'C', t: 'D', v: 10 },
+    ]);
+    const nodes = nodeRects(svg);
+    assert.strictEqual(nodes.length, 4);
+    assert.strictEqual(paths(marks(svg)).length, 4, 'a ribbon per flow');
+    assert.deepStrictEqual([...new Set(nodes.map((n) => n.x))].sort((a, b) => a - b).length, 3, 'three columns');
+    const height = (i) => nodes[i].h;
+    assert(near(height(1) / height(2), 3, 0.02), 'B is three times C: ' + height(1) + ' / ' + height(2));
+    assert(near(height(0), height(3), 0.02), 'A and D carry the same');
+    for (const n of nodes) assert(n.y >= 0 && n.y + n.h <= 400.01 && n.x >= 0 && n.x + n.w <= 600.01, 'inside the plot');
+    assert.deepStrictEqual(texts(marks(svg)).sort(), ['A', 'B', 'C', 'D']);
+  });
+
+  test('mark.sankey: a node skips a column when a flow reaches past it, and sinks end in the last column', () => {
+    const { svg } = flows([
+      { s: 'A', t: 'B', v: 5 },
+      { s: 'B', t: 'C', v: 5 },
+      { s: 'A', t: 'C', v: 5 },
+      { s: 'A', t: 'E', v: 5 },
+    ]);
+    const nodes = nodeRects(svg);
+    const xs = [...new Set(nodes.map((n) => n.x))];
+    assert.strictEqual(xs.length, 3);
+    assert.strictEqual(nodes.filter((n) => n.x === Math.max(...xs)).length, 2, 'C and E share the last column');
+  });
+
+  test('mark.sankey: crossings are sorted out where they can be', () => {
+    // two chains that the row order interleaves
+    const { svg } = flows([
+      { s: 'A1', t: 'B2', v: 10 },
+      { s: 'A2', t: 'B1', v: 10 },
+      { s: 'B2', t: 'C1', v: 10 },
+      { s: 'B1', t: 'C2', v: 10 },
+    ]);
+    const d = paths(marks(svg)).map((p) => p.d.match(/^M[\d.]+ ([\d.]+)C.* ([\d.]+) ([\d.]+)L/));
+    const firstLevel = d.map((m) => [+m[1], +m[3]]);
+    for (const [from, to] of firstLevel) assert(near(from, to, 0.5), 'level ribbons: ' + firstLevel);
+  });
+
+  test('mark.sankey: hostile rows', () => {
+    const { svg } = flows([
+      { s: 'A', t: 'B', v: 10 },
+      { s: 'A', t: 'A', v: 99 },
+      { s: 'A', t: 'B', v: -5 },
+      { s: 'A', t: 'B', v: 0 },
+      { s: 'A', t: 'B', v: 'many' },
+      { s: null, t: 'B', v: 5 },
+      { s: 'A', t: '', v: 5 },
+      { s: '<b>', t: '__proto__', v: 5 },
+    ]);
+    assert.strictEqual(paths(marks(svg)).length, 2, 'only the two real flows');
+    assert(!svg.includes('<b>') && svg.includes('__proto__'), 'names are text');
+    assert(!/NaN|Infinity/.test(svg), 'no broken numbers');
+    assert.strictEqual(paths(marks(flows([{ s: 'A', t: 'B', v: 0 }]).svg)).length, 0, 'nothing to draw is not an error');
+    const long = Array.from({ length: 60 }, (_, i) => ({ s: 'A', t: 'n' + i, v: 1 }));
+    const crowded = flows(long).svg;
+    assert(!/NaN/.test(crowded));
+    assert(
+      nodeRects(crowded).every((n) => n.y >= -0.01 && n.y + n.h <= 400.01),
+      'a crowded column stays in the plot',
+    );
+    assert(texts(marks(crowded)).length < 60, 'nodes too short for a label go without');
+  });
+
+  test('mark.sankey: a label never runs past the space between the columns', () => {
+    const rows = [
+      { s: 'A', t: 'A rather long name of a stage in the middle', v: 10 },
+      { s: 'A rather long name of a stage in the middle', t: 'C', v: 10 },
+    ];
+    BC.data('flows', rows);
+    const narrow = (width) =>
+      draw({
+        data: 'flows',
+        size: [width, 300],
+        padding: { top: 0, right: 0, bottom: 0, left: 0 },
+        marks: [{ type: 'sankey', source: 's', target: 't', value: 'v', format: 'integer' }],
+      }).svg;
+    const short = texts(marks(narrow(300)));
+    assert(
+      short.some((t) => t.endsWith('…')),
+      'cut: ' + short,
+    );
+    assert(
+      short.every((t) => t.length * 7.2 <= 150),
+      'within a column: ' + short,
+    );
+    assert(texts(marks(narrow(1400))).includes('A rather long name of a stage in the middle 10'), 'whole where there is room');
+  });
+
+  test('mark.sankey: a loop is an error that names it, not a hang', () => {
+    assert.throws(
+      () =>
+        BC.get('mark.sankey').render(
+          { type: 'sankey', source: 's', target: 't', value: 'v' },
+          {
+            channel: (_s, n) => ({ raw: { source: ['A', 'B', 'C'], target: ['B', 'A', 'A'], value: [1, 1, 1] }[n] }),
+            rows: () => ({ from: 0, to: 3 }),
+            plot: { x: 0, y: 0, w: 100, h: 100 },
+            color: () => '#000',
+            measure: () => ({ w: 0, h: 0 }),
+          },
+          0,
+        ),
+      /loop through "A", "B"/,
+    );
+  });
+
+  test('mark.sankey: a node answers with what flows through it, in its own words', () => {
+    const rows = [
+      { s: 'A', t: 'M', v: 1200 },
+      { s: 'B', t: 'M', v: 300 },
+      { s: 'M', t: 'Z', v: 1000 },
+    ];
+    const ctx = {
+      channel: (_s, n) => ({ raw: { source: rows.map((r) => r.s), target: rows.map((r) => r.t), value: rows.map((r) => r.v) }[n] }),
+      rows: () => ({ from: 0, to: 3 }),
+      plot: { x: 0, y: 0, w: 600, h: 400 },
+      color: () => '#123',
+      measure: () => ({ w: 0, h: 0 }),
+    };
+    const mark = BC.get('mark.sankey');
+    const spec = { type: 'sankey', source: 's', target: 't', value: 'v', format: 'integer' };
+    const nodes = mark.render(spec, ctx, 0).filter((p) => p.type === 'rect');
+    const at = (n, s = spec) => mark.pick(s, ctx, 0, n.x + n.w / 2, n.y + n.h / 2);
+    const cards = nodes.map((n) => at(n).card);
+    const middle = cards.find((c) => c.title === 'M');
+    assert.deepStrictEqual(middle.lines, [
+      ['In', '1,500'],
+      ['Out', '1,000'],
+    ]);
+    assert.strictEqual(middle.color, '#123');
+    assert.deepStrictEqual(cards.find((c) => c.title === 'A').lines, [['Out', '1,200']], 'a first node has no inflow to report');
+    assert.deepStrictEqual(cards.find((c) => c.title === 'Z').lines, [['In', '1,000']]);
+    const named = at(nodes[0], { ...spec, nodeLabels: ['유입', '유출'] });
+    assert.strictEqual(named.card.lines[0][0], '유출');
+    const plain = at(nodes[0], { ...spec, format: undefined });
+    assert.strictEqual(plain.card.lines[0][1], '1200');
+    assert(at(nodes[0]).box.w > 0, 'the node is what lights up');
+  });
+
+  test('mark.sankey: pick finds the ribbon under the pointer, on a curve and off it', () => {
+    const rows = [
+      { s: 'A', t: 'X', v: 10 },
+      { s: 'A', t: 'Y', v: 30 },
+      { s: 'B', t: 'X', v: 10 },
+    ];
+    BC.data('flows', rows);
+    const ctx = {
+      channel: (_s, n) => ({ raw: { source: rows.map((r) => r.s), target: rows.map((r) => r.t), value: rows.map((r) => r.v) }[n] }),
+      rows: () => ({ from: 0, to: 3 }),
+      plot: { x: 0, y: 0, w: 600, h: 400 },
+      color: () => '#000',
+      measure: () => ({ w: 0, h: 0 }),
+    };
+    const spec = { type: 'sankey', source: 's', target: 't', value: 'v' };
+    const prims = BC.get('mark.sankey')
+      .render(spec, ctx, 0)
+      .filter((p) => p.type === 'path');
+    for (const p of prims) {
+      const m = p.d.match(/^M([\d.]+) ([\d.]+)C.* ([\d.]+) ([\d.]+)L[\d.]+ ([\d.]+)/);
+      const x = (+m[1] + +m[3]) / 2;
+      const y = (+m[2] + +m[4]) / 2 + (+m[5] - +m[4]) / 2; // in the middle of the curve, the middle of the ribbon
+      const hit = BC.get('mark.sankey').pick(spec, ctx, 0, x, y);
+      assert(hit && hit.row === p.ref.row, 'the ribbon of row ' + p.ref.row + ': ' + JSON.stringify(hit));
+    }
+    let empty = 0;
+    for (let x = 20; x < 580; x += 40) for (let y = 0; y < 400; y += 8) if (!BC.get('mark.sankey').pick(spec, ctx, 0, x, y)) empty++;
+    assert(empty > 0, 'between the ribbons, nothing');
+  });
+
   // ───────────────────────── transform.treemap ─────────────────────────
 
   const cellsOf = (t) => {
@@ -1160,6 +1507,59 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     host.children[0].fire('pointermove', { clientX: x, clientY: y, buttons: 0 });
     await flush();
   };
+
+  test('interaction.tooltip: a shape that is many rows shows its own card, and a custom content is not asked about it', async () => {
+    BC.data('flows', [
+      { s: 'A', t: 'B', v: 10 },
+      { s: 'B', t: 'C', v: 10 },
+    ]);
+    const asked = [];
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'flows',
+      size: [600, 400],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      marks: [{ type: 'sankey', source: 's', target: 't', value: 'v', nodeLabels: ['<in>', 'Out'] }],
+      interaction: [{ type: 'tooltip', content: (d) => asked.push(d) && undefined }],
+    });
+    const middle = rects(layer(svgOf(host), 'marks')).find((n) => n.x > 100 && n.x < 400);
+    const box = host.children[0].getBoundingClientRect();
+    await hover(host, box.left + ((middle.x + 6) * box.width) / 600, box.top + ((middle.y + 20) * box.height) / 400);
+    const tip = tipOf(host);
+    assert.strictEqual(tip.style.display, 'block');
+    const heading = tip.children.find((c) => c.attrs.class === 'bc-tooltip-heading');
+    assert.strictEqual(heading.children[heading.children.length - 1].text, 'B');
+    assert.strictEqual(heading.attrs['data-bc-field'], undefined);
+    assert.deepStrictEqual(
+      partOf(tip, 'bc-tooltip-lines').children.map((c) => c.text),
+      ['<in>', '10', 'Out', '10'],
+    );
+    assert.strictEqual(asked.length, 0);
+    assert.strictEqual(partOf(host, 'bc-tooltip-highlight').style.display, 'block', 'the node lights up');
+  });
+
+  test('interaction.tooltip: heading names what heads the card, and a field that is not there is an error', async () => {
+    BC.data('headed', [
+      { m: '2024-01-01', rev: 1 },
+      { m: '2024-02-01', rev: 2 },
+      { m: '2024-03-01', rev: 3 },
+    ]);
+    const heading = async (extra) => {
+      const host = new FakeNode('div');
+      BC.chart(host, monthly({ data: 'headed', interaction: [{ type: 'tooltip', ...extra }] }));
+      const d = paths(layer(svgOf(host), 'marks'))[0].d;
+      const [x, y] = /L([\d.]+) ([\d.]+)/.exec(d).slice(1).map(Number);
+      await hover(host, x, y);
+      return tipOf(host).children.find((c) => c.attrs.class === 'bc-tooltip-heading').attrs['data-bc-field'];
+    };
+    assert.strictEqual(await heading({}), 'm');
+    assert.strictEqual(await heading({ heading: 'rev' }), 'rev');
+    const wrong = BC.chart(new FakeNode('div'), monthly({ data: 'headed', interaction: [{ type: 'tooltip', heading: 'nope' }] }));
+    assert(
+      wrong.diagnostics.some((d) => d.level === 'error' && /nope/.test(d.message)),
+      JSON.stringify(wrong.diagnostics),
+    );
+  });
 
   test('interaction.tooltip: labels name the fields, without touching data or formats', async () => {
     const warned = [];

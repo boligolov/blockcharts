@@ -40,19 +40,22 @@ Done: KPI tiles (guide.kpi), waterfall, funnel, treemap, target lines and bullet
 The browsers and oil dashboards were built with the skill as a plain user. Their log is `dashboards/oil/FINDINGS.md`
 (not in the repository); this is its state.
 
+State on 2026-11-01: facets are committed (0.15.0). Sankey, candlesticks, calendar heatmaps and Marimekko (0.16.0, 0.17.0)
+are in the working tree, not committed; all suites pass there. `main` is ahead of `origin` and nothing is pushed.
+
 Done: every bug found (skill 0.13.1, 0.14.0), locale and `lang` on a page, section and chart, translatable UI strings,
-and facets (skill 0.15.0).
+facets (skill 0.15.0), Sankey (skill 0.16.0), candlesticks, calendar heatmaps and Marimekko (skill 0.17.0).
 
-Missing chart kinds, in the proposed order:
+Missing chart kinds:
 
-- [ ] **Table with sparklines**: see Table above.
-- [ ] **Sankey**: volume from product to channel to segment.
-- [ ] **Candlestick** and **calendar heatmap**.
-- [ ] **Marimekko recipe**: it can be built from rects today, but it has no width axis.
+- [ ] **Table with sparklines**: put off on 2026-11-01, see Table above.
 - Not planned: radar (a heatmap reads better), sunburst, a choropleth map (excluded by design).
 
 Smaller gaps:
 
+- [ ] Sankey: hovering a node to light up its flows; labels that face each other across the last gap can touch.
+- [ ] Calendar: a weekday with no rows drops out of the axis, because the band scale lists what it meets.
+- [ ] Marimekko: dark labels on a blue cell read worse than on the others.
 - [ ] Facets: a `legend-filter` across panels (it is dropped with a warning today).
 - [ ] Facets on a field made by a transform (an error today).
 - [ ] Unused datasets are listed but still embedded.
@@ -64,7 +67,9 @@ Smaller gaps:
 - [ ] Renormalizing a 100% stack after a legend filter.
 
 Not checked yet: the oil dashboard's interactions and dark mode after 0.14.0, upright titles on canvas, facets in dark
-mode and on canvas, fonts outside Windows, a review of the CJK text by native speakers.
+mode and on canvas, Marimekko in dark mode and on canvas, the Sankey node tooltip on a phone, a calendar with a facet by
+year, fonts outside Windows, a review of the CJK text by native speakers. The new chart kinds have not been tried on the
+oil data or put in that dashboard; the only trial there was facets, on one chart, outside the dashboard.
 
 ## Password-protected reports
 

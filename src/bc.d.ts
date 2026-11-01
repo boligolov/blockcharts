@@ -440,6 +440,9 @@ declare namespace BC {
     /** The shape's own bounding box (logical px), when it has one (rect marks: bar, heatmap). An interaction can
      *  highlight this instead of a dot at `x`/`y` — a dot on a bar's edge reads as a rendering glitch, not a marker. */
     box?: { x: number; y: number; w: number; h: number };
+    /** For a shape that stands for several rows, not for one (a Sankey node): what a tooltip shows instead of `row`'s fields.
+     *  `row` still has to be a row of the table. A custom `content` function is not called for it. */
+    card?: { title: string; color?: string; lines: [string, string][] };
   }
 
   interface MarkDef extends BlockBase {

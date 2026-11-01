@@ -17,7 +17,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 9,
+    version: 11,
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.',
     params: {
       fields: { kind: 'list', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
@@ -32,6 +32,10 @@
       content: {
         kind: 'any',
         doc: 'Name of a function registered with BC.defineFn (or, in a spec built in JS, the function itself). It gets a TooltipDatum and returns what to show: a string (text), { html }, a DOM Node, an array of those, null/false to hide the tooltip, or undefined for the default content. { html } is set with innerHTML and is not escaped — build it from trusted strings, never straight from a row value the data may contain.',
+      },
+      heading: {
+        kind: 'field',
+        doc: 'The field at the head of the card. Default: the category or date the datum stands on. Give it when that is not what names the datum, as in a calendar, where x is the week and the row is a day.',
       },
       marker: {
         kind: 'enum',
@@ -189,6 +193,7 @@
       /** The field that names the datum — the category (band) or the date (time) its x (or y) is on — or null. Shown
        *  as the card's heading rather than as a line, also when `fields` lists what else to show. */
       function headingField(mark: BC.MarkSpec): string | null {
+        if (typeof spec.heading === 'string' && live.table.columns[spec.heading]) return spec.heading;
         for (const ch of ['x', 'y']) {
           try {
             const c = live.channel(mark, ch);
@@ -260,10 +265,11 @@
         if (!best) return hide();
         const { pick, mark, def, index } = best as { pick: BC.Pick; mark: BC.MarkSpec; def: BC.MarkDef; index: number };
 
-        const heading = headingField(mark);
-        const rows = lines(mark, def, pick.row);
+        const card = pick.card;
+        const heading = card ? null : headingField(mark);
+        const rows = card ? card.lines : lines(mark, def, pick.row);
         let custom: BC.TooltipContent;
-        const fn = contentFn();
+        const fn = card ? undefined : contentFn();
         if (fn) {
           const values: Record<string, unknown> = {};
           for (const name of Object.keys(live.table.columns)) values[name] = live.table.columns[name][pick.row];
@@ -280,12 +286,12 @@
         if (custom === null || custom === false) return hide();
 
         tip.textContent = '';
-        const color = colorOf(mark, index, pick.row);
+        const color = card ? card.color || '' : colorOf(mark, index, pick.row);
         if (custom === undefined) {
-          if (heading) {
+          if (heading || card) {
             const head = doc.createElement('div');
             head.setAttribute('class', 'bc-tooltip-heading');
-            head.setAttribute('data-bc-field', heading);
+            if (heading) head.setAttribute('data-bc-field', heading);
             Object.assign(head.style, { display: 'flex', alignItems: 'center', gap: '7px', fontWeight: '600', marginBottom: '4px' });
             if (color) {
               const sw = doc.createElement('span');
@@ -294,7 +300,7 @@
             }
             const t = doc.createElement('span');
             // a date heading without a format of its own is written as a date, not as the ISO string it was given as
-            const col = live.table.columns[heading];
+            const col = live.table.columns[heading as string];
             const isTime = ((): boolean => {
               for (const ch of ['x', 'y']) {
                 try {
@@ -306,7 +312,9 @@
               }
               return false;
             })();
-            t.textContent = !formats[heading] && isTime ? writeDate(col[pick.row]) || write(heading, pick.row) : write(heading, pick.row);
+            const field = heading as string;
+            if (card) t.textContent = card.title;
+            else t.textContent = !formats[field] && isTime ? writeDate(col[pick.row]) || write(field, pick.row) : write(field, pick.row);
             head.appendChild(t);
             tip.appendChild(head);
           }
