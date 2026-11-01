@@ -209,7 +209,8 @@ for (const file of recipeFiles) {
     assert(/^core\.composed(-plain)?\.js$/.test(result.core), `a lean core: ${result.core}`);
 
     const { handles, BC, errors } = runPage(result.html);
-    assert.strictEqual(handles.length, page.charts.length);
+    const panels = result.html.split('class="bc-facet"').length - 1;
+    assert.strictEqual(handles.length, page.charts.filter((c) => !c.facet).length + panels, 'a chart per entry, and per panel of a facet');
     for (const h of handles) {
       await h.ready;
       assert.strictEqual(h.diagnostics.length, 0, JSON.stringify(h.diagnostics));

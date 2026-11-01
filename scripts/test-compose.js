@@ -647,6 +647,115 @@ test('compose: lang sets the page, a section and a chart, and the language of th
   }
 });
 
+test('compose: facet draws one chart per value on shared scales, with one legend', () => {
+  const rows = [
+    { r: 'North', m: '2024-01-01', p: 'Tea', v: 10 },
+    { r: 'North', m: '2024-02-01', p: 'Tea', v: 20 },
+    { r: 'South', m: '2024-01-01', p: 'Tea', v: 500 },
+    { r: 'South', m: '2024-03-01', p: 'Coffee', v: 900 },
+  ];
+  const spec = () => ({
+    data: 'd',
+    size: [300, 180],
+    scales: { x: { type: 'time' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
+    guides: [
+      { type: 'axis', scale: 'x' },
+      { type: 'axis', scale: 'y' },
+      { type: 'legend', scale: 'color' },
+    ],
+    marks: [{ type: 'line', x: 'm', y: 'v', color: 'p' }],
+    interaction: [{ type: 'tooltip' }, { type: 'legend-filter' }],
+  });
+  const specs = (html) => [...html.matchAll(/data-bc-chart>(.*?)<\/script>/g)].map((m) => JSON.parse(m[1].replace(/\\u003c/g, '<')));
+  const page = compose({ data: { d: rows }, charts: [{ title: 'T', spec: spec(), facet: { field: 'r', columns: 2 } }] });
+  assert.strictEqual(page.diagnostics.length, 1, 'says that the legend filter went');
+  assert(/legend-filter is dropped/.test(page.diagnostics[0].message) && page.diagnostics[0].level === 'warn');
+  const [north, south] = specs(page.html);
+  assert.deepStrictEqual(north.transforms[0], { type: 'filter', field: 'r', value: 'North' });
+  assert.strictEqual(south.transforms[0].value, 'South');
+  assert.deepStrictEqual(north.scales.y.domain, south.scales.y.domain, 'one y');
+  assert(north.scales.y.domain[1] >= 900, 'it reaches the largest panel: ' + north.scales.y.domain);
+  assert.deepStrictEqual(north.scales.x.domain, south.scales.x.domain, 'one x');
+  assert.deepStrictEqual(north.scales.color.domain, ['Tea', 'Coffee'], 'one set of colors, Coffee has its place in North too');
+  assert(page.html.includes('--bc-facet-cols:2') && page.html.includes('<h4>North</h4>'));
+  assert.strictEqual([...page.html.matchAll(/<section class="bc-section"/g)].length, 1, 'one card');
+  assert.strictEqual([...page.html.matchAll(/<div class="bc-facet-legend">/g)].length, 1, 'one legend');
+  assert(north.guides.every((g) => g.type !== 'legend') && north.interaction.every((x) => x.type !== 'legend-filter'), 'not in the panels');
+  assert(page.blocks.includes('transform.filter'), 'the filter is on the page');
+
+  const free = specs(compose({ data: { d: rows }, charts: [{ spec: spec(), facet: { field: 'r', free: ['y'] } }] }).html);
+  assert.strictEqual(free[0].scales.y.domain, undefined, 'a free scale keeps its own');
+
+  const given = spec();
+  given.scales.y = { type: 'linear', domain: [0, 2000] };
+  assert.deepStrictEqual(
+    specs(compose({ data: { d: rows }, charts: [{ spec: given, facet: { field: 'r' } }] }).html)[1].scales.y,
+    given.scales.y,
+    'a scale with a domain of its own is left as it is',
+  );
+
+  // the panel's rows are filtered before the chart's own transforms run: a total that drops the field still works
+  const summed = spec();
+  summed.transforms = [{ type: 'aggregate', groupby: ['m'], measures: [{ op: 'sum', field: 'v', as: 'total' }] }];
+  summed.scales.color = undefined;
+  delete summed.scales.color;
+  summed.guides = [{ type: 'axis', scale: 'y' }];
+  summed.marks = [{ type: 'line', x: 'm', y: 'total' }];
+  summed.interaction = [];
+  const totals = specs(compose({ data: { d: rows }, charts: [{ spec: summed, facet: { field: 'r' } }] }).html);
+  assert.strictEqual(totals[0].transforms[0].type, 'filter', 'the filter comes first');
+  assert(totals[0].scales.y.domain[1] >= 900, 'totals within the panels: ' + totals[0].scales.y.domain);
+
+  const some = specs(compose({ data: { d: rows }, charts: [{ spec: spec(), facet: { field: 'r', values: ['South'] } }] }).html);
+  assert.strictEqual(some.length, 1, 'only what is asked for');
+
+  const canvasless = compose({
+    data: { d: [{ r: '</h4><script>', x: 'a', v: 1 }] },
+    charts: [
+      {
+        spec: { data: 'd', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'rect', x: 'x', y: 'v' }] },
+        facet: { field: 'r' },
+      },
+    ],
+  }).html;
+  assert(!canvasless.includes('<h4></h4><script>'), 'a value is text, not markup');
+
+  const broken = spec();
+  broken.marks = [{ type: 'line', x: 'nope', y: 'v' }];
+  assert.throws(
+    () => compose({ data: { d: rows }, charts: [{ section: 'A' }, { spec: broken, facet: { field: 'r' } }] }),
+    (e) => e instanceof ComposeError && e.diagnostics.length > 0 && e.diagnostics.every((d) => d.path.startsWith('charts[1].')),
+    'errors point at the entry',
+  );
+  for (const [facet, re] of [
+    ['r', /must be an object/],
+    [{}, /"field" must name/],
+    [{ field: 'nope' }, /not a column/],
+    [{ field: 'r', columns: 7 }, /from 1 to 6/],
+    [{ field: 'r', columns: 1.5 }, /from 1 to 6/],
+    [{ field: 'r', values: ['Mars'] }, /not a value/],
+    [{ field: 'r', values: [] }, /no values/],
+    [{ field: 'r', values: 'North' }, /must be a list/],
+    [{ field: 'r', free: 'y' }, /"free" must be a list/],
+    [{ field: 'r', rows: 2 }, /"rows" is not known/],
+  ])
+    assert.throws(
+      () => compose({ data: { d: rows }, charts: [{ spec: spec(), facet }] }),
+      (e) => e instanceof ComposeError && re.test(e.message),
+      String(re),
+    );
+  assert.throws(
+    () => compose({ data: { d: rows }, charts: [{ spec: { ...spec(), id: 'a' }, facet: { field: 'r' } }] }),
+    /cannot have an "id"/,
+  );
+  assert.throws(
+    () => compose({ data: { d: rows }, charts: [{ spec: spec(), minWidth: 500, facet: { field: 'r' } }] }),
+    /does not go with minWidth/,
+  );
+  const many = Array.from({ length: 40 }, (_, i) => ({ r: 'r' + i, m: '2024-01-01', p: 'T', v: 1 }));
+  assert.throws(() => compose({ data: { d: many }, charts: [{ spec: spec(), facet: { field: 'r' } }] }), /too many/);
+});
+
 test('compose: minWidth keeps a chart wide inside a card that scrolls; bad values are refused', () => {
   const h = compose({ data: DATA, charts: [{ spec: bars(), minWidth: 560 }, bars()] }).html;
   assert(h.includes('<div class="bc-scroll"><div style="min-width:560px"><script type="application/json" data-bc-chart>'));

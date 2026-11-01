@@ -1655,6 +1655,7 @@
     has: (name) => registry.has(name),
     get: (name) => registry.get(name),
     blocks: () => Array.from(registry.keys()) as BC.BlockName[],
+    color: colorAt,
     data,
     ready,
     defineFn: (name, fn) => {

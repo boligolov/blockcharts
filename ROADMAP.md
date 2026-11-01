@@ -35,6 +35,37 @@ Done: KPI tiles (guide.kpi), waterfall, funnel, treemap, target lines and bullet
 - [ ] **Table** (much later; there is a lot to it): its own design question — an HTML table rather than SVG text (scrolls, selects, prints as a
       table), sortable, number formats shared with axes and tooltips, optional bars or heat in cells.
 
+## What the dashboards found
+
+The browsers and oil dashboards were built with the skill as a plain user. Their log is `dashboards/oil/FINDINGS.md`
+(not in the repository); this is its state.
+
+Done: every bug found (skill 0.13.1, 0.14.0), locale and `lang` on a page, section and chart, translatable UI strings,
+and facets (skill 0.15.0).
+
+Missing chart kinds, in the proposed order:
+
+- [ ] **Table with sparklines**: see Table above.
+- [ ] **Sankey**: volume from product to channel to segment.
+- [ ] **Candlestick** and **calendar heatmap**.
+- [ ] **Marimekko recipe**: it can be built from rects today, but it has no width axis.
+- Not planned: radar (a heatmap reads better), sunburst, a choropleth map (excluded by design).
+
+Smaller gaps:
+
+- [ ] Facets: a `legend-filter` across panels (it is dropped with a warning today).
+- [ ] Facets on a field made by a transform (an error today).
+- [ ] Unused datasets are listed but still embedded.
+- [ ] The boxplot tooltip shows an empty outlier line on every box.
+- [ ] End labels of a log axis land on the axis.
+- [ ] Legend title; a legend position `auto` that falls back to a column for wide labels.
+- [ ] Label placement for negative bars; label collisions on points.
+- [ ] Log bins in `transform.bin`; a third treemap level.
+- [ ] Renormalizing a 100% stack after a legend filter.
+
+Not checked yet: the oil dashboard's interactions and dark mode after 0.14.0, upright titles on canvas, facets in dark
+mode and on canvas, fonts outside Windows, a review of the CJK text by native speakers.
+
 ## Password-protected reports
 
 - [ ] **Encrypt the whole page** (`compose --encrypt`): the charts, specs, notes and data go gzip → AES-256-GCM →

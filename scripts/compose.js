@@ -13,6 +13,9 @@
 //   charts  [ spec | { spec, title?, note?, noteHtml?, span?, minWidth? } | { section, note? } ]   each chart sits in a card; span =
 //           how many grid columns it takes; minWidth = the px below which the chart keeps its width and its card scrolls sideways.
 //           { section } is a heading over the whole width that starts a group of cards
+//           { spec, facet: { field, columns?, values?, free? } } draws the chart once per value of a field of the dataset, in one
+//           card, on shared axes: every scale without a domain of its own gets the union of the panels, except those named in
+//           free; a legend of categories is drawn once above the panels
 //   lang    the language of the page ("ko", "ja", "zh-CN"): <html lang>, the font for that language, and the language numbers
 //           and dates are written in. A { section } or a chart entry can take a lang of its own; a section's lasts until the next
 //   title / subtitle  the page heading (and the <title>) and one line under it
@@ -84,6 +87,9 @@ const DEFAULT_CSS = [
   '.bc-section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 14px;min-width:0;box-shadow:0 1px 2px rgba(16,24,40,.04)}',
   '.bc-section h2,.bc-section h3{font-size:14px;font-weight:600;margin:0 0 2px}.bc-section p{margin:0 0 10px;color:var(--muted);font-size:13px}',
   '.bc-group{grid-column:1/-1;margin:16px 0 -4px}.bc-group:first-child{margin-top:0}.bc-group h2{font-size:18px;line-height:1.3;letter-spacing:-.01em;font-weight:650;margin:0}.bc-group p{margin:2px 0 0;color:var(--muted)}',
+  '.bc-facets{display:grid;grid-template-columns:repeat(var(--bc-facet-cols,2),minmax(0,1fr));gap:12px 16px}.bc-facet{min-width:0}.bc-section h4{font-size:12px;font-weight:600;margin:0 0 2px}',
+  '.bc-facet-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;margin:0 0 8px}.bc-facet-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}',
+  '@media (max-width:720px){.bc-facets{grid-template-columns:repeat(min(var(--bc-facet-cols,2),2),minmax(0,1fr))}}@media (max-width:480px){.bc-facets{grid-template-columns:minmax(0,1fr)}}',
   '.bc-scroll{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}',
   '.bc-chart{user-select:none}.bc-chart text{font-variant-numeric:tabular-nums}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}',
   '@media (max-width:720px){.bc-grid{grid-template-columns:1fr}.bc-grid>.bc-section{grid-column:auto!important}.bc-page{padding:20px 12px 40px}}',
@@ -256,6 +262,44 @@ function styleTag(parts) {
   return css ? `<style>${css.replace(/<\/style/gi, '<\\/style')}</style>` : '';
 }
 
+const MAX_PANELS = 36;
+
+/** The panels of a chart with a `facet`: its spec, once per value of the field, each keeping only that value's rows. The filter
+ *  comes first, so what the other transforms compute (a stack, a total) is computed within the panel. */
+function facetPanels(entry, i, data) {
+  const { spec, facet } = entry;
+  const fail = (why) => new ComposeError(`charts[${i}].facet: ${why}`);
+  if (!facet || typeof facet !== 'object' || Array.isArray(facet)) throw fail('must be an object: { "field": "region" }');
+  for (const k of Object.keys(facet))
+    if (!['field', 'columns', 'values', 'free'].includes(k)) throw fail(`"${k}" is not known (field, columns, values, free)`);
+  if (typeof facet.field !== 'string' || !facet.field) throw fail('"field" must name a column of the dataset');
+  if (entry.minWidth !== undefined) throw fail('panels reflow by themselves, so it does not go with minWidth');
+  if (spec.id !== undefined) throw fail('one spec makes many charts, so it cannot have an "id"');
+  if (facet.columns !== undefined && (!Number.isInteger(facet.columns) || facet.columns < 1 || facet.columns > 6))
+    throw fail('"columns" must be a whole number from 1 to 6');
+  if (facet.free !== undefined && (!Array.isArray(facet.free) || facet.free.some((n) => typeof n !== 'string')))
+    throw fail('"free" must be a list of scale names');
+  if (typeof spec.data !== 'string' || !data[spec.data]) throw fail(`the chart's dataset "${String(spec.data)}" is not in data`);
+  const set = plainDataset(spec.data, data[spec.data]);
+  const column = Array.isArray(set) ? set.map((r) => r[facet.field]) : set.columns && set.columns[facet.field];
+  if (!column || (Array.isArray(set) && column.every((v) => v === undefined)))
+    throw fail(`"${facet.field}" is not a column of "${spec.data}" (a column made by a transform cannot be faceted on)`);
+  const found = Array.from(new Set(Array.from(column).filter((v) => v !== null && v !== undefined && v !== '')));
+  if (facet.values !== undefined && !Array.isArray(facet.values)) throw fail('"values" must be a list');
+  const values = facet.values || found;
+  for (const v of values) {
+    if (typeof v !== 'string' && typeof v !== 'number') throw fail('a value must be text or a number');
+    if (!found.includes(v)) throw fail(`${JSON.stringify(v)} is not a value of "${facet.field}"`);
+  }
+  if (!values.length) throw fail(`"${facet.field}" has no values`);
+  if (values.length > MAX_PANELS)
+    throw fail(`${values.length} panels are too many to compare (at most ${MAX_PANELS}); pick some with "values"`);
+  return values.map((v) => ({
+    label: String(v),
+    spec: { ...spec, transforms: [{ type: 'filter', field: facet.field, value: v }, ...(spec.transforms || [])] },
+  }));
+}
+
 function compose(opts) {
   const options = opts || {};
   // next to manifest.json (a packaged skill) or in the repo's dist folder
@@ -310,6 +354,7 @@ function compose(opts) {
       entry.spec = { ...entry.spec, locale: entry.lang };
     if (entry.minWidth !== undefined && (!Number.isFinite(entry.minWidth) || entry.minWidth <= 0 || entry.minWidth > 4000))
       throw new ComposeError(`charts[${i}].minWidth must be a width in px, from 1 to 4000`);
+    if (entry.facet !== undefined && entry.spec && typeof entry.spec === 'object') entry.panels = facetPanels(entry, i, data);
     if (entry.span !== undefined && (!Number.isInteger(entry.span) || entry.span < 1 || entry.span > columns)) {
       throw new ComposeError(`charts[${i}].span must be a whole number from 1 to ${columns} (layout.columns)`);
     }
@@ -328,7 +373,11 @@ function compose(opts) {
     }
     return entry;
   });
-  const charts = entries.filter((e) => e.section === undefined);
+  const facets = entries.filter((e) => e.panels);
+  // from here on a panel is a chart like any other, and its errors are reported at the entry it came from
+  const charts = entries
+    .filter((e) => e.section === undefined)
+    .flatMap((e) => (e.panels ? e.panels.map((p) => ({ ...e, spec: p.spec, panel: p })) : [e]));
   if (!charts.length) throw new ComposeError('charts must have at least one chart, not only sections');
 
   // a sandbox with only the core: it answers BC.needs and, once the blocks are in, BC.validate
@@ -375,13 +424,70 @@ function compose(opts) {
     for (const d of plain(Array.from(BC.validate(spec))))
       diagnostics.push({ ...d, chart: i, path: `charts[${i}].${d.path}`.replace(/\.$/, '') });
   });
+  const drawTimeout = typeof options.drawTimeout === 'number' && options.drawTimeout > 0 ? options.drawTimeout : 10000;
+  sandbox.document = createDocument();
+  sandbox.getComputedStyle = () => ({ position: 'static' });
+  sandbox.setTimeout = () => 0;
+  sandbox.Path2D = FakePath2D;
+
+  // the panels of a facet share their scales: each is drawn once to see what it needs, and all of them get the union
+  for (const entry of facets) {
+    if (diagnostics.some((d) => d.chart === entry.index && d.level === 'error')) continue;
+    const views = [];
+    for (const panel of entry.panels) {
+      try {
+        sandbox.__bcView = () => {
+          const handle = BC.chart(new El('div', sandbox.document), panel.spec);
+          views.push(plain(handle.getView()));
+          handle.destroy();
+        };
+        vm.runInContext('__bcView()', sandbox, { timeout: drawTimeout });
+      } catch (e) {
+        views.push({}); // the trial run below reports it
+      } finally {
+        delete sandbox.__bcView;
+      }
+    }
+    captured.length = 0; // the empty panels of this look are not news; the trial run says what is
+    const free = entry.facet.free || [];
+    const scales = { ...(entry.spec.scales || {}) };
+    for (const name of Object.keys(scales)) {
+      const s = scales[name];
+      if (free.includes(name) || s.domain !== undefined) continue;
+      const seen = views.map((v) => v[name]).filter(Array.isArray);
+      if (!seen.length) continue;
+      if (s.type === 'band' || s.type === 'color') scales[name] = { ...s, domain: Array.from(new Set(seen.flat())) };
+      else if (['linear', 'log', 'time', 'sequential'].includes(s.type)) {
+        const ends = seen.flat().map(Number);
+        scales[name] = { ...s, domain: [Math.min(...ends), Math.max(...ends)] };
+        if (s.type === 'linear' || s.type === 'log') scales[name].nice = false; // each panel was already rounded
+      }
+    }
+    // a legend of categories says the same in every panel: it goes above them, once
+    const legendOf = (entry.spec.guides || []).find((g) => g.type === 'legend' && scales[g.scale] && scales[g.scale].type === 'color');
+    if (legendOf) {
+      if ((entry.spec.interaction || []).some((x) => x.type === 'legend-filter'))
+        diagnostics.push({
+          level: 'warn',
+          chart: entry.index,
+          path: `charts[${entry.index}].interaction`,
+          message: 'legend-filter is dropped: the legend of a facet is shared by the panels, and it cannot filter several charts yet',
+        });
+      const s = scales[legendOf.scale];
+      const range = Array.isArray(s.range) && s.range.length ? s.range : null;
+      entry.legend = (s.domain || []).map((v, k) => ({ label: String(v), color: range ? range[k % range.length] : BC.color(k) }));
+    }
+    for (const panel of entry.panels) {
+      const guides = (entry.spec.guides || []).filter((g) => !legendOf || g !== legendOf);
+      const interaction = entry.spec.interaction
+        ? entry.spec.interaction.filter((x) => !legendOf || x.type !== 'legend-filter')
+        : undefined;
+      Object.assign(panel.spec, { scales, guides }, interaction ? { interaction } : {});
+    }
+  }
+
   // 3b: build every chart once, the way a page would, in a sandbox with a fake DOM
   if (options.dryRun !== false) {
-    const drawTimeout = typeof options.drawTimeout === 'number' && options.drawTimeout > 0 ? options.drawTimeout : 10000;
-    sandbox.document = createDocument();
-    sandbox.getComputedStyle = () => ({ position: 'static' });
-    sandbox.setTimeout = () => 0;
-    sandbox.Path2D = FakePath2D;
     const known = new Set(diagnostics.map((d) => `${d.chart}|${d.level}|${d.path}|${d.message}`));
     charts.forEach(({ spec, index: i }) => {
       // a chart that already failed validation has nothing more to say
@@ -468,8 +574,16 @@ function compose(opts) {
   // under section headings a card's title is one level down
   const titleTag = entries.length > charts.length ? 'h3' : 'h2';
   const langAttr = (lang) => (lang && lang !== pageLang ? ` lang="${lang}"` : '');
-  const section = ({ spec, title, note, noteHtml, span, minWidth, lang }) => {
-    const script = `<script type="application/json" data-bc-chart>${jsonForScript(spec)}</script>`;
+  const chartTag = (spec) => `<script type="application/json" data-bc-chart>${jsonForScript(spec)}</script>`;
+  const facetTag = ({ panels, facet, legend }) => {
+    const keys = legend
+      ? `<div class="bc-facet-legend">${legend.map((l) => `<span><i style="background:${escapeText(l.color)}"></i>${escapeText(l.label)}</span>`).join('')}</div>`
+      : '';
+    const cells = panels.map((p) => `<div class="bc-facet"><h4>${escapeText(p.label)}</h4>${chartTag(p.spec)}</div>`).join('');
+    return `${keys}<div class="bc-facets" style="--bc-facet-cols:${facet.columns || Math.min(panels.length, 3)}">${cells}</div>`;
+  };
+  const section = ({ spec, title, note, noteHtml, span, minWidth, lang, panels, facet, legend }) => {
+    const script = panels ? facetTag({ panels, facet, legend }) : chartTag(spec);
     const tag = minWidth ? `<div class="bc-scroll"><div style="min-width:${minWidth}px">${script}</div></div>` : script;
     const width = columns > 1 ? ` style="grid-column:span ${span || columns}"` : '';
     return `<section class="bc-section"${langAttr(lang)}${width}>${title ? `<${titleTag}>${escapeText(title)}</${titleTag}>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;

@@ -552,6 +552,8 @@ declare namespace BC {
     has(name: BlockName): boolean;
     get(name: BlockName): BlockDef | undefined;
     blocks(): BlockName[];
+    /** The palette color of an index: what a color scale gives its n-th category. */
+    color(index: number): string;
 
     /** Add/replace a dataset in the data lake (the page's #bc-data is loaded on mount). Rows and columns are
      *  available at once; an EncodedDataset is decoded in the background (a failure is reported by the charts

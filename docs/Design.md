@@ -953,6 +953,18 @@ one cause and the rest were places where Latin had been taken for granted.
 - **A report can be wrong.** The agent reported the legend filter dead on canvas; the filter worked and its clicks had
   missed. Findings are reproduced before they are fixed.
 
+## Small multiples
+
+`facet` is an entry of the page, not a block: the composer already owns the page and has the data, and a panel is an
+ordinary chart with one more filter, so a page with facets carries no new code and each panel keeps its tooltip, zoom and
+relayout. The filter goes first, so a stack or a total is computed within the panel; that is also why the field has to be
+in the data itself. To share axes the composer draws every panel once in the sandbox, reads the domains and writes their
+union into the specs. A scale with a `domain` of its own stays as it is, and `free` opts out. A band or color scale takes
+the union in first-seen order, so a category keeps its color in a panel where it is missing. A legend of categories moves
+above the panels as HTML, since repeated it would cost each panel the same room for the same words; a legend filter goes
+with it, as there is no way yet to filter several charts at once, and the composer warns about it. Panels are one chart per element rather than one SVG, so
+on a phone they reflow like any other cards. The price is that it works only through the composer, not in BC.chart.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,
