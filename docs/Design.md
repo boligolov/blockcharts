@@ -957,13 +957,30 @@ one cause and the rest were places where Latin had been taken for granted.
 
 `facet` is an entry of the page, not a block: the composer already owns the page and has the data, and a panel is an
 ordinary chart with one more filter, so a page with facets carries no new code and each panel keeps its tooltip, zoom and
-relayout. The filter goes first, so a stack or a total is computed within the panel; that is also why the field has to be
-in the data itself. To share axes the composer draws every panel once in the sandbox, reads the domains and writes their
+relayout. The filter goes first, so a stack or a total is computed within the panel. A field a transform makes is the
+exception: the composer runs the transforms up to that one to learn the values, and the filter goes right after it. To share axes the composer draws every panel once in the sandbox, reads the domains and writes their
 union into the specs. A scale with a `domain` of its own stays as it is, and `free` opts out. A band or color scale takes
 the union in first-seen order, so a category keeps its color in a panel where it is missing. A legend of categories moves
-above the panels as HTML, since repeated it would cost each panel the same room for the same words; a legend filter goes
-with it, as there is no way yet to filter several charts at once, and the composer warns about it. Panels are one chart per element rather than one SVG, so
+above the panels as HTML, since repeated it would cost each panel the same room for the same words. A legend filter stays
+in every panel and listens to that legend, so there is no state outside the charts; a shared scale in its `fit` is dropped,
+as refitting one panel would end the comparison the panels are for. Panels are one chart per element rather than one SVG, so
 on a phone they reflow like any other cards. The price is that it works only through the composer, not in BC.chart.
+
+## What the smaller gaps taught
+
+- **A hidden series and a 100% stack.** A stack ran once, so hiding a series left a hole. `viewDependent` can now be a
+  function of the spec: `transform.stack` with `follows` reruns on a view change, and only then. It still runs once without
+  a view before the scales are made, because their domains are read from what it writes.
+- **A row can mean "no such field".** The rows of `transform.quartiles` share a table but not their fields, and a tooltip
+  has to tell that from a missing value, which it shows as a dash. The table says so itself (`sparse`).
+- **A weekday with no data** keeps its place through one empty row: no date, so nothing is drawn, as with other rows that
+  have no position.
+- **Dark text on a mid blue** came from measuring contrast against pure black while drawing #111.
+- **The name of a Marimekko column** sat on its top cell, and real shares made that cell too thin to hold it, so most
+  columns went unnamed. It now sits on the tallest cell.
+- **Month names on a time axis** came from an English list and ignored the chart's language. The oil dashboard hid it by
+  giving every axis a `format`; the first axis without one showed `Jan 2024` under Japanese text.
+- **Unused datasets** stay off the page, unless the page has its own script, which could read them.
 
 ## Sankey
 

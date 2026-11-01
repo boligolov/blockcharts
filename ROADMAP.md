@@ -41,7 +41,8 @@ The browsers and oil dashboards were built with the skill as a plain user. Their
 (not in the repository); this is its state.
 
 Done: every bug found (skill 0.13.1, 0.14.0), locale and `lang` on a page, section and chart, translatable UI strings,
-facets (skill 0.15.0), Sankey (skill 0.16.0), candlesticks, calendar heatmaps and Marimekko (skill 0.17.0).
+facets (skill 0.15.0), Sankey (skill 0.16.0), candlesticks, calendar heatmaps and Marimekko (skill 0.17.0), the smaller gaps
+(skill 0.18.0).
 
 Missing chart kinds:
 
@@ -50,23 +51,17 @@ Missing chart kinds:
 
 Smaller gaps:
 
-- [ ] Sankey: hovering a node to light up its flows; labels that face each other across the last gap can touch.
-- [ ] Calendar: a weekday with no rows drops out of the axis, because the band scale lists what it meets.
-- [ ] Marimekko: dark labels on a blue cell read worse than on the others.
-- [ ] Facets: a `legend-filter` across panels (it is dropped with a warning today).
-- [ ] Facets on a field made by a transform (an error today).
-- [ ] Unused datasets are listed but still embedded.
-- [ ] The boxplot tooltip shows an empty outlier line on every box.
-- [ ] End labels of a log axis land on the axis.
-- [ ] Legend title; a legend position `auto` that falls back to a column for wide labels.
-- [ ] Label placement for negative bars; label collisions on points.
-- [ ] Log bins in `transform.bin`; a third treemap level.
-- [ ] Renormalizing a 100% stack after a legend filter.
+- [ ] `on` of mark.text reads the fallback color in `var(--bc-c4, #...)`, not the one a page or a dark theme sets, so light or
+      dark text is chosen for a color that is not on screen. Seen on purple in a Marimekko.
+- [ ] End labels of a log axis land on the axis: not reproduced after `nice` was fixed in `scale.log`. Needs the chart that showed it.
 
-Not checked yet: the oil dashboard's interactions and dark mode after 0.14.0, upright titles on canvas, facets in dark
-mode and on canvas, Marimekko in dark mode and on canvas, the Sankey node tooltip on a phone, a calendar with a facet by
-year, fonts outside Windows, a review of the CJK text by native speakers. The new chart kinds have not been tried on the
-oil data or put in that dashboard; the only trial there was facets, on one chart, outside the dashboard.
+Checked in Chrome on 2026-11-01, light and dark, with no console errors: the oil dashboard (hover, 12 legend filters, zoom, a
+phone at 390 px); facets and Marimekko on SVG and canvas; upright titles on canvas; the Sankey node tooltip by touch; a calendar
+faceted by year; legend filters of facets and Marimekko on both renderers; Sankey, Marimekko, candlesticks and a calendar in the
+oil dashboard.
+
+Not checked yet: fonts outside Windows, Safari, a review of the CJK text by native speakers (Claude read the notes, but not
+the labels inside the charts, and it is no native speaker).
 
 ## Password-protected reports
 

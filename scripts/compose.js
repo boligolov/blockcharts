@@ -88,7 +88,7 @@ const DEFAULT_CSS = [
   '.bc-section h2,.bc-section h3{font-size:14px;font-weight:600;margin:0 0 2px}.bc-section p{margin:0 0 10px;color:var(--muted);font-size:13px}',
   '.bc-group{grid-column:1/-1;margin:16px 0 -4px}.bc-group:first-child{margin-top:0}.bc-group h2{font-size:18px;line-height:1.3;letter-spacing:-.01em;font-weight:650;margin:0}.bc-group p{margin:2px 0 0;color:var(--muted)}',
   '.bc-facets{display:grid;grid-template-columns:repeat(var(--bc-facet-cols,2),minmax(0,1fr));gap:12px 16px}.bc-facet{min-width:0}.bc-section h4{font-size:12px;font-weight:600;margin:0 0 2px}',
-  '.bc-facet-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;margin:0 0 8px}.bc-facet-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}',
+  '.bc-facet-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;margin:0 0 8px}.bc-facet-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.bc-facet-legend button{all:unset;cursor:pointer}.bc-facet-legend button:focus-visible{outline:2px solid currentColor;outline-offset:2px}.bc-facet-legend [aria-pressed=false]{opacity:.4}',
   '@media (max-width:720px){.bc-facets{grid-template-columns:repeat(min(var(--bc-facet-cols,2),2),minmax(0,1fr))}}@media (max-width:480px){.bc-facets{grid-template-columns:minmax(0,1fr)}}',
   '.bc-scroll{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}',
   '.bc-chart{user-select:none}.bc-chart text{font-variant-numeric:tabular-nums}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}',
@@ -264,8 +264,34 @@ function styleTag(parts) {
 
 const MAX_PANELS = 36;
 
+const facetSpec = (spec, field, value, at) => {
+  const transforms = (spec.transforms || []).slice();
+  transforms.splice(at, 0, { type: 'filter', field, value });
+  return { ...spec, transforms };
+};
+
+/** The values of a facet, checked; what is faceted on may be a column of the dataset or one a transform made. */
+function facetValues(entry, i, found) {
+  const { facet } = entry;
+  const fail = (why) => new ComposeError(`charts[${i}].facet: ${why}`);
+  if (facet.values !== undefined && !Array.isArray(facet.values)) throw fail('"values" must be a list');
+  const values = facet.values || found;
+  for (const v of values) {
+    if (typeof v !== 'string' && typeof v !== 'number') throw fail('a value must be text or a number');
+    if (!found.includes(v)) throw fail(`${JSON.stringify(v)} is not a value of "${facet.field}"`);
+  }
+  if (!values.length) throw fail(`"${facet.field}" has no values`);
+  if (values.length > MAX_PANELS)
+    throw fail(`${values.length} panels are too many to compare (at most ${MAX_PANELS}); pick some with "values"`);
+  return values;
+}
+
+const distinct = (column) => Array.from(new Set(Array.from(column).filter((v) => v !== null && v !== undefined && v !== '')));
+
 /** The panels of a chart with a `facet`: its spec, once per value of the field, each keeping only that value's rows. The filter
- *  comes first, so what the other transforms compute (a stack, a total) is computed within the panel. */
+ *  comes first, so what the other transforms compute (a stack, a total) is computed within the panel. A field a transform makes
+ *  has no values until the blocks are loaded: for now there is one panel, which tells the composer which blocks it needs, and
+ *  transformFacet replaces it. */
 function facetPanels(entry, i, data) {
   const { spec, facet } = entry;
   const fail = (why) => new ComposeError(`charts[${i}].facet: ${why}`);
@@ -282,22 +308,39 @@ function facetPanels(entry, i, data) {
   if (typeof spec.data !== 'string' || !data[spec.data]) throw fail(`the chart's dataset "${String(spec.data)}" is not in data`);
   const set = plainDataset(spec.data, data[spec.data]);
   const column = Array.isArray(set) ? set.map((r) => r[facet.field]) : set.columns && set.columns[facet.field];
-  if (!column || (Array.isArray(set) && column.every((v) => v === undefined)))
-    throw fail(`"${facet.field}" is not a column of "${spec.data}" (a column made by a transform cannot be faceted on)`);
-  const found = Array.from(new Set(Array.from(column).filter((v) => v !== null && v !== undefined && v !== '')));
-  if (facet.values !== undefined && !Array.isArray(facet.values)) throw fail('"values" must be a list');
-  const values = facet.values || found;
-  for (const v of values) {
-    if (typeof v !== 'string' && typeof v !== 'number') throw fail('a value must be text or a number');
-    if (!found.includes(v)) throw fail(`${JSON.stringify(v)} is not a value of "${facet.field}"`);
+  if (!column || (Array.isArray(set) && column.every((v) => v === undefined))) {
+    if (!(spec.transforms || []).length) throw fail(`"${facet.field}" is not a column of "${spec.data}"`);
+    entry.madeField = true;
+    return [{ label: '', spec: facetSpec(spec, facet.field, '', spec.transforms.length) }];
   }
-  if (!values.length) throw fail(`"${facet.field}" has no values`);
-  if (values.length > MAX_PANELS)
-    throw fail(`${values.length} panels are too many to compare (at most ${MAX_PANELS}); pick some with "values"`);
-  return values.map((v) => ({
-    label: String(v),
-    spec: { ...spec, transforms: [{ type: 'filter', field: facet.field, value: v }, ...(spec.transforms || [])] },
-  }));
+  return facetValues(entry, i, distinct(column)).map((v) => ({ label: String(v), spec: facetSpec(spec, facet.field, v, 0) }));
+}
+
+/** Facets on a field a transform makes: the panels filter right after that transform, so what comes later is per panel. */
+function transformFacet(entry, BC) {
+  const { spec, facet, index: i } = entry;
+  const fail = (why) => new ComposeError(`charts[${i}].facet: ${why}`);
+  const at = spec.transforms.findIndex((ts) => {
+    const def = BC.get(`transform.${ts.type}`);
+    try {
+      return def && def.outputs && Array.from(def.outputs(ts)).includes(facet.field);
+    } catch (e) {
+      return false; // a transform that cannot name its columns is reported by the validation
+    }
+  });
+  if (at < 0) throw fail(`"${facet.field}" is not a column of "${spec.data}", and no transform of the chart makes it`);
+  let table = BC.table(spec.data);
+  for (const ts of spec.transforms.slice(0, at + 1)) {
+    const def = BC.get(`transform.${ts.type}`);
+    if (def.viewDependent === true) throw fail(`it cannot come after transform.${ts.type}, which depends on the zoom`);
+    try {
+      table = def.apply(table, ts);
+    } catch (e) {
+      throw fail(e.message);
+    }
+  }
+  const values = facetValues(entry, i, distinct(table.columns[facet.field]));
+  return values.map((v) => ({ label: String(v), spec: facetSpec(spec, facet.field, v, at + 1) }));
 }
 
 function compose(opts) {
@@ -375,9 +418,11 @@ function compose(opts) {
   });
   const facets = entries.filter((e) => e.panels);
   // from here on a panel is a chart like any other, and its errors are reported at the entry it came from
-  const charts = entries
-    .filter((e) => e.section === undefined)
-    .flatMap((e) => (e.panels ? e.panels.map((p) => ({ ...e, spec: p.spec, panel: p })) : [e]));
+  const panelled = () =>
+    entries
+      .filter((e) => e.section === undefined)
+      .flatMap((e) => (e.panels ? e.panels.map((p) => ({ ...e, spec: p.spec, panel: p })) : [e]));
+  let charts = panelled();
   if (!charts.length) throw new ComposeError('charts must have at least one chart, not only sections');
 
   // a sandbox with only the core: it answers BC.needs and, once the blocks are in, BC.validate
@@ -419,6 +464,8 @@ function compose(opts) {
       throw new ComposeError(`data "${name}": ${e.message}`);
     }
   }
+  for (const entry of facets) if (entry.madeField) entry.panels = transformFacet(entry, BC);
+  charts = panelled();
   const diagnostics = [];
   charts.forEach(({ spec, index: i }) => {
     for (const d of plain(Array.from(BC.validate(spec))))
@@ -466,21 +513,25 @@ function compose(opts) {
     // a legend of categories says the same in every panel: it goes above them, once
     const legendOf = (entry.spec.guides || []).find((g) => g.type === 'legend' && scales[g.scale] && scales[g.scale].type === 'color');
     if (legendOf) {
-      if ((entry.spec.interaction || []).some((x) => x.type === 'legend-filter'))
-        diagnostics.push({
-          level: 'warn',
-          chart: entry.index,
-          path: `charts[${entry.index}].interaction`,
-          message: 'legend-filter is dropped: the legend of a facet is shared by the panels, and it cannot filter several charts yet',
-        });
+      if ((entry.spec.interaction || []).some((x) => x.type === 'legend-filter')) entry.legendId = `bc-facet-legend-${entry.index}`;
       const s = scales[legendOf.scale];
       const range = Array.isArray(s.range) && s.range.length ? s.range : null;
       entry.legend = (s.domain || []).map((v, k) => ({ label: String(v), color: range ? range[k % range.length] : BC.color(k) }));
     }
     for (const panel of entry.panels) {
       const guides = (entry.spec.guides || []).filter((g) => !legendOf || g !== legendOf);
+      // the panels filter together from the legend above them; a shared scale is not refitted, or they would stop being comparable
       const interaction = entry.spec.interaction
-        ? entry.spec.interaction.filter((x) => !legendOf || x.type !== 'legend-filter')
+        ? entry.spec.interaction.map((x) =>
+            legendOf && x.type === 'legend-filter'
+              ? {
+                  ...x,
+                  scale: legendOf.scale,
+                  legend: entry.legendId,
+                  ...(x.fit ? { fit: x.fit.filter((n) => free.includes(n)) } : {}),
+                }
+              : x,
+          )
         : undefined;
       Object.assign(panel.spec, { scales, guides }, interaction ? { interaction } : {});
     }
@@ -546,7 +597,9 @@ function compose(opts) {
   const stored = {};
   let compressed = [];
   let saved = 0;
-  for (const name of Object.keys(data)) {
+  // a page's own script can read any dataset, so with `after` they all stay
+  const carried = Object.keys(data).filter((n) => usedDatasets.has(n) || options.after);
+  for (const name of carried) {
     const r = encodeDataset(data[name], compress);
     stored[name] = r.value;
     if (r.encoded) {
@@ -560,7 +613,7 @@ function compose(opts) {
   const variants = manifest.core.variants || {};
   // 'auto' compresses only when that saves more than the decoder it brings along (nothing else here needs it)
   const decoderBytes = variants.composed && variants['composed-plain'] ? variants.composed.bytes - variants['composed-plain'].bytes : 0;
-  if (compress === 'auto' && compressed.length && saved <= decoderBytes && !Object.keys(data).some((n) => needsDecoding(data[n]))) {
+  if (compress === 'auto' && compressed.length && saved <= decoderBytes && !carried.some((n) => needsDecoding(data[n]))) {
     for (const name of compressed) stored[name] = data[name];
     compressed = [];
   }
@@ -575,15 +628,18 @@ function compose(opts) {
   const titleTag = entries.length > charts.length ? 'h3' : 'h2';
   const langAttr = (lang) => (lang && lang !== pageLang ? ` lang="${lang}"` : '');
   const chartTag = (spec) => `<script type="application/json" data-bc-chart>${jsonForScript(spec)}</script>`;
-  const facetTag = ({ panels, facet, legend }) => {
-    const keys = legend
-      ? `<div class="bc-facet-legend">${legend.map((l) => `<span><i style="background:${escapeText(l.color)}"></i>${escapeText(l.label)}</span>`).join('')}</div>`
-      : '';
+  const facetTag = ({ panels, facet, legend, legendId }) => {
+    const swatch = (l) => `<i style="background:${escapeText(l.color)}"></i>${escapeText(l.label)}`;
+    const item = (l, k) =>
+      legendId
+        ? `<button type="button" data-bc-legend-index="${k}" aria-pressed="true">${swatch(l)}</button>`
+        : `<span>${swatch(l)}</span>`;
+    const keys = legend ? `<div class="bc-facet-legend"${legendId ? ` id="${legendId}"` : ''}>${legend.map(item).join('')}</div>` : '';
     const cells = panels.map((p) => `<div class="bc-facet"><h4>${escapeText(p.label)}</h4>${chartTag(p.spec)}</div>`).join('');
     return `${keys}<div class="bc-facets" style="--bc-facet-cols:${facet.columns || Math.min(panels.length, 3)}">${cells}</div>`;
   };
-  const section = ({ spec, title, note, noteHtml, span, minWidth, lang, panels, facet, legend }) => {
-    const script = panels ? facetTag({ panels, facet, legend }) : chartTag(spec);
+  const section = ({ spec, title, note, noteHtml, span, minWidth, lang, panels, facet, legend, legendId }) => {
+    const script = panels ? facetTag({ panels, facet, legend, legendId }) : chartTag(spec);
     const tag = minWidth ? `<div class="bc-scroll"><div style="min-width:${minWidth}px">${script}</div></div>` : script;
     const width = columns > 1 ? ` style="grid-column:span ${span || columns}"` : '';
     return `<section class="bc-section"${langAttr(lang)}${width}>${title ? `<${titleTag}>${escapeText(title)}</${titleTag}>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
@@ -635,7 +691,7 @@ if (require.main === module) {
     fs.writeFileSync(output, r.html);
     console.log(`${output}: ${(r.html.length / 1024).toFixed(1)} KB, ${r.blocks.length} blocks (${r.blocks.join(', ')})`);
     for (const d of r.diagnostics) console.warn(`${d.level} ${d.path}: ${d.message}`);
-    if (r.unusedData.length) console.warn(`unused datasets: ${r.unusedData.join(', ')}`);
+    if (r.unusedData.length) console.warn(`unused datasets, left out of the page: ${r.unusedData.join(', ')}`);
     if (r.compressed.length) console.log(`compressed datasets: ${r.compressed.join(', ')}`);
   } catch (e) {
     console.error(e.message);

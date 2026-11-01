@@ -295,6 +295,46 @@ test('compose: warnings do not stop the page, unused data is reported', () => {
   assert.deepStrictEqual(r.unusedData.sort(), ['pts', 'spare']);
 });
 
+test('compose: unused datasets stay off the page, unless a script of the page may read them', () => {
+  const charts = [bars()];
+  const lean = compose({ data: { ...DATA, spare: [{ secret: 'left-behind' }] }, charts });
+  assert(!lean.html.includes('left-behind'));
+  const kept = compose({ data: { ...DATA, spare: [{ secret: 'left-behind' }] }, charts, after: '<script>/* mine */</script>' });
+  assert(kept.html.includes('left-behind'));
+});
+
+test('compose: a facet on a field a transform makes, with the filter right after that transform', () => {
+  const rows = [
+    { d: '2023-01-01', v: 1 },
+    { d: '2023-06-01', v: 2 },
+    { d: '2024-01-01', v: 3 },
+  ];
+  const spec = () => ({
+    data: 'd',
+    transforms: [
+      { type: 'calculate', a: 'v', op: '*', value: 2, as: 'year' },
+      { type: 'sort', field: 'v' },
+    ],
+    scales: { x: { type: 'band' }, y: { type: 'linear' } },
+    marks: [{ type: 'rect', x: 'd', y: 'v' }],
+  });
+  const specs = (html) => [...html.matchAll(/data-bc-chart>(.*?)<\/script>/g)].map((m) => JSON.parse(m[1].replace(/\\u003c/g, '<')));
+  const made = specs(compose({ data: { d: rows }, charts: [{ spec: spec(), facet: { field: 'year' } }] }).html);
+  assert.strictEqual(made.length, 3);
+  assert.deepStrictEqual(made[1].transforms[1], { type: 'filter', field: 'year', value: 4 });
+  assert.strictEqual(made[0].transforms[2].type, 'sort');
+  assert.throws(
+    () => compose({ data: { d: rows }, charts: [{ spec: spec(), facet: { field: 'nope' } }] }),
+    /"nope" is not a column of "d", and no transform of the chart makes it/,
+  );
+  assert.throws(
+    () => compose({ data: { d: rows }, charts: [{ spec: spec(), facet: { field: 'year', values: [1999] } }] }),
+    /1999 is not a value of "year"/,
+  );
+  const plain = { ...spec(), transforms: undefined };
+  assert.throws(() => compose({ data: { d: rows }, charts: [{ spec: plain, facet: { field: 'nope' } }] }), /"nope" is not a column/);
+});
+
 const { runPage, countTags } = require('./run-page.js');
 
 test('compose: the produced page mounts and draws when its scripts run', () => {
@@ -337,7 +377,7 @@ test('compose: big datasets are stored as base64(gzip), small ones stay readable
   assert.strictEqual(r.core, 'core.composed.js', 'with the decoder');
   assert.strictEqual(plainPage.core, 'core.composed-plain.js', 'without it');
   assert.deepStrictEqual(plainPage.compressed, []);
-  assert.deepStrictEqual(compose({ data: DATA, charts: [bars()], compress: true }).compressed, ['cats', 'pts'], 'true = everything');
+  assert.deepStrictEqual(compose({ data: DATA, charts: [bars()], compress: true }).compressed, ['cats'], 'true = everything on the page');
   assert.strictEqual(compose({ data: { ...DATA, big: BIG }, charts: [bars(), bigSpec()] }).html, r.html, 'deterministic');
   failsWith(() => compose({ data: DATA, charts: [bars()], compress: 'yes' }), /compress must be/);
 });
@@ -668,8 +708,7 @@ test('compose: facet draws one chart per value on shared scales, with one legend
   });
   const specs = (html) => [...html.matchAll(/data-bc-chart>(.*?)<\/script>/g)].map((m) => JSON.parse(m[1].replace(/\\u003c/g, '<')));
   const page = compose({ data: { d: rows }, charts: [{ title: 'T', spec: spec(), facet: { field: 'r', columns: 2 } }] });
-  assert.strictEqual(page.diagnostics.length, 1, 'says that the legend filter went');
-  assert(/legend-filter is dropped/.test(page.diagnostics[0].message) && page.diagnostics[0].level === 'warn');
+  assert.deepStrictEqual(page.diagnostics, []);
   const [north, south] = specs(page.html);
   assert.deepStrictEqual(north.transforms[0], { type: 'filter', field: 'r', value: 'North' });
   assert.strictEqual(south.transforms[0].value, 'South');
@@ -679,8 +718,15 @@ test('compose: facet draws one chart per value on shared scales, with one legend
   assert.deepStrictEqual(north.scales.color.domain, ['Tea', 'Coffee'], 'one set of colors, Coffee has its place in North too');
   assert(page.html.includes('--bc-facet-cols:2') && page.html.includes('<h4>North</h4>'));
   assert.strictEqual([...page.html.matchAll(/<section class="bc-section"/g)].length, 1, 'one card');
-  assert.strictEqual([...page.html.matchAll(/<div class="bc-facet-legend">/g)].length, 1, 'one legend');
-  assert(north.guides.every((g) => g.type !== 'legend') && north.interaction.every((x) => x.type !== 'legend-filter'), 'not in the panels');
+  assert.strictEqual([...page.html.matchAll(/<div class="bc-facet-legend"/g)].length, 1, 'one legend');
+  assert(
+    north.guides.every((g) => g.type !== 'legend'),
+    'not in the panels',
+  );
+  const filters = [north, south].map((s) => s.interaction.find((x) => x.type === 'legend-filter'));
+  assert.deepStrictEqual(filters[0], { type: 'legend-filter', scale: 'color', legend: 'bc-facet-legend-0' }, 'every panel listens to it');
+  assert.deepStrictEqual(filters[1], filters[0]);
+  assert(page.html.includes('id="bc-facet-legend-0"') && page.html.includes('data-bc-legend-index="1" aria-pressed="true"'));
   assert(page.blocks.includes('transform.filter'), 'the filter is on the page');
 
   const free = specs(compose({ data: { d: rows }, charts: [{ spec: spec(), facet: { field: 'r', free: ['y'] } }] }).html);
