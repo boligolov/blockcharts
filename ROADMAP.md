@@ -35,6 +35,20 @@ Done: KPI tiles (guide.kpi), waterfall, funnel, treemap, target lines and bullet
 - [ ] **Table** (much later; there is a lot to it): its own design question — an HTML table rather than SVG text (scrolls, selects, prints as a
       table), sortable, number formats shared with axes and tooltips, optional bars or heat in cells.
 
+## Password-protected reports
+
+- [ ] **Encrypt the whole page** (`compose --encrypt`): the charts, specs, notes and data go gzip → AES-256-GCM →
+      base64 through WebCrypto, the key comes from a password by PBKDF2, and the file holds only a password form and
+      the sealed block. Encrypting the datasets alone is not enough: titles, notes and field names stay readable.
+      - The password comes from the environment (`BC_PASSWORD`), never from `page.json` or the page. The composer
+        checks the plain specs first and encrypts last.
+      - WebCrypto was probed on 2026-11-01 with 600 000 PBKDF2 iterations: `file://` and `localhost` work in Chrome 156,
+        Edge 156 and Firefox 136; a wrong password and a changed byte are both rejected. Plain `http://` on a network
+        address has no `crypto.subtle`, so such a page has to say why it cannot open. **Safari is not checked yet.**
+      - To say plainly in the docs: a file can be attacked offline, so the password has to be long; access cannot be
+        revoked once someone has the file and the password.
+      - Tests: wrong password, damaged data, truncated data, `</script>` in the content, no `crypto.subtle`.
+
 ## Ideas, not decided
 
 - An MCP server with one tool, `compose_report`, for agents that cannot run `node`.
