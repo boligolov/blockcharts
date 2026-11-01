@@ -1,0 +1,35 @@
+{
+  "title": "Sankey",
+  "data": {
+    "flows": [
+      { "from": "Crude oil", "to": "Gasoline", "volume": 420 },
+      { "from": "Crude oil", "to": "Diesel", "volume": 310 },
+      { "from": "Crude oil", "to": "Jet fuel", "volume": 120 },
+      { "from": "Crude oil", "to": "Other products", "volume": 150 },
+      { "from": "Gasoline", "to": "Retail stations", "volume": 360 },
+      { "from": "Gasoline", "to": "Wholesale", "volume": 60 },
+      { "from": "Diesel", "to": "Retail stations", "volume": 130 },
+      { "from": "Diesel", "to": "Wholesale", "volume": 180 },
+      { "from": "Jet fuel", "to": "Airlines", "volume": 120 },
+      { "from": "Other products", "to": "Wholesale", "volume": 90 },
+      { "from": "Other products", "to": "Industry", "volume": 60 },
+      { "from": "Retail stations", "to": "Drivers", "volume": 400 },
+      { "from": "Retail stations", "to": "Fleets", "volume": 90 },
+      { "from": "Wholesale", "to": "Fleets", "volume": 210 },
+      { "from": "Wholesale", "to": "Industry", "volume": 120 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "From crude oil to the customer, million barrels",
+      "note": "mark.sankey takes one row per flow. The columns come from the flows, so it needs no scales and no axes, and every node is named on the chart.",
+      "spec": {
+        "data": "flows",
+        "size": [720, 400],
+        "padding": { "top": 8, "right": 8, "bottom": 8, "left": 8 },
+        "marks": [{ "type": "sankey", "source": "from", "target": "to", "value": "volume", "format": "integer" }],
+        "interaction": [{ "type": "tooltip", "fields": ["from", "to", "volume"], "labels": { "from": "From", "to": "To", "volume": "Million barrels" } }]
+      }
+    }
+  ]
+}

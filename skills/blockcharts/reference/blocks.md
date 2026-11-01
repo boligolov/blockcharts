@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-42 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.decimate`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+46 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.decimate`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -121,6 +121,16 @@ Version 1, 1.4 KB. A new column `as` from two numbers of each row: field `a` and
 | `value` | number |  | A constant on the right instead of a field. |
 | `as` | string, **required** |  | Name of the new column. |
 
+## transform.calendar
+
+Version 1, 1.6 KB. The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `field` | field, **required** |  | The date of each row. |
+| `weekStart` | one of `monday`, `sunday` | `"monday"` | The first day of a week. |
+| `as` | list |  | Names of the three new columns. Default [week, weekEnd, day]. |
+
 ## transform.decimate
 
 Version 3, 3.4 KB. Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them.
@@ -164,6 +174,19 @@ Version 2, 1.6 KB. A conversion funnel: stages in row order (visits, sign-ups, t
 | `as` | list |  | Names of the two end columns. Default [<field>0, <field>1]. |
 | `rateAs` | string | `"rate"` | Name of the column with the share of the first stage (0..1). |
 | `stepAs` | string | `"stepRate"` | Name of the column with the share of the previous stage (0..1; the first stage has none). |
+
+## transform.marimekko
+
+Version 1, 1.9 KB. A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the top cell of its column, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `field` | field, **required** |  | The size of each cell (positive numbers; others are left out). |
+| `category` | field, **required** |  | The field that makes the columns. |
+| `gap` | number | `0.003` | Space between the columns, as a share of the width. |
+| `as` | list |  | Names of the four corner columns. Default [x0, x1, y0, y1]. |
+| `shareAs` | string | `"share"` | Name of the share column. |
+| `labelAs` | string | `"label"` | Name of the label column. |
 
 ## transform.quartiles
 
@@ -306,6 +329,26 @@ Version 2, 2.7 KB. A box (q1 to q3), a line across it at the median, and whisker
 | `strokeWidth` | number | `1.5` | Width of the box outline and the whiskers. |
 | `opacity` | number | `1` |  |
 
+## mark.candlestick
+
+Version 1, 2.2 KB. Open-high-low-close candles, one per row: a body from `open` to `close`, a thin wick from `low` to `high`, in one color when the price rose and in another when it fell. `x` is a date on a time scale (candles as wide as the nearest two allow) or a category on a band scale; the four prices share the scale of `y`. A row with one of its prices missing has no candle.
+
+| Channel | | Accepted scales | Notes |
+| --- | --- | --- | --- |
+| `x` | **required** | `band`, `time`, `linear` |  |
+| `open` | **required** | `linear`, `log` | uses the scale of `y` unless told otherwise. Price at the start of the period. |
+| `high` | **required** | `linear`, `log` | uses the scale of `y` unless told otherwise. Highest price of the period. |
+| `low` | **required** | `linear`, `log` | uses the scale of `y` unless told otherwise. Lowest price of the period. |
+| `close` | **required** | `linear`, `log` | uses the scale of `y` unless told otherwise. Price at the end of the period. |
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `width` | number | `0.7` | Width of a body, as a share (0-1) of the step between candles. |
+| `up` | string | `"var(--bc-good, #12a150)"` | Color of a candle whose close is not below its open. |
+| `down` | string | `"var(--bc-bad, #e5484d)"` | Color of a candle whose close is below its open. |
+| `strokeWidth` | number | `1` | Width of the wick. |
+| `opacity` | number | `1` |  |
+
 ## mark.line
 
 Version 12, 3.6 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
@@ -390,6 +433,25 @@ Version 5, 2.1 KB. Lines at values: a target, a threshold, an average, the targe
 | `opacity` | number | `1` |  |
 | `thickness` | number | `0.7` | On a band scale, the share of the band the line spans (1 = the whole band). |
 | `label` | string |  | Text at the end of the line ("Target 50K"). |
+
+## mark.sankey
+
+Version 1, 5.5 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
+
+| Channel | | Accepted scales | Notes |
+| --- | --- | --- | --- |
+| `source` | **required** | none (a plain field) | Field with the name of the node a flow leaves. |
+| `target` | **required** | none (a plain field) | Field with the name of the node a flow arrives at. |
+| `value` | **required** | none (a plain field) | Numeric field: the size of the flow. |
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `nodeWidth` | number | `12` | Width of a node, in px. |
+| `nodeGap` | number | `12` | Space between the nodes of a column, in px; it shrinks when a column is full. |
+| `format` | any |  | How the total of a node is written after its name. Without it, only the name. |
+| `linkOpacity` | number | `0.35` | Opacity of the ribbons. |
+| `nodeLabels` | list |  | What a tooltip calls what flows into and out of a node: ["In", "Out"] by default. Translate it on a page in another language. |
+| `labelMin` | number | `11` | Nodes shorter than this many px get no label, so that labels do not overlap. |
 
 ## mark.text
 
@@ -510,7 +572,7 @@ Version 1, 1.9 KB. Click an item of a categorical legend to hide or show that ca
 
 ## interaction.tooltip
 
-Version 9, 8.5 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.
+Version 11, 8.6 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -518,6 +580,7 @@ Version 9, 8.5 KB. Shows the datum under the pointer: a marker plus a card with 
 | `formats` | any |  | How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits). |
 | `labels` | any |  | What to call the fields, per field: { "median": "Median, ms", "rev": "Revenue" }. Fields without one are shown under their own name. |
 | `content` | any |  | Name of a function registered with BC.defineFn (or, in a spec built in JS, the function itself). It gets a TooltipDatum and returns what to show: a string (text), { html }, a DOM Node, an array of those, null/false to hide the tooltip, or undefined for the default content. { html } is set with innerHTML and is not escaped — build it from trusted strings, never straight from a row value the data may contain. |
+| `heading` | field |  | The field at the head of the card. Default: the category or date the datum stands on. Give it when that is not what names the datum, as in a calendar, where x is the week and the row is a day. |
 | `marker` | one of `auto`, `dot`, `box`, `none` | `"auto"` | "dot" draws a small circle at the point; "box" highlights the whole shape (used automatically for rect marks like bar/heatmap, where a dot would land on an edge); "auto" picks box when the mark reports its bounds and dot otherwise; "none" shows the tooltip text without a marker. |
 
 ## interaction.zoom

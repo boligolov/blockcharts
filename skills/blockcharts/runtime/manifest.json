@@ -274,6 +274,36 @@
       },
       "doc": "A new column `as` from two numbers of each row: field `a` and field `b` (or a constant `value`), joined by `op` (+, -, *, /). A margin is profit / revenue; a gap is actual - plan; a price with tax is net * 1.2. A row where either side is not a number, or the division is by zero, gets NaN (drawn as missing). Rows and the other columns stay as they are; the new column can be used by any transform after it. `as` may be `a` or `b` itself to replace that column (revenue / 1000 in thousands); any other existing column is an error."
     },
+    "transform.calendar": {
+      "file": "blocks/transform.calendar.js",
+      "bytes": 1622,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "transform.calendar"
+      ],
+      "params": {
+        "field": {
+          "kind": "field",
+          "required": true,
+          "doc": "The date of each row."
+        },
+        "weekStart": {
+          "kind": "enum",
+          "values": [
+            "monday",
+            "sunday"
+          ],
+          "default": "monday",
+          "doc": "The first day of a week."
+        },
+        "as": {
+          "kind": "list",
+          "doc": "Names of the three new columns. Default [week, weekEnd, day]."
+        }
+      },
+      "doc": "The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first."
+    },
     "transform.decimate": {
       "file": "blocks/transform.decimate.js",
       "bytes": 3496,
@@ -408,6 +438,47 @@
         }
       },
       "doc": "A conversion funnel: stages in row order (visits, sign-ups, trials, purchases), each drawn as a bar centered on zero so the shape narrows. Writes the bar's two ends (`<field>0` = -value/2, `<field>1` = +value/2), the share of the first stage (`rate`) and of the stage before (`stepRate`). Draw with mark.rect (x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale) and label with mark.text formatted as percent."
+    },
+    "transform.marimekko": {
+      "file": "blocks/transform.marimekko.js",
+      "bytes": 1990,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "transform.marimekko"
+      ],
+      "params": {
+        "field": {
+          "kind": "field",
+          "required": true,
+          "doc": "The size of each cell (positive numbers; others are left out)."
+        },
+        "category": {
+          "kind": "field",
+          "required": true,
+          "doc": "The field that makes the columns."
+        },
+        "gap": {
+          "kind": "number",
+          "default": 0.003,
+          "doc": "Space between the columns, as a share of the width."
+        },
+        "as": {
+          "kind": "list",
+          "doc": "Names of the four corner columns. Default [x0, x1, y0, y1]."
+        },
+        "shareAs": {
+          "kind": "string",
+          "default": "share",
+          "doc": "Name of the share column."
+        },
+        "labelAs": {
+          "kind": "string",
+          "default": "label",
+          "doc": "Name of the label column."
+        }
+      },
+      "doc": "A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the top cell of its column, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out."
     },
     "transform.quartiles": {
       "file": "blocks/transform.quartiles.js",
@@ -916,6 +987,88 @@
       },
       "doc": "A box (q1 to q3), a line across it at the median, and whiskers out to low/high — the usual shape for transform.quartiles' output. `x` is the category (a band scale, one box per category) or a plain position on a continuous one; the five value channels share the scale of `y` by default. Outliers are not drawn by this mark: transform.quartiles reports them as their own rows (only `value` set, the others NaN), meant for a plain mark.point layered on top reading the same `x` and `value`."
     },
+    "mark.candlestick": {
+      "file": "blocks/mark.candlestick.js",
+      "bytes": 2235,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "mark.candlestick"
+      ],
+      "params": {
+        "width": {
+          "kind": "number",
+          "default": 0.7,
+          "doc": "Width of a body, as a share (0-1) of the step between candles."
+        },
+        "up": {
+          "kind": "string",
+          "default": "var(--bc-good, #12a150)",
+          "doc": "Color of a candle whose close is not below its open."
+        },
+        "down": {
+          "kind": "string",
+          "default": "var(--bc-bad, #e5484d)",
+          "doc": "Color of a candle whose close is below its open."
+        },
+        "strokeWidth": {
+          "kind": "number",
+          "default": 1,
+          "doc": "Width of the wick."
+        },
+        "opacity": {
+          "kind": "number",
+          "default": 1
+        }
+      },
+      "channels": {
+        "x": {
+          "required": true,
+          "scales": [
+            "band",
+            "time",
+            "linear"
+          ]
+        },
+        "open": {
+          "required": true,
+          "scales": [
+            "linear",
+            "log"
+          ],
+          "sharesScale": "y",
+          "doc": "Price at the start of the period."
+        },
+        "high": {
+          "required": true,
+          "scales": [
+            "linear",
+            "log"
+          ],
+          "sharesScale": "y",
+          "doc": "Highest price of the period."
+        },
+        "low": {
+          "required": true,
+          "scales": [
+            "linear",
+            "log"
+          ],
+          "sharesScale": "y",
+          "doc": "Lowest price of the period."
+        },
+        "close": {
+          "required": true,
+          "scales": [
+            "linear",
+            "log"
+          ],
+          "sharesScale": "y",
+          "doc": "Price at the end of the period."
+        }
+      },
+      "doc": "Open-high-low-close candles, one per row: a body from `open` to `close`, a thin wick from `low` to `high`, in one color when the price rose and in another when it fell. `x` is a date on a time scale (candles as wide as the nearest two allow) or a category on a band scale; the four prices share the scale of `y`. A row with one of its prices missing has no candle."
+    },
     "mark.line": {
       "file": "blocks/mark.line.js",
       "bytes": 3685,
@@ -1234,6 +1387,63 @@
         }
       },
       "doc": "Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ \"value\": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it."
+    },
+    "mark.sankey": {
+      "file": "blocks/mark.sankey.js",
+      "bytes": 5645,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "mark.sankey"
+      ],
+      "params": {
+        "nodeWidth": {
+          "kind": "number",
+          "default": 12,
+          "doc": "Width of a node, in px."
+        },
+        "nodeGap": {
+          "kind": "number",
+          "default": 12,
+          "doc": "Space between the nodes of a column, in px; it shrinks when a column is full."
+        },
+        "format": {
+          "kind": "any",
+          "doc": "How the total of a node is written after its name. Without it, only the name."
+        },
+        "linkOpacity": {
+          "kind": "number",
+          "default": 0.35,
+          "doc": "Opacity of the ribbons."
+        },
+        "nodeLabels": {
+          "kind": "list",
+          "doc": "What a tooltip calls what flows into and out of a node: [\"In\", \"Out\"] by default. Translate it on a page in another language."
+        },
+        "labelMin": {
+          "kind": "number",
+          "default": 11,
+          "doc": "Nodes shorter than this many px get no label, so that labels do not overlap."
+        }
+      },
+      "channels": {
+        "source": {
+          "required": true,
+          "unscaled": true,
+          "doc": "Field with the name of the node a flow leaves."
+        },
+        "target": {
+          "required": true,
+          "unscaled": true,
+          "doc": "Field with the name of the node a flow arrives at."
+        },
+        "value": {
+          "required": true,
+          "unscaled": true,
+          "doc": "Numeric field: the size of the flow."
+        }
+      },
+      "doc": "A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name. Give the same name to the same node in `source` and `target`, and different names to different stages (a \"Direct\" channel and a \"Direct\" segment would be one node)."
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
@@ -1671,8 +1881,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 8658,
-      "version": 9,
+      "bytes": 8845,
+      "version": 11,
       "requires": [],
       "closure": [
         "interaction.tooltip"
@@ -1693,6 +1903,10 @@
         "content": {
           "kind": "any",
           "doc": "Name of a function registered with BC.defineFn (or, in a spec built in JS, the function itself). It gets a TooltipDatum and returns what to show: a string (text), { html }, a DOM Node, an array of those, null/false to hide the tooltip, or undefined for the default content. { html } is set with innerHTML and is not escaped — build it from trusted strings, never straight from a row value the data may contain."
+        },
+        "heading": {
+          "kind": "field",
+          "doc": "The field at the head of the card. Default: the category or date the datum stands on. Give it when that is not what names the datum, as in a calendar, where x is the week and the row is a day."
         },
         "marker": {
           "kind": "enum",

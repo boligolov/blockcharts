@@ -1,0 +1,54 @@
+{
+  "title": "Marimekko",
+  "data": {
+    "market": [
+      { "region": "Asia", "supplier": "Refiner A", "sales": 420 },
+      { "region": "Asia", "supplier": "Refiner B", "sales": 310 },
+      { "region": "Asia", "supplier": "Others", "sales": 270 },
+      { "region": "Europe", "supplier": "Refiner A", "sales": 150 },
+      { "region": "Europe", "supplier": "Refiner B", "sales": 240 },
+      { "region": "Europe", "supplier": "Others", "sales": 110 },
+      { "region": "Americas", "supplier": "Refiner A", "sales": 90 },
+      { "region": "Americas", "supplier": "Refiner B", "sales": 160 },
+      { "region": "Americas", "supplier": "Others", "sales": 250 },
+      { "region": "Africa", "supplier": "Refiner A", "sales": 30 },
+      { "region": "Africa", "supplier": "Refiner B", "sales": 20 },
+      { "region": "Africa", "supplier": "Others", "sales": 100 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Who sells how much, and where",
+      "note": "transform.marimekko makes each region as wide as its share of the market, and each supplier as tall as its share of the region. The area of a cell is its share of the whole. Both axes are in percent of the whole.",
+      "spec": {
+        "data": "market",
+        "size": [720, 380],
+        "padding": { "top": 8, "right": 8, "bottom": 8, "left": 8 },
+        "transforms": [{ "type": "marimekko", "field": "sales", "category": "region" }],
+        "scales": {
+          "x": { "type": "linear", "domain": [0, 1], "nice": false },
+          "y": { "type": "linear", "domain": [0, 1], "nice": false },
+          "color": { "type": "color" }
+        },
+        "guides": [
+          { "type": "axis", "scale": "x", "format": "percent" },
+          { "type": "axis", "scale": "y", "format": "percent" },
+          { "type": "legend", "scale": "color", "position": "top" }
+        ],
+        "marks": [
+          { "type": "rect", "x": "x0", "x2": "x1", "y": "y1", "y2": "y0", "color": "supplier" },
+          { "type": "text", "x": "x0", "x2": "x1", "y": "y1", "y2": "y0", "text": "label", "on": "supplier", "anchor": "start", "baseline": "hanging", "dx": 8, "dy": 8, "size": 12, "weight": 600 }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "heading": "region",
+            "fields": ["supplier", "sales", "share"],
+            "labels": { "supplier": "Supplier", "sales": "Sales", "share": "Share of the region" },
+            "formats": { "share": "percent" }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.15.0"
+  version: "0.17.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -118,6 +118,14 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Targets and thresholds**: `mark.rule` draws lines at values. `{"type": "rule", "y": {"value": 50000}, "dash": [4, 4], "label": "Target"}` is a horizontal line at 50 000 on the y scale. On a band scale it becomes a short tick across the band: a bullet chart is three grey `rect` bands, a slim `rect` of the result (`thickness: 0.36`) and a `rule` of the target. See `recipes/bullet.json`.
 
+**Candlestick**: `mark.candlestick` with `x`, `open`, `high`, `low` and `close`. Declare `x` (time, or band) and `y` scales; the prices share `y`. It does not start at zero unless you ask. See `recipes/candlestick.json`.
+
+**Calendar heatmap**: `transform.calendar` with `field` = the date writes `week`, `weekEnd` and `day`; draw them with `mark.rect` (`x`: week, `x2`: weekEnd, `y`: day, `color`: the value) on a time x, a band y and a sequential color, and give the tooltip `"heading": "<date field>"`, or its card opens with the week. One row per day: aggregate first if there are more. See `recipes/calendar-heatmap.json`.
+
+**Marimekko**: `transform.marimekko` with `field` = the size and `category` = the columns. Draw `x0, x1, y1, y0` with `mark.rect` on two linear scales with the domain [0, 1] and `"nice": false`; both axes are shares of the whole, so format them as `"percent"`. It also writes `share` (of the column) for the tooltip and `label` for a `mark.text`. See `recipes/marimekko.json`.
+
+**Sankey**: `mark.sankey` with one row per flow, `"source"`, `"target"` and `"value"`. It needs no scales and no axes, and names its nodes itself; `"format"` adds each node's total. With a tooltip, a ribbon shows its row and a node shows what flows in and out; on a page in another language give `"nodeLabels": ["유입", "유출"]`. Flows have to run one way, so a loop is an error. A name is one node wherever it occurs: if two stages share a name, write them differently. See `recipes/sankey.json`.
+
 **Treemap**: `transform.treemap` (`field` = size, `group` = block, `name` = label, `aspect` = plot width / height) writes x0, x1, y0, y1 in 0..1 and `label`. Draw a `rect` (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with `domain: [0, 1]`, no axes, colored by the group; a `text` of `label` at (x0, y1) with `x2` = x1, `y2` = y0 (so a label that does not fit its cell shrinks or is left out) and `on` set to the color field. See `recipes/treemap.json`.
 
 **The dashboard look**: charts already come with quiet axes, a card tooltip and a calm palette. What makes them look finished:
@@ -167,6 +175,10 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | Conversion through the stages of a process | `recipes/funnel.json` |
 | Results against their targets, with qualitative ranges | `recipes/bullet.json` |
 | Shares of a whole across two levels (region, then product) | `recipes/treemap.json` |
+| Volume flowing between stages (product to channel to customer) | `recipes/sankey.json` |
+| Market size and share at once: how big each column is, and who holds it | `recipes/marimekko.json` |
+| Prices per period: open, high, low, close | `recipes/candlestick.json` |
+| A number per day over months: weekly patterns | `recipes/calendar-heatmap.json` |
 | A report from raw CSV rows: monthly totals, ranking, currency | `recipes/report-from-csv.json` |
 
 Each recipe is a complete `page.json` that composes as it stands.
