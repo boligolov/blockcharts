@@ -40,9 +40,6 @@ Done: KPI tiles (guide.kpi), waterfall, funnel, treemap, target lines and bullet
 The browsers and oil dashboards were built with the skill as a plain user. Their log is `dashboards/oil/FINDINGS.md`
 (not in the repository); this is its state.
 
-State on 2026-11-01: facets are committed (0.15.0). Sankey, candlesticks, calendar heatmaps and Marimekko (0.16.0, 0.17.0)
-are in the working tree, not committed; all suites pass there. `main` is ahead of `origin` and nothing is pushed.
-
 Done: every bug found (skill 0.13.1, 0.14.0), locale and `lang` on a page, section and chart, translatable UI strings,
 facets (skill 0.15.0), Sankey (skill 0.16.0), candlesticks, calendar heatmaps and Marimekko (skill 0.17.0).
 
