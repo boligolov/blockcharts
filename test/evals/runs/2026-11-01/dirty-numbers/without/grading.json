@@ -1,0 +1,90 @@
+{
+  "expectations": [
+    {
+      "text": "report.html exists",
+      "passed": true,
+      "evidence": "6659 bytes"
+    },
+    {
+      "text": "no script errors with the network off",
+      "passed": true,
+      "evidence": "none"
+    },
+    {
+      "text": "asks for nothing on the network",
+      "passed": true,
+      "evidence": "none"
+    },
+    {
+      "text": "at least 1 chart(s) drawn offline",
+      "passed": false,
+      "evidence": "0 drawn"
+    },
+    {
+      "text": "no more than 1024 KB",
+      "passed": true,
+      "evidence": "7 KB"
+    },
+    {
+      "text": "no sideways scroll on a phone",
+      "passed": true,
+      "evidence": "0px"
+    },
+    {
+      "text": "the figure 52199 is on the page",
+      "passed": true,
+      "evidence": "52,199"
+    },
+    {
+      "text": "the figure 51425 is on the page",
+      "passed": true,
+      "evidence": "51,425"
+    },
+    {
+      "text": "the figure 39585 is on the page",
+      "passed": true,
+      "evidence": "39,585"
+    },
+    {
+      "text": "the figure 36500 is on the page",
+      "passed": true,
+      "evidence": "36,500"
+    },
+    {
+      "text": "the figure 32770 is on the page",
+      "passed": true,
+      "evidence": "32,770"
+    },
+    {
+      "text": "the figure 245275 is on the page",
+      "passed": true,
+      "evidence": "245,275"
+    },
+    {
+      "text": "\"Everest\" is on the page",
+      "passed": true,
+      "evidence": "Everest"
+    },
+    {
+      "text": "\"Delta Foods\" is on the page",
+      "passed": true,
+      "evidence": "Delta Foods"
+    },
+    {
+      "text": "\"Fjord\" is on the page",
+      "passed": true,
+      "evidence": "Fjord"
+    },
+    {
+      "text": "\"Cobalt\" is on the page",
+      "passed": true,
+      "evidence": "Cobalt"
+    },
+    {
+      "text": "\"Borealis\" is on the page",
+      "passed": true,
+      "evidence": "Borealis"
+    }
+  ],
+  "bytes": 6659
+}

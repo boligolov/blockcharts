@@ -1,0 +1,4 @@
+# a run keeps its report and its grade; the agents' working files stay local
+runs/*/*/*/*
+!runs/*/*/*/report.html
+!runs/*/*/*/grading.json

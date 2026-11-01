@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Top Clients by Invoiced</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f8; --card: #ffffff; --ink: #1b2430; --muted: #5b6673; --line: #e1e5ea;
+    --track: #edf0f3; --bar: #2f6f9f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14181d; --card: #1c2229; --ink: #eef1f4; --muted: #a3adb8; --line: #323a44;
+      --track: #2a323b; --bar: #6fb0dc;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 16px 48px; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 1.125rem; margin: 0 0 16px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; }
+  .kpi .label { color: var(--muted); font-size: .875rem; }
+  .kpi .big { font-size: 2rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .kpi .note { color: var(--muted); font-size: .875rem; }
+  ol { list-style: none; margin: 0; padding: 0; }
+  li + li { margin-top: 16px; }
+  .row-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+  .value { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .track { height: 16px; background: var(--track); border-radius: 3px; margin: 4px 0; overflow: hidden; }
+  .bar { height: 100%; background: var(--bar); border-radius: 3px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .meta { color: var(--muted); font-size: .875rem; }
+  .sum { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
+  .sum div { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
+  .sum span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sum .all { font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: .9375rem; }
+  th, td { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: .875rem; }
+  tr:last-child td { border-bottom: 0; }
+  p { margin: 0; }
+  .notes { color: var(--muted); font-size: .875rem; }
+  @media (max-width: 480px) {
+    body { padding-top: 20px; }
+    h1 { font-size: 1.5rem; }
+    section { padding: 16px; }
+    .kpi { padding: 14px 16px; }
+    .kpi .big { font-size: 1.625rem; }
+    th, td { padding-right: 8px; }
+  }
+  @media print {
+    body { background: #fff; padding: 0; }
+    section, .kpi { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Everest and Delta Foods lead; the top 5 clients are 86.6% of invoiced</h1>
+  <p class="sub">Invoices dated Jan 1, 2025 to Oct 23, 2025, in US dollars</p>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label">Grand total invoiced</div>
+      <div class="big">$245,275</div>
+      <div class="note">53 invoices, 7 clients</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Rows with no usable amount</div>
+      <div class="big">7</div>
+      <div class="note">of 60 rows; not counted</div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Top 5 clients by total invoiced</h2>
+    <ol>
+      <li>
+        <div class="row-head"><span class="name">Everest</span><span class="value">$52,199</span></div>
+        <div class="track" aria-hidden="true"><div class="bar" style="width:100.00%"></div></div>
+        <div class="meta">21.3% of total &middot; 10 invoices</div>
+      </li>
+      <li>
+        <div class="row-head"><span class="name">Delta Foods</span><span class="value">$51,425</span></div>
+        <div class="track" aria-hidden="true"><div class="bar" style="width:98.52%"></div></div>
+        <div class="meta">21.0% of total &middot; 8 invoices</div>
+      </li>
+      <li>
+        <div class="row-head"><span class="name">Fjord</span><span class="value">$39,585</span></div>
+        <div class="track" aria-hidden="true"><div class="bar" style="width:75.83%"></div></div>
+        <div class="meta">16.1% of total &middot; 10 invoices</div>
+      </li>
+      <li>
+        <div class="row-head"><span class="name">Cobalt</span><span class="value">$36,500</span></div>
+        <div class="track" aria-hidden="true"><div class="bar" style="width:69.92%"></div></div>
+        <div class="meta">14.9% of total &middot; 9 invoices</div>
+      </li>
+      <li>
+        <div class="row-head"><span class="name">Borealis</span><span class="value">$32,770</span></div>
+        <div class="track" aria-hidden="true"><div class="bar" style="width:62.78%"></div></div>
+        <div class="meta">13.4% of total &middot; 7 invoices</div>
+      </li>
+    </ol>
+    <div class="sum">
+      <div><span>Top 5 clients</span><span>$212,479</span></div>
+      <div><span>Other 2 clients (Acme $17,741, Granite $15,055)</span><span>$32,796</span></div>
+      <div class="all"><span>Grand total</span><span>$245,275</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Rows left out (7)</h2>
+    <p>These rows have no amount that can be read as a number, so they are in neither the chart nor the grand total.</p>
+    <table>
+      <thead><tr><th>Date</th><th>Client</th><th>Amount as typed</th></tr></thead>
+      <tbody>
+          <tr><td>Jan 16, 2025</td><td>Delta Foods</td><td>n/a</td></tr>
+          <tr><td>Feb 5, 2025</td><td>Cobalt</td><td>(blank)</td></tr>
+          <tr><td>Apr 26, 2025</td><td>Everest</td><td>n/a</td></tr>
+          <tr><td>May 16, 2025</td><td>Cobalt</td><td>(blank)</td></tr>
+          <tr><td>Aug 4, 2025</td><td>Borealis</td><td>n/a</td></tr>
+          <tr><td>Aug 9, 2025</td><td>Everest</td><td>-</td></tr>
+          <tr><td>Aug 24, 2025</td><td>Fjord</td><td>(blank)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <p class="notes">How amounts were read: $1,750, USD 1,750.00 and plain 1750 all count as US dollars. The plain numbers carry no currency in the export, so treating them as dollars is an assumption.</p>
+</main>
+</body>
+</html>

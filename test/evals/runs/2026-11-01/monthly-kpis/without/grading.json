@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "report.html exists",
+      "passed": true,
+      "evidence": "16697 bytes"
+    },
+    {
+      "text": "no script errors with the network off",
+      "passed": true,
+      "evidence": "none"
+    },
+    {
+      "text": "asks for nothing on the network",
+      "passed": true,
+      "evidence": "none"
+    },
+    {
+      "text": "at least 1 chart(s) drawn offline",
+      "passed": true,
+      "evidence": "4 drawn"
+    },
+    {
+      "text": "no more than 1024 KB",
+      "passed": true,
+      "evidence": "16 KB"
+    },
+    {
+      "text": "no sideways scroll on a phone",
+      "passed": true,
+      "evidence": "0px"
+    },
+    {
+      "text": "the figure 601000 is on the page",
+      "passed": true,
+      "evidence": "601,000"
+    },
+    {
+      "text": "the figure 8705 is on the page",
+      "passed": true,
+      "evidence": "8,705"
+    },
+    {
+      "text": "the figure 3.3 is on the page",
+      "passed": true,
+      "evidence": "3.3"
+    },
+    {
+      "text": "the figure 34 is on the page",
+      "passed": true,
+      "evidence": "34"
+    }
+  ],
+  "bytes": 16697
+}

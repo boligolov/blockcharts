@@ -22,10 +22,35 @@ and the ways to ship it (composer, kits, loader, npm) serve it.
 
 ## Evals
 
-- [ ] **Skill evals** as in asciicharts (`test/evals/`): realistic report requests (sales from a CSV, monthly
-      KPIs, a dashboard of four charts, dirty numbers), run with and without the skill by independent
-      agents, graded by a script: the page composed without errors, the charts asked for are there, the
-      numbers on them match the data, the page is small. Record the results in `test/evals/README.md`.
+First run on 2026-11-01: [test/evals/README.md](test/evals/README.md). All reports were correct with and without the
+skill, which cost 44% more tokens and gave heavier pages. Still to do:
+
+- [ ] **Evals where the skill should matter**: large data, zoom, facets, a long dashboard. The present four do not separate it.
+- [ ] **The chart check of `grade.js`** counts `svg` and `canvas`, so bars in HTML and CSS fail it falsely.
+- [ ] **Gaps the agents reported**, not reproduced yet:
+      - Axis ticks: no step, and the last date is not always labelled, so a December report may not show December.
+      - One highlighted bar or point: no way to do it.
+      - KPI tiles: minimum size undocumented, a low tile clips silently, `size` below 200 is raised silently, `note` is
+        dropped with `compare: "none"`, the tile that names the best month is typed by hand, no two tiles side by side on a phone.
+      - Twelve vertical bars lose their labels on a phone: the skill should advise horizontal bars.
+      - Dirty data: `nullValues` and `types` of the CSV reader are undocumented, a text-only entry fails with a misleading error.
+      - One color per category across charts of a page: undocumented, and a sorted chart swaps colors.
+      - Recipes: a ratio of totals, top N with a grand total. `label: "percent"` has no decimals.
+
+## Block audit
+
+Audited on 2026-11-01. Scales, transforms and renderers are clean; these are the leaks, in the order to fix them:
+
+- [ ] **Copies into `lib.*`**: `niceStep` (4 copies), `roundTicks` (3), the touch and frame handling of crosshair and tooltip,
+      `toLogical` and `inPlot` (3), `to`/`from` of zoom and zoom-controls, column checks of funnel, treemap and waterfall.
+- [ ] **Blocks naming other blocks**: `mark.line` reads `crosshair`, tooltip names `arc` and `text`, crosshair names `line` and
+      `area`, zoom and brush read each other (a gesture claim in the core, like `claimPosition`). Marks declare what they
+      offer, and a test fails when a block names another.
+- [ ] **The core knowing blocks**: the list of scale kinds (`src/core.ts`, the constants check), `auto` of the legend in validation,
+      the axis label wrapping in `bandLabels`. The palette lives in both `PALETTE` and the composer's CSS.
+- [ ] **Facets in the composer** name scale types, `legend` and `legend-filter`: a new scale type is silently not faceted. Blocks
+      should say how a domain merges and how a guide is shared.
+- [ ] **The layout of `mark.sankey`** moves to a transform, as treemap, funnel and Marimekko have it.
 
 ## Business blocks
 
@@ -51,8 +76,6 @@ Missing chart kinds:
 
 Smaller gaps:
 
-- [ ] `on` of mark.text reads the fallback color in `var(--bc-c4, #...)`, not the one a page or a dark theme sets, so light or
-      dark text is chosen for a color that is not on screen. Seen on purple in a Marimekko.
 - [ ] End labels of a log axis land on the axis: not reproduced after `nice` was fixed in `scale.log`. Needs the chart that showed it.
 
 Checked in Chrome on 2026-11-01, light and dark, with no console errors: the oil dashboard (hover, 12 legend filters, zoom, a

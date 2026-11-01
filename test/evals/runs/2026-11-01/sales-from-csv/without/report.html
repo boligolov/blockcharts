@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Sales Report 2025</title>
+<style>
+:root{--bg:#fff;--ink:#16202e;--soft:#55616f;--line:#dfe4ea;--bar:#7f95b5;--accent:#1d4ed8;--card:#f4f6f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14181f;--ink:#e8ecf2;--soft:#a3adba;--line:#2d3542;--bar:#5f7290;--accent:#8ab4ff;--card:#1c222c}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{max-width:800px;margin:0 auto;padding:40px 32px}
+h1{font-size:1rem;font-weight:600;color:var(--soft);margin:0 0 6px}
+.lead{font-size:1.6rem;line-height:1.25;font-weight:650;margin:0 0 28px;text-wrap:balance}
+h2{font-size:1.15rem;margin:0 0 2px}
+.sub{color:var(--soft);font-size:.9rem;margin:0 0 18px}
+section{margin-top:36px}
+ol,ul{list-style:none;margin:0;padding:0}
+abbr{text-decoration:none}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.kpi{background:var(--card);border-radius:10px;padding:16px 18px}
+.kpi p{margin:0}
+.kpi .k{color:var(--soft);font-size:.9rem}
+.kpi .v{font-size:2.1rem;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}
+.track{display:block}
+.bar{display:block;background:var(--bar);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;border-bottom:0}
+.months li{display:grid;grid-template-rows:auto 190px auto;text-align:center;font-variant-numeric:tabular-nums}
+.months .val{grid-row:1;font-size:.78rem;color:var(--soft);white-space:nowrap}
+.months .track{grid-row:2;display:flex;align-items:flex-end;border-bottom:1px solid var(--soft)}
+.months .bar{width:100%;height:calc(var(--v)*100%);border-radius:3px 3px 0 0}
+.months .m{grid-row:3;font-size:.82rem;color:var(--soft);padding-top:4px}
+.months .full{display:none}
+.months .best .bar{background:var(--accent)}
+.months .best .val,.months .best .m{color:var(--accent);font-weight:700}
+.regions li{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin-bottom:14px;align-items:baseline}
+.regions .name{font-weight:600}
+.regions .val{font-variant-numeric:tabular-nums;white-space:nowrap}
+.regions .share{color:var(--soft);display:inline-block;min-width:3.4em;text-align:right}
+.regions .track{grid-column:1/-1}
+.regions .bar{height:14px;width:calc(var(--v)*100%);border-radius:3px;background:var(--accent)}
+footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);color:var(--soft);font-size:.85rem}
+footer p{margin:0}
+@media (max-width:640px){
+main{padding:24px 16px}
+.lead{font-size:1.35rem}
+.months{display:block}
+.months li{grid-template-rows:none;grid-template-columns:2.4rem 1fr 5rem;align-items:center;gap:8px;text-align:left;padding:3px 0}
+.months .m{grid-row:1;grid-column:1;padding:0;font-size:.9rem}
+.months .track{grid-row:1;grid-column:2;display:block;border-bottom:0;border-left:1px solid var(--soft)}
+.months .bar{height:16px;width:calc(var(--v)*100%);border-radius:0 3px 3px 0}
+.months .val{grid-row:1;grid-column:3;text-align:right;font-size:.9rem}
+.months .short{display:none}
+.months .full{display:inline}
+}
+@media print{
+:root{--bg:#fff;--ink:#16202e;--soft:#55616f;--line:#dfe4ea;--bar:#7f95b5;--accent:#1d4ed8;--card:#f4f6f9}
+main{max-width:none;padding:0}
+section,.kpis{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Sales Report 2025</h1>
+<p class="lead">Revenue reached 12,466,800; September was the best month and North the largest region.</p>
+</header>
+<div class="kpis">
+<div class="kpi"><p class="k">Total revenue, 2025</p><p class="v">12,466,800</p></div>
+<div class="kpi"><p class="k">Best month: September</p><p class="v">1,257,800</p></div>
+</div>
+<section>
+<h2>Revenue by month</h2>
+<p class="sub">September, October and November were the three strongest months: 3,680,400, or 29.5% of the year.</p>
+<ol class="months">
+<li style="--v:0.6244">
+<span class="m"><abbr title="January">Jan</abbr></span>
+<span class="val"><span class="short">0.79M</span><span class="full">785,400</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.8844">
+<span class="m"><abbr title="February">Feb</abbr></span>
+<span class="val"><span class="short">1.11M</span><span class="full">1,112,400</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.8256">
+<span class="m"><abbr title="March">Mar</abbr></span>
+<span class="val"><span class="short">1.04M</span><span class="full">1,038,500</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.7127">
+<span class="m"><abbr title="April">Apr</abbr></span>
+<span class="val"><span class="short">0.90M</span><span class="full">896,400</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.6854">
+<span class="m"><abbr title="May">May</abbr></span>
+<span class="val"><span class="short">0.86M</span><span class="full">862,100</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.7872">
+<span class="m"><abbr title="June">Jun</abbr></span>
+<span class="val"><span class="short">0.99M</span><span class="full">990,200</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.8478">
+<span class="m"><abbr title="July">Jul</abbr></span>
+<span class="val"><span class="short">1.07M</span><span class="full">1,066,300</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.7919">
+<span class="m"><abbr title="August">Aug</abbr></span>
+<span class="val"><span class="short">1.00M</span><span class="full">996,000</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li class="best" style="--v:1.0000">
+<span class="m"><abbr title="September">Sep</abbr></span>
+<span class="val"><span class="short">1.26M</span><span class="full">1,257,800</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.9735">
+<span class="m"><abbr title="October">Oct</abbr></span>
+<span class="val"><span class="short">1.22M</span><span class="full">1,224,500</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.9525">
+<span class="m"><abbr title="November">Nov</abbr></span>
+<span class="val"><span class="short">1.20M</span><span class="full">1,198,100</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.8261">
+<span class="m"><abbr title="December">Dec</abbr></span>
+<span class="val"><span class="short">1.04M</span><span class="full">1,039,100</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+</ol>
+</section>
+<section>
+<h2>Revenue by region</h2>
+<p class="sub">North brought in 37.3% of the year's revenue.</p>
+<ul class="regions">
+<li style="--v:1.0000">
+<span class="name">North</span>
+<span class="val"><b>4,656,200</b> <span class="share">37.3%</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.7367">
+<span class="name">East</span>
+<span class="val"><b>3,430,300</b> <span class="share">27.5%</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.5362">
+<span class="name">South</span>
+<span class="val"><b>2,496,700</b> <span class="share">20.0%</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+<li style="--v:0.4045">
+<span class="name">West</span>
+<span class="val"><b>1,883,600</b> <span class="share">15.1%</span></span>
+<span class="track" aria-hidden="true"><span class="bar"></span></span>
+</li>
+</ul>
+</section>
+<footer><p>Source: sales.csv, January to December 2025, all regions and products. The file does not state a currency, so amounts are shown without one.</p></footer>
+</main>
+</body>
+</html>

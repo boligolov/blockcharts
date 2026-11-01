@@ -1,0 +1,77 @@
+{
+  "sales-from-csv": {
+    "charts": 2,
+    "figures": [
+      12466800,
+      4656200,
+      2496700,
+      3430300,
+      1883600,
+      1257800
+    ],
+    "words": [
+      "North",
+      "South",
+      "East",
+      "West",
+      [
+        "2025-09",
+        "Sep"
+      ]
+    ]
+  },
+  "monthly-kpis": {
+    "charts": 1,
+    "figures": [
+      601000,
+      8705,
+      3.3,
+      34
+    ],
+    "words": [],
+    "derived": {
+      "revenueChangePct": 8.9
+    }
+  },
+  "four-chart-dashboard": {
+    "charts": 4,
+    "figures": [
+      65717,
+      47235,
+      32587
+    ],
+    "words": [
+      "Leeds",
+      "Lyon",
+      "Lodz"
+    ],
+    "derived": {
+      "lateRates": [
+        6.4,
+        6.7,
+        6.8
+      ]
+    }
+  },
+  "dirty-numbers": {
+    "charts": 1,
+    "figures": [
+      52199,
+      51425,
+      39585,
+      36500,
+      32770,
+      245275
+    ],
+    "words": [
+      "Everest",
+      "Delta Foods",
+      "Fjord",
+      "Cobalt",
+      "Borealis"
+    ],
+    "derived": {
+      "skippedRows": 7
+    }
+  }
+}

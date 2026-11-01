@@ -1,0 +1,90 @@
+{
+  "expectations": [
+    {
+      "text": "report.html exists",
+      "passed": true,
+      "evidence": "8272 bytes"
+    },
+    {
+      "text": "no script errors with the network off",
+      "passed": true,
+      "evidence": "none"
+    },
+    {
+      "text": "asks for nothing on the network",
+      "passed": true,
+      "evidence": "none"
+    },
+    {
+      "text": "at least 2 chart(s) drawn offline",
+      "passed": false,
+      "evidence": "0 drawn"
+    },
+    {
+      "text": "no more than 1024 KB",
+      "passed": true,
+      "evidence": "8 KB"
+    },
+    {
+      "text": "no sideways scroll on a phone",
+      "passed": true,
+      "evidence": "0px"
+    },
+    {
+      "text": "the figure 12466800 is on the page",
+      "passed": true,
+      "evidence": "12,466,800"
+    },
+    {
+      "text": "the figure 4656200 is on the page",
+      "passed": true,
+      "evidence": "4,656,200"
+    },
+    {
+      "text": "the figure 2496700 is on the page",
+      "passed": true,
+      "evidence": "2,496,700"
+    },
+    {
+      "text": "the figure 3430300 is on the page",
+      "passed": true,
+      "evidence": "3,430,300"
+    },
+    {
+      "text": "the figure 1883600 is on the page",
+      "passed": true,
+      "evidence": "1,883,600"
+    },
+    {
+      "text": "the figure 1257800 is on the page",
+      "passed": true,
+      "evidence": "1,257,800"
+    },
+    {
+      "text": "\"North\" is on the page",
+      "passed": true,
+      "evidence": "North"
+    },
+    {
+      "text": "\"South\" is on the page",
+      "passed": true,
+      "evidence": "South"
+    },
+    {
+      "text": "\"East\" is on the page",
+      "passed": true,
+      "evidence": "East"
+    },
+    {
+      "text": "\"West\" is on the page",
+      "passed": true,
+      "evidence": "West"
+    },
+    {
+      "text": "\"2025-09\" is on the page",
+      "passed": true,
+      "evidence": "2025-09 or Sep"
+    }
+  ],
+  "bytes": 8272
+}

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warehouse operations 2025</title>
+<style>:root{color-scheme:light dark;--bg:#f5f6f8;--card:#fff;--ink:#1a2029;--muted:#566070;--rule:#e2e5ea;--axis:#9aa3b0;--leeds:#1d5fa8;--lyon:#b85c00;--lodz:#2e7d6b;--on:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1b2129;--ink:#e8ebf0;--muted:#a3adba;--rule:#2f3743;--axis:#5e6876;--leeds:#7ab4f0;--lyon:#f2a65a;--lodz:#5cc9ae;--on:#10151c}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{max-width:1120px;margin:0 auto;padding:32px 24px 40px}
+h1{font-size:30px;line-height:1.2;margin:0 0 4px;letter-spacing:-.01em}
+.meta{margin:0 0 12px;color:var(--muted);font-size:14px}
+.lede{margin:0 0 24px;max-width:68ch;font-size:17px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:20px;min-width:0}
+.wide{grid-column:1/-1}
+h2{font-size:17px;line-height:1.3;margin:0 0 2px}
+.sub{margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.4}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:10px}
+.toggles{display:flex;flex-wrap:wrap;gap:8px}
+.toggle{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;font:inherit;font-size:14px;font-weight:600;color:var(--ink);background:transparent;border:1px solid var(--axis);border-radius:20px;cursor:pointer}
+.toggle i{width:12px;height:12px;border-radius:50%;background:var(--c);border:2px solid var(--c)}
+.toggle[aria-pressed=false]{color:var(--muted);text-decoration:line-through;border-style:dashed}
+.toggle[aria-pressed=false] i{background:transparent}
+.toggle:focus-visible,#plot:focus-visible,.scroll:focus-visible{outline:2px solid var(--leeds);outline-offset:2px}
+.hint{color:var(--muted);font-size:13px}
+.plotwrap{position:relative}
+#plot{touch-action:pan-y;line-height:0;border-radius:4px}
+#plot svg{display:block;width:100%;height:auto}
+line.gl{stroke:var(--rule);stroke-width:1}
+line.base{stroke:var(--axis);stroke-width:1}
+.tick{fill:var(--muted);font-size:12px}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.end{font-size:12px;font-weight:700}
+.guide{stroke:var(--axis);stroke-width:1}
+.cursor circle{stroke:var(--card);stroke-width:2}
+.tip{position:absolute;bottom:30px;left:0;z-index:2;min-width:150px;padding:8px 10px;background:var(--card);border:1px solid var(--axis);border-radius:6px;font-size:13px;line-height:1.5;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.tip b{display:block;white-space:nowrap}
+.tip span{display:flex;align-items:center;gap:6px}
+.tip i{width:9px;height:9px;border-radius:50%}
+.tip em{margin-left:auto;padding-left:14px;font-style:normal;font-variant-numeric:tabular-nums}
+.empty{position:absolute;left:0;right:0;top:40%;margin:0;text-align:center;color:var(--muted);font-size:14px}
+[hidden]{display:none!important}
+.bars{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.bars li{display:grid;grid-template-columns:48px minmax(0,1fr) 64px;align-items:center;gap:8px;font-size:14px}
+.bn{font-weight:600}
+.track{display:block;height:22px}
+.bar{display:block;height:100%;border-radius:0 3px 3px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bv{text-align:right;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.dwrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px 16px}
+.donut{flex:0 1 150px;min-width:130px;max-width:170px}
+.slice{stroke:var(--card);stroke-width:2}
+.on{fill:var(--on);font-size:15px;font-weight:700}
+.dtot{fill:var(--ink);font-size:17px;font-weight:700}
+.dsub{fill:var(--muted);font-size:11px}
+.keys{list-style:none;margin:0;padding:0;flex:1 1 130px;font-size:14px}
+.keys li{display:grid;grid-template-columns:12px 1fr auto;gap:0 8px;align-items:center;padding:3px 0}
+.keys i{width:11px;height:11px;border-radius:50%}
+.keys span{grid-column:2/4;color:var(--muted);font-size:13px;line-height:1.2}
+.numbers{margin-top:16px}
+.numbers h2{margin-bottom:10px}
+.scroll{overflow-x:auto}
+.swipe{display:none;margin:0 0 6px;color:var(--muted);font-size:13px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child{text-align:left;padding-left:0}
+thead th{color:var(--muted);font-weight:600;font-size:13px}
+.sum th,.sum td{font-weight:700;border-bottom:0}
+footer{margin-top:16px;color:var(--muted);font-size:13px;line-height:1.45;max-width:80ch}
+@media (max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.swipe{display:block}main{padding:20px 16px 28px}h1{font-size:25px}.lede{font-size:16px}.grid{grid-template-columns:minmax(0,1fr);gap:12px}.card{padding:16px}}
+@media print{body{background:#fff}.hint{display:none}.card{break-inside:avoid;border-color:#ccc}main{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Warehouse operations, 2025</h1>
+  <p class="meta">Leeds, Lyon and Lodz · 52 weeks, 6 Jan 2025 to 29 Dec 2025</p>
+  <p class="lede">The three warehouses handled 145,539 orders. Leeds took 45% of the orders and 45% of the cost. Across all sites 6.6% of orders ran late, and the rate barely differs between them.</p>
+</header>
+<div class="grid">
+  <section class="card wide">
+    <h2>Orders per week by warehouse</h2>
+    <p class="sub">Volumes swing week to week, with no steady rise or fall at any site.</p>
+    <div class="controls">
+      <div class="toggles" role="group" aria-label="Warehouses shown in this chart"><button type="button" class="toggle" data-n="Leeds" aria-pressed="true" aria-label="Hide Leeds"><i style="--c:var(--leeds)"></i>Leeds</button><button type="button" class="toggle" data-n="Lyon" aria-pressed="true" aria-label="Hide Lyon"><i style="--c:var(--lyon)"></i>Lyon</button><button type="button" class="toggle" data-n="Lodz" aria-pressed="true" aria-label="Hide Lodz"><i style="--c:var(--lodz)"></i>Lodz</button></div>
+      <span id="hint" class="hint" hidden>Click or tap a warehouse to hide or show it</span>
+    </div>
+    <div class="plotwrap">
+      <div id="plot" tabindex="0" role="img" aria-label="Line chart of weekly orders for Leeds, Lyon and Lodz through 2025. Use the left and right arrow keys to read each week."><svg width="1040" height="320" viewBox="0 0 1040 320" aria-hidden="true"><line class="base" x1="44" x2="990" y1="294" y2="294"/><text class="tick" x="38" y="298" text-anchor="end">0</text><line class="gl" x1="44" x2="990" y1="223.5" y2="223.5"/><text class="tick" x="38" y="227.5" text-anchor="end">400</text><line class="gl" x1="44" x2="990" y1="153" y2="153"/><text class="tick" x="38" y="157" text-anchor="end">800</text><line class="gl" x1="44" x2="990" y1="82.5" y2="82.5"/><text class="tick" x="38" y="86.5" text-anchor="end">1,200</text><line class="gl" x1="44" x2="990" y1="12" y2="12"/><text class="tick" x="38" y="16" text-anchor="end">1,600</text><text class="tick" x="44.0" y="313" text-anchor="middle">Jan</text><text class="tick" x="118.2" y="313" text-anchor="middle">Feb</text><text class="tick" x="192.4" y="313" text-anchor="middle">Mar</text><text class="tick" x="285.1" y="313" text-anchor="middle">Apr</text><text class="tick" x="359.3" y="313" text-anchor="middle">May</text><text class="tick" x="433.5" y="313" text-anchor="middle">Jun</text><text class="tick" x="526.3" y="313" text-anchor="middle">Jul</text><text class="tick" x="600.5" y="313" text-anchor="middle">Aug</text><text class="tick" x="674.7" y="313" text-anchor="middle">Sep</text><text class="tick" x="767.4" y="313" text-anchor="middle">Oct</text><text class="tick" x="841.6" y="313" text-anchor="middle">Nov</text><text class="tick" x="915.8" y="313" text-anchor="middle">Dec</text><polyline class="line" style="stroke:var(--leeds)" points="44.0,48.5 62.5,59.4 81.1,59.4 99.6,40.0 118.2,117.8 136.7,120.7 155.3,68.9 173.8,119.0 192.4,70.9 210.9,66.3 229.5,111.6 248.0,73.2 266.6,25.7 285.1,74.6 303.7,57.8 322.2,63.8 340.8,84.4 359.3,89.9 377.9,63.8 396.4,38.8 415.0,110.3 433.5,117.6 452.1,80.6 470.6,71.7 489.2,105.4 507.7,64.3 526.3,39.3 544.8,79.5 563.4,74.6 581.9,25.2 600.5,76.3 619.0,70.0 637.6,105.8 656.1,33.1 674.7,34.2 693.2,59.6 711.8,91.0 730.3,33.1 748.9,24.5 767.4,73.0 786.0,69.5 804.5,32.4 823.1,57.1 841.6,107.5 860.2,75.1 878.7,50.2 897.3,68.9 915.8,28.0 934.4,116.5 952.9,68.4 971.5,92.9 990.0,114.9"/><polyline class="line" style="stroke:var(--lyon)" points="44.0,155.1 62.5,159.3 81.1,118.5 99.6,168.2 118.2,145.2 136.7,124.1 155.3,140.0 173.8,135.7 192.4,126.2 210.9,104.5 229.5,104.4 248.0,111.2 266.6,106.5 285.1,114.0 303.7,167.3 322.2,128.1 340.8,139.3 359.3,100.3 377.9,135.9 396.4,122.7 415.0,107.9 433.5,125.9 452.1,164.1 470.6,138.4 489.2,149.8 507.7,141.9 526.3,154.8 544.8,149.5 563.4,107.0 581.9,127.8 600.5,158.3 619.0,125.5 637.6,105.9 656.1,147.2 674.7,162.7 693.2,163.0 711.8,126.9 730.3,141.0 748.9,122.3 767.4,141.4 786.0,136.8 804.5,104.5 823.1,131.3 841.6,104.2 860.2,160.4 878.7,146.5 897.3,146.7 915.8,156.3 934.4,138.0 952.9,129.0 971.5,119.9 990.0,121.5"/><polyline class="line" style="stroke:var(--lodz)" points="44.0,195.8 62.5,176.1 81.1,172.7 99.6,202.5 118.2,159.2 136.7,203.8 155.3,170.4 173.8,163.8 192.4,194.1 210.9,182.8 229.5,161.5 248.0,200.6 266.6,171.0 285.1,195.1 303.7,206.2 322.2,180.8 340.8,206.6 359.3,197.9 377.9,191.2 396.4,169.7 415.0,200.4 433.5,163.4 452.1,183.7 470.6,161.3 489.2,200.4 507.7,167.3 526.3,199.2 544.8,190.5 563.4,183.7 581.9,205.9 600.5,182.4 619.0,174.7 637.6,191.1 656.1,179.4 674.7,198.6 693.2,192.8 711.8,163.8 730.3,193.4 748.9,172.4 767.4,186.5 786.0,201.1 804.5,163.6 823.1,188.1 841.6,159.3 860.2,166.7 878.7,179.8 897.3,172.9 915.8,175.2 934.4,177.1 952.9,197.9 971.5,190.5 990.0,179.4"/><text class="end" x="996" y="118.9" style="fill:var(--leeds)">Leeds</text><text class="end" x="996" y="132.9" style="fill:var(--lyon)">Lyon</text><text class="end" x="996" y="183.4" style="fill:var(--lodz)">Lodz</text><g class="cursor" display="none"><line class="guide" y1="12" y2="294"/><circle r="4" data-n="Leeds" style="fill:var(--leeds)"/><circle r="4" data-n="Lyon" style="fill:var(--lyon)"/><circle r="4" data-n="Lodz" style="fill:var(--lodz)"/></g></svg></div>
+      <div id="tip" class="tip" hidden></div>
+      <p id="empty" class="empty" hidden>All warehouses are hidden. Pick one above to show it.</p>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Total orders per warehouse</h2>
+    <p class="sub">Full year, 145,539 orders in all.</p>
+    <ul class="bars"><li><span class="bn">Leeds</span><span class="track"><span class="bar" style="width:100.0%;background:var(--leeds)"></span></span><span class="bv">65,717</span></li><li><span class="bn">Lyon</span><span class="track"><span class="bar" style="width:71.9%;background:var(--lyon)"></span></span><span class="bv">47,235</span></li><li><span class="bn">Lodz</span><span class="track"><span class="bar" style="width:49.6%;background:var(--lodz)"></span></span><span class="bv">32,587</span></li></ul>
+  </section>
+  <section class="card">
+    <h2>Share of late orders per warehouse</h2>
+    <p class="sub">Late orders as a share of each site's orders.</p>
+    <ul class="bars"><li><span class="bn">Lodz</span><span class="track"><span class="bar" style="width:100.0%;background:var(--lodz)"></span></span><span class="bv">6.8%</span></li><li><span class="bn">Lyon</span><span class="track"><span class="bar" style="width:99.3%;background:var(--lyon)"></span></span><span class="bv">6.7%</span></li><li><span class="bn">Leeds</span><span class="track"><span class="bar" style="width:95.2%;background:var(--leeds)"></span></span><span class="bv">6.4%</span></li></ul>
+  </section>
+  <section class="card">
+    <h2>Share of total cost</h2>
+    <p class="sub">Each site's cost share is within a point of its share of orders.</p>
+    <div class="dwrap"><svg class="donut" viewBox="0 0 200 200" role="img" aria-label="Share of total cost: Leeds 45.0%, Lyon 32.0%, Lodz 23.0%"><path class="slice" style="fill:var(--leeds)" d="M100.00 3.00A97 97 0 0 1 129.89 192.28L116.95 152.32A55 55 0 0 0 100.00 45.00Z"/><path class="slice" style="fill:var(--lyon)" d="M129.89 192.28A97 97 0 0 1 3.74 88.04L45.42 93.22A55 55 0 0 0 116.95 152.32Z"/><path class="slice" style="fill:var(--lodz)" d="M3.74 88.04A97 97 0 0 1 100.00 3.00L100.00 45.00A55 55 0 0 0 45.42 93.22Z"/><text class="on" x="175.1" y="92.6" text-anchor="middle">45%</text><text class="on" x="51.6" y="163.1" text-anchor="middle">32%</text><text class="on" x="49.7" y="47.5" text-anchor="middle">23%</text><text class="dtot" x="100" y="102" text-anchor="middle">645,972</text><text class="dsub" x="100" y="117" text-anchor="middle">total cost</text></svg><ul class="keys"><li><i style="background:var(--leeds)"></i>Leeds<b>45.0%</b><span>290,786</span></li><li><i style="background:var(--lyon)"></i>Lyon<b>32.0%</b><span>206,400</span></li><li><i style="background:var(--lodz)"></i>Lodz<b>23.0%</b><span>148,786</span></li></ul></div>
+  </section>
+</div>
+<section class="card numbers">
+  <h2>The numbers</h2>
+  <p class="swipe">Swipe the table sideways to see every column.</p>
+  <div class="scroll" tabindex="0" role="region" aria-label="Summary table"><table>
+    <thead><tr><th scope="col">Warehouse</th><th scope="col">Orders</th><th scope="col">Late</th><th scope="col">Late share</th><th scope="col">Cost</th><th scope="col">Cost share</th><th scope="col">Cost per order</th></tr></thead>
+    <tbody><tr><th scope="row">Leeds</th><td>65,717</td><td>4,225</td><td>6.4%</td><td>290,786</td><td>45.0%</td><td>4.42</td></tr><tr><th scope="row">Lyon</th><td>47,235</td><td>3,167</td><td>6.7%</td><td>206,400</td><td>32.0%</td><td>4.37</td></tr><tr><th scope="row">Lodz</th><td>32,587</td><td>2,201</td><td>6.8%</td><td>148,786</td><td>23.0%</td><td>4.57</td></tr><tr class="sum"><th scope="row">All three</th><td>145,539</td><td>9,593</td><td>6.6%</td><td>645,972</td><td>100.0%</td><td>4.44</td></tr></tbody>
+  </table></div>
+</section>
+<footer>Source: ops.csv, weekly figures per warehouse. Weeks are dated by their Monday. Late share is total late orders divided by total orders for the year. Cost is shown in the units of the source file, which does not state a currency.</footer>
+</main>
+<script>window.OPS_DATA={"names":["Leeds","Lyon","Lodz"],"weeks":["2025-01-06","2025-01-13","2025-01-20","2025-01-27","2025-02-03","2025-02-10","2025-02-17","2025-02-24","2025-03-03","2025-03-10","2025-03-17","2025-03-24","2025-03-31","2025-04-07","2025-04-14","2025-04-21","2025-04-28","2025-05-05","2025-05-12","2025-05-19","2025-05-26","2025-06-02","2025-06-09","2025-06-16","2025-06-23","2025-06-30","2025-07-07","2025-07-14","2025-07-21","2025-07-28","2025-08-04","2025-08-11","2025-08-18","2025-08-25","2025-09-01","2025-09-08","2025-09-15","2025-09-22","2025-09-29","2025-10-06","2025-10-13","2025-10-20","2025-10-27","2025-11-03","2025-11-10","2025-11-17","2025-11-24","2025-12-01","2025-12-08","2025-12-15","2025-12-22","2025-12-29"],"orders":{"Leeds":[1393,1331,1331,1441,1000,983,1277,993,1266,1292,1035,1253,1522,1245,1340,1306,1189,1158,1306,1448,1042,1001,1211,1261,1070,1303,1445,1217,1245,1525,1235,1271,1068,1480,1474,1330,1152,1480,1529,1254,1274,1484,1344,1058,1242,1383,1277,1509,1007,1280,1141,1016],"Lyon":[788,764,996,714,844,964,874,898,952,1075,1076,1037,1064,1021,719,941,878,1099,897,972,1056,954,737,883,818,863,790,820,1061,943,770,956,1067,833,745,743,948,868,974,866,892,1075,923,1077,758,837,836,781,885,936,988,979],"Lodz":[557,669,688,519,765,512,701,739,567,631,752,530,698,561,498,642,496,545,583,705,531,741,626,753,531,719,538,587,626,500,633,677,584,650,541,574,739,571,690,610,527,740,601,764,722,648,687,674,663,545,587,650]},"months":[{"i":0,"month":0,"label":"Jan"},{"i":4,"month":1,"label":"Feb"},{"i":8,"month":2,"label":"Mar"},{"i":13,"month":3,"label":"Apr"},{"i":17,"month":4,"label":"May"},{"i":21,"month":5,"label":"Jun"},{"i":26,"month":6,"label":"Jul"},{"i":30,"month":7,"label":"Aug"},{"i":34,"month":8,"label":"Sep"},{"i":39,"month":9,"label":"Oct"},{"i":43,"month":10,"label":"Nov"},{"i":47,"month":11,"label":"Dec"}],"weekLabels":["6 Jan 2025","13 Jan 2025","20 Jan 2025","27 Jan 2025","3 Feb 2025","10 Feb 2025","17 Feb 2025","24 Feb 2025","3 Mar 2025","10 Mar 2025","17 Mar 2025","24 Mar 2025","31 Mar 2025","7 Apr 2025","14 Apr 2025","21 Apr 2025","28 Apr 2025","5 May 2025","12 May 2025","19 May 2025","26 May 2025","2 Jun 2025","9 Jun 2025","16 Jun 2025","23 Jun 2025","30 Jun 2025","7 Jul 2025","14 Jul 2025","21 Jul 2025","28 Jul 2025","4 Aug 2025","11 Aug 2025","18 Aug 2025","25 Aug 2025","1 Sep 2025","8 Sep 2025","15 Sep 2025","22 Sep 2025","29 Sep 2025","6 Oct 2025","13 Oct 2025","20 Oct 2025","27 Oct 2025","3 Nov 2025","10 Nov 2025","17 Nov 2025","24 Nov 2025","1 Dec 2025","8 Dec 2025","15 Dec 2025","22 Dec 2025","29 Dec 2025"]};
+// Draws chart 1 as an SVG string. Runs in the build (first paint) and in the page (resize, hide).
+function lineChart(D, w, hidden) {
+  var narrow = w < 520, h = narrow ? 250 : 320, m = {l: 44, r: 50, t: 12, b: 26};
+  var iw = w - m.l - m.r, ih = h - m.t - m.b, shown = D.names.filter(function (n) { return !hidden[n]; });
+  var top = 0; shown.forEach(function (n) { D.orders[n].forEach(function (v) { top = Math.max(top, v); }); });
+  if (!top) top = 1000;
+  var step = [50, 100, 200, 250, 400, 500, 1000].filter(function (s) { return top / s <= 5; })[0];
+  var max = Math.ceil(top / step) * step;
+  function x(i) { return m.l + iw * i / (D.weeks.length - 1); }
+  function y(v) { return m.t + ih * (1 - v / max); }
+  var s = '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true">';
+  for (var v = 0; v <= max; v += step) {
+    s += '<line class="' + (v ? 'gl' : 'base') + '" x1="' + m.l + '" x2="' + (w - m.r) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>';
+    s += '<text class="tick" x="' + (m.l - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v.toLocaleString('en-GB') + '</text>';
+  }
+  var every = narrow ? 3 : 1;
+  D.months.forEach(function (t) {
+    if (t.month % every) return;
+    s += '<text class="tick" x="' + x(t.i).toFixed(1) + '" y="' + (h - 7) + '" text-anchor="middle">' + t.label + '</text>';
+  });
+  shown.forEach(function (n) {
+    var p = D.orders[n].map(function (v, i) { return x(i).toFixed(1) + ',' + y(v).toFixed(1); }).join(' ');
+    s += '<polyline class="line" style="stroke:var(--' + n.toLowerCase() + ')" points="' + p + '"/>';
+  });
+  // End labels, pushed apart where the lines finish close together.
+  var ends = shown.map(function (n) { var a = D.orders[n]; return {n: n, y: y(a[a.length - 1]) + 4}; })
+    .sort(function (a, b) { return a.y - b.y; });
+  ends.forEach(function (e, i) { if (i && e.y - ends[i - 1].y < 14) e.y = ends[i - 1].y + 14; });
+  ends.forEach(function (e) {
+    s += '<text class="end" x="' + (w - m.r + 6) + '" y="' + e.y.toFixed(1) + '" style="fill:var(--' + e.n.toLowerCase() + ')">' + e.n + '</text>';
+  });
+  s += '<g class="cursor" display="none"><line class="guide" y1="' + m.t + '" y2="' + (m.t + ih) + '"/>';
+  shown.forEach(function (n) { s += '<circle r="4" data-n="' + n + '" style="fill:var(--' + n.toLowerCase() + ')"/>'; });
+  s += '</g></svg>';
+  return {svg: s, x: x, y: y, left: m.l, right: w - m.r};
+}
+(function () {
+  var D = window.OPS_DATA, hidden = {}, at = -1, geo;
+  var plot = document.getElementById('plot'), tip = document.getElementById('tip'), empty = document.getElementById('empty');
+  function fmt(v) { return v.toLocaleString('en-GB'); }
+  function anyShown() { return D.names.some(function (n) { return !hidden[n]; }); }
+  function draw() {
+    geo = lineChart(D, Math.max(plot.clientWidth, 260), hidden);
+    plot.innerHTML = geo.svg;
+    empty.hidden = anyShown();
+    show(anyShown() ? at : -1);
+  }
+  function show(i) {
+    at = i;
+    var c = plot.querySelector('.cursor');
+    if (i < 0) { tip.hidden = true; c.setAttribute('display', 'none'); return; }
+    var x = geo.x(i), g = c.querySelector('.guide');
+    c.removeAttribute('display');
+    g.setAttribute('x1', x); g.setAttribute('x2', x);
+    var dots = c.querySelectorAll('circle'), rows = [];
+    for (var k = 0; k < dots.length; k++) {
+      var n = dots[k].getAttribute('data-n'), v = D.orders[n][i];
+      dots[k].setAttribute('cx', x); dots[k].setAttribute('cy', geo.y(v));
+      rows.push([n, v]);
+    }
+    rows.sort(function (a, b) { return b[1] - a[1]; });
+    tip.innerHTML = '<b>Week of ' + D.weekLabels[i] + '</b>' + rows.map(function (r) {
+      return '<span><i style="background:var(--' + r[0].toLowerCase() + ')"></i>' + r[0] + '<em>' + fmt(r[1]) + '</em></span>';
+    }).join('');
+    tip.hidden = false;
+    var w = tip.offsetWidth, left = x + 14;
+    if (left + w > plot.clientWidth) left = x - w - 14;
+    tip.style.left = Math.max(0, left) + 'px';
+  }
+  function fromEvent(e) {
+    var r = plot.getBoundingClientRect(), f = (e.clientX - r.left - geo.left) / (geo.right - geo.left);
+    show(Math.max(0, Math.min(D.weeks.length - 1, Math.round(f * (D.weeks.length - 1)))));
+  }
+  plot.addEventListener('pointermove', function (e) { if (anyShown()) fromEvent(e); });
+  plot.addEventListener('pointerdown', function (e) { if (anyShown()) fromEvent(e); });
+  plot.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'touch') show(-1); });
+  document.addEventListener('pointerdown', function (e) { if (!plot.contains(e.target)) show(-1); });
+  plot.addEventListener('blur', function () { show(-1); });
+  plot.addEventListener('keydown', function (e) {
+    if (!anyShown()) return;
+    var last = D.weeks.length - 1, d = {ArrowLeft: -1, ArrowRight: 1}[e.key];
+    if (e.key === 'Escape') show(-1);
+    else if (d) { e.preventDefault(); show(at < 0 ? (d > 0 ? 0 : last) : Math.max(0, Math.min(last, at + d))); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.toggle'), function (b) {
+    b.addEventListener('click', function () {
+      var n = b.getAttribute('data-n');
+      hidden[n] = !hidden[n];
+      b.setAttribute('aria-pressed', String(!hidden[n]));
+      b.setAttribute('aria-label', (hidden[n] ? 'Show ' : 'Hide ') + n);
+      draw();
+    });
+  });
+  document.getElementById('hint').hidden = false;
+  if (window.ResizeObserver) {
+    var w0 = plot.clientWidth;
+    new ResizeObserver(function () { if (plot.clientWidth !== w0) { w0 = plot.clientWidth; draw(); } }).observe(plot);
+  } else window.addEventListener('resize', draw);
+  draw();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KPI Report December 2025</title>
+<style>
+:root{color-scheme:light dark;--bg:#f5f6f8;--card:#fff;--ink:#16202c;--muted:#566373;--line:#dde1e7;--trend:#2f5f9e;--good:#14713f;--bad:#b92a22;--good-bg:#e0f3e8;--bad-bg:#fbe4e2;--now:#eef2f8}
+@media (prefers-color-scheme:dark){:root{--bg:#12171e;--card:#1b222c;--ink:#edf0f4;--muted:#a3aebb;--line:#333d4a;--trend:#83aee6;--good:#63d49b;--bad:#ff918a;--good-bg:#17382a;--bad-bg:#47211f;--now:#26303d}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px}
+.eyebrow{margin:0 0 4px;font-size:14px;color:var(--muted)}
+h1{margin:0 0 10px;font-size:28px;line-height:1.2;letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:0 0 6px;max-width:82ch}
+.lede.second{margin-bottom:20px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.card h2{margin:0;font-size:15px;font-weight:600;color:var(--muted)}
+.value{margin:0;font-size:38px;line-height:1.15;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.delta{margin:4px 0 0;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.good{color:var(--good)}.bad{color:var(--bad)}
+.chip{display:inline-block;margin-left:2px;padding:0 7px;border-radius:9px;font-size:12px;line-height:18px;font-weight:600;vertical-align:1px}
+.chip-good{background:var(--good-bg);color:var(--good)}.chip-bad{background:var(--bad-bg);color:var(--bad)}
+.prev-m{margin:0 0 8px;font-size:13px;color:var(--muted)}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-size:12px;fill:var(--muted);font-variant-numeric:tabular-nums}
+svg .now{font-weight:700;font-size:13px}
+svg .now.good{fill:var(--good)}svg .now.bad{fill:var(--bad)}
+svg .tick-now{fill:var(--ink);font-weight:600}
+.base{stroke:var(--line);stroke-width:1}
+.avg{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 4;opacity:.7}
+.trend{fill:none;stroke:var(--trend);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.last{stroke-width:2.5;stroke-linecap:round}
+.last.good{stroke:var(--good)}.last.bad{stroke:var(--bad)}
+.prev{fill:var(--card);stroke:var(--trend);stroke-width:2}
+.dot.good{fill:var(--good)}.dot.bad{fill:var(--bad)}
+.hit{fill:transparent}
+.note{margin:8px 0 0;font-size:13px;line-height:1.35}
+details{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+summary{cursor:pointer;font-size:14px;font-weight:600}
+.scroll{overflow-x:auto;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:4px 8px;text-align:right;border-bottom:1px solid var(--line);font-weight:400}
+thead th{font-weight:600;color:var(--muted)}
+th:first-child{text-align:left}
+tr.now th,tr.now td{background:var(--now);font-weight:700}
+footer{margin-top:12px;font-size:12.5px;line-height:1.4;color:var(--muted)}
+footer p{margin:0}
+@media (max-width:1023px){.wrap{max-width:760px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:559px){.wrap{max-width:440px;padding:16px}.grid{grid-template-columns:minmax(0,1fr)}h1{font-size:24px}}
+@media print{
+@page{size:A4 landscape;margin:10mm}
+:root{color-scheme:light;--bg:#fff;--card:#fff;--ink:#16202c;--muted:#566373;--line:#dde1e7;--trend:#2f5f9e;--good:#14713f;--bad:#b92a22;--good-bg:#e0f3e8;--bad-bg:#fbe4e2}
+body{font-size:13px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.wrap{max-width:none;padding:0}
+.grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{break-inside:avoid}
+details{display:none}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header>
+<p class="eyebrow">Monthly KPI report, December 2025</p>
+<h1>Revenue and customers rose in December, but churn hit its high of the year</h1>
+<p class="lede">Revenue rose 8.9% from November to 601,000, and customers reached 8,705, the most this year. The warning signs are in retention and sentiment: churn rose to 3.3%, its highest month of 2025, and NPS fell to 34, its second-lowest.</p>
+<p class="lede second">This is more than one bad month. October to December averaged 3.1% churn and an NPS of 36, against 2.4% and 42 for July to September.</p>
+</header>
+<section class="grid" aria-label="December 2025 figures with change from November">
+<article class="card">
+<h2>Revenue</h2>
+<p class="value">601,000</p>
+<p class="delta"><span class="good"><span aria-hidden="true">▲</span> +49,000 (+8.9%)</span> <span class="chip chip-good">Better</span></p>
+<p class="prev-m">November: 552,000</p>
+<svg viewBox="0 0 240 136" role="img" aria-label="Revenue by month in 2025, from 616,000 in January to 601,000 in December. High 616,000 in Jan, low 447,000 in Apr.">
+<line class="base" x1="6" x2="234" y1="114" y2="114"/>
+<line class="avg" x1="6" x2="234" y1="49.4" y2="49.4"/>
+<polyline class="trend" points="6,20 26.7,40.3 47.5,58.9 68.2,90 88.9,73 109.6,33.7 130.4,57.7 151.1,53.6 171.8,22.9 192.5,69.7 213.3,46.5"/>
+<line class="last good" x1="213.3" y1="46.5" x2="234" y2="26.2"/>
+<circle class="prev" cx="213.3" cy="46.5" r="3"/>
+<circle class="dot good" cx="234" cy="26.2" r="4"/>
+<text class="lab" x="6" y="12" text-anchor="start">616K</text><text class="lab" x="68.2" y="106" text-anchor="middle">447K</text><text class="lab now good" x="234" y="18.2" text-anchor="end">601K</text>
+<text class="tick" x="6" y="130" text-anchor="start">Jan</text><text class="tick" x="68.2" y="130" text-anchor="middle">Apr</text><text class="tick" x="130.4" y="130" text-anchor="middle">Jul</text><text class="tick" x="192.5" y="130" text-anchor="middle">Oct</text><text class="tick tick-now" x="234" y="130" text-anchor="end">Dec</text>
+<rect class="hit" x="-4.4" y="0" width="20.7" height="136"><title>Jan 2025: 616,000</title></rect><rect class="hit" x="16.3" y="0" width="20.7" height="136"><title>Feb 2025: 567,000</title></rect><rect class="hit" x="37.1" y="0" width="20.7" height="136"><title>Mar 2025: 522,000</title></rect><rect class="hit" x="57.8" y="0" width="20.7" height="136"><title>Apr 2025: 447,000</title></rect><rect class="hit" x="78.5" y="0" width="20.7" height="136"><title>May 2025: 488,000</title></rect><rect class="hit" x="99.2" y="0" width="20.7" height="136"><title>Jun 2025: 583,000</title></rect><rect class="hit" x="120.0" y="0" width="20.7" height="136"><title>Jul 2025: 525,000</title></rect><rect class="hit" x="140.7" y="0" width="20.7" height="136"><title>Aug 2025: 535,000</title></rect><rect class="hit" x="161.4" y="0" width="20.7" height="136"><title>Sep 2025: 609,000</title></rect><rect class="hit" x="182.1" y="0" width="20.7" height="136"><title>Oct 2025: 496,000</title></rect><rect class="hit" x="202.9" y="0" width="20.7" height="136"><title>Nov 2025: 552,000</title></rect><rect class="hit" x="223.6" y="0" width="20.7" height="136"><title>Dec 2025: 601,000</title></rect>
+</svg>
+<p class="note">3rd-highest month of 2025. Year average 545,083.</p>
+</article>
+<article class="card">
+<h2>Customers</h2>
+<p class="value">8,705</p>
+<p class="delta"><span class="good"><span aria-hidden="true">▲</span> +41 (+0.5%)</span> <span class="chip chip-good">Better</span></p>
+<p class="prev-m">November: 8,664</p>
+<svg viewBox="0 0 240 136" role="img" aria-label="Customers by month in 2025, from 8,220 in January to 8,705 in December. High 8,705 in Dec, low 8,220 in Jan.">
+<line class="base" x1="6" x2="234" y1="114" y2="114"/>
+<line class="avg" x1="6" x2="234" y1="55.4" y2="55.4"/>
+<polyline class="trend" points="6,90 26.7,80.8 47.5,81.1 68.2,69.4 88.9,66 109.6,55.2 130.4,60 151.1,51.5 171.8,29.5 192.5,35 213.3,25.9"/>
+<line class="last good" x1="213.3" y1="25.9" x2="234" y2="20"/>
+<circle class="prev" cx="213.3" cy="25.9" r="3"/>
+<circle class="dot good" cx="234" cy="20" r="4"/>
+<text class="lab" x="6" y="106" text-anchor="start">8,220</text><text class="lab now good" x="234" y="12" text-anchor="end">8,705</text>
+<text class="tick" x="6" y="130" text-anchor="start">Jan</text><text class="tick" x="68.2" y="130" text-anchor="middle">Apr</text><text class="tick" x="130.4" y="130" text-anchor="middle">Jul</text><text class="tick" x="192.5" y="130" text-anchor="middle">Oct</text><text class="tick tick-now" x="234" y="130" text-anchor="end">Dec</text>
+<rect class="hit" x="-4.4" y="0" width="20.7" height="136"><title>Jan 2025: 8,220</title></rect><rect class="hit" x="16.3" y="0" width="20.7" height="136"><title>Feb 2025: 8,284</title></rect><rect class="hit" x="37.1" y="0" width="20.7" height="136"><title>Mar 2025: 8,282</title></rect><rect class="hit" x="57.8" y="0" width="20.7" height="136"><title>Apr 2025: 8,363</title></rect><rect class="hit" x="78.5" y="0" width="20.7" height="136"><title>May 2025: 8,386</title></rect><rect class="hit" x="99.2" y="0" width="20.7" height="136"><title>Jun 2025: 8,461</title></rect><rect class="hit" x="120.0" y="0" width="20.7" height="136"><title>Jul 2025: 8,428</title></rect><rect class="hit" x="140.7" y="0" width="20.7" height="136"><title>Aug 2025: 8,487</title></rect><rect class="hit" x="161.4" y="0" width="20.7" height="136"><title>Sep 2025: 8,639</title></rect><rect class="hit" x="182.1" y="0" width="20.7" height="136"><title>Oct 2025: 8,601</title></rect><rect class="hit" x="202.9" y="0" width="20.7" height="136"><title>Nov 2025: 8,664</title></rect><rect class="hit" x="223.6" y="0" width="20.7" height="136"><title>Dec 2025: 8,705</title></rect>
+</svg>
+<p class="note">Highest of 2025. Up 485 (5.9%) since January.</p>
+</article>
+<article class="card">
+<h2>Churn</h2>
+<p class="value">3.3%</p>
+<p class="delta"><span class="bad"><span aria-hidden="true">▲</span> +0.5 pts</span> <span class="chip chip-bad">Worse</span></p>
+<p class="prev-m">November: 2.8%</p>
+<svg viewBox="0 0 240 136" role="img" aria-label="Churn by month in 2025, from 2.3% in January to 3.3% in December. High 3.3% in Dec, low 2.0% in Sep.">
+<line class="base" x1="6" x2="234" y1="114" y2="114"/>
+<line class="avg" x1="6" x2="234" y1="55.4" y2="55.4"/>
+<polyline class="trend" points="6,73.8 26.7,84.6 47.5,46.9 68.2,84.6 88.9,41.5 109.6,41.5 130.4,25.4 151.1,84.6 171.8,90 192.5,25.4 213.3,46.9"/>
+<line class="last bad" x1="213.3" y1="46.9" x2="234" y2="20"/>
+<circle class="prev" cx="213.3" cy="46.9" r="3"/>
+<circle class="dot bad" cx="234" cy="20" r="4"/>
+<text class="lab" x="171.8" y="106" text-anchor="middle">2.0%</text><text class="lab now bad" x="234" y="12" text-anchor="end">3.3%</text>
+<text class="tick" x="6" y="130" text-anchor="start">Jan</text><text class="tick" x="68.2" y="130" text-anchor="middle">Apr</text><text class="tick" x="130.4" y="130" text-anchor="middle">Jul</text><text class="tick" x="192.5" y="130" text-anchor="middle">Oct</text><text class="tick tick-now" x="234" y="130" text-anchor="end">Dec</text>
+<rect class="hit" x="-4.4" y="0" width="20.7" height="136"><title>Jan 2025: 2.3%</title></rect><rect class="hit" x="16.3" y="0" width="20.7" height="136"><title>Feb 2025: 2.1%</title></rect><rect class="hit" x="37.1" y="0" width="20.7" height="136"><title>Mar 2025: 2.8%</title></rect><rect class="hit" x="57.8" y="0" width="20.7" height="136"><title>Apr 2025: 2.1%</title></rect><rect class="hit" x="78.5" y="0" width="20.7" height="136"><title>May 2025: 2.9%</title></rect><rect class="hit" x="99.2" y="0" width="20.7" height="136"><title>Jun 2025: 2.9%</title></rect><rect class="hit" x="120.0" y="0" width="20.7" height="136"><title>Jul 2025: 3.2%</title></rect><rect class="hit" x="140.7" y="0" width="20.7" height="136"><title>Aug 2025: 2.1%</title></rect><rect class="hit" x="161.4" y="0" width="20.7" height="136"><title>Sep 2025: 2.0%</title></rect><rect class="hit" x="182.1" y="0" width="20.7" height="136"><title>Oct 2025: 3.2%</title></rect><rect class="hit" x="202.9" y="0" width="20.7" height="136"><title>Nov 2025: 2.8%</title></rect><rect class="hit" x="223.6" y="0" width="20.7" height="136"><title>Dec 2025: 3.3%</title></rect>
+</svg>
+<p class="note">Highest of 2025. Year average 2.6%.</p>
+</article>
+<article class="card">
+<h2>NPS</h2>
+<p class="value">34</p>
+<p class="delta"><span class="bad"><span aria-hidden="true">▼</span> −3 pts</span> <span class="chip chip-bad">Worse</span></p>
+<p class="prev-m">November: 37</p>
+<svg viewBox="0 0 240 136" role="img" aria-label="NPS by month in 2025, from 35 in January to 34 in December. High 51 in Apr, low 32 in Mar.">
+<line class="base" x1="6" x2="234" y1="114" y2="114"/>
+<line class="avg" x1="6" x2="234" y1="63.6" y2="63.6"/>
+<polyline class="trend" points="6,78.9 26.7,71.6 47.5,90 68.2,20 88.9,60.5 109.6,56.8 130.4,31.1 151.1,60.5 171.8,64.2 192.5,75.3 213.3,71.6"/>
+<line class="last bad" x1="213.3" y1="71.6" x2="234" y2="82.6"/>
+<circle class="prev" cx="213.3" cy="71.6" r="3"/>
+<circle class="dot bad" cx="234" cy="82.6" r="4"/>
+<text class="lab" x="68.2" y="12" text-anchor="middle">51</text><text class="lab" x="47.5" y="106" text-anchor="middle">32</text><text class="lab now bad" x="234" y="98.6" text-anchor="end">34</text>
+<text class="tick" x="6" y="130" text-anchor="start">Jan</text><text class="tick" x="68.2" y="130" text-anchor="middle">Apr</text><text class="tick" x="130.4" y="130" text-anchor="middle">Jul</text><text class="tick" x="192.5" y="130" text-anchor="middle">Oct</text><text class="tick tick-now" x="234" y="130" text-anchor="end">Dec</text>
+<rect class="hit" x="-4.4" y="0" width="20.7" height="136"><title>Jan 2025: 35</title></rect><rect class="hit" x="16.3" y="0" width="20.7" height="136"><title>Feb 2025: 37</title></rect><rect class="hit" x="37.1" y="0" width="20.7" height="136"><title>Mar 2025: 32</title></rect><rect class="hit" x="57.8" y="0" width="20.7" height="136"><title>Apr 2025: 51</title></rect><rect class="hit" x="78.5" y="0" width="20.7" height="136"><title>May 2025: 40</title></rect><rect class="hit" x="99.2" y="0" width="20.7" height="136"><title>Jun 2025: 41</title></rect><rect class="hit" x="120.0" y="0" width="20.7" height="136"><title>Jul 2025: 48</title></rect><rect class="hit" x="140.7" y="0" width="20.7" height="136"><title>Aug 2025: 40</title></rect><rect class="hit" x="161.4" y="0" width="20.7" height="136"><title>Sep 2025: 39</title></rect><rect class="hit" x="182.1" y="0" width="20.7" height="136"><title>Oct 2025: 36</title></rect><rect class="hit" x="202.9" y="0" width="20.7" height="136"><title>Nov 2025: 37</title></rect><rect class="hit" x="223.6" y="0" width="20.7" height="136"><title>Dec 2025: 34</title></rect>
+</svg>
+<p class="note">2nd-lowest of 2025. Year average 39.</p>
+</article>
+</section>
+<details>
+<summary>All monthly figures, 2025</summary>
+<div class="scroll"><table>
+<thead><tr><th scope="col">Month</th><th scope="col">Revenue</th><th scope="col">Customers</th><th scope="col">Churn</th><th scope="col">NPS</th></tr></thead>
+<tbody>
+<tr><th scope="row">Jan</th><td>616,000</td><td>8,220</td><td>2.3%</td><td>35</td></tr>
+<tr><th scope="row">Feb</th><td>567,000</td><td>8,284</td><td>2.1%</td><td>37</td></tr>
+<tr><th scope="row">Mar</th><td>522,000</td><td>8,282</td><td>2.8%</td><td>32</td></tr>
+<tr><th scope="row">Apr</th><td>447,000</td><td>8,363</td><td>2.1%</td><td>51</td></tr>
+<tr><th scope="row">May</th><td>488,000</td><td>8,386</td><td>2.9%</td><td>40</td></tr>
+<tr><th scope="row">Jun</th><td>583,000</td><td>8,461</td><td>2.9%</td><td>41</td></tr>
+<tr><th scope="row">Jul</th><td>525,000</td><td>8,428</td><td>3.2%</td><td>48</td></tr>
+<tr><th scope="row">Aug</th><td>535,000</td><td>8,487</td><td>2.1%</td><td>40</td></tr>
+<tr><th scope="row">Sep</th><td>609,000</td><td>8,639</td><td>2.0%</td><td>39</td></tr>
+<tr><th scope="row">Oct</th><td>496,000</td><td>8,601</td><td>3.2%</td><td>36</td></tr>
+<tr><th scope="row">Nov</th><td>552,000</td><td>8,664</td><td>2.8%</td><td>37</td></tr>
+<tr class="now"><th scope="row">Dec</th><td>601,000</td><td>8,705</td><td>3.3%</td><td>34</td></tr>
+</tbody>
+</table></div>
+</details>
+<footer>
+<p>Charts run January to December 2025. Each has its own scale, which does not start at zero, so compare shapes rather than heights. The dashed line is the 2025 average; the colored segment is the November to December change. &ldquo;pts&rdquo; means percentage points for churn and points for NPS. Revenue is shown as recorded, since the source does not state a currency. Source: kpis.csv.</p>
+</footer>
+</main>
+</body>
+</html>

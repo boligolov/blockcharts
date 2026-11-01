@@ -1,0 +1,65 @@
+{
+  "expectations": [
+    {
+      "text": "report.html exists",
+      "passed": true,
+      "evidence": "22851 bytes"
+    },
+    {
+      "text": "no script errors with the network off",
+      "passed": true,
+      "evidence": "none"
+    },
+    {
+      "text": "asks for nothing on the network",
+      "passed": true,
+      "evidence": "none"
+    },
+    {
+      "text": "at least 4 chart(s) drawn offline",
+      "passed": false,
+      "evidence": "2 drawn"
+    },
+    {
+      "text": "no more than 1024 KB",
+      "passed": true,
+      "evidence": "22 KB"
+    },
+    {
+      "text": "no sideways scroll on a phone",
+      "passed": true,
+      "evidence": "0px"
+    },
+    {
+      "text": "the figure 65717 is on the page",
+      "passed": true,
+      "evidence": "65,717"
+    },
+    {
+      "text": "the figure 47235 is on the page",
+      "passed": true,
+      "evidence": "47,235"
+    },
+    {
+      "text": "the figure 32587 is on the page",
+      "passed": true,
+      "evidence": "32,587"
+    },
+    {
+      "text": "\"Leeds\" is on the page",
+      "passed": true,
+      "evidence": "Leeds"
+    },
+    {
+      "text": "\"Lyon\" is on the page",
+      "passed": true,
+      "evidence": "Lyon"
+    },
+    {
+      "text": "\"Lodz\" is on the page",
+      "passed": true,
+      "evidence": "Lodz"
+    }
+  ],
+  "bytes": 22851
+}

@@ -1,0 +1,31 @@
+{
+  "skill_name": "blockcharts",
+  "note": "{INPUT} is this folder, {OUT} the folder of the run. Every prompt ends with the same delivery rules (see delivery).",
+  "delivery": "Save the report as one file, {OUT}/report.html. It will be emailed: it must open with a double click, with no internet, and read well on a laptop and on a phone.",
+  "evals": [
+    {
+      "id": 0,
+      "eval_name": "sales-from-csv",
+      "prompt": "Here is last year's sales data: {INPUT}/sales.csv. Make a short report for our director: revenue by month and revenue by region. Write on the page the total revenue for the year, the revenue of each region, and which month was the best and its revenue.",
+      "files": ["sales.csv"]
+    },
+    {
+      "id": 1,
+      "eval_name": "monthly-kpis",
+      "prompt": "{INPUT}/kpis.csv has our monthly KPIs. Make a one-page KPI report for December 2025 for the leadership team: the four figures of the month (revenue, customers, churn, NPS), each with its change from November, and the trend of the year behind them.",
+      "files": ["kpis.csv"]
+    },
+    {
+      "id": 2,
+      "eval_name": "four-chart-dashboard",
+      "prompt": "{INPUT}/ops.csv has weekly numbers for our three warehouses. Make a dashboard of four charts: orders per week by warehouse, total orders per warehouse (write the totals on the page), the share of late orders per warehouse, and each warehouse's share of total cost. Let readers hide a warehouse in the first chart.",
+      "files": ["ops.csv"]
+    },
+    {
+      "id": 3,
+      "eval_name": "dirty-numbers",
+      "prompt": "{INPUT}/invoices.csv is an export of our invoices; the amounts were typed by hand. Make a report with a chart of the top 5 clients by total invoiced, writing each total on the page, plus the grand total. Rows with no usable amount do not count; say how many there were.",
+      "files": ["invoices.csv"]
+    }
+  ]
+}
