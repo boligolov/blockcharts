@@ -591,6 +591,15 @@ test('compose: a tooltip function registered by name in an "after" script is fou
   assert.deepStrictEqual(errors, []);
 });
 
+test('compose: phoneColumns keeps tiles side by side, and text with no chart is told what to use', () => {
+  const data = { d: [{ k: 'a', v: 1 }] };
+  const tile = { data: 'd', scales: {}, marks: [], guides: [{ type: 'kpi', field: 'v' }] };
+  const { html } = compose({ data, layout: { columns: 4, phoneColumns: 2 }, charts: [{ spec: tile, span: 1 }, { spec: tile, span: 3 }] });
+  assert(html.includes('--bc-phone-cols:2'));
+  assert.strictEqual(html.split('bc-section bc-tile').length, 2, 'only the span 1 card is a tile');
+  assert.throws(() => compose({ data, charts: [{ title: 'Note', note: 'Text' }] }), /text alone is/);
+});
+
 test('compose: a dashboard grid — columns, spans, a heading and a subtitle; bad layouts are refused', () => {
   const page = compose({
     title: 'Q3 <review>',
@@ -605,7 +614,7 @@ test('compose: a dashboard grid — columns, spans, a heading and a subtitle; ba
     'a wide page with a 4-column grid',
   );
   assert(h.includes('<h1>Q3 &lt;review&gt;</h1><p>Sales &amp; margin</p>'), 'the heading and subtitle, escaped');
-  const spans = [...h.matchAll(/<section class="bc-section" style="grid-column:span (\d+)">/g)].map((m) => +m[1]);
+  const spans = [...h.matchAll(/<section class="bc-section(?: bc-tile)?" style="grid-column:span (\d+)">/g)].map((m) => +m[1]);
   assert.deepStrictEqual(spans, [1, 3, 4], 'spans as given; a chart without one takes the full row');
   assert(h.indexOf('<h1>') < h.indexOf('<div class="bc-grid"'), 'the heading comes before the grid');
 
@@ -618,6 +627,7 @@ test('compose: a dashboard grid — columns, spans, a heading and a subtitle; ba
   assert(!single.includes('<header'), 'no heading without a title');
 
   for (const [layout, re] of [
+    [{ columns: 2, phoneColumns: 3 }, /layout.phoneColumns/],
     [{ columns: 0 }, /layout.columns/],
     [{ columns: 13 }, /layout.columns/],
     [{ columns: 2.5 }, /layout.columns/],

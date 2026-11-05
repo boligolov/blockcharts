@@ -73,20 +73,48 @@
    *  can write one label many times (years, zoomed in to months) and it can write them wider than the space between them. */
   function uncrowded(ticks: BC.Tick[], spec: BC.GuideSpec, ctx: BC.ChartCtx): BC.Tick[] {
     if (ctx.scales[spec.scale as string].kind === 'band' || ctx.orientation(spec.scale as string) !== 'horizontal') return ticks;
+    const keep = keeper(spec);
     const unique = ticks.filter((t, i) => i === 0 || t.label !== ticks[i - 1].label);
     if (unique.length < 2) return unique;
     let gap = Infinity;
     for (let i = 1; i < unique.length; i++) gap = Math.min(gap, Math.abs(unique[i].pos - unique[i - 1].pos));
     const widest = unique.reduce((m, t) => Math.max(m, ctx.measure(t.label, FONT).w), 0);
     const every = gap > 0 ? Math.ceil((widest + LABEL_GAP) / gap) : 1;
-    return every > 1 ? unique.filter((_, i) => i % every === 0) : unique;
+    return every > 1 ? unique.filter((_, i) => keep(i, unique.length, every)) : unique;
+  }
+
+  /** Thinning counts from the first label, or from the last with `anchor: "end"`, so a report on December says December. */
+  const keeper = (spec: BC.GuideSpec) => (i: number, n: number, every: number) => (spec.anchor === 'end' ? n - 1 - i : i) % every === 0;
+
+  /** How many labels of a horizontal band fit as they will be written: "Jan" is shorter than the "2025-01-01" it stands for. */
+  function fitWritten(spec: BC.GuideSpec, ctx: BC.ChartCtx): number {
+    if (spec.format === undefined || ctx.orientation(spec.scale as string) !== 'horizontal') return 0;
+    const write = BC.formatter(spec.format as BC.FormatSpec | string);
+    const cats = ctx.scales[spec.scale as string].domain() as unknown[];
+    const widest = cats.reduce<number>((m, c) => Math.max(m, ctx.measure(write(c), FONT).w), 0);
+    return Math.min(cats.length, Math.floor(ctx.plot.w / (widest + LABEL_GAP)));
+  }
+
+  /** The ticks asked of the scale. `count` is a wish for more or fewer, and a band still shows no more than fit. */
+  function requested(spec: BC.GuideSpec, ctx: BC.ChartCtx): BC.Tick[] {
+    const name = spec.scale as string;
+    const scale = ctx.scales[name];
+    const wish = typeof spec.count === 'number' && spec.count >= 1 ? Math.round(spec.count) : undefined;
+    if (scale.kind !== 'band') return wish === undefined ? ctx.ticks(name) : ctx.ticks(name, wish);
+    const fit = Math.max(ctx.ticks(name).length, fitWritten(spec, ctx));
+    const shown = wish === undefined ? fit : Math.min(wish, fit);
+    if (spec.anchor !== 'end') return ctx.ticks(name, shown);
+    const all = ctx.ticks(name, (scale.domain() as unknown[]).length);
+    const every = Math.max(1, Math.ceil(all.length / Math.max(1, shown)));
+    const keep = keeper(spec);
+    return all.filter((_, i) => keep(i, all.length, every));
   }
 
   function formatted(spec: BC.GuideSpec, ctx: BC.ChartCtx): BC.Tick[] {
     const scale = ctx.scales[spec.scale as string];
     const ticks = slanted.has(spec)
       ? ctx.ticks(spec.scale as string, (scale.domain() as unknown[]).length)
-      : ctx.ticks(spec.scale as string);
+      : requested(spec, ctx);
     if (spec.format === undefined) return ticks;
     const kind = ctx.scales[spec.scale as string].kind;
     if (kind !== 'linear' && kind !== 'log' && kind !== 'time' && kind !== 'band') return ticks;
@@ -130,7 +158,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 10,
+    version: 11,
     doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.',
     params: {
       scale: { kind: 'scale', required: true },
@@ -147,6 +175,13 @@
         doc: 'The axis line. "auto": drawn along a horizontal axis (the baseline bars stand on), left out on a vertical one, where grid lines do the job.',
       },
       ticks: { kind: 'boolean', default: false, doc: 'Small tick marks at the labels.' },
+      count: { kind: 'number', doc: 'About how many labels to show: 12 for the months of a year. Labels that would not fit are still thinned.' },
+      anchor: {
+        kind: 'enum',
+        values: ['start', 'end'],
+        default: 'start',
+        doc: 'Which end thinned labels count from: "end" keeps the last one, for a report about the latest period.',
+      },
     },
     measure(spec, ctx) {
       if (!spec.scale) return {};

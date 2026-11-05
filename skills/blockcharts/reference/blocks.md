@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-46 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.decimate`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+47 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.decimate`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -176,6 +176,19 @@ Version 2, 1.6 KB. A conversion funnel: stages in row order (visits, sign-ups, t
 | `rateAs` | string | `"rate"` | Name of the column with the share of the first stage (0..1). |
 | `stepAs` | string | `"stepRate"` | Name of the column with the share of the previous stage (0..1; the first stage has none). |
 
+## transform.highlight
+
+Version 1, 1.4 KB. Marks the rows to set apart in a new column `as`: "yes" there and "no" elsewhere (or your own words, `yes` and `no`). Choose them by `pick` (the max or min of `field`, its first or last usable row; ties are all marked) or by `value` (the rows of `field` equal to it). Give the column to a color channel with a scale of two colors, and the best month stands out from the bars around it.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `field` | field, **required** |  | The field the rows are chosen by. |
+| `pick` | one of `max`, `min`, `first`, `last` |  | Which rows: the largest or smallest number, the first or last row that has one. Or give `value`. |
+| `value` | any |  | The rows of `field` equal to this, text or a number, instead of `pick`. |
+| `as` | string | `"highlight"` | Name of the new column. |
+| `yes` | string | `"yes"` | What a marked row holds; it is what a legend would show. |
+| `no` | string | `"no"` | What the other rows hold. |
+
 ## transform.marimekko
 
 Version 2, 2.0 KB. A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the tallest cell of its column, the one with room for it, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out.
@@ -270,7 +283,7 @@ Version 1, 3.0 KB. A value per row computed from the rows before it (and around 
 
 ## mark.arc
 
-Version 1, 2.9 KB. Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock.
+Version 1, 3.0 KB. Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -284,6 +297,7 @@ Version 1, 2.9 KB. Pie and donut chart: one slice per row, its angle proportiona
 | `padAngle` | number | `1` | Gap between slices, in degrees. |
 | `sort` | one of `none`, `desc`, `asc` | `"none"` | Order of the slices by value; "none" keeps the data order. |
 | `label` | one of `none`, `percent`, `value` | `"none"` | Text outside each slice (slices under 3% get none). |
+| `labelFormat` | any |  | How to write that text, as `format` on an axis. A share is a fraction: { "style": "percent", "maximumFractionDigits": 1 } writes 45.1%. |
 | `fill` | string |  | One color for all slices, when there is no color channel. |
 | `opacity` | number | `1` |  |
 
@@ -488,7 +502,7 @@ Version 8, 4.7 KB. A text label per row at (x, y): value labels on bars, annotat
 
 ## guide.axis
 
-Version 10, 5.5 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.
+Version 11, 6.3 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -498,6 +512,8 @@ Version 10, 5.5 KB. Labels for a positional scale, with an axis line and optiona
 | `format` | any |  | How to write the tick labels: numbers and dates on a linear, log or time scale, and on a band scale categories that are dates ("2024-04-01" from an aggregate by quarter) or numbers; text categories stay as they are. A preset ("percent", "compact", "integer", "year", "quarter" (Q2 2024), "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix". |
 | `line` | one of `auto`, `on`, `off` | `"auto"` | The axis line. "auto": drawn along a horizontal axis (the baseline bars stand on), left out on a vertical one, where grid lines do the job. |
 | `ticks` | boolean | `false` | Small tick marks at the labels. |
+| `count` | number |  | About how many labels to show: 12 for the months of a year. Labels that would not fit are still thinned. |
+| `anchor` | one of `start`, `end` | `"start"` | Which end thinned labels count from: "end" keeps the last one, for a report about the latest period. |
 
 ## guide.grid
 
@@ -509,7 +525,7 @@ Version 1, 0.4 KB. Grid lines at the ticks of a positional scale (the same ticks
 
 ## guide.kpi
 
-Version 6, 3.4 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
+Version 7, 4.2 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -523,7 +539,9 @@ Version 6, 3.4 KB. A key figure as the heading of a chart: a label, the value in
 | `deltaScale` | number | `1` | What an absolute change is multiplied by before it is written: 100 for a share kept as 0..1 that moved by 0.093 and is to read "+9.3 pp". |
 | `better` | one of `up`, `down` | `"up"` | Which way is good: "down" for costs, churn, response times. |
 | `format` | any |  | How to write the value (a preset such as "compact" or "percent", or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }). |
-| `note` | string |  | A few words after the change: "vs last month", "vs target". |
+| `note` | string |  | A few words after the change ("vs last month", "vs target"), or in its place when there is no change. |
+| `rowField` | field |  | Names the row the figure comes from, after the label: with aggregate "max" and field "month", "Best month: 2025-09". For aggregate last, first, min and max: a sum has no row of its own. |
+| `rowFormat` | any |  | How to write `rowField`, as in `format`: "month" for a date. |
 | `size` | number | `30` | Font size of the value, px. |
 
 ## guide.legend

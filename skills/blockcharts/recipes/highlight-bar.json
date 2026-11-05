@@ -1,0 +1,176 @@
+{
+  "title": "One bar set apart",
+  "data": {
+    "months": [
+      {
+        "month": "2025-01-01",
+        "revenue": 785400
+      },
+      {
+        "month": "2025-02-01",
+        "revenue": 1112400
+      },
+      {
+        "month": "2025-03-01",
+        "revenue": 1038500
+      },
+      {
+        "month": "2025-04-01",
+        "revenue": 896400
+      },
+      {
+        "month": "2025-05-01",
+        "revenue": 862100
+      },
+      {
+        "month": "2025-06-01",
+        "revenue": 990200
+      },
+      {
+        "month": "2025-07-01",
+        "revenue": 1066300
+      },
+      {
+        "month": "2025-08-01",
+        "revenue": 996000
+      },
+      {
+        "month": "2025-09-01",
+        "revenue": 1257800
+      },
+      {
+        "month": "2025-10-01",
+        "revenue": 1224500
+      },
+      {
+        "month": "2025-11-01",
+        "revenue": 1198100
+      },
+      {
+        "month": "2025-12-01",
+        "revenue": 1039100
+      }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Best month",
+      "note": "The tile finds the month itself: rowField names the row of the maximum.",
+      "span": 1,
+      "spec": {
+        "data": "months",
+        "size": [
+          280,
+          84
+        ],
+        "padding": {
+          "top": 8,
+          "bottom": 4,
+          "left": 0,
+          "right": 0
+        },
+        "scales": {},
+        "guides": [
+          {
+            "type": "kpi",
+            "field": "revenue",
+            "aggregate": "max",
+            "compare": "none",
+            "label": "Best month",
+            "rowField": "month",
+            "rowFormat": {
+              "month": "long",
+              "timeZone": "UTC"
+            },
+            "format": {
+              "maximumFractionDigits": 0
+            }
+          }
+        ],
+        "marks": []
+      }
+    },
+    {
+      "title": "Revenue by month",
+      "note": "transform.highlight writes which bar is the best; a color scale of two colors sets it apart, and the bar moves by itself when the data changes.",
+      "span": 3,
+      "spec": {
+        "data": "months",
+        "size": [
+          640,
+          300
+        ],
+        "transforms": [
+          {
+            "type": "highlight",
+            "field": "revenue",
+            "pick": "max",
+            "yes": "best",
+            "no": "other"
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "band"
+          },
+          "y": {
+            "type": "linear",
+            "zero": true
+          },
+          "c": {
+            "type": "color",
+            "domain": [
+              "other",
+              "best"
+            ],
+            "range": [
+              "#94a3b8",
+              "#2563eb"
+            ]
+          }
+        },
+        "guides": [
+          {
+            "type": "grid",
+            "scale": "y"
+          },
+          {
+            "type": "axis",
+            "scale": "x",
+            "format": {
+              "month": "short",
+              "timeZone": "UTC"
+            },
+            "count": 12,
+            "anchor": "end"
+          },
+          {
+            "type": "axis",
+            "scale": "y",
+            "format": "compact"
+          }
+        ],
+        "marks": [
+          {
+            "type": "rect",
+            "x": "month",
+            "y": "revenue",
+            "color": {
+              "field": "highlight",
+              "scale": "c"
+            }
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip"
+          }
+        ]
+      }
+    }
+  ],
+  "layout": {
+    "columns": 4,
+    "phoneColumns": 2
+  }
+}

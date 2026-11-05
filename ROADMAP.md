@@ -27,15 +27,10 @@ skill, which cost 44% more tokens and gave heavier pages. Still to do:
 
 - [ ] **Evals where the skill should matter**: large data, zoom, facets, a long dashboard. The present four do not separate it.
 - [ ] **The chart check of `grade.js`** counts `svg` and `canvas`, so bars in HTML and CSS fail it falsely.
-- [ ] **Gaps the agents reported**, not reproduced yet:
-      - Axis ticks: no step, and the last date is not always labelled, so a December report may not show December.
-      - One highlighted bar or point: no way to do it.
-      - KPI tiles: minimum size undocumented, a low tile clips silently, `size` below 200 is raised silently, `note` is
-        dropped with `compare: "none"`, the tile that names the best month is typed by hand, no two tiles side by side on a phone.
-      - Twelve vertical bars lose their labels on a phone: the skill should advise horizontal bars.
-      - Dirty data: `nullValues` and `types` of the CSV reader are undocumented, a text-only entry fails with a misleading error.
-      - One color per category across charts of a page: undocumented, and a sorted chart swaps colors.
-      - Recipes: a ratio of totals, top N with a grand total. `label: "percent"` has no decimals.
+- [ ] **Run the evals again on skill 0.19.0**, to see whether the fixes of what the agents reported changed the reports.
+- [ ] **Gaps the agents reported that are left**: a recipe with a ratio of totals, a top N with a grand total; the gap before a
+      KPI note is too wide after a change with a suffix; a KPI tile scales as a picture on a phone; `transform.filter` cannot
+      keep only rows with no value; a table of rows.
 
 ## Block audit
 

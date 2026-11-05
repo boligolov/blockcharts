@@ -72,15 +72,40 @@
     return { value, base };
   }
 
-  const height = (spec: BC.GuideSpec) => {
+  const noteOf = (spec: BC.GuideSpec) => (typeof spec.note === 'string' ? spec.note : '');
+
+  /** The line under the value is only there when it has something to say, so a plain total takes no room for it. */
+  const height = (spec: BC.GuideSpec, ctx: BC.ChartCtx) => {
     const size = typeof spec.size === 'number' && spec.size > 0 ? spec.size : VALUE_SIZE;
-    return (typeof spec.label === 'string' && spec.label ? LABEL_SIZE + GAP : 0) + size + GAP + DELTA_SIZE + BOTTOM;
+    const { value, base } = figures(spec, ctx);
+    const line = noteOf(spec) || (isFinite(value) && isFinite(base)) ? GAP + DELTA_SIZE : 0;
+    return (typeof spec.label === 'string' && spec.label ? LABEL_SIZE + GAP : 0) + size + line + BOTTOM;
   };
+
+  /** What the row of the figure is called: the month of a maximum. An aggregate of many rows has no row of its own. */
+  function rowName(spec: BC.GuideSpec, ctx: BC.ChartCtx): string {
+    if (typeof spec.rowField !== 'string') return '';
+    const names = column(ctx, spec.rowField);
+    const col = column(ctx, spec.field as string);
+    if (!names || !col) return '';
+    const how = typeof spec.aggregate === 'string' ? spec.aggregate : 'last';
+    let at = -1;
+    for (let i = 0; i < col.length; i++) {
+      const v = col[i];
+      if (typeof v !== 'number' || !isFinite(v)) continue;
+      const best = at < 0 ? NaN : (col[at] as number);
+      if (at < 0 || how === 'last' || (how === 'max' && v > best) || (how === 'min' && v < best)) at = i;
+      if (how === 'first') break;
+    }
+    const name = at < 0 ? null : names[at];
+    if (name === null || name === undefined || name !== name) return '';
+    return spec.rowFormat !== undefined ? BC.formatter(spec.rowFormat as BC.FormatSpec | string)(names[at]) : String(names[at]);
+  }
 
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'kpi',
-    version: 6,
+    version: 7,
     doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.',
     params: {
       field: { kind: 'field', required: true, doc: 'The numeric field the figure comes from.' },
@@ -117,10 +142,15 @@
         kind: 'any',
         doc: 'How to write the value (a preset such as "compact" or "percent", or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }).',
       },
-      note: { kind: 'string', doc: 'A few words after the change: "vs last month", "vs target".' },
+      note: { kind: 'string', doc: 'A few words after the change ("vs last month", "vs target"), or in its place when there is no change.' },
+      rowField: {
+        kind: 'field',
+        doc: 'Names the row the figure comes from, after the label: with aggregate "max" and field "month", "Best month: 2025-09". For aggregate last, first, min and max: a sum has no row of its own.',
+      },
+      rowFormat: { kind: 'any', doc: 'How to write `rowField`, as in `format`: "month" for a date.' },
       size: { kind: 'number', default: VALUE_SIZE, doc: 'Font size of the value, px.' },
     },
-    measure(spec) {
+    measure(spec, ctx) {
       // compare compares single rows; next to a sum or a mean that is a change against one row, which means nothing
       const how = typeof spec.aggregate === 'string' ? spec.aggregate : 'last';
       if ((spec.compare === 'previous' || spec.compare === 'first') && how !== 'last' && typeof spec.against !== 'string') {
@@ -128,14 +158,18 @@
           `guide.kpi: compare "${spec.compare}" compares one row with another, so it needs aggregate "last" (not "${how}"); to compare a ${how} with something, give "against" a field`,
         );
       }
-      return { top: height(spec) };
+      if (typeof spec.rowField === 'string' && ['last', 'first', 'min', 'max'].indexOf(how) < 0)
+        throw new Error(`guide.kpi: rowField names one row, and aggregate "${how}" comes from many; use last, first, min or max`);
+      return { top: height(spec, ctx) };
     },
     render(spec, ctx, offset) {
       if (typeof spec.field !== 'string' || !column(ctx, spec.field)) return {};
       const size = typeof spec.size === 'number' && spec.size > 0 ? spec.size : VALUE_SIZE;
-      const label = typeof spec.label === 'string' ? spec.label : '';
+      const row = rowName(spec, ctx);
+      const named = typeof spec.label === 'string' ? spec.label : '';
+      const label = named && row ? `${named}: ${row}` : named || row;
       const left = ctx.plot.x;
-      let y = ctx.plot.y - offset.top - height(spec);
+      let y = ctx.plot.y - offset.top - height(spec, ctx);
       const out: BC.Prim[] = [];
       if (label) {
         out.push({
@@ -167,6 +201,7 @@
       });
       y += size + GAP;
 
+      let noteAt = left;
       if (isFinite(value) && isFinite(base)) {
         const diff = value - base;
         const up = diff > 0;
@@ -197,19 +232,19 @@
           style: { fill: color },
           cls: 'bc-kpi-delta',
         });
-        if (typeof spec.note === 'string' && spec.note) {
-          const w = ctx.measure(change, DELTA_SIZE).w;
-          out.push({
-            type: 'text',
-            x: left + w + 6,
-            y,
-            text: spec.note,
-            size: DELTA_SIZE,
-            baseline: 'hanging',
-            style: { fill: LABEL },
-            cls: 'bc-kpi-note',
-          });
-        }
+        noteAt = left + ctx.measure(change, DELTA_SIZE).w + 6;
+      }
+      if (noteOf(spec)) {
+        out.push({
+          type: 'text',
+          x: noteAt,
+          y,
+          text: noteOf(spec),
+          size: DELTA_SIZE,
+          baseline: 'hanging',
+          style: { fill: LABEL },
+          cls: 'bc-kpi-note',
+        });
       }
       return { axes: out };
     },

@@ -91,6 +91,10 @@
         default: 'none',
         doc: 'Text outside each slice (slices under 3% get none).',
       },
+      labelFormat: {
+        kind: 'any',
+        doc: 'How to write that text, as `format` on an axis. A share is a fraction: { "style": "percent", "maximumFractionDigits": 1 } writes 45.1%.',
+      },
       fill: { kind: 'string', doc: 'One color for all slices, when there is no color channel.' },
       opacity: { kind: 'number', default: 1 },
     },
@@ -121,9 +125,11 @@
           const lx = g.cx + (g.R + 10) * Math.cos(mid);
           const ly = g.cy + (g.R + 10) * Math.sin(mid);
           const text =
-            spec.label === 'percent'
-              ? `${Math.round(s.frac * 100)}%`
-              : String(Number.isInteger(s.value) ? s.value : +s.value.toPrecision(6));
+            spec.labelFormat !== undefined
+              ? BC.formatter(spec.labelFormat as BC.FormatSpec | string)(spec.label === 'percent' ? s.frac : s.value)
+              : spec.label === 'percent'
+                ? `${Math.round(s.frac * 100)}%`
+                : String(Number.isInteger(s.value) ? s.value : +s.value.toPrecision(6));
           out.push({
             type: 'text',
             x: r2(lx),

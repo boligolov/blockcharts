@@ -19,7 +19,7 @@
 //   lang    the language of the page ("ko", "ja", "zh-CN"): <html lang>, the font for that language, and the language numbers
 //           and dates are written in. A { section } or a chart entry can take a lang of its own; a section's lasts until the next
 //   title / subtitle  the page heading (and the <title>) and one line under it
-//   layout  { columns: 1..12 } a dashboard grid: charts fill it left to right, a card takes `span` columns (default: the full row);
+//   layout  { columns: 1..12, phoneColumns: 1..2 } a dashboard grid: charts fill it left to right, a card takes `span` columns (default: the full row);
 //           on a narrow screen every card takes the full width
 //   before / after  raw trusted HTML placed before the charts / after the scripts (page chrome, custom scripts)
 //   include extra block names to inline for hand-written scripts (`after`) that call BC.chart themselves
@@ -94,7 +94,7 @@ const DEFAULT_CSS = [
   '@media (max-width:720px){.bc-facets{grid-template-columns:repeat(min(var(--bc-facet-cols,2),2),minmax(0,1fr))}}@media (max-width:480px){.bc-facets{grid-template-columns:minmax(0,1fr)}}',
   '.bc-scroll{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}',
   '.bc-chart{user-select:none}.bc-chart text{font-variant-numeric:tabular-nums}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}',
-  '@media (max-width:720px){.bc-grid{grid-template-columns:1fr}.bc-grid>.bc-section{grid-column:auto!important}.bc-page{padding:20px 12px 40px}}',
+  '@media (max-width:720px){.bc-grid{grid-template-columns:repeat(var(--bc-phone-cols,1),minmax(0,1fr))}.bc-grid>.bc-section{grid-column:1/-1!important}.bc-grid>.bc-section.bc-tile{grid-column:auto!important}.bc-page{padding:20px 12px 40px}}',
   '@media print{body{background:#fff}.bc-page,.bc-page.bc-wide{max-width:none;padding:0}.bc-section{box-shadow:none;break-inside:avoid}.bc-group{break-after:avoid}.bc-scroll{overflow:visible}}',
 ].join('\n');
 
@@ -374,6 +374,8 @@ function compose(opts) {
   const columns = layout && layout.columns !== undefined ? layout.columns : 1;
   if (!Number.isInteger(columns) || columns < 1 || columns > 12)
     throw new ComposeError('layout.columns must be a whole number from 1 to 12');
+  const phoneColumns = layout && layout.phoneColumns !== undefined ? layout.phoneColumns : 1;
+  if (phoneColumns !== 1 && phoneColumns !== 2) throw new ComposeError('layout.phoneColumns must be 1 or 2');
   const ids = new Map();
   const validLang = (v, where) => {
     if (v !== undefined && (typeof v !== 'string' || !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(v)))
@@ -404,6 +406,8 @@ function compose(opts) {
       throw new ComposeError(`charts[${i}].span must be a whole number from 1 to ${columns} (layout.columns)`);
     }
     if (!entry.spec || typeof entry.spec !== 'object') throw new ComposeError(`charts[${i}] is not a chart spec`);
+    if (entry.spec.data === undefined && entry.spec.marks === undefined && (entry.spec.title !== undefined || entry.spec.note !== undefined))
+      throw new ComposeError(`charts[${i}] has text and no chart: text alone is { "section": "Heading", "note": "..." }`);
     const bad = findUnserializable(entry.spec, `charts[${i}]`, []);
     if (bad) throw new ComposeError(`${bad.path} ${bad.why}`);
     // the id is the element the chart is drawn in: two charts with one id would draw into one, the second wiping out the first
@@ -644,7 +648,8 @@ function compose(opts) {
     const script = panels ? facetTag({ panels, facet, legend, legendId }) : chartTag(spec);
     const tag = minWidth ? `<div class="bc-scroll"><div style="min-width:${minWidth}px">${script}</div></div>` : script;
     const width = columns > 1 ? ` style="grid-column:span ${span || columns}"` : '';
-    return `<section class="bc-section"${langAttr(lang)}${width}>${title ? `<${titleTag}>${escapeText(title)}</${titleTag}>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
+    const tile = columns > 1 && span === 1 ? ' bc-tile' : '';
+    return `<section class="bc-section${tile}"${langAttr(lang)}${width}>${title ? `<${titleTag}>${escapeText(title)}</${titleTag}>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
   };
   const heading = ({ section: text, note, lang }) =>
     `<div class="bc-group"${langAttr(lang)}><h2>${escapeText(text)}</h2>${note ? `<p>${escapeText(note)}</p>` : ''}</div>`;
@@ -662,7 +667,7 @@ function compose(opts) {
     `<main class="bc-page${columns > 1 ? ' bc-wide' : ''}">`,
     header,
     options.before || '',
-    `<div class="bc-grid"${columns > 1 ? ` style="--bc-cols:${columns}"` : ''}>`,
+    `<div class="bc-grid"${columns > 1 ? ` style="--bc-cols:${columns}${phoneColumns > 1 ? `;--bc-phone-cols:${phoneColumns}` : ''}"` : ''}>`,
     entries.map((e) => (e.section === undefined ? section(e) : heading(e))).join('\n'),
     '</div></main>',
     scripts.map(script).join('\n'),

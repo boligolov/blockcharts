@@ -781,7 +781,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
         guides: [{ type: 'legend', scale: 'color', position: 'auto' }],
         marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
       });
-      assert.deepStrictEqual(h.diagnostics, []);
+      assert.deepStrictEqual(h.diagnostics.filter((d) => d.level === 'error'), []);
       const m = /class="bc-legend-item"[\s\S]*?<rect[^>]* x="([\d.]+)"[^>]* y="([\d.]+)"/.exec(host.children[0].serialize());
       const out = { x: +m[1], y: +m[2] };
       h.destroy();
@@ -791,6 +791,94 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     const long = Array.from({ length: 30 }, (_, i) => `A rather long category name ${i}`);
     assert(place(long, 1400).x > 900, 'long labels on a wide chart: a column on the right');
     assert(place(long, 400).y < 60, 'a phone has no room for that column');
+  });
+
+  const drawn = (rows, spec) => {
+    BC.data('gaps', rows);
+    const host = new FakeNode('div');
+    const h = BC.chart(host, { data: 'gaps', marks: [], ...spec });
+    const svg = host.children[0].serialize();
+    const out = { svg, diagnostics: h.diagnostics };
+    h.destroy();
+    return out;
+  };
+  const months = ['2025-09', '2025-10', '2025-11', '2025-12'].map((m, i) => ({ m, v: [5, 9, 2, 7][i] }));
+
+  test('guide.kpi: a note without a change is drawn, and a plain total takes no room for the line under it', () => {
+    const tile = (extra) => drawn(months, { size: [280, 120], guides: [{ type: 'kpi', field: 'v', aggregate: 'sum', compare: 'none', ...extra }] });
+    assert(/bc-kpi-note[\s\S]*37% of total/.test(tile({ note: '37% of total' }).svg));
+    const small = drawn(months, { size: [280, 60], padding: { top: 0, bottom: 0 }, guides: [{ type: 'kpi', field: 'v', aggregate: 'sum', compare: 'none' }] });
+    assert.deepStrictEqual(small.diagnostics, []);
+  });
+
+  test('guide.kpi: rowField names the row of the figure; hostile cases', () => {
+    const named = (aggregate, rows = months) =>
+      drawn(rows, { size: [280, 120], guides: [{ type: 'kpi', field: 'v', aggregate, label: 'Best', rowField: 'm', compare: 'none' }] });
+    assert(named('max').svg.includes('Best: 2025-10'));
+    assert(named('min').svg.includes('Best: 2025-11'));
+    assert(named('last').svg.includes('Best: 2025-12'));
+    assert(named('first').svg.includes('Best: 2025-09'));
+    assert(/rowField names one row/.test(JSON.stringify(named('sum').diagnostics)), 'a sum has no row');
+    const empty = named('max', [{ m: 'a', v: null }]);
+    assert(!empty.svg.includes('Best:'), 'no number, no row to name');
+    const nameless = named('max', [{ m: null, v: 3 }]);
+    assert(nameless.svg.includes('>Best<') && !nameless.svg.includes('null'), 'a row with no name adds nothing');
+  });
+
+  test('a chart lower than its guides says that its bottom is cut off', () => {
+    const low = drawn(months, { size: [280, 68], guides: [{ type: 'kpi', field: 'v', label: 'Revenue' }] });
+    assert(low.diagnostics.some((d) => d.level === 'warn' && d.path === 'size'));
+    const fine = drawn(months, { size: [280, 150], guides: [{ type: 'kpi', field: 'v', label: 'Revenue' }] });
+    assert.deepStrictEqual(fine.diagnostics, []);
+  });
+
+  test('guide.axis: count asks for labels, anchor end keeps the last one, on a band and a time scale', () => {
+    const rows = Array.from({ length: 12 }, (_, i) => ({ m: `2025-${String(i + 1).padStart(2, '0')}-01`, v: i }));
+    const axis = (scale, extra, width = 640) =>
+      drawn(rows, {
+        size: [width, 200],
+        scales: { x: { type: scale }, y: { type: 'linear' } },
+        guides: [{ type: 'axis', scale: 'x', format: { month: 'short', timeZone: 'UTC' }, ...extra }],
+        marks: [{ type: 'line', x: 'm', y: 'v' }],
+      }).svg;
+    assert(!axis('band', { count: 3 }).includes('>Dec<'), 'counting from the start misses December');
+    assert(axis('band', { count: 3, anchor: 'end' }).includes('>Dec<'));
+    assert(axis('band', { anchor: 'end' }, 200).includes('>Dec<'), 'a narrow band axis keeps it too');
+    assert(axis('time', { count: 12, anchor: 'end' }, 240).includes('>Dec<'), 'and so does a narrow time axis');
+    assert(axis('time', { count: 12 }, 900).includes('>Jun<'), 'count gives a time axis every month');
+    for (const count of [0, -3, NaN, 1e9]) axis('band', { count });
+  });
+
+  test('transform.highlight: pick, value, ties and missing numbers', () => {
+    const run = (cols, spec) => {
+      const length = Object.values(cols)[0].length;
+      return BC.get('transform.highlight').apply({ length, columns: cols }, { field: 'v', ...spec }).columns;
+    };
+    assert.deepStrictEqual(run({ v: [1, 3, NaN, 3] }, { pick: 'max' }).highlight, ['no', 'yes', 'no', 'yes']);
+    assert.deepStrictEqual(run({ v: [2, null, 1] }, { pick: 'min', as: 'h', yes: 'low', no: 'rest' }).h, ['rest', 'rest', 'low']);
+    assert.deepStrictEqual(run({ v: [null, 1, 2, NaN] }, { pick: 'first' }).highlight, ['no', 'yes', 'no', 'no']);
+    assert.deepStrictEqual(run({ v: [null, 1, 2, NaN] }, { pick: 'last' }).highlight, ['no', 'no', 'yes', 'no']);
+    assert.deepStrictEqual(run({ v: ['a', 'b'] }, { value: 'b' }).highlight, ['no', 'yes']);
+    assert.deepStrictEqual(run({ v: ['a', 'b'] }, { pick: 'max' }).highlight, ['no', 'no'], 'no number, nothing to mark');
+  });
+
+  test('transform.highlight: hostile input — bad params are clear errors', () => {
+    const run = (spec) => () => BC.get('transform.highlight').apply({ length: 1, columns: { v: [1] } }, spec);
+    assert.throws(run({ field: 'nope', pick: 'max' }), /unknown field/);
+    assert.throws(run({ pick: 'max' }), /"field"/);
+    assert.throws(run({ field: 'v' }), /either "pick" or "value"/);
+    assert.throws(run({ field: 'v', pick: 'max', value: 1 }), /either "pick" or "value"/);
+    assert.throws(run({ field: 'v', pick: 'top' }), /"pick" must be/);
+    assert.throws(run({ field: 'v', pick: 'max', as: 'v' }), /already a column/);
+  });
+
+  test('mark.arc: labelFormat writes shares and values', () => {
+    const rows = [{ k: 'a', v: 451 }, { k: 'b', v: 549 }];
+    const pie = (label, labelFormat) =>
+      drawn(rows, { size: [300, 300], marks: [{ type: 'arc', value: 'v', label, labelFormat }] }).svg;
+    assert(pie('percent', { style: 'percent', maximumFractionDigits: 1 }).includes('45.1%'));
+    assert(pie('percent').includes('45%'));
+    assert(pie('value', { suffix: ' kg' }).includes('451 kg'));
   });
 
   test('tooltip: a table that says so has no lines for the fields a row does not have', async () => {

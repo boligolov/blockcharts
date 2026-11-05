@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 30277,
+    "bytes": 30429,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 24957,
+        "bytes": 25108,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 21945,
+        "bytes": 22096,
         "off": [
           "CHECKS",
           "DECODE"
@@ -444,6 +444,52 @@
       },
       "doc": "A conversion funnel: stages in row order (visits, sign-ups, trials, purchases), each drawn as a bar centered on zero so the shape narrows. Writes the bar's two ends (`<field>0` = -value/2, `<field>1` = +value/2), the share of the first stage (`rate`) and of the stage before (`stepRate`). Draw with mark.rect (x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale) and label with mark.text formatted as percent."
     },
+    "transform.highlight": {
+      "file": "blocks/transform.highlight.js",
+      "bytes": 1432,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "transform.highlight"
+      ],
+      "params": {
+        "field": {
+          "kind": "field",
+          "required": true,
+          "doc": "The field the rows are chosen by."
+        },
+        "pick": {
+          "kind": "enum",
+          "values": [
+            "max",
+            "min",
+            "first",
+            "last"
+          ],
+          "doc": "Which rows: the largest or smallest number, the first or last row that has one. Or give `value`."
+        },
+        "value": {
+          "kind": "any",
+          "doc": "The rows of `field` equal to this, text or a number, instead of `pick`."
+        },
+        "as": {
+          "kind": "string",
+          "default": "highlight",
+          "doc": "Name of the new column."
+        },
+        "yes": {
+          "kind": "string",
+          "default": "yes",
+          "doc": "What a marked row holds; it is what a legend would show."
+        },
+        "no": {
+          "kind": "string",
+          "default": "no",
+          "doc": "What the other rows hold."
+        }
+      },
+      "doc": "Marks the rows to set apart in a new column `as`: \"yes\" there and \"no\" elsewhere (or your own words, `yes` and `no`). Choose them by `pick` (the max or min of `field`, its first or last usable row; ties are all marked) or by `value` (the rows of `field` equal to it). Give the column to a color channel with a scale of two colors, and the best month stands out from the bars around it."
+    },
     "transform.marimekko": {
       "file": "blocks/transform.marimekko.js",
       "bytes": 2016,
@@ -745,7 +791,7 @@
     },
     "mark.arc": {
       "file": "blocks/mark.arc.js",
-      "bytes": 2997,
+      "bytes": 3109,
       "version": 1,
       "requires": [],
       "closure": [
@@ -786,6 +832,10 @@
           ],
           "default": "none",
           "doc": "Text outside each slice (slices under 3% get none)."
+        },
+        "labelFormat": {
+          "kind": "any",
+          "doc": "How to write that text, as `format` on an axis. A share is a fraction: { \"style\": \"percent\", \"maximumFractionDigits\": 1 } writes 45.1%."
         },
         "fill": {
           "kind": "string",
@@ -1609,8 +1659,8 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 5629,
-      "version": 10,
+      "bytes": 6438,
+      "version": 11,
       "requires": [],
       "closure": [
         "guide.axis"
@@ -1651,6 +1701,19 @@
           "kind": "boolean",
           "default": false,
           "doc": "Small tick marks at the labels."
+        },
+        "count": {
+          "kind": "number",
+          "doc": "About how many labels to show: 12 for the months of a year. Labels that would not fit are still thinned."
+        },
+        "anchor": {
+          "kind": "enum",
+          "values": [
+            "start",
+            "end"
+          ],
+          "default": "start",
+          "doc": "Which end thinned labels count from: \"end\" keeps the last one, for a report about the latest period."
         }
       },
       "doc": "Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few."
@@ -1673,8 +1736,8 @@
     },
     "guide.kpi": {
       "file": "blocks/guide.kpi.js",
-      "bytes": 3456,
-      "version": 6,
+      "bytes": 4292,
+      "version": 7,
       "requires": [],
       "closure": [
         "guide.kpi"
@@ -1749,7 +1812,15 @@
         },
         "note": {
           "kind": "string",
-          "doc": "A few words after the change: \"vs last month\", \"vs target\"."
+          "doc": "A few words after the change (\"vs last month\", \"vs target\"), or in its place when there is no change."
+        },
+        "rowField": {
+          "kind": "field",
+          "doc": "Names the row the figure comes from, after the label: with aggregate \"max\" and field \"month\", \"Best month: 2025-09\". For aggregate last, first, min and max: a sum has no row of its own."
+        },
+        "rowFormat": {
+          "kind": "any",
+          "doc": "How to write `rowField`, as in `format`: \"month\" for a date."
         },
         "size": {
           "kind": "number",
