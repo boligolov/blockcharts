@@ -1,0 +1,48 @@
+{
+  "title": "Gantt chart",
+  "data": {
+    "plan": [
+      { "task": "Research", "phase": "Discovery", "start": "2026-01-05", "end": "2026-01-30" },
+      { "task": "Requirements", "phase": "Discovery", "start": "2026-01-19", "end": "2026-02-13" },
+      { "task": "Design", "phase": "Design", "start": "2026-02-09", "end": "2026-03-13" },
+      { "task": "Prototype", "phase": "Design", "start": "2026-03-02", "end": "2026-03-27" },
+      { "task": "Backend", "phase": "Build", "start": "2026-03-16", "end": "2026-05-22" },
+      { "task": "Frontend", "phase": "Build", "start": "2026-03-30", "end": "2026-06-05" },
+      { "task": "Testing", "phase": "Launch", "start": "2026-05-18", "end": "2026-06-19" },
+      { "task": "Release", "phase": "Launch", "start": "2026-06-15", "end": "2026-06-26" }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Project plan, first half of 2026",
+      "note": "A rect spans from x to x2 on a time scale, one band per task on y; tasks read from the top in data order. Color by phase; a rule with a constant x marks today.",
+      "spec": {
+        "data": "plan",
+        "size": [720, 340],
+        "scales": {
+          "x": { "type": "time" },
+          "y": { "type": "band", "paddingInner": 0.3 },
+          "color": { "type": "color" }
+        },
+        "guides": [
+          { "type": "grid", "scale": "x" },
+          { "type": "axis", "scale": "x", "format": { "month": "short" }, "count": 6 },
+          { "type": "axis", "scale": "y" },
+          { "type": "legend", "scale": "color", "position": "auto" }
+        ],
+        "marks": [
+          { "type": "rect", "x": "start", "x2": "end", "y": "task", "color": "phase", "radius": 3 },
+          { "type": "rule", "x": { "value": "2026-04-15" }, "dash": [4, 3], "label": "Today" }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "heading": "task",
+            "fields": ["phase", "start", "end"],
+            "formats": { "start": { "day": "numeric", "month": "short" }, "end": { "day": "numeric", "month": "short" } }
+          }
+        ]
+      }
+    }
+  ]
+}

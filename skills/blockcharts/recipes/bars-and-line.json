@@ -1,0 +1,49 @@
+{
+  "title": "Stacked bars and a line",
+  "data": {
+    "revenue": [
+      { "quarter": "Q1", "line": "Hardware", "amount": 30, "margin": 0.21 },
+      { "quarter": "Q1", "line": "Software", "amount": 20, "margin": 0.21 },
+      { "quarter": "Q1", "line": "Services", "amount": 10, "margin": 0.21 },
+      { "quarter": "Q2", "line": "Hardware", "amount": 35, "margin": 0.24 },
+      { "quarter": "Q2", "line": "Software", "amount": 25, "margin": 0.24 },
+      { "quarter": "Q2", "line": "Services", "amount": 15, "margin": 0.24 },
+      { "quarter": "Q3", "line": "Hardware", "amount": 28, "margin": 0.19 },
+      { "quarter": "Q3", "line": "Software", "amount": 30, "margin": 0.19 },
+      { "quarter": "Q3", "line": "Services", "amount": 22, "margin": 0.19 },
+      { "quarter": "Q4", "line": "Hardware", "amount": 40, "margin": 0.27 },
+      { "quarter": "Q4", "line": "Software", "amount": 28, "margin": 0.27 },
+      { "quarter": "Q4", "line": "Services", "amount": 26, "margin": 0.27 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Revenue by product line, $M (bars) and operating margin (line, right)",
+      "note": "All marks of a chart draw from one table. After the stack there is a row per quarter and product, so the line's field must have the same value in every row of a quarter (margin here), or the line jumps up and down within it. The line goes on a second scale y2 with its axis on the right.",
+      "spec": {
+        "data": "revenue",
+        "size": [720, 340],
+        "transforms": [{ "type": "stack", "field": "amount", "by": "quarter", "group": "line" }],
+        "scales": {
+          "x": { "type": "band" },
+          "y": { "type": "linear", "zero": true },
+          "y2": { "type": "linear", "zero": true, "range": "height" },
+          "color": { "type": "color" }
+        },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "axis", "scale": "y2", "position": "right", "format": "percent" },
+          { "type": "legend", "scale": "color", "position": "auto" }
+        ],
+        "marks": [
+          { "type": "rect", "x": "quarter", "y": "amount1", "y2": "amount0", "color": "line" },
+          { "type": "line", "x": "quarter", "y": { "field": "margin", "scale": "y2" }, "stroke": "var(--bc-text, #1e293b)" },
+          { "type": "point", "x": "quarter", "y": { "field": "margin", "scale": "y2" }, "r": 4, "fill": "var(--bc-text, #1e293b)" }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["line", "amount", "margin"], "formats": { "margin": "percent" } }]
+      }
+    }
+  ]
+}

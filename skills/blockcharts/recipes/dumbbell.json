@@ -1,0 +1,60 @@
+{
+  "title": "Dumbbell and lollipop",
+  "data": {
+    "regions": [
+      { "region": "North", "y2024": 62, "y2025": 71 },
+      { "region": "South", "y2024": 48, "y2025": 45 },
+      { "region": "East", "y2024": 55, "y2025": 68 },
+      { "region": "West", "y2024": 70, "y2025": 74 },
+      { "region": "Central", "y2024": 41, "y2025": 52 }
+    ],
+    "nps": [
+      { "product": "Mobile app", "score": 54 },
+      { "product": "Web app", "score": 47 },
+      { "product": "Support", "score": 38 },
+      { "product": "Billing", "score": 22 },
+      { "product": "Onboarding", "score": 15 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Customer satisfaction, 2024 (grey) and 2025 (blue)",
+      "note": "A dumbbell: a rule from x to x2 along the middle of each band, and two point marks at its ends. It shows the gap and its direction better than two bars side by side.",
+      "spec": {
+        "data": "regions",
+        "size": [640, 280],
+        "scales": { "y": { "type": "band" }, "x": { "type": "linear", "zero": true } },
+        "guides": [
+          { "type": "grid", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "axis", "scale": "x" }
+        ],
+        "marks": [
+          { "type": "rule", "x": "y2024", "x2": "y2025", "y": "region", "stroke": "var(--bc-axis, #cbd2dc)", "strokeWidth": 3 },
+          { "type": "point", "x": "y2024", "y": "region", "r": 6, "fill": "var(--bc-label, #94a3b8)" },
+          { "type": "point", "x": "y2025", "y": "region", "r": 6, "fill": "var(--bc-c0, #3a6fe4)" }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["y2024", "y2025"] }]
+      }
+    },
+    {
+      "title": "Net promoter score by product",
+      "note": "A lollipop: a rule from a constant x2 of 0 to the value, and a point at its end. Lighter than a bar when there are many categories.",
+      "spec": {
+        "data": "nps",
+        "size": [640, 260],
+        "scales": { "y": { "type": "band" }, "x": { "type": "linear", "zero": true } },
+        "guides": [
+          { "type": "grid", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "axis", "scale": "x" }
+        ],
+        "marks": [
+          { "type": "rule", "x": "score", "x2": { "value": 0 }, "y": "product", "stroke": "var(--bc-c0, #3a6fe4)", "strokeWidth": 2 },
+          { "type": "point", "x": "score", "y": "product", "r": 6, "fill": "var(--bc-c0, #3a6fe4)" }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["score"] }]
+      }
+    }
+  ]
+}

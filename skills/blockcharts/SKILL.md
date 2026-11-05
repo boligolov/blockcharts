@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.19.0"
+  version: "0.20.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -181,6 +181,11 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | A number per day over months: weekly patterns | `recipes/calendar-heatmap.json` |
 | A report from raw CSV rows: monthly totals, ranking, currency | `recipes/report-from-csv.json` |
 | One bar set apart (the best month), and a tile that names it | `recipes/highlight-bar.json` |
+| Stacked bars with a line of another measure (a margin) on a second axis | `recipes/bars-and-line.json` |
+| A project plan: tasks from start to end on a time axis (Gantt) | `recipes/gantt.json` |
+| A change between two values per category (dumbbell); a value per category, lighter than a bar (lollipop) | `recipes/dumbbell.json` |
+| A mean with its interval (error bars); a forecast with its range (confidence band) | `recipes/error-bars.json` |
+| Two groups back to back per category (a population pyramid by age and sex) | `recipes/pyramid.json` |
 
 Each recipe is a complete `page.json` that composes as it stands.
 

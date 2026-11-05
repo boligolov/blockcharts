@@ -1,0 +1,42 @@
+{
+  "title": "Population pyramid",
+  "data": {
+    "people": [
+      { "age": "80+", "men": 1.2, "women": 2.1 },
+      { "age": "70-79", "men": 3.1, "women": 4.0 },
+      { "age": "60-69", "men": 4.9, "women": 5.6 },
+      { "age": "50-59", "men": 6.2, "women": 6.5 },
+      { "age": "40-49", "men": 6.8, "women": 6.7 },
+      { "age": "30-39", "men": 7.4, "women": 7.1 },
+      { "age": "20-29", "men": 6.9, "women": 6.5 },
+      { "age": "10-19", "men": 6.1, "women": 5.8 },
+      { "age": "0-9", "men": 5.4, "women": 5.1 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Population by age, millions: men (left) and women (right)",
+      "note": "Two horizontal bars per band: calculate makes the men negative so they grow to the left of 0. The axis writes both sides without a sign (signDisplay \"never\"); the tooltip shows the original fields. Bands read from the top in data order, so the oldest come first. Give x a symmetric domain so 0 sits in the middle.",
+      "spec": {
+        "data": "people",
+        "size": [640, 340],
+        "transforms": [{ "type": "calculate", "a": "men", "op": "*", "value": -1, "as": "menLeft" }],
+        "scales": {
+          "y": { "type": "band", "paddingInner": 0.15 },
+          "x": { "type": "linear", "domain": [-8, 8] }
+        },
+        "guides": [
+          { "type": "grid", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "axis", "scale": "x", "format": { "signDisplay": "never" } }
+        ],
+        "marks": [
+          { "type": "rect", "x": "menLeft", "y": "age", "fill": "var(--bc-c0, #3a6fe4)" },
+          { "type": "rect", "x": "women", "y": "age", "fill": "var(--bc-c1, #14a39a)" },
+          { "type": "rule", "x": { "value": 0 }, "stroke": "var(--bc-axis, #cbd2dc)", "strokeWidth": 1 }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["men", "women"] }]
+      }
+    }
+  ]
+}

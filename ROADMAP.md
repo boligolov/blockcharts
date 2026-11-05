@@ -55,6 +55,27 @@ Done: KPI tiles (guide.kpi), waterfall, funnel, treemap, target lines and bullet
 - [ ] **Table** (much later; there is a lot to it): its own design question — an HTML table rather than SVG text (scrolls, selects, prints as a
       table), sortable, number formats shared with axes and tooltips, optional bars or heat in cells.
 
+## Chart types other libraries have
+
+Compared on 2026-11-05 with the galleries of ECharts and Highcharts (also Chart.js, Plotly, ApexCharts, amCharts, Vega-Lite).
+Maps and tables are left out; radar and sunburst stay not planned (see below). In this order:
+
+Done: recipes of what the blocks already drew (Gantt, dumbbell and lollipop, error bars and a confidence band, stacked bars
+with a line, a population pyramid). They showed two gaps of a time axis:
+
+- [ ] **A time axis on a phone picks too long a step**: a Gantt of January to June at 200 px shows one label ("Apr"), a year
+      shows "Jan" and "Jul". With `count: 6` the five months fit.
+- [ ] **guide.grid does not follow `count` of its axis**: with `count: 6` the axis has five labels and the grid one line.
+- [ ] **A gauge and a progress ring**: `mark.arc` has `startAngle` and no `endAngle`, so a half circle cannot be drawn.
+- [ ] **A step line** (prices, tariffs, stock levels): `curve: "step"` in `lib.curve`.
+- [ ] **A total of the group in every row** (`joinaggregate` in Vega-Lite): a line of totals over stacked bars, a share of
+      the group without losing rows.
+- [ ] **Rank** in `transform.window`: a bump chart (how places changed).
+- [ ] **Distributions**: a density transform for violin and ridgeline charts; a beeswarm layout; hexbin and density contours.
+- [ ] **A streamgraph**: `transform.stack` with a centered offset.
+- Not planned: force-directed networks, chords, word clouds, 3D, Venn diagrams, polar rose and radial bars (they read like
+  radar); trees, dendrograms, packed circles and icicles only if a report asks for them; a waffle chart is rect + calculate.
+
 ## What the dashboards found
 
 The browsers and oil dashboards were built with the skill as a plain user. Their log is `dashboards/oil/FINDINGS.md`

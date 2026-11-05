@@ -1,0 +1,68 @@
+{
+  "title": "Error bars and a confidence band",
+  "data": {
+    "trial": [
+      { "group": "Placebo", "mean": 4.1, "low": 3.2, "high": 5.0 },
+      { "group": "Dose 10 mg", "mean": 5.6, "low": 4.8, "high": 6.4 },
+      { "group": "Dose 20 mg", "mean": 6.9, "low": 6.0, "high": 7.9 },
+      { "group": "Dose 40 mg", "mean": 7.3, "low": 6.1, "high": 8.6 }
+    ],
+    "forecast": [
+      { "month": "2026-01-01", "actual": 120 },
+      { "month": "2026-02-01", "actual": 128 },
+      { "month": "2026-03-01", "actual": 135 },
+      { "month": "2026-04-01", "actual": 131 },
+      { "month": "2026-05-01", "actual": 142 },
+      { "month": "2026-06-01", "actual": 150, "forecast": 150, "low": 150, "high": 150 },
+      { "month": "2026-07-01", "forecast": 156, "low": 149, "high": 163 },
+      { "month": "2026-08-01", "forecast": 161, "low": 150, "high": 172 },
+      { "month": "2026-09-01", "forecast": 167, "low": 152, "high": 182 },
+      { "month": "2026-10-01", "forecast": 172, "low": 153, "high": 191 },
+      { "month": "2026-11-01", "forecast": 178, "low": 155, "high": 201 },
+      { "month": "2026-12-01", "forecast": 184, "low": 157, "high": 211 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Improvement by dose, mean and 95% interval",
+      "note": "Error bars: a rule from y (low) to y2 (high) in the middle of each band, and a point at the mean. A scale that does not start at zero is fine here: the points compare positions, not lengths.",
+      "spec": {
+        "data": "trial",
+        "size": [640, 300],
+        "scales": { "x": { "type": "band" }, "y": { "type": "linear" } },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" }
+        ],
+        "marks": [
+          { "type": "rule", "x": "group", "y": "low", "y2": "high", "strokeWidth": 2 },
+          { "type": "point", "x": "group", "y": "mean", "r": 5, "fill": "var(--bc-c0, #3a6fe4)" }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["mean", "low", "high"] }]
+      }
+    },
+    {
+      "title": "Orders, actual and forecast with its 80% range",
+      "note": "A confidence band: an area from y (high) to y2 (low), light, under the lines. The forecast starts at the last actual month, where the band is zero wide, so the lines join. Rows without a value leave the mark out there.",
+      "spec": {
+        "data": "forecast",
+        "size": [720, 320],
+        "scales": { "x": { "type": "time" }, "y": { "type": "linear", "zero": true } },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x", "format": { "month": "short" } },
+          { "type": "axis", "scale": "y" }
+        ],
+        "marks": [
+          { "type": "area", "x": "month", "y": "high", "y2": "low", "fill": "var(--bc-c0, #3a6fe4)", "opacity": 0.18 },
+          { "type": "line", "x": "month", "y": "actual", "stroke": "var(--bc-c0, #3a6fe4)" },
+          { "type": "line", "x": "month", "y": "forecast", "stroke": "var(--bc-c0, #3a6fe4)", "dash": [5, 4] }
+        ],
+        "interaction": [
+          { "type": "tooltip", "fields": ["actual", "forecast", "low", "high"], "formats": { "month": { "month": "long", "year": "numeric" } } }
+        ]
+      }
+    }
+  ]
+}
