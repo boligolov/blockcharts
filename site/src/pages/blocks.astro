@@ -20,7 +20,7 @@ for (const role of Object.keys(roles)) if (ROLES.indexOf(role) < 0) throw new Er
 
 // what each block does, in a line; every block needs one, and one for a block that does not exist fails the build too
 const summary = {
-  'lib.curve': 'The path of a line: straight segments, or a smooth curve that never overshoots. Shared by line and area.',
+  'lib.curve': 'The path of a line: straight segments, a smooth curve that never overshoots, or steps. Shared by line and area.',
   'scale.linear': 'Numbers to positions, with round ticks.',
   'scale.log': 'Numbers across orders of magnitude; steady growth is a straight line.',
   'scale.time': 'Dates to positions, ticks in days, months or years (UTC).',
@@ -29,8 +29,8 @@ const summary = {
   'scale.sequential': 'Numbers to a color ramp: heatmaps.',
   'scale.size': 'Numbers to circle sizes, by area: bubble charts.',
   'transform.aggregate': 'Group-by: sum, mean, count and more per group; dates by month or quarter; top N groups.',
-  'transform.window': 'Moving averages, running totals, change from the previous row.',
-  'transform.stack': 'Stacks series on top of each other, or to 100%.',
+  'transform.window': 'Moving averages, running totals, change from the previous row; totals, shares and ranks in a group.',
+  'transform.stack': 'Stacks series on top of each other, to 100%, or around a center line (a streamgraph).',
   'transform.bin': 'Counts values in equal bins: histograms.',
   'transform.quartiles': 'The five-number summary of each group: box plots.',
   'transform.decimate': 'Thins long series without losing a peak; redone at every zoom.',
@@ -47,7 +47,7 @@ const summary = {
   'mark.area': 'Filled areas, stacked or not.',
   'mark.point': 'Dots and bubbles.',
   'mark.text': 'Value labels that shrink, or step aside, when they do not fit.',
-  'mark.arc': 'Pie and donut slices.',
+  'mark.arc': 'Pie and donut slices; gauges and progress rings.',
   'mark.sankey': 'Flows between stages, as ribbons.',
   'mark.rule': 'Target and threshold lines; the target tick of a bullet chart.',
   'mark.boxplot': 'Box and whiskers.',

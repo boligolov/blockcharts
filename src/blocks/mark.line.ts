@@ -69,16 +69,16 @@
     for (let k = 0; k < labels.length; k++) labels[k].y = Math.max(labels[k].y, top + k * LABEL_GAP);
   }
 
-  type Through = (px: number[], py: number[], smooth: boolean, back: boolean) => string;
+  type Through = (px: number[], py: number[], curve: string, back: boolean) => string;
   /** The path through the points, from lib.curve (shared with mark.area); listed in `requires`, so it is on the page. */
-  const through: Through = (px, py, smooth, back) => ((BC.get('lib.curve') as BC.LibDef).exports.through as Through)(px, py, smooth, back);
+  const through: Through = (px, py, curve, back) => ((BC.get('lib.curve') as BC.LibDef).exports.through as Through)(px, py, curve, back);
 
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 12,
+    version: 13,
     requires: ['lib.curve'],
-    doc: 'A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.',
+    doc: 'A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: "step"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.',
     params: {
       group: { kind: 'field', doc: 'Field whose distinct values become separate lines (long-format data).' },
       stroke: { kind: 'string', doc: 'Any CSS color. Default: theme color by line index.' },
@@ -87,9 +87,9 @@
       opacity: { kind: 'number', default: 1 },
       curve: {
         kind: 'enum',
-        values: ['linear', 'smooth'],
+        values: ['linear', 'smooth', 'step'],
         default: 'linear',
-        doc: '"smooth": a monotone cubic curve through the points — no peaks or dips the data does not have. "linear": straight segments.',
+        doc: '"smooth": a monotone cubic curve through the points — no peaks or dips the data does not have. "linear": straight segments. "step": each value holds until the next point, then the line jumps: prices, tariffs, stock levels, anything that changes at moments and stays.',
       },
       label: {
         kind: 'enum',
@@ -113,7 +113,7 @@
       const width = typeof spec.strokeWidth === 'number' ? spec.strokeWidth : 2;
       const dash = Array.isArray(spec.dash) ? (spec.dash as number[]) : undefined;
       const opacity = typeof spec.opacity === 'number' ? spec.opacity : undefined;
-      const smooth = spec.curve === 'smooth';
+      const curve = spec.curve === 'smooth' || spec.curve === 'step' ? spec.curve : 'linear';
       const out: BC.Prim[] = [];
       ctx.series(spec, xs).forEach(({ key, rows }, n) => {
         let d = '';
@@ -121,7 +121,7 @@
         let py: number[] = [];
         // a run is a stretch of points without a gap; each is drawn on its own
         const flush = () => {
-          if (px.length) d += 'M' + r2(px[0]) + ' ' + r2(py[0]) + through(px, py, smooth, false);
+          if (px.length) d += 'M' + r2(px[0]) + ' ' + r2(py[0]) + through(px, py, curve, false);
           px = [];
           py = [];
         };

@@ -1,0 +1,40 @@
+{
+  "title": "Step line",
+  "data": {
+    "rate": [
+      { "date": "2024-01-01", "rate": 5.5 },
+      { "date": "2024-03-20", "rate": 5.25 },
+      { "date": "2024-06-12", "rate": 5.0 },
+      { "date": "2024-09-18", "rate": 4.5 },
+      { "date": "2024-11-07", "rate": 4.25 },
+      { "date": "2024-12-18", "rate": 4.0 },
+      { "date": "2025-05-07", "rate": 4.25 },
+      { "date": "2025-09-17", "rate": 4.0 },
+      { "date": "2025-12-10", "rate": 3.75 },
+      { "date": "2026-06-30", "rate": 3.75 }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Policy rate, %",
+      "note": "curve \"step\" holds each value until the next row, then jumps: a rate, a price list, a tariff, a stock level. Each row is the day a value took effect; the last row repeats the current value at the end of the period, or the line would stop at the last change.",
+      "spec": {
+        "data": "rate",
+        "size": [720, 300],
+        "scales": { "x": { "type": "time" }, "y": { "type": "linear", "domain": [3, 6] } },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x", "format": { "month": "short", "year": "2-digit" } },
+          { "type": "axis", "scale": "y", "format": { "minimumFractionDigits": 1, "suffix": "%" } }
+        ],
+        "marks": [
+          { "type": "area", "x": "date", "y": "rate", "curve": "step", "toBottom": true, "fade": true, "fill": "var(--bc-c0, #3a6fe4)" },
+          { "type": "line", "x": "date", "y": "rate", "curve": "step", "stroke": "var(--bc-c0, #3a6fe4)" }
+        ],
+        "interaction": [
+          { "type": "tooltip", "fields": ["rate"], "formats": { "date": "date", "rate": { "minimumFractionDigits": 2, "suffix": "%" } } }
+        ]
+      }
+    }
+  ]
+}

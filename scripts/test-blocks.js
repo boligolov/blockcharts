@@ -1985,6 +1985,27 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(hit(host), ['v: 2', 'name: C'], 'and near the rim, inside it');
   });
 
+  test('mark.arc gauge: the pointer finds the value on a half circle, and nothing on the empty track or below it', async () => {
+    BC.data('gauge1', [{ name: 'Score', v: 50 }]);
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'gauge1',
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      marks: [{ type: 'arc', value: 'v', innerRadius: 0.5, startAngle: -90, endAngle: 90, total: 100 }],
+      interaction: [{ type: 'tooltip', fields: ['name', 'v'] }],
+    });
+    // 640 x 400 (the size the fake DOM measures): the half circle is 632 wide, radius 316, its center at (320, 358)
+    const on = (deg, r) => hover(host, 320 + r * Math.sin((deg * Math.PI) / 180), 358 - r * Math.cos((deg * Math.PI) / 180));
+    await on(-45, 250);
+    assert.deepStrictEqual(hit(host), ['name: Score', 'v: 50'], 'the left half is the value');
+    await on(45, 250);
+    assert.strictEqual(hit(host), null, 'the right half is the empty track');
+    await on(0, 100);
+    assert.strictEqual(hit(host), null, 'the hole');
+    await on(180, 30);
+    assert.strictEqual(hit(host), null, 'below the arc');
+  });
+
   test('mark.arc: donut hole, start angle, sort, one slice, and rows that are not slices', async () => {
     const donut = new FakeNode('div');
     BC.chart(donut, pieSpec({ innerRadius: 0.5 }));

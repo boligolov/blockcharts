@@ -1,9 +1,9 @@
 (function () {
   const r2 = (v: number) => Math.round(v * 100) / 100;
 
-  type Through = (px: number[], py: number[], smooth: boolean, back: boolean) => string;
+  type Through = (px: number[], py: number[], curve: string, back: boolean) => string;
   /** The path through the points, from lib.curve (shared with mark.line); listed in `requires`, so it is on the page. */
-  const through: Through = (px, py, smooth, back) => ((BC.get('lib.curve') as BC.LibDef).exports.through as Through)(px, py, smooth, back);
+  const through: Through = (px, py, curve, back) => ((BC.get('lib.curve') as BC.LibDef).exports.through as Through)(px, py, curve, back);
 
   /** Where the baseline is in pixels; one the scale has no place for (0 on a log scale) is the bottom of the domain. */
   function baseAt(scale: BC.Scale, baseline: number): number {
@@ -37,9 +37,9 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 8,
+    version: 9,
     requires: ['lib.curve'],
-    doc: 'A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.',
+    doc: 'A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve` matches a smooth or a step line. x also takes a band scale, as on mark.line.',
     params: {
       baseline: { kind: 'number', default: 0, doc: 'Where the area starts when there is no y2. Keep it inside the scale domain.' },
       group: { kind: 'field', doc: 'Field whose distinct values become separate areas.' },
@@ -57,9 +57,9 @@
       },
       curve: {
         kind: 'enum',
-        values: ['linear', 'smooth'],
+        values: ['linear', 'smooth', 'step'],
         default: 'linear',
-        doc: 'Same as mark.line: "smooth" is a monotone curve through the points.',
+        doc: 'Same as mark.line: "smooth" is a monotone curve through the points, "step" holds each value until the next one.',
       },
     },
     channels: {
@@ -73,7 +73,7 @@
       const colorCh = spec.color !== undefined ? ctx.channel(spec, 'color') : null;
       const fade = spec.fade === true;
       const opacity = typeof spec.opacity === 'number' ? spec.opacity : fade ? 0.45 : 0.85;
-      const smooth = spec.curve === 'smooth';
+      const curve = spec.curve === 'smooth' || spec.curve === 'step' ? spec.curve : 'linear';
       const out: BC.Prim[] = [];
       ctx.series(spec, xs).forEach(({ rows }, n) => {
         const fill = typeof spec.fill === 'string' ? spec.fill : colorCh ? colorCh.mapped[rows[0]] : ctx.color(index + n);
@@ -87,8 +87,8 @@
             const pt = run.map((i) => top[i]);
             const pb = run.map((i) => bottom(i));
             const last = run.length - 1;
-            d += 'M' + r2(px[0]) + ' ' + r2(pt[0]) + through(px, pt, smooth, false);
-            d += 'L' + r2(px[last]) + ' ' + r2(pb[last]) + through(px, pb, smooth, true);
+            d += 'M' + r2(px[0]) + ' ' + r2(pt[0]) + through(px, pt, curve, false);
+            d += 'L' + r2(px[last]) + ' ' + r2(pb[last]) + through(px, pb, curve, true);
             d += 'Z';
           }
           run = [];

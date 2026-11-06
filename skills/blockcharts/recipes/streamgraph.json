@@ -1,0 +1,685 @@
+{
+  "title": "Streamgraph",
+  "data": {
+    "listening": [
+      {
+        "month": "2024-01-01",
+        "genre": "Pop",
+        "hours": 40.0
+      },
+      {
+        "month": "2024-01-01",
+        "genre": "Rock",
+        "hours": 35.9
+      },
+      {
+        "month": "2024-01-01",
+        "genre": "Hip-hop",
+        "hours": 29.3
+      },
+      {
+        "month": "2024-01-01",
+        "genre": "Electronic",
+        "hours": 15.6
+      },
+      {
+        "month": "2024-01-01",
+        "genre": "Jazz",
+        "hours": 6.4
+      },
+      {
+        "month": "2024-02-01",
+        "genre": "Pop",
+        "hours": 44.3
+      },
+      {
+        "month": "2024-02-01",
+        "genre": "Rock",
+        "hours": 36.9
+      },
+      {
+        "month": "2024-02-01",
+        "genre": "Hip-hop",
+        "hours": 28.7
+      },
+      {
+        "month": "2024-02-01",
+        "genre": "Electronic",
+        "hours": 14.1
+      },
+      {
+        "month": "2024-02-01",
+        "genre": "Jazz",
+        "hours": 5.8
+      },
+      {
+        "month": "2024-03-01",
+        "genre": "Pop",
+        "hours": 48.2
+      },
+      {
+        "month": "2024-03-01",
+        "genre": "Rock",
+        "hours": 37.0
+      },
+      {
+        "month": "2024-03-01",
+        "genre": "Hip-hop",
+        "hours": 27.5
+      },
+      {
+        "month": "2024-03-01",
+        "genre": "Electronic",
+        "hours": 12.6
+      },
+      {
+        "month": "2024-03-01",
+        "genre": "Jazz",
+        "hours": 5.4
+      },
+      {
+        "month": "2024-04-01",
+        "genre": "Pop",
+        "hours": 51.3
+      },
+      {
+        "month": "2024-04-01",
+        "genre": "Rock",
+        "hours": 36.1
+      },
+      {
+        "month": "2024-04-01",
+        "genre": "Hip-hop",
+        "hours": 25.8
+      },
+      {
+        "month": "2024-04-01",
+        "genre": "Electronic",
+        "hours": 11.2
+      },
+      {
+        "month": "2024-04-01",
+        "genre": "Jazz",
+        "hours": 5.2
+      },
+      {
+        "month": "2024-05-01",
+        "genre": "Pop",
+        "hours": 53.3
+      },
+      {
+        "month": "2024-05-01",
+        "genre": "Rock",
+        "hours": 34.3
+      },
+      {
+        "month": "2024-05-01",
+        "genre": "Hip-hop",
+        "hours": 23.9
+      },
+      {
+        "month": "2024-05-01",
+        "genre": "Electronic",
+        "hours": 10.1
+      },
+      {
+        "month": "2024-05-01",
+        "genre": "Jazz",
+        "hours": 5.3
+      },
+      {
+        "month": "2024-06-01",
+        "genre": "Pop",
+        "hours": 54.0
+      },
+      {
+        "month": "2024-06-01",
+        "genre": "Rock",
+        "hours": 31.8
+      },
+      {
+        "month": "2024-06-01",
+        "genre": "Hip-hop",
+        "hours": 22.0
+      },
+      {
+        "month": "2024-06-01",
+        "genre": "Electronic",
+        "hours": 9.4
+      },
+      {
+        "month": "2024-06-01",
+        "genre": "Jazz",
+        "hours": 5.7
+      },
+      {
+        "month": "2024-07-01",
+        "genre": "Pop",
+        "hours": 53.4
+      },
+      {
+        "month": "2024-07-01",
+        "genre": "Rock",
+        "hours": 28.6
+      },
+      {
+        "month": "2024-07-01",
+        "genre": "Hip-hop",
+        "hours": 20.2
+      },
+      {
+        "month": "2024-07-01",
+        "genre": "Electronic",
+        "hours": 9.1
+      },
+      {
+        "month": "2024-07-01",
+        "genre": "Jazz",
+        "hours": 6.3
+      },
+      {
+        "month": "2024-08-01",
+        "genre": "Pop",
+        "hours": 51.4
+      },
+      {
+        "month": "2024-08-01",
+        "genre": "Rock",
+        "hours": 25.2
+      },
+      {
+        "month": "2024-08-01",
+        "genre": "Hip-hop",
+        "hours": 18.9
+      },
+      {
+        "month": "2024-08-01",
+        "genre": "Electronic",
+        "hours": 9.3
+      },
+      {
+        "month": "2024-08-01",
+        "genre": "Jazz",
+        "hours": 7.1
+      },
+      {
+        "month": "2024-09-01",
+        "genre": "Pop",
+        "hours": 48.4
+      },
+      {
+        "month": "2024-09-01",
+        "genre": "Rock",
+        "hours": 21.8
+      },
+      {
+        "month": "2024-09-01",
+        "genre": "Hip-hop",
+        "hours": 18.3
+      },
+      {
+        "month": "2024-09-01",
+        "genre": "Electronic",
+        "hours": 10.0
+      },
+      {
+        "month": "2024-09-01",
+        "genre": "Jazz",
+        "hours": 7.9
+      },
+      {
+        "month": "2024-10-01",
+        "genre": "Pop",
+        "hours": 44.5
+      },
+      {
+        "month": "2024-10-01",
+        "genre": "Rock",
+        "hours": 18.6
+      },
+      {
+        "month": "2024-10-01",
+        "genre": "Hip-hop",
+        "hours": 18.3
+      },
+      {
+        "month": "2024-10-01",
+        "genre": "Electronic",
+        "hours": 11.0
+      },
+      {
+        "month": "2024-10-01",
+        "genre": "Jazz",
+        "hours": 8.8
+      },
+      {
+        "month": "2024-11-01",
+        "genre": "Pop",
+        "hours": 40.2
+      },
+      {
+        "month": "2024-11-01",
+        "genre": "Rock",
+        "hours": 16.0
+      },
+      {
+        "month": "2024-11-01",
+        "genre": "Hip-hop",
+        "hours": 19.0
+      },
+      {
+        "month": "2024-11-01",
+        "genre": "Electronic",
+        "hours": 12.3
+      },
+      {
+        "month": "2024-11-01",
+        "genre": "Jazz",
+        "hours": 9.6
+      },
+      {
+        "month": "2024-12-01",
+        "genre": "Pop",
+        "hours": 35.9
+      },
+      {
+        "month": "2024-12-01",
+        "genre": "Rock",
+        "hours": 14.1
+      },
+      {
+        "month": "2024-12-01",
+        "genre": "Hip-hop",
+        "hours": 20.5
+      },
+      {
+        "month": "2024-12-01",
+        "genre": "Electronic",
+        "hours": 13.8
+      },
+      {
+        "month": "2024-12-01",
+        "genre": "Jazz",
+        "hours": 10.2
+      },
+      {
+        "month": "2025-01-01",
+        "genre": "Pop",
+        "hours": 32.0
+      },
+      {
+        "month": "2025-01-01",
+        "genre": "Rock",
+        "hours": 13.2
+      },
+      {
+        "month": "2025-01-01",
+        "genre": "Hip-hop",
+        "hours": 22.6
+      },
+      {
+        "month": "2025-01-01",
+        "genre": "Electronic",
+        "hours": 15.4
+      },
+      {
+        "month": "2025-01-01",
+        "genre": "Jazz",
+        "hours": 10.6
+      },
+      {
+        "month": "2025-02-01",
+        "genre": "Pop",
+        "hours": 28.9
+      },
+      {
+        "month": "2025-02-01",
+        "genre": "Rock",
+        "hours": 13.1
+      },
+      {
+        "month": "2025-02-01",
+        "genre": "Hip-hop",
+        "hours": 25.1
+      },
+      {
+        "month": "2025-02-01",
+        "genre": "Electronic",
+        "hours": 16.7
+      },
+      {
+        "month": "2025-02-01",
+        "genre": "Jazz",
+        "hours": 10.8
+      },
+      {
+        "month": "2025-03-01",
+        "genre": "Pop",
+        "hours": 26.8
+      },
+      {
+        "month": "2025-03-01",
+        "genre": "Rock",
+        "hours": 14.0
+      },
+      {
+        "month": "2025-03-01",
+        "genre": "Hip-hop",
+        "hours": 27.9
+      },
+      {
+        "month": "2025-03-01",
+        "genre": "Electronic",
+        "hours": 17.9
+      },
+      {
+        "month": "2025-03-01",
+        "genre": "Jazz",
+        "hours": 10.7
+      },
+      {
+        "month": "2025-04-01",
+        "genre": "Pop",
+        "hours": 26.0
+      },
+      {
+        "month": "2025-04-01",
+        "genre": "Rock",
+        "hours": 15.7
+      },
+      {
+        "month": "2025-04-01",
+        "genre": "Hip-hop",
+        "hours": 30.7
+      },
+      {
+        "month": "2025-04-01",
+        "genre": "Electronic",
+        "hours": 18.6
+      },
+      {
+        "month": "2025-04-01",
+        "genre": "Jazz",
+        "hours": 10.3
+      },
+      {
+        "month": "2025-05-01",
+        "genre": "Pop",
+        "hours": 26.6
+      },
+      {
+        "month": "2025-05-01",
+        "genre": "Rock",
+        "hours": 18.0
+      },
+      {
+        "month": "2025-05-01",
+        "genre": "Hip-hop",
+        "hours": 33.3
+      },
+      {
+        "month": "2025-05-01",
+        "genre": "Electronic",
+        "hours": 18.9
+      },
+      {
+        "month": "2025-05-01",
+        "genre": "Jazz",
+        "hours": 9.7
+      },
+      {
+        "month": "2025-06-01",
+        "genre": "Pop",
+        "hours": 28.4
+      },
+      {
+        "month": "2025-06-01",
+        "genre": "Rock",
+        "hours": 20.5
+      },
+      {
+        "month": "2025-06-01",
+        "genre": "Hip-hop",
+        "hours": 35.5
+      },
+      {
+        "month": "2025-06-01",
+        "genre": "Electronic",
+        "hours": 18.7
+      },
+      {
+        "month": "2025-06-01",
+        "genre": "Jazz",
+        "hours": 9.0
+      },
+      {
+        "month": "2025-07-01",
+        "genre": "Pop",
+        "hours": 31.4
+      },
+      {
+        "month": "2025-07-01",
+        "genre": "Rock",
+        "hours": 23.1
+      },
+      {
+        "month": "2025-07-01",
+        "genre": "Hip-hop",
+        "hours": 37.1
+      },
+      {
+        "month": "2025-07-01",
+        "genre": "Electronic",
+        "hours": 18.1
+      },
+      {
+        "month": "2025-07-01",
+        "genre": "Jazz",
+        "hours": 8.1
+      },
+      {
+        "month": "2025-08-01",
+        "genre": "Pop",
+        "hours": 35.3
+      },
+      {
+        "month": "2025-08-01",
+        "genre": "Rock",
+        "hours": 25.5
+      },
+      {
+        "month": "2025-08-01",
+        "genre": "Hip-hop",
+        "hours": 38.1
+      },
+      {
+        "month": "2025-08-01",
+        "genre": "Electronic",
+        "hours": 17.1
+      },
+      {
+        "month": "2025-08-01",
+        "genre": "Jazz",
+        "hours": 7.3
+      },
+      {
+        "month": "2025-09-01",
+        "genre": "Pop",
+        "hours": 39.5
+      },
+      {
+        "month": "2025-09-01",
+        "genre": "Rock",
+        "hours": 27.3
+      },
+      {
+        "month": "2025-09-01",
+        "genre": "Hip-hop",
+        "hours": 38.2
+      },
+      {
+        "month": "2025-09-01",
+        "genre": "Electronic",
+        "hours": 15.7
+      },
+      {
+        "month": "2025-09-01",
+        "genre": "Jazz",
+        "hours": 6.5
+      },
+      {
+        "month": "2025-10-01",
+        "genre": "Pop",
+        "hours": 43.9
+      },
+      {
+        "month": "2025-10-01",
+        "genre": "Rock",
+        "hours": 28.4
+      },
+      {
+        "month": "2025-10-01",
+        "genre": "Hip-hop",
+        "hours": 37.7
+      },
+      {
+        "month": "2025-10-01",
+        "genre": "Electronic",
+        "hours": 14.2
+      },
+      {
+        "month": "2025-10-01",
+        "genre": "Jazz",
+        "hours": 5.8
+      },
+      {
+        "month": "2025-11-01",
+        "genre": "Pop",
+        "hours": 47.8
+      },
+      {
+        "month": "2025-11-01",
+        "genre": "Rock",
+        "hours": 28.6
+      },
+      {
+        "month": "2025-11-01",
+        "genre": "Hip-hop",
+        "hours": 36.5
+      },
+      {
+        "month": "2025-11-01",
+        "genre": "Electronic",
+        "hours": 12.7
+      },
+      {
+        "month": "2025-11-01",
+        "genre": "Jazz",
+        "hours": 5.4
+      },
+      {
+        "month": "2025-12-01",
+        "genre": "Pop",
+        "hours": 51.0
+      },
+      {
+        "month": "2025-12-01",
+        "genre": "Rock",
+        "hours": 27.8
+      },
+      {
+        "month": "2025-12-01",
+        "genre": "Hip-hop",
+        "hours": 34.8
+      },
+      {
+        "month": "2025-12-01",
+        "genre": "Electronic",
+        "hours": 11.3
+      },
+      {
+        "month": "2025-12-01",
+        "genre": "Jazz",
+        "hours": 5.2
+      }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Listening hours by genre, millions per month",
+      "note": "transform.stack with center: true puts the middle of every month on 0, so the layers flow around a center line. Only the thickness of a layer means something, so there is no y axis; the tooltip gives the numbers. Draw it with mark.area (y = end, y2 = start), curve smooth.",
+      "spec": {
+        "data": "listening",
+        "size": [
+          720,
+          340
+        ],
+        "transforms": [
+          {
+            "type": "stack",
+            "field": "hours",
+            "by": "month",
+            "group": "genre",
+            "center": true,
+          "follows": "color"
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "time"
+          },
+          "y": {
+            "type": "linear"
+          },
+          "color": {
+            "type": "color"
+          }
+        },
+        "guides": [
+          {
+            "type": "axis",
+            "scale": "x",
+            "format": {
+              "month": "short",
+              "year": "2-digit"
+            }
+          },
+          {
+            "type": "legend",
+            "scale": "color",
+            "position": "auto"
+          }
+        ],
+        "marks": [
+          {
+            "type": "area",
+            "x": "month",
+            "y": "hours1",
+            "y2": "hours0",
+            "color": "genre",
+            "curve": "smooth",
+            "opacity": 0.9
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "genre",
+              "hours"
+            ],
+            "formats": {
+              "month": {
+                "month": "long",
+                "year": "numeric"
+              }
+            }
+          },
+          {
+            "type": "legend-filter"
+          }
+        ]
+      }
+    }
+  ]
+}

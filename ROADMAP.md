@@ -66,13 +66,15 @@ with a line, a population pyramid). They showed two gaps of a time axis:
 - [ ] **A time axis on a phone picks too long a step**: a Gantt of January to June at 200 px shows one label ("Apr"), a year
       shows "Jan" and "Jul". With `count: 6` the five months fit.
 - [ ] **guide.grid does not follow `count` of its axis**: with `count: 6` the axis has five labels and the grid one line.
-- [ ] **A gauge and a progress ring**: `mark.arc` has `startAngle` and no `endAngle`, so a half circle cannot be drawn.
-- [ ] **A step line** (prices, tariffs, stock levels): `curve: "step"` in `lib.curve`.
-- [ ] **A total of the group in every row** (`joinaggregate` in Vega-Lite): a line of totals over stacked bars, a share of
-      the group without losing rows.
-- [ ] **Rank** in `transform.window`: a bump chart (how places changed).
+Done in skill 0.21.0: a gauge and a progress ring (`mark.arc` `endAngle`, `total`, `center`), a step line (`curve: "step"`),
+a total, a share and a rank of the group on every row (`transform.window` ops `total`, `share`, `rank`) with a bump chart, a
+streamgraph (`transform.stack` `center`). They left:
+
+- [ ] **A row repeated per group is drawn once per row** by mark.text and mark.point (mark.rule draws it once): a label of
+      the quarter's total over a stacked bar is three labels on one spot, so the recipe shows shares instead.
+- [ ] **The tooltip of a line over stacked bars** shows one product's row ("Q1, Services, 10, 21%"): the line's point is
+      every row of its quarter, and the card takes one of them.
 - [ ] **Distributions**: a density transform for violin and ridgeline charts; a beeswarm layout; hexbin and density contours.
-- [ ] **A streamgraph**: `transform.stack` with a centered offset.
 - Not planned: force-directed networks, chords, word clouds, 3D, Venn diagrams, polar rose and radial bars (they read like
   radar); trees, dendrograms, packed circles and icicles only if a report asks for them; a waffle chart is rect + calculate.
 

@@ -1,0 +1,55 @@
+{
+  "title": "Gauge and progress ring",
+  "data": {
+    "score": [{ "metric": "Customer satisfaction", "score": 72 }],
+    "sales": [{ "metric": "Revenue, $M", "revenue": 8.3 }]
+  },
+  "layout": { "columns": 2 },
+  "charts": [
+    {
+      "title": "Customer satisfaction, out of 100",
+      "span": 1,
+      "note": "A gauge is mark.arc on a half circle: startAngle -90, endAngle 90. total is the maximum, so the arc fills to 72 and the rest is an empty track; center writes the figure.",
+      "spec": {
+        "data": "score",
+        "size": [360, 220],
+        "marks": [
+          {
+            "type": "arc",
+            "value": "score",
+            "startAngle": -90,
+            "endAngle": 90,
+            "total": 100,
+            "innerRadius": 0.72,
+            "padAngle": 0,
+            "center": "value",
+            "labelFormat": "integer",
+            "fill": "var(--bc-c0, #3a6fe4)"
+          }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["metric", "score"] }]
+      }
+    },
+    {
+      "title": "Revenue against the $10M target",
+      "span": 1,
+      "note": "A progress ring: the same mark on a full circle, total = the target, center \"percent\" = the share of it.",
+      "spec": {
+        "data": "sales",
+        "size": [360, 220],
+        "marks": [
+          {
+            "type": "arc",
+            "value": "revenue",
+            "total": 10,
+            "innerRadius": 0.78,
+            "padAngle": 0,
+            "center": "percent",
+            "fill": "var(--bc-c1, #14a39a)"
+          }
+        ],
+        "interaction": [{ "type": "tooltip", "fields": ["metric", "revenue"] }]
+      }
+    }
+  ]
+}

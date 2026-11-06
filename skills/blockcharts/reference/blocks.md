@@ -31,7 +31,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 
 ## lib.curve
 
-Version 1, 1.0 KB. The path of a line through points, shared by mark.line and mark.area: straight segments, or a monotone cubic that passes through every point and never overshoots between two of them. `through(px, py, smooth, back)` returns the path commands after the first point; `back` walks the points from the last to the first. A spec never names it.
+Version 2, 1.2 KB. The path of a line through points, shared by mark.line and mark.area: straight segments, a monotone cubic that passes through every point and never overshoots between two of them, or steps (each value holds until the next point). `through(px, py, curve, back)` returns the path commands after the first point for curve "linear", "smooth" or "step"; `back` walks the points from the last to the first. A spec never names it.
 
 ## scale.band
 
@@ -225,7 +225,7 @@ Version 1, 1.7 KB. Puts the rows in the order of `field` (`order` "asc" or "desc
 
 ## transform.stack
 
-Version 2, 1.7 KB. Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again.
+Version 3, 1.8 KB. Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. `center` puts the middle of every stack on 0, so the layers flow around a center line: a streamgraph (draw it with mark.area, y = end, y2 = start, curve smooth, and no y axis, since only the thickness of a layer means anything). With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -234,6 +234,7 @@ Version 2, 1.7 KB. Stacks the values of `field` on top of each other within ever
 | `group` | field |  | Field that tells the series apart. Without it rows stack in data order. |
 | `as` | list |  | Names of the two new columns: [start, end]. |
 | `normalize` | boolean | `false` | Scale every stack to 0..1 (100% stacked). |
+| `center` | boolean | `false` | Put the middle of every stack on 0 (a streamgraph). With normalize the stacks run from -0.5 to 0.5. |
 | `follows` | scale |  | The color scale of `group`: series it does not show (a legend filter hid them) are left out of the stack. Without it they leave a gap, and a 100% stack keeps counting them. |
 
 ## transform.treemap
@@ -268,12 +269,13 @@ Version 2, 2.0 KB. A waterfall (bridge) chart: how a starting value becomes an e
 
 ## transform.window
 
-Version 1, 3.0 KB. A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%). Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default "<op>_<field>") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true.
+Version 3, 3.7 KB. A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%); `total` the sum of the whole group on every row of it (a line of totals over stacked bars) and `share` each row as a part of that sum (0.25 = 25%), so rows are not collapsed as by aggregate; `rank` the place of each row in its group by `field`, 1 for the largest (`order` "asc": for the smallest), ties sharing a place (1, 2, 2, 4): rank by year with group = the year, and a line per item over the years is a bump chart. Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default "<op>_<field>") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `field` | field, **required** |  | Numeric field to compute from. |
-| `op` | one of `cumsum`, `sum`, `mean`, `min`, `max`, `diff`, `pctChange`, **required** |  | cumsum \| sum \| mean \| min \| max \| diff \| pctChange. |
+| `op` | one of `cumsum`, `sum`, `mean`, `min`, `max`, `diff`, `pctChange`, `total`, `share`, `rank`, **required** |  | cumsum \| sum \| mean \| min \| max \| diff \| pctChange \| total \| share \| rank. total, share and rank look at the whole group, so they need no sort; a row with no value still gets the total, and no rank. |
+| `order` | one of `desc`, `asc` | `"desc"` | For rank: "desc" gives place 1 to the largest value (sales), "asc" to the smallest (a time, a cost). |
 | `size` | number |  | Rows in the window of sum, mean, min, max (required for them). |
 | `align` | one of `trailing`, `center` | `"trailing"` | "trailing": the row and the size - 1 rows before it. "center": the row in the middle of its window. |
 | `partial` | boolean | `false` | Compute windows cut short by the start or end of a series from the rows they have. |
@@ -283,7 +285,7 @@ Version 1, 3.0 KB. A value per row computed from the rows before it (and around 
 
 ## mark.arc
 
-Version 1, 3.0 KB. Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock.
+Version 2, 4.7 KB. Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock. A gauge or a progress ring is the same mark: `startAngle` -90 and `endAngle` 90 make a half circle, `total` the maximum (the rest of the arc is an empty track), `center` writes the figure in the middle.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -294,6 +296,9 @@ Version 1, 3.0 KB. Pie and donut chart: one slice per row, its angle proportiona
 | --- | --- | --- | --- |
 | `innerRadius` | number | `0` | Hole size as a fraction of the radius (0 = pie, 0.5 = donut). |
 | `startAngle` | number | `0` | Where the first slice starts, in degrees clockwise from 12 o'clock. |
+| `endAngle` | number |  | Where the arc ends, in degrees as startAngle; default a full circle (startAngle + 360). -90 to 90 is the upper half circle of a gauge. The chart is fitted to the arc, so a half circle fills the width. |
+| `total` | number |  | The whole the slices are shares of: 100 for a score out of 100, 1 for a share, the target of a progress ring. The slices take their share of the arc and the rest is an empty track. Without it the slices fill the arc. What goes past it is cut at the end of the arc. |
+| `center` | one of `none`, `value`, `percent` | `"none"` | The figure in the middle, written with `labelFormat`: the sum of the values ("value"), or their share of `total` ("percent"). Goes with innerRadius (a hole to write in). |
 | `padAngle` | number | `1` | Gap between slices, in degrees. |
 | `sort` | one of `none`, `desc`, `asc` | `"none"` | Order of the slices by value; "none" keeps the data order. |
 | `label` | one of `none`, `percent`, `value` | `"none"` | Text outside each slice (slices under 3% get none). |
@@ -303,7 +308,7 @@ Version 1, 3.0 KB. Pie and donut chart: one slice per row, its angle proportiona
 
 ## mark.area
 
-Version 8, 2.4 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: "smooth"` matches a smooth line. x also takes a band scale, as on mark.line.
+Version 9, 2.5 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve` matches a smooth or a step line. x also takes a band scale, as on mark.line.
 
 Needs: `lib.curve`.
 
@@ -322,7 +327,7 @@ Needs: `lib.curve`.
 | `opacity` | number | `0.85` | Fill opacity (0.45 by default with `fade`). |
 | `toBottom` | boolean | `false` | Fill down to the bottom edge of the plot instead of to `baseline`: the area under a line whose axis does not start at 0 (a sparkline, a KPI trend). |
 | `fade` | boolean | `false` | The fill fades from the color at the top of the plot to transparent at the bottom, and the area has no outline: the soft area under a line. |
-| `curve` | one of `linear`, `smooth` | `"linear"` | Same as mark.line: "smooth" is a monotone curve through the points. |
+| `curve` | one of `linear`, `smooth`, `step` | `"linear"` | Same as mark.line: "smooth" is a monotone curve through the points, "step" holds each value until the next one. |
 
 ## mark.boxplot
 
@@ -368,7 +373,7 @@ Version 1, 2.2 KB. Open-high-low-close candles, one per row: a body from `open` 
 
 ## mark.line
 
-Version 12, 3.6 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
+Version 13, 3.6 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: "step"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
 
 Needs: `lib.curve`.
 
@@ -385,7 +390,7 @@ Needs: `lib.curve`.
 | `strokeWidth` | number | `2` |  |
 | `dash` | list |  | Dash pattern, e.g. [4, 3]. |
 | `opacity` | number | `1` |  |
-| `curve` | one of `linear`, `smooth` | `"linear"` | "smooth": a monotone cubic curve through the points — no peaks or dips the data does not have. "linear": straight segments. |
+| `curve` | one of `linear`, `smooth`, `step` | `"linear"` | "smooth": a monotone cubic curve through the points — no peaks or dips the data does not have. "linear": straight segments. "step": each value holds until the next point, then the line jumps: prices, tariffs, stock levels, anything that changes at moments and stays. |
 | `label` | one of `none`, `name`, `value`, `both` | `"none"` | A label at the end of each line, in its color: the series name, its last value, or both — so a legend is rarely needed. Labels that would overlap are moved apart. Leave room on the right (padding.right, about 70–110 px). |
 | `format` | any |  | How the end label writes the last value (a preset or Intl options, as guide.axis `format`). |
 | `name` | string |  | The end label of a line that is not split into series (default: the y field). |

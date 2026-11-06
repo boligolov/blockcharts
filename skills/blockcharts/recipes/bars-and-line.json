@@ -1,5 +1,5 @@
 {
-  "title": "Stacked bars and a line",
+  "title": "Stacked bars with a line, and shares of the stack",
   "data": {
     "revenue": [
       { "quarter": "Q1", "line": "Hardware", "amount": 30, "margin": 0.21 },
@@ -43,6 +43,41 @@
           { "type": "point", "x": "quarter", "y": { "field": "margin", "scale": "y2" }, "r": 4, "fill": "var(--bc-text, #1e293b)" }
         ],
         "interaction": [{ "type": "tooltip", "fields": ["line", "amount", "margin"], "formats": { "margin": "percent" } }]
+      }
+    },
+    {
+      "title": "Each line's share of its quarter",
+      "note": "transform.window with op \"total\" writes the sum of each quarter on every row of it, and op \"share\" each row as a part of that sum, without collapsing the rows as aggregate would. The share labels the segments; a line of totals over the bars is a line mark of the total column.",
+      "spec": {
+        "data": "revenue",
+        "size": [720, 340],
+        "transforms": [
+          { "type": "window", "field": "amount", "op": "total", "group": "quarter", "as": "quarterTotal" },
+          { "type": "window", "field": "amount", "op": "share", "group": "quarter", "as": "share" },
+          { "type": "stack", "field": "amount", "by": "quarter", "group": "line" }
+        ],
+        "scales": {
+          "x": { "type": "band" },
+          "y": { "type": "linear", "zero": true },
+          "color": { "type": "color" }
+        },
+        "guides": [
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "y" },
+          { "type": "legend", "scale": "color", "position": "auto" }
+        ],
+        "marks": [
+          { "type": "rect", "x": "quarter", "y": "amount1", "y2": "amount0", "color": "line" },
+          { "type": "text", "x": "quarter", "y": "amount1", "y2": "amount0", "text": "share", "format": "percent", "on": "line" }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": ["line", "amount", "share", "quarterTotal"],
+            "formats": { "share": { "style": "percent", "maximumFractionDigits": 1 } }
+          }
+        ]
       }
     }
   ]

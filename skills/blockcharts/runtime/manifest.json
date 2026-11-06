@@ -24,13 +24,13 @@
   "blocks": {
     "lib.curve": {
       "file": "blocks/lib.curve.js",
-      "bytes": 1040,
-      "version": 1,
+      "bytes": 1195,
+      "version": 2,
       "requires": [],
       "closure": [
         "lib.curve"
       ],
-      "doc": "The path of a line through points, shared by mark.line and mark.area: straight segments, or a monotone cubic that passes through every point and never overshoots between two of them. `through(px, py, smooth, back)` returns the path commands after the first point; `back` walks the points from the last to the first. A spec never names it."
+      "doc": "The path of a line through points, shared by mark.line and mark.area: straight segments, a monotone cubic that passes through every point and never overshoots between two of them, or steps (each value holds until the next point). `through(px, py, curve, back)` returns the path commands after the first point for curve \"linear\", \"smooth\" or \"step\"; `back` walks the points from the last to the first. A spec never names it."
     },
     "scale.band": {
       "file": "blocks/scale.band.js",
@@ -593,8 +593,8 @@
     },
     "transform.stack": {
       "file": "blocks/transform.stack.js",
-      "bytes": 1749,
-      "version": 2,
+      "bytes": 1863,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.stack"
@@ -623,12 +623,17 @@
           "default": false,
           "doc": "Scale every stack to 0..1 (100% stacked)."
         },
+        "center": {
+          "kind": "boolean",
+          "default": false,
+          "doc": "Put the middle of every stack on 0 (a streamgraph). With normalize the stacks run from -0.5 to 0.5."
+        },
         "follows": {
           "kind": "scale",
           "doc": "The color scale of `group`: series it does not show (a legend filter hid them) are left out of the stack. Without it they leave a gap, and a 100% stack keeps counting them."
         }
       },
-      "doc": "Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again."
+      "doc": "Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. `center` puts the middle of every stack on 0, so the layers flow around a center line: a streamgraph (draw it with mark.area, y = end, y2 = start, curve smooth, and no y axis, since only the thickness of a layer means anything). With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again."
     },
     "transform.treemap": {
       "file": "blocks/transform.treemap.js",
@@ -730,8 +735,8 @@
     },
     "transform.window": {
       "file": "blocks/transform.window.js",
-      "bytes": 3059,
-      "version": 1,
+      "bytes": 3742,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.window"
@@ -751,10 +756,22 @@
             "min",
             "max",
             "diff",
-            "pctChange"
+            "pctChange",
+            "total",
+            "share",
+            "rank"
           ],
           "required": true,
-          "doc": "cumsum | sum | mean | min | max | diff | pctChange."
+          "doc": "cumsum | sum | mean | min | max | diff | pctChange | total | share | rank. total, share and rank look at the whole group, so they need no sort; a row with no value still gets the total, and no rank."
+        },
+        "order": {
+          "kind": "enum",
+          "values": [
+            "desc",
+            "asc"
+          ],
+          "default": "desc",
+          "doc": "For rank: \"desc\" gives place 1 to the largest value (sales), \"asc\" to the smallest (a time, a cost)."
         },
         "size": {
           "kind": "number",
@@ -787,12 +804,12 @@
           "doc": "Name of the new column."
         }
       },
-      "doc": "A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%). Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default \"<op>_<field>\") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true."
+      "doc": "A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%); `total` the sum of the whole group on every row of it (a line of totals over stacked bars) and `share` each row as a part of that sum (0.25 = 25%), so rows are not collapsed as by aggregate; `rank` the place of each row in its group by `field`, 1 for the largest (`order` \"asc\": for the smallest), ties sharing a place (1, 2, 2, 4): rank by year with group = the year, and a line per item over the years is a bump chart. Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default \"<op>_<field>\") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true."
     },
     "mark.arc": {
       "file": "blocks/mark.arc.js",
-      "bytes": 3109,
-      "version": 1,
+      "bytes": 4845,
+      "version": 2,
       "requires": [],
       "closure": [
         "mark.arc"
@@ -807,6 +824,24 @@
           "kind": "number",
           "default": 0,
           "doc": "Where the first slice starts, in degrees clockwise from 12 o'clock."
+        },
+        "endAngle": {
+          "kind": "number",
+          "doc": "Where the arc ends, in degrees as startAngle; default a full circle (startAngle + 360). -90 to 90 is the upper half circle of a gauge. The chart is fitted to the arc, so a half circle fills the width."
+        },
+        "total": {
+          "kind": "number",
+          "doc": "The whole the slices are shares of: 100 for a score out of 100, 1 for a share, the target of a progress ring. The slices take their share of the arc and the rest is an empty track. Without it the slices fill the arc. What goes past it is cut at the end of the arc."
+        },
+        "center": {
+          "kind": "enum",
+          "values": [
+            "none",
+            "value",
+            "percent"
+          ],
+          "default": "none",
+          "doc": "The figure in the middle, written with `labelFormat`: the sum of the values (\"value\"), or their share of `total` (\"percent\"). Goes with innerRadius (a hole to write in)."
         },
         "padAngle": {
           "kind": "number",
@@ -860,12 +895,12 @@
           "doc": "Slice color per row from a color scale; a hidden category leaves its slice out."
         }
       },
-      "doc": "Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock."
+      "doc": "Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock. A gauge or a progress ring is the same mark: `startAngle` -90 and `endAngle` 90 make a half circle, `total` the maximum (the rest of the arc is an empty track), `center` writes the figure in the middle."
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2495,
-      "version": 8,
+      "bytes": 2537,
+      "version": 9,
       "requires": [
         "lib.curve"
       ],
@@ -906,10 +941,11 @@
           "kind": "enum",
           "values": [
             "linear",
-            "smooth"
+            "smooth",
+            "step"
           ],
           "default": "linear",
-          "doc": "Same as mark.line: \"smooth\" is a monotone curve through the points."
+          "doc": "Same as mark.line: \"smooth\" is a monotone curve through the points, \"step\" holds each value until the next one."
         }
       },
       "channels": {
@@ -946,7 +982,7 @@
           "doc": "One area per distinct value of the field, colored by a color scale."
         }
       },
-      "doc": "A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve: \"smooth\"` matches a smooth line. x also takes a band scale, as on mark.line."
+      "doc": "A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve` matches a smooth or a step line. x also takes a band scale, as on mark.line."
     },
     "mark.boxplot": {
       "file": "blocks/mark.boxplot.js",
@@ -1134,8 +1170,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3685,
-      "version": 12,
+      "bytes": 3727,
+      "version": 13,
       "requires": [
         "lib.curve"
       ],
@@ -1168,10 +1204,11 @@
           "kind": "enum",
           "values": [
             "linear",
-            "smooth"
+            "smooth",
+            "step"
           ],
           "default": "linear",
-          "doc": "\"smooth\": a monotone cubic curve through the points — no peaks or dips the data does not have. \"linear\": straight segments."
+          "doc": "\"smooth\": a monotone cubic curve through the points — no peaks or dips the data does not have. \"linear\": straight segments. \"step\": each value holds until the next point, then the line jumps: prices, tariffs, stock levels, anything that changes at moments and stays."
         },
         "label": {
           "kind": "enum",
@@ -1218,7 +1255,7 @@
           "doc": "One line per distinct value of the field, colored by a color scale."
         }
       },
-      "doc": "A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: \"smooth\"` draws a smooth curve that still passes through every point and never overshoots between two of them. x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods."
+      "doc": "A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: \"smooth\"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: \"step\"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods."
     },
     "mark.point": {
       "file": "blocks/mark.point.js",

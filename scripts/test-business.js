@@ -881,6 +881,259 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(pie('value', { suffix: ' kg' }).includes('451 kg'));
   });
 
+  // ───────────────────────── gauges: mark.arc endAngle, total, center ─────────────────────────
+
+  const gauge = (rows, extra, size = [400, 300]) =>
+    drawn(rows, { size, padding: { top: 0, right: 0, bottom: 0, left: 0 }, marks: [{ type: 'arc', value: 'v', innerRadius: 0.7, ...extra }] });
+  /** Every point of a path's commands (M, L, A ends), to see where an arc reaches. */
+  const reach = (d) => {
+    const nums = [...d.matchAll(/[ML]([\d.-]+) ([\d.-]+)|A[\d.]+ [\d.]+ 0 [01] [01] ([\d.-]+) ([\d.-]+)/g)].map((m) =>
+      m[1] !== undefined ? [+m[1], +m[2]] : [+m[3], +m[4]],
+    );
+    return {
+      x0: Math.min(...nums.map((p) => p[0])),
+      x1: Math.max(...nums.map((p) => p[0])),
+      y0: Math.min(...nums.map((p) => p[1])),
+      y1: Math.max(...nums.map((p) => p[1])),
+    };
+  };
+
+  test('mark.arc gauge: a half circle fills the width, the rest of the total is a track, the figure sits in the middle', () => {
+    const { svg, diagnostics } = gauge([{ v: 72 }], { startAngle: -90, endAngle: 90, total: 100, center: 'percent' });
+    assert.deepStrictEqual(diagnostics, []);
+    const ps = paths(layer(svg, 'marks'));
+    assert.strictEqual(ps.length, 2, 'the track and the value');
+    assert(/class="bc-arc-track"/.test(ps[0].attrs), 'the track is drawn first, under the value');
+    const track = reach(ps[0].d);
+    // 400 x 300 with 4 px of room: the half circle is 392 wide and 196 tall, so the width decides
+    assert(near(track.x1 - track.x0, 392, 0.05), `the half circle spans the width: ${track.x1 - track.x0}`);
+    assert(track.y1 - track.y0 < 200, 'and is half as tall');
+    const value = reach(ps[1].d);
+    assert(near(value.x0, track.x0, 0.05) && value.x1 < track.x1, 'the value starts at the left end and stops short of the right');
+    assert(texts(svg).includes('72%'), 'the share of the total in the middle');
+    assert(/class="bc-arc-center"/.test(svg));
+
+    const centerOf = (s) => /<text [^>]*class="bc-arc-center"[^>]*>/.exec(s)[0];
+    assert(/dominant-baseline="auto"/.test(centerOf(svg)), 'a gauge stands its figure on the center line, inside the half circle');
+    const ringed = gauge([{ v: 72 }], { total: 100, center: 'percent' }).svg;
+    assert(/dominant-baseline="middle"/.test(centerOf(ringed)), 'a ring has its figure in the middle of the hole');
+
+    const full = gauge([{ v: 72 }], { total: 100 }).svg;
+    const ring = reach(paths(layer(full, 'marks'))[0].d);
+    // a whole ring is drawn as two halves, top to bottom, so its reach is its height
+    assert(near(ring.y1 - ring.y0, 292, 0.05), `a full ring still fits the smaller side (300 - 8): ${ring.y1 - ring.y0}`);
+  });
+
+  test('mark.arc gauge: zero still shows its track, past the total is cut, slices share the total, errors are clear', () => {
+    const zero = gauge([{ v: 0 }], { startAngle: -90, endAngle: 90, total: 100, center: 'percent' });
+    assert.strictEqual(paths(layer(zero.svg, 'marks')).length, 1, 'only the track');
+    assert(texts(zero.svg).includes('0%'));
+    assert.strictEqual(paths(layer(gauge([{ v: 0 }], {}).svg, 'marks')).length, 0, 'a pie of nothing is nothing');
+
+    const over = gauge([{ v: 130 }], { startAngle: -90, endAngle: 90, total: 100, center: 'percent' });
+    const [t, v] = paths(layer(over.svg, 'marks')).map((p) => reach(p.d));
+    assert(near(v.x1, t.x1, 0.05), 'a value past the total fills the arc and stops at its end');
+    assert(texts(over.svg).includes('130%'), 'the figure still says how far past');
+
+    const parts = gauge(
+      [
+        { k: 'a', v: 25 },
+        { k: 'b', v: 25 },
+      ],
+      { total: 100, label: 'percent', center: 'value', labelFormat: 'integer' },
+    );
+    assert(texts(parts.svg).includes('50'), 'center "value" is the sum');
+    assert.strictEqual(paths(layer(parts.svg, 'marks')).length, 3, 'the track and two slices of a quarter each');
+
+    for (const [extra, re] of [
+      [{ startAngle: 90, endAngle: -90 }, /endAngle -90 has to be after startAngle 90/],
+      [{ startAngle: 0, endAngle: 400 }, /at most 360 degrees/],
+      [{ total: 0 }, /total has to be a positive number/],
+      [{ total: -5 }, /total has to be a positive number/],
+    ]) {
+      const d = gauge([{ v: 1 }], extra).diagnostics;
+      assert(d.some((x) => x.level === 'error' && re.test(x.message)), `${JSON.stringify(extra)}: ${JSON.stringify(d)}`);
+    }
+    assert(BC.validate({ data: 'gaps', marks: [{ type: 'arc', value: 'v', center: 'middle' }] }).some((d) => d.path === 'marks[0].center'));
+  });
+
+  // ───────────────────────── step lines ─────────────────────────
+
+  test('mark.line curve "step": each value holds until the next point, gaps still break it, area steps on both edges', () => {
+    BC.data('tariff', [
+      { x: 0, y: 10 },
+      { x: 1, y: 30 },
+      { x: 2, y: 20 },
+      { x: 3, y: null },
+      { x: 4, y: 40 },
+      { x: 5, y: 10 },
+    ]);
+    const spec = (mark) => ({
+      data: 'tariff',
+      size: [600, 300],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      scales: { x: { type: 'linear', domain: [0, 5], nice: false }, y: { type: 'linear', domain: [0, 50], nice: false } },
+      marks: [{ x: 'x', y: 'y', curve: 'step', ...mark }],
+    });
+    const line = draw(spec({ type: 'line' }));
+    const d = paths(layer(line.svg, 'marks'))[0].d;
+    assert.strictEqual(d, 'M0 240H120V120H240V180M480 60H600V240', d);
+    assert.deepStrictEqual(line.h.diagnostics, []);
+
+    const area = draw(spec({ type: 'area' }));
+    const a = paths(layer(area.svg, 'marks'))[0].d;
+    // forward along the top in steps, down, back along the baseline (flat, so its steps are all at 300)
+    assert.strictEqual(a.split('M')[1], '0 240H120V120H240V180L240 300V300H120V300H0Z', a);
+    assert(!/C|NaN/.test(a));
+
+    BC.data('one', [{ x: 1, y: 5 }]);
+    const lone = draw({ ...spec({ type: 'line' }), data: 'one' });
+    assert(!/NaN/.test(lone.svg), 'a single point is a move and nothing else');
+    assert(BC.validate(spec({ type: 'line', curve: 'stairs' })).some((x) => x.path === 'marks[0].curve'));
+  });
+
+  // ───────────────────────── a total of the group on every row ─────────────────────────
+
+  test('transform.window total and share: the sum of each group on every row, and each row as a part of it', () => {
+    const rows = [
+      { q: 'Q1', p: 'a', v: 30 },
+      { q: 'Q1', p: 'b', v: 10 },
+      { q: 'Q2', p: 'a', v: 25 },
+      { q: 'Q2', p: 'b', v: null },
+      { q: 'Q2', p: 'c', v: 75 },
+    ];
+    const total = apply('window', rows, { field: 'v', op: 'total', group: 'q', as: 'qt' });
+    assert.deepStrictEqual([...total.columns.qt], [40, 40, 100, 100, 100], 'a row with no value still has the total of its group');
+    assert.strictEqual(total.length, 5, 'no row is collapsed');
+    const share = apply('window', rows, { field: 'v', op: 'share', group: 'q' });
+    assert.deepStrictEqual(
+      [...share.columns.share_v].map((x) => (isNaN(x) ? null : x)),
+      [0.75, 0.25, 0.25, null, 0.75],
+    );
+    const all = apply('window', rows, { field: 'v', op: 'total' });
+    assert.deepStrictEqual([...all.columns.total_v], [140, 140, 140, 140, 140], 'without a group, the whole table');
+  });
+
+  test('transform.window total and share: hostile input — nothing to add, a sum of zero, negatives, size and odd groups', () => {
+    const t = (rows, spec) => apply('window', rows, { field: 'v', ...spec });
+    const none = t([{ g: 1, v: null }, { g: 1, v: 'x' }], { op: 'total', group: 'g' });
+    assert(isNaN(none.columns.total_v[0]) && isNaN(none.columns.total_v[1]), 'a group with no number has no total');
+    const zero = t([{ v: 5 }, { v: -5 }], { op: 'share' });
+    assert(zero.columns.share_v.every((x) => isNaN(x)), 'a share of a sum of zero is no share, not Infinity');
+    const neg = t([{ v: 30 }, { v: -10 }], { op: 'share' });
+    assert.deepStrictEqual([...neg.columns.share_v], [1.5, -0.5], 'negatives count against the sum, as in a bridge');
+    assert.throws(() => t([{ v: 1 }], { op: 'total', size: 3 }), /"size" applies to sum, mean, min and max, not to "total"/);
+    const odd = t(
+      [
+        { g: null, v: 1 },
+        { g: NaN, v: 2 },
+        { g: 0, v: 4 },
+        { g: '0', v: 8 },
+      ],
+      { op: 'total', group: 'g' },
+    );
+    assert.deepStrictEqual([...odd.columns.total_v], [3, 3, 4, 8], 'null and NaN are one missing group; 0 and "0" are two');
+    const big = Array.from({ length: 200000 }, (_, i) => ({ g: i % 7, v: i }));
+    const t0 = Date.now();
+    t(big, { op: 'share', group: 'g' });
+    assert(Date.now() - t0 < 1500, 'a long table stays fast');
+  });
+
+  test('transform.window rank: place 1 for the largest in each group, ties share a place, asc for the smallest', () => {
+    const rows = [
+      { y: 2024, b: 'a', v: 10 },
+      { y: 2024, b: 'b', v: 30 },
+      { y: 2024, b: 'c', v: 20 },
+      { y: 2025, b: 'a', v: 40 },
+      { y: 2025, b: 'b', v: 25 },
+      { y: 2025, b: 'c', v: 25 },
+      { y: 2025, b: 'd', v: 5 },
+    ];
+    const r = apply('window', rows, { field: 'v', op: 'rank', group: 'y', as: 'place' });
+    assert.deepStrictEqual([...r.columns.place], [3, 1, 2, 1, 2, 2, 4], 'a tie shares the better place and the next is skipped');
+    const asc = apply('window', rows, { field: 'v', op: 'rank', group: 'y', order: 'asc' });
+    assert.deepStrictEqual([...asc.columns.rank_v], [1, 3, 2, 4, 2, 2, 1]);
+    const all = apply('window', rows, { field: 'v', op: 'rank' });
+    assert.deepStrictEqual([...all.columns.rank_v], [6, 2, 5, 1, 3, 3, 7], 'without a group, the whole table');
+  });
+
+  test('transform.window rank: hostile input — missing values get no place, order is checked, a long table stays fast', () => {
+    const t = (rows, spec) => apply('window', rows, { field: 'v', op: 'rank', ...spec });
+    const holes = t([{ v: 3 }, { v: null }, { v: 'x' }, { v: NaN }, { v: 9 }, { v: -Infinity }], {});
+    assert.deepStrictEqual(
+      [...holes.columns.rank_v].map((x) => (isNaN(x) ? null : x)),
+      [2, null, null, null, 1, null],
+      'only numbers are ranked, and they are ranked among themselves',
+    );
+    const neg = t([{ v: -1 }, { v: 0 }, { v: -5 }], {});
+    assert.deepStrictEqual([...neg.columns.rank_v], [2, 1, 3]);
+    assert.throws(() => t([{ v: 1 }], { order: 'up' }), /"order" must be "desc"/);
+    assert.throws(() => apply('window', [{ v: 1 }], { field: 'v', op: 'total', order: 'asc' }), /"order" applies to rank, not to "total"/);
+    assert.throws(() => t([{ v: 1 }], { size: 2 }), /"size" applies to sum, mean, min and max, not to "rank"/);
+    const big = Array.from({ length: 200000 }, (_, i) => ({ g: i % 50, v: (i * 7919) % 1000 }));
+    const t0 = Date.now();
+    t(big, { group: 'g' });
+    assert(Date.now() - t0 < 1500, 'a long table stays fast');
+  });
+
+  test('transform.stack center: every stack has its middle on 0, with negatives and with normalize; missing values stay out', () => {
+    const rows = [
+      { x: 1, s: 'a', v: 10 },
+      { x: 1, s: 'b', v: 30 },
+      { x: 2, s: 'a', v: 4 },
+      { x: 2, s: 'b', v: null },
+      { x: 3, s: 'a', v: 6 },
+      { x: 3, s: 'b', v: -2 },
+    ];
+    const c = apply('stack', rows, { field: 'v', by: 'x', group: 's', center: true });
+    const pairs = (t) => [...t.columns.v0].map((s, i) => [s, t.columns.v1[i]].map((x) => (isNaN(x) ? null : x)));
+    assert.deepStrictEqual(pairs(c), [
+      [-20, -10],
+      [-10, 20],
+      [-2, 2],
+      [null, null],
+      [-2, 4],
+      [-2, -4],
+    ]);
+    const n = apply('stack', rows, { field: 'v', by: 'x', group: 's', center: true, normalize: true });
+    assert.deepStrictEqual(pairs(n).slice(0, 2), [
+      [-0.5, -0.25],
+      [-0.25, 0.5],
+    ]);
+    const plain = apply('stack', rows, { field: 'v', by: 'x', group: 's' });
+    assert.deepStrictEqual(pairs(plain)[1], [10, 40], 'without center nothing moves');
+    const none = apply('stack', [{ x: 1, v: null }], { field: 'v', by: 'x', center: true });
+    assert(isNaN(none.columns.v0[0]), 'a stack of nothing stays nothing');
+  });
+
+  test('transform.window total: a line of totals over stacked bars, one point per bar however many rows it has', () => {
+    const { svg, diagnostics } = drawn(
+      [
+        { q: 'Q1', p: 'a', v: 30 },
+        { q: 'Q1', p: 'b', v: 10 },
+        { q: 'Q2', p: 'a', v: 25 },
+        { q: 'Q2', p: 'b', v: 35 },
+      ],
+      {
+        size: [400, 300],
+        padding: { top: 0, right: 0, bottom: 0, left: 0 },
+        transforms: [
+          { type: 'window', field: 'v', op: 'total', group: 'q', as: 'qt' },
+          { type: 'stack', field: 'v', by: 'q', group: 'p' },
+        ],
+        scales: { x: { type: 'band' }, y: { type: 'linear', domain: [0, 60], nice: false }, color: { type: 'color' } },
+        marks: [
+          { type: 'rect', x: 'q', y: 'v1', y2: 'v0', color: 'p' },
+          { type: 'line', x: 'q', y: 'qt' },
+        ],
+      },
+    );
+    assert.deepStrictEqual(diagnostics, []);
+    const line = paths(layer(svg, 'marks')).find((p) => /fill="none"/.test(p.attrs));
+    const ys = [...line.d.matchAll(/[ML][\d.]+ ([\d.]+)/g)].map((m) => +m[1]);
+    assert(ys.every((y) => y === 100 || y === 0), `the line stays at each total (40 → y 100, 60 → y 0): ${line.d}`);
+  });
+
   test('tooltip: a table that says so has no lines for the fields a row does not have', async () => {
     BC.data('box', [
       { s: 'a', ms: 10 },

@@ -31,11 +31,19 @@
     return m;
   }
 
-  /** Path commands through the points after the first one: straight segments, or a smooth monotone curve. `back` walks
-   *  them from the last point to the first (the lower edge of an area). The caller has already moved to the start. */
-  function through(px: number[], py: number[], smooth: boolean, back: boolean): string {
+  /** Path commands through the points after the first one: straight segments, a smooth monotone curve, or steps (a value
+   *  holds until the next point, then jumps). `back` walks them from the last point to the first (the lower edge of an
+   *  area). The caller has already moved to the start. `true` is "smooth", as the first version took it. */
+  function through(px: number[], py: number[], curve: string | boolean, back: boolean): string {
     const n = px.length;
     let d = '';
+    if (curve === 'step') {
+      // forwards: along at the old value, then up or down to the new one; backwards the same corners in reverse
+      if (back) for (let k = n - 1; k > 0; k--) d += 'V' + r2(py[k - 1]) + 'H' + r2(px[k - 1]);
+      else for (let k = 1; k < n; k++) d += 'H' + r2(px[k]) + 'V' + r2(py[k]);
+      return d;
+    }
+    const smooth = curve === true || curve === 'smooth';
     if (!smooth || n < 3) {
       if (back) for (let k = n - 2; k >= 0; k--) d += 'L' + r2(px[k]) + ' ' + r2(py[k]);
       else for (let k = 1; k < n; k++) d += 'L' + r2(px[k]) + ' ' + r2(py[k]);
@@ -83,8 +91,8 @@
   const def: BC.LibDef = {
     role: 'lib',
     type: 'curve',
-    version: 1,
-    doc: 'The path of a line through points, shared by mark.line and mark.area: straight segments, or a monotone cubic that passes through every point and never overshoots between two of them. `through(px, py, smooth, back)` returns the path commands after the first point; `back` walks the points from the last to the first. A spec never names it.',
+    version: 2,
+    doc: 'The path of a line through points, shared by mark.line and mark.area: straight segments, a monotone cubic that passes through every point and never overshoots between two of them, or steps (each value holds until the next point). `through(px, py, curve, back)` returns the path commands after the first point for curve "linear", "smooth" or "step"; `back` walks the points from the last to the first. A spec never names it.',
     exports: { through },
   };
 

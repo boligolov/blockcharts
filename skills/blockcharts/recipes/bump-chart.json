@@ -1,0 +1,270 @@
+{
+  "title": "Bump chart",
+  "data": {
+    "brands": [
+      {
+        "year": "2020",
+        "brand": "Northwind",
+        "sales": 120
+      },
+      {
+        "year": "2021",
+        "brand": "Northwind",
+        "sales": 135
+      },
+      {
+        "year": "2022",
+        "brand": "Northwind",
+        "sales": 150
+      },
+      {
+        "year": "2023",
+        "brand": "Northwind",
+        "sales": 148
+      },
+      {
+        "year": "2024",
+        "brand": "Northwind",
+        "sales": 160
+      },
+      {
+        "year": "2025",
+        "brand": "Northwind",
+        "sales": 171
+      },
+      {
+        "year": "2020",
+        "brand": "Contoso",
+        "sales": 140
+      },
+      {
+        "year": "2021",
+        "brand": "Contoso",
+        "sales": 138
+      },
+      {
+        "year": "2022",
+        "brand": "Contoso",
+        "sales": 132
+      },
+      {
+        "year": "2023",
+        "brand": "Contoso",
+        "sales": 125
+      },
+      {
+        "year": "2024",
+        "brand": "Contoso",
+        "sales": 118
+      },
+      {
+        "year": "2025",
+        "brand": "Contoso",
+        "sales": 110
+      },
+      {
+        "year": "2020",
+        "brand": "Fabrikam",
+        "sales": 95
+      },
+      {
+        "year": "2021",
+        "brand": "Fabrikam",
+        "sales": 118
+      },
+      {
+        "year": "2022",
+        "brand": "Fabrikam",
+        "sales": 141
+      },
+      {
+        "year": "2023",
+        "brand": "Fabrikam",
+        "sales": 165
+      },
+      {
+        "year": "2024",
+        "brand": "Fabrikam",
+        "sales": 176
+      },
+      {
+        "year": "2025",
+        "brand": "Fabrikam",
+        "sales": 190
+      },
+      {
+        "year": "2020",
+        "brand": "Tailspin",
+        "sales": 110
+      },
+      {
+        "year": "2021",
+        "brand": "Tailspin",
+        "sales": 112
+      },
+      {
+        "year": "2022",
+        "brand": "Tailspin",
+        "sales": 109
+      },
+      {
+        "year": "2023",
+        "brand": "Tailspin",
+        "sales": 130
+      },
+      {
+        "year": "2024",
+        "brand": "Tailspin",
+        "sales": 128
+      },
+      {
+        "year": "2025",
+        "brand": "Tailspin",
+        "sales": 126
+      },
+      {
+        "year": "2020",
+        "brand": "Litware",
+        "sales": 80
+      },
+      {
+        "year": "2021",
+        "brand": "Litware",
+        "sales": 86
+      },
+      {
+        "year": "2022",
+        "brand": "Litware",
+        "sales": 97
+      },
+      {
+        "year": "2023",
+        "brand": "Litware",
+        "sales": 101
+      },
+      {
+        "year": "2024",
+        "brand": "Litware",
+        "sales": 133
+      },
+      {
+        "year": "2025",
+        "brand": "Litware",
+        "sales": 150
+      },
+      {
+        "year": "2020",
+        "brand": "Adatum",
+        "sales": 100
+      },
+      {
+        "year": "2021",
+        "brand": "Adatum",
+        "sales": 99
+      },
+      {
+        "year": "2022",
+        "brand": "Adatum",
+        "sales": 104
+      },
+      {
+        "year": "2023",
+        "brand": "Adatum",
+        "sales": 96
+      },
+      {
+        "year": "2024",
+        "brand": "Adatum",
+        "sales": 92
+      },
+      {
+        "year": "2025",
+        "brand": "Adatum",
+        "sales": 88
+      }
+    ]
+  },
+  "charts": [
+    {
+      "title": "Market rank by sales, 2020-2025",
+      "note": "transform.window with op \"rank\" and group = the year writes each brand's place in that year (1 for the largest; order \"asc\" for the smallest). A line and points per brand on a reversed y (domain [high, low]) is a bump chart: who overtook whom, not by how much. End labels name the lines, so no legend is needed.",
+      "spec": {
+        "data": "brands",
+        "size": [
+          720,
+          340
+        ],
+        "padding": {
+          "right": 100
+        },
+        "transforms": [
+          {
+            "type": "window",
+            "field": "sales",
+            "op": "rank",
+            "group": "year",
+            "as": "place"
+          }
+        ],
+        "scales": {
+          "x": {
+            "type": "band",
+            "paddingOuter": 0.1
+          },
+          "y": {
+            "type": "linear",
+            "domain": [
+              6.4,
+              0.6
+            ],
+            "nice": false
+          },
+          "color": {
+            "type": "color"
+          }
+        },
+        "guides": [
+          {
+            "type": "axis",
+            "scale": "x"
+          },
+          {
+            "type": "axis",
+            "scale": "y",
+            "format": {
+              "maximumFractionDigits": 0,
+              "prefix": "#"
+            }
+          }
+        ],
+        "marks": [
+          {
+            "type": "line",
+            "x": "year",
+            "y": "place",
+            "color": "brand",
+            "strokeWidth": 3,
+            "label": "name"
+          },
+          {
+            "type": "point",
+            "x": "year",
+            "y": "place",
+            "color": "brand",
+            "r": 5
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "brand",
+              "place",
+              "sales"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.20.0"
+  version: "0.21.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -70,13 +70,19 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Stacked charts**: use `transform.stack` (`field`, `by` = the category, `group` = the series), then draw `y` = `<field>1` and `y2` = `<field>0`. See `stacked-bar.json` and `stacked-area-100.json`.
 
+**Streamgraph**: `transform.stack` with `"center": true` puts the middle of every stack on 0, so the layers flow around a center line; draw a `mark.area` (y = `<field>1`, y2 = `<field>0`) with `curve: "smooth"`, a time x, and no y axis (only the thickness of a layer means something; the tooltip gives the numbers). Give the stack `"follows": "color"` when there is a legend filter. See `recipes/streamgraph.json`.
+
 **Histogram**: `transform.bin` turns raw values into bins (`bin0` start, `bin1` end, `count`); draw them with a `rect` (`x: "bin0"`, `x2: "bin1"`, `y: "count"`) on a linear x scale. Add `"group"` to get separate counts per group.
 
 **Coloring by a number** (heatmap, colored dots): declare `"color": {"type": "sequential"}` (optionally `"range": ["#hex", "#hex", ...]`, hex colors only; 0 is a real value with a color, `null` is not drawn), give a `rect` or `point` mark `"color": "<numeric field>"`, and add the legend. A row with no number gets no color and is not drawn.
 
 **Pie and donut**: `mark.arc` with `"value": "<numeric field>"` and `"color": "<category field>"`. It needs no x or y scale, only the color scale (and its legend). `innerRadius` makes a donut, `label: "percent"` writes percentages, `sort: "desc"` puts the biggest slice first. Use it for a handful of parts of one whole; prefer bars for more than about six categories.
 
+**Gauge and progress ring**: the same `mark.arc` with one row. `"startAngle": -90, "endAngle": 90` draws the upper half circle of a gauge (the chart is fitted to it, so about `[360, 220]`); `"total": 100` is the maximum, so the value fills its share and the rest of the arc is an empty track; `"center": "value"` writes the figure in the middle, `"percent"` its share of `total` (written with `labelFormat`). Give it `innerRadius` 0.7 or more, `padAngle: 0` and one `fill`. A full circle with `total` = the target is a progress ring. A value past `total` fills the arc and the figure says how far past. See `recipes/gauge.json`.
+
 **Text labels**: `mark.text` writes a label at (x, y) from a field: `{"type": "text", "x": "region", "y": "total", "text": "total", "baseline": "auto", "dy": -5}` puts the value above a bar. `decimals` fixes the number of decimals; `format` writes it as currency, percent and so on (see below). Labels over a row of categories never run into each other: when they are wider than a category they all get smaller together, down to `minSize` (8), and a label that does not fit even then is left out. With many bars or a narrow chart, keep values short (`"notation": "compact", "maximumFractionDigits": 0`) and leave the exact figure to the tooltip. A label inside a shape takes `x2` / `y2`, the other corner of the shape, and stays inside it the same way.
+
+**Step lines**: `"curve": "step"` on a `line` (and an `area` under it) holds each value until the next row, then jumps: a rate, a price list, a tariff, a stock level. Each row is the moment a value took effect; repeat the current value in a last row at the end of the period, or the line stops at the last change. See `recipes/step-line.json`.
 
 **Bars over time**: a `rect` with `x` on a `time` scale and `y` on a linear one stands at each date, as wide as most of the smallest step in the data. Give `x2` for bars that must span an exact period.
 
@@ -97,6 +103,8 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 **Summarize before drawing**: `{"type": "aggregate", "groupby": [...], "measures": [...]}` in `transforms` turns raw rows into one row per group: `"groupby": ["region"]` or `[{"field": "date", "unit": "month", "as": "month"}]` (units: year, quarter, month, week, day, hour); measures `{"op": "sum" | "mean" | "min" | "max" | "median" | "count" | "distinct", "field": "amount", "as": "revenue"}`; `sort` (an output column), `order` (`"asc"`/`"desc"`), `limit`. After it only the group-by fields and measure names exist as columns. A monthly total is `groupby` month + `sum`, drawn on a `time` x scale. See `recipes/report-from-csv.json`.
 
 **Moving averages, running totals, change**: `{"type": "window", "field": "sales", "op": "mean", "size": 7, "sort": "day", "as": "avg7"}` adds a column and keeps every row. `op`: `mean` / `sum` / `min` / `max` over the last `size` rows (`align: "center"` for a centered window), `cumsum` a running total, `diff` and `pctChange` the change from the previous row (pctChange is a fraction; write it with the `percent` format). Always give `sort` (the x field) unless the rows are already in order, and `group` for one result per series. The first `size - 1` rows of a series get no value (`partial: true` computes them from fewer rows). Draw the new column as another line over the raw one. To smooth monthly totals, put `aggregate` first and `window` after it. See `recipes/moving-average.json`.
+
+**A total of the group on every row**: `{"type": "window", "field": "amount", "op": "total", "group": "quarter", "as": "quarterTotal"}` writes the sum of each quarter on every row of it, and `"op": "share"` each row as a part of that sum (a fraction, write it as `percent`). `"op": "rank"` writes each row's place in its group (1 for the largest, `"order": "asc"` for the smallest; ties share a place): with `group` = the year and a line per item over the years, a bump chart (`recipes/bump-chart.json`). Unlike `aggregate` they keep the rows, so the segments of a stacked bar can be labelled with their share of the bar, the tooltip can show the quarter's total, and a `line` of the total column runs over the stacks. A row with no value still gets the total; a group that adds up to 0 has no shares. See `recipes/bars-and-line.json`.
 
 **Numbers the data does not have**: `{"type": "calculate", "a": "revenue", "op": "-", "b": "cost", "as": "profit"}` adds a column per row; `op` is `+`, `-`, `*` or `/`, and `"value": 1000` replaces `b` with a constant (`"a": "revenue", "op": "/", "value": 1000, "as": "revenue"` to show thousands). Chain them: profit first, then `margin` = profit / revenue (write it with the `percent` format). Missing values and division by zero give no value. See `recipes/calculated-field.json`.
 
@@ -181,7 +189,11 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | A number per day over months: weekly patterns | `recipes/calendar-heatmap.json` |
 | A report from raw CSV rows: monthly totals, ranking, currency | `recipes/report-from-csv.json` |
 | One bar set apart (the best month), and a tile that names it | `recipes/highlight-bar.json` |
-| Stacked bars with a line of another measure (a margin) on a second axis | `recipes/bars-and-line.json` |
+| Stacked bars with a line of another measure (a margin) on a second axis; segments labelled with their share of the bar | `recipes/bars-and-line.json` |
+| One figure against its maximum or target: a gauge, a progress ring | `recipes/gauge.json` |
+| A value that changes at moments and stays: a rate, a price, a tariff (step line) | `recipes/step-line.json` |
+| How the places of items changed over the years: who overtook whom (bump chart) | `recipes/bump-chart.json` |
+| How several parts of a whole rise and fall over time, the shape more than the numbers (streamgraph) | `recipes/streamgraph.json` |
 | A project plan: tasks from start to end on a time axis (Gantt) | `recipes/gantt.json` |
 | A change between two values per category (dumbbell); a value per category, lighter than a bar (lollipop) | `recipes/dumbbell.json` |
 | A mean with its interval (error bars); a forecast with its range (confidence band) | `recipes/error-bars.json` |

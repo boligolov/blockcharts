@@ -1,5 +1,5 @@
 (function () {
-  const OPS = ['cumsum', 'sum', 'mean', 'min', 'max', 'diff', 'pctChange'];
+  const OPS = ['cumsum', 'sum', 'mean', 'min', 'max', 'diff', 'pctChange', 'total', 'share', 'rank'];
   const WINDOWED = ['sum', 'mean', 'min', 'max'];
 
   function fail(message: string): never {
@@ -72,11 +72,17 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'window',
-    version: 1,
-    doc: 'A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%). Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default "<op>_<field>") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true.',
+    version: 3,
+    doc: 'A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%); `total` the sum of the whole group on every row of it (a line of totals over stacked bars) and `share` each row as a part of that sum (0.25 = 25%), so rows are not collapsed as by aggregate; `rank` the place of each row in its group by `field`, 1 for the largest (`order` "asc": for the smallest), ties sharing a place (1, 2, 2, 4): rank by year with group = the year, and a line per item over the years is a bump chart. Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default "<op>_<field>") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true.',
     params: {
       field: { kind: 'field', required: true, doc: 'Numeric field to compute from.' },
-      op: { kind: 'enum', values: OPS, required: true, doc: 'cumsum | sum | mean | min | max | diff | pctChange.' },
+      op: { kind: 'enum', values: OPS, required: true, doc: 'cumsum | sum | mean | min | max | diff | pctChange | total | share | rank. total, share and rank look at the whole group, so they need no sort; a row with no value still gets the total, and no rank.' },
+      order: {
+        kind: 'enum',
+        values: ['desc', 'asc'],
+        default: 'desc',
+        doc: 'For rank: "desc" gives place 1 to the largest value (sales), "asc" to the smallest (a time, a cost).',
+      },
       size: { kind: 'number', doc: 'Rows in the window of sum, mean, min, max (required for them).' },
       align: {
         kind: 'enum',
@@ -114,6 +120,10 @@
         fail(`"size" applies to sum, mean, min and max, not to "${op}"`);
       }
       if (spec.align !== undefined && spec.align !== 'trailing' && spec.align !== 'center') fail('"align" must be "trailing" or "center"');
+      if (spec.order !== undefined) {
+        if (op !== 'rank') fail(`"order" applies to rank, not to "${op}"`);
+        if (spec.order !== 'asc' && spec.order !== 'desc') fail('"order" must be "desc" (1 = the largest) or "asc" (1 = the smallest)');
+      }
       const size = windowed ? (spec.size as number) : 1;
       const partial = spec.partial === true;
       const before = spec.align === 'center' ? Math.floor(size / 2) : size - 1;
@@ -147,7 +157,30 @@
         }
         const vals = rows.map((i) => (isNumber(values[i]) ? (values[i] as number) : NaN));
         const m = rows.length;
-        if (op === 'cumsum') {
+        if (op === 'rank') {
+          const ks: number[] = [];
+          for (let k = 0; k < m; k++) if (isFinite(vals[k])) ks.push(k);
+          const sign = spec.order === 'asc' ? 1 : -1;
+          ks.sort((a, b) => sign * (vals[a] - vals[b]) || a - b);
+          // competition ranking: a tie shares the better place and the next place is skipped
+          for (let j = 0; j < ks.length; j++) {
+            const same = j > 0 && vals[ks[j]] === vals[ks[j - 1]];
+            out[rows[ks[j]]] = same ? out[rows[ks[j - 1]]] : j + 1;
+          }
+        } else if (op === 'total' || op === 'share') {
+          let sum = 0;
+          let any = false;
+          for (let k = 0; k < m; k++) {
+            if (!isFinite(vals[k])) continue;
+            sum += vals[k];
+            any = true;
+          }
+          for (let k = 0; k < m; k++) {
+            if (op === 'total') out[rows[k]] = any ? sum : NaN;
+            // a share of nothing, or of a sum of zero, is no share
+            else if (isFinite(vals[k]) && sum !== 0) out[rows[k]] = vals[k] / sum;
+          }
+        } else if (op === 'cumsum') {
           let total = 0;
           for (let k = 0; k < m; k++) {
             if (!isFinite(vals[k])) continue;
