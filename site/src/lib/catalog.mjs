@@ -16,6 +16,11 @@ export const ROLE_TEXT = {
 /** What each block does, in a line: the blocks page, the gallery and every example name blocks with it. */
 export const BLOCK_SUMMARY = {
   'lib.curve': 'The path of a line: straight segments, a smooth curve that never overshoots, or steps. Shared by line and area.',
+  'lib.ticks': 'Round steps and ticks (1, 2 or 5 × 10ⁿ). Shared by the number scales and the histogram bins.',
+  'lib.pointer':
+    'Where the pointer is on the chart, and following a mouse or a finger once a frame. Shared by tooltip, crosshair, zoom and brush.',
+  'lib.view': 'The arithmetic of zooming a scale, even on a log one. Shared by zoom and the zoom buttons.',
+  'lib.columns': 'Checks the columns a transform reads and writes. Shared by funnel, treemap and waterfall.',
   'scale.linear': 'Numbers to positions, with round ticks.',
   'scale.log': 'Numbers across orders of magnitude; steady growth is a straight line.',
   'scale.time': 'Dates to positions, ticks in days, months or years (UTC).',

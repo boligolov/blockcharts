@@ -1014,6 +1014,39 @@ would have meant coordinates worked out before the page. `transform.marimekko` w
 `mark.rect` draws them, on linear scales of 0..1, so it has real axes in percent of the whole. The columns keep the order
 of the data rather than being sorted, because the order of regions or years often means something.
 
+## Shared code in lib blocks
+
+The audit of 2026-11-01 found code that blocks carried in copies. Four lib blocks now hold it, each reached through
+the core the way `lib.curve` is:
+
+- `lib.ticks` holds the round steps and ticks of scale.linear, scale.sequential, scale.size and transform.bin.
+- `lib.pointer` holds where the pointer is on the chart (tooltip, crosshair, zoom, brush) and the hover by mouse and by
+  touch (tooltip, crosshair). The tooltip's press hides the card; the crosshair keeps its line, `keepOnPress`.
+- `lib.view` holds the zoom arithmetic of interaction.zoom and zoom-controls, on even numbers.
+- `lib.columns` holds the column checks of funnel, treemap and waterfall.
+
+The hover was a lib block of its own at first. Every page with a tooltip carries the pointer code too, so the two
+became one block and that page carries one wrapper instead of two. Zoom or brush without a tooltip would carry the
+hover unused; no recipe does that.
+
+Weight has a price, as with `lib.curve`. A lib block costs its wrapper plus the lookup in each user, about 0.25–0.4 KB,
+and saves the copy in every user after the first. A page with one user of each pays: the bar chart grows from 58.6 KB to
+59.3 KB. A page with several users saves: the executive dashboard shrinks from 103.5 KB to 103.2 KB. All recipes
+together grow by 1 %. In exchange, the code is written once.
+
+Two checks back this up:
+
+- All 46 recipes draw byte-identical SVG and canvas before and after. The comparison ran in Chrome through hover,
+  Ctrl + wheel, drag, the zoom buttons, double-click, a brush, and taps on a phone: 922 steps, plus every chart with a
+  crosshair.
+- The zoom arithmetic keeps the order of operations of each old copy: wheel zoom around the pointer, buttons around the
+  middle. Otherwise the views differ in the 13th digit.
+
+A test fails when two blocks share a run of the same code of 300 characters or more, spaces aside, in the compiled
+blocks. The copies the audit found were 450 to 800 characters long. The likenesses that remain are at most 270: the
+distinct values of band and color, the sort key of sort and window, the pick of line and area. They are a loop or a
+check that two blocks write alike, below the limit.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

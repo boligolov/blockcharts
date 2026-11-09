@@ -21,40 +21,18 @@
     return (v < 16 ? '0' : '') + v.toString(16);
   };
 
-  function niceStep(span: number, count: number): number {
-    const raw = span / Math.max(1, count);
-    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
-    const f = raw / pow;
-    return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * pow;
-  }
-
-  /** More ticks than any axis can show: a guard against a span the arithmetic cannot step through. */
-  const MAX_TICKS = 1000;
-
-  /** Round values between the two ends of a domain, smallest first, whichever way the domain runs. None for a domain
-   *  that has no length (a view zoomed to one value) or is not made of numbers: an empty axis, not an exception. */
-  function roundTicks(d0: number, d1: number, count: number): { value: number; label: string }[] {
-    const lo = Math.min(d0, d1);
-    const hi = Math.max(d0, d1);
-    const out: { value: number; label: string }[] = [];
-    if (!(isFinite(lo) && isFinite(hi) && hi > lo)) return out;
-    const step = niceStep(hi - lo, count);
-    if (!(step > 0 && isFinite(step))) return out;
-    // toFixed takes at most 100 digits
-    const decimals = Math.min(100, Math.max(0, -Math.floor(Math.log10(step))));
-    const first = Math.ceil(lo / step - 1e-9);
-    const last = Math.floor(hi / step + 1e-9);
-    for (let i = first; i <= last && out.length < MAX_TICKS; i++) {
-      const value = +(i * step).toFixed(decimals);
-      out.push({ value, label: value.toFixed(decimals) });
-    }
-    return out;
-  }
+  type Ticks = {
+    roundTicks(d0: number, d1: number, count: number): { value: number; label: string }[];
+  };
+  /** From lib.ticks, listed in `requires` so it is on the page. */
+  const ticks = () => (BC.get('lib.ticks') as BC.LibDef).exports as Ticks;
+  const roundTicks: Ticks['roundTicks'] = (d0, d1, count) => ticks().roundTicks(d0, d1, count);
 
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'sequential',
-    version: 2,
+    version: 3,
+    requires: ['lib.ticks'],
     doc: 'Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`.',
     params: {},
     create(spec, ctx) {

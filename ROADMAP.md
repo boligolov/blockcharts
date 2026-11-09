@@ -36,8 +36,6 @@ skill, which cost 44% more tokens and gave heavier pages. Still to do:
 
 Audited on 2026-11-01. Scales, transforms and renderers are clean; these are the leaks, in the order to fix them:
 
-- [ ] **Copies into `lib.*`**: `niceStep` (4 copies), `roundTicks` (3), the touch and frame handling of crosshair and tooltip,
-      `toLogical` and `inPlot` (3), `to`/`from` of zoom and zoom-controls, column checks of funnel, treemap and waterfall.
 - [ ] **Blocks naming other blocks**: `mark.line` reads `crosshair`, tooltip names `arc` and `text`, crosshair names `line` and
       `area`, zoom and brush read each other (a gesture claim in the core, like `claimPosition`). Marks declare what they
       offer, and a test fails when a block names another.

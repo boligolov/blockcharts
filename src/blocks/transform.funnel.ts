@@ -1,22 +1,9 @@
 (function () {
-  function fail(message: string): never {
-    throw new Error('transform.funnel: ' + message);
-  }
-
-  /** The fields it reads must exist, and the columns it writes must not replace one of the data's own (except those in
-   *  `keep`, which the new column stands for) nor each other: a silent overwrite changes what another mark reads. */
-  function checkColumns(table: BC.Table, reads: [string, unknown][], writes: [string, string][], keep: unknown[]): void {
-    const has = (f: string) => Object.prototype.hasOwnProperty.call(table.columns, f);
-    for (const [param, f] of reads)
-      if (f !== undefined && (typeof f !== 'string' || !has(f))) fail(`unknown field "${String(f)}" in "${param}"`);
-    const seen: Record<string, string> = {};
-    for (const [param, name] of writes) {
-      if (seen[name]) fail(`"${seen[name]}" and "${param}" both name the new column "${name}"`);
-      seen[name] = param;
-      if (has(name) && keep.indexOf(name) < 0)
-        fail(`"${name}" is already a column of the data: give the new one another name with "${param}"`);
-    }
-  }
+  type Check = (block: string, table: BC.Table, reads: [string, unknown][], writes: [string, string][], keep: unknown[]) => void;
+  /** The fields it reads must exist and the columns it writes must not replace others: lib.columns, listed in
+   *  `requires` so it is on the page. */
+  const checkColumns = (table: BC.Table, reads: [string, unknown][], writes: [string, string][], keep: unknown[]) =>
+    ((BC.get('lib.columns') as BC.LibDef).exports.check as Check)('transform.funnel', table, reads, writes, keep);
 
   function names(spec: BC.TransformSpec): { from: string; to: string; rate: string; step: string } {
     const field = String(spec.field);
@@ -32,7 +19,8 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'funnel',
-    version: 2,
+    version: 3,
+    requires: ['lib.columns'],
     doc: "A conversion funnel: stages in row order (visits, sign-ups, trials, purchases), each drawn as a bar centered on zero so the shape narrows. Writes the bar's two ends (`<field>0` = -value/2, `<field>1` = +value/2), the share of the first stage (`rate`) and of the stage before (`stepRate`). Draw with mark.rect (x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale) and label with mark.text formatted as percent.",
     params: {
       field: { kind: 'field', required: true, doc: 'How many reached the stage.' },

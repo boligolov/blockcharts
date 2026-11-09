@@ -22,6 +22,16 @@
     }
   },
   "blocks": {
+    "lib.columns": {
+      "file": "blocks/lib.columns.js",
+      "bytes": 538,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "lib.columns"
+      ],
+      "doc": "The check of the columns a transform reads and writes, shared by transform.funnel, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it."
+    },
     "lib.curve": {
       "file": "blocks/lib.curve.js",
       "bytes": 1195,
@@ -31,6 +41,36 @@
         "lib.curve"
       ],
       "doc": "The path of a line through points, shared by mark.line and mark.area: straight segments, a monotone cubic that passes through every point and never overshoots between two of them, or steps (each value holds until the next point). `through(px, py, curve, back)` returns the path commands after the first point for curve \"linear\", \"smooth\" or \"step\"; `back` walks the points from the last to the first. A spec never names it."
+    },
+    "lib.pointer": {
+      "file": "blocks/lib.pointer.js",
+      "bytes": 1408,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "lib.pointer"
+      ],
+      "doc": "The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point)` tells whether such a point is on the plot. `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it."
+    },
+    "lib.ticks": {
+      "file": "blocks/lib.ticks.js",
+      "bytes": 621,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "lib.ticks"
+      ],
+      "doc": "Round numbers, shared by scale.linear, scale.sequential, scale.size and transform.bin. `niceStep(span, count)` is a step of 1, 2 or 5 × 10^n that cuts `span` into about `count` parts; `roundTicks(d0, d1, count)` lists its multiples between the two ends of a domain as { value, label }, smallest first, and none for a domain with no length or not made of numbers. A spec never names it."
+    },
+    "lib.view": {
+      "file": "blocks/lib.view.js",
+      "bytes": 805,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "lib.view"
+      ],
+      "doc": "The arithmetic of zooming a continuous scale, shared by interaction.zoom and interaction.zoom-controls. It runs on numbers that are even on the screen (the logarithms on a log scale; a domain that runs backwards is negated): `current(live, name)` is the view now, `show(live, name, d0, d1)` sets one, shifted back inside the full domain, and `zoom(live, name, factor, maxZoom, anchor)` widens or narrows it around a point. A spec never names it."
     },
     "scale.band": {
       "file": "blocks/scale.band.js",
@@ -66,10 +106,13 @@
     },
     "scale.linear": {
       "file": "blocks/scale.linear.js",
-      "bytes": 1914,
-      "version": 4,
-      "requires": [],
+      "bytes": 1538,
+      "version": 5,
+      "requires": [
+        "lib.ticks"
+      ],
       "closure": [
+        "lib.ticks",
         "scale.linear"
       ],
       "params": {
@@ -110,10 +153,13 @@
     },
     "scale.sequential": {
       "file": "blocks/scale.sequential.js",
-      "bytes": 2293,
-      "version": 2,
-      "requires": [],
+      "bytes": 1878,
+      "version": 3,
+      "requires": [
+        "lib.ticks"
+      ],
       "closure": [
+        "lib.ticks",
         "scale.sequential"
       ],
       "params": {},
@@ -121,10 +167,13 @@
     },
     "scale.size": {
       "file": "blocks/scale.size.js",
-      "bytes": 1880,
-      "version": 2,
-      "requires": [],
+      "bytes": 1465,
+      "version": 3,
+      "requires": [
+        "lib.ticks"
+      ],
       "closure": [
+        "lib.ticks",
         "scale.size"
       ],
       "params": {
@@ -197,10 +246,13 @@
     },
     "transform.bin": {
       "file": "blocks/transform.bin.js",
-      "bytes": 3153,
-      "version": 3,
-      "requires": [],
+      "bytes": 3123,
+      "version": 4,
+      "requires": [
+        "lib.ticks"
+      ],
       "closure": [
+        "lib.ticks",
         "transform.bin"
       ],
       "params": {
@@ -458,10 +510,13 @@
     },
     "transform.funnel": {
       "file": "blocks/transform.funnel.js",
-      "bytes": 1600,
-      "version": 2,
-      "requires": [],
+      "bytes": 1259,
+      "version": 3,
+      "requires": [
+        "lib.columns"
+      ],
       "closure": [
+        "lib.columns",
         "transform.funnel"
       ],
       "params": {
@@ -680,10 +735,13 @@
     },
     "transform.treemap": {
       "file": "blocks/transform.treemap.js",
-      "bytes": 3561,
-      "version": 3,
-      "requires": [],
+      "bytes": 3273,
+      "version": 4,
+      "requires": [
+        "lib.columns"
+      ],
       "closure": [
+        "lib.columns",
         "transform.treemap"
       ],
       "params": {
@@ -733,10 +791,13 @@
     },
     "transform.waterfall": {
       "file": "blocks/transform.waterfall.js",
-      "bytes": 2075,
-      "version": 2,
-      "requires": [],
+      "bytes": 1734,
+      "version": 3,
+      "requires": [
+        "lib.columns"
+      ],
       "closure": [
+        "lib.columns",
         "transform.waterfall"
       ],
       "params": {
@@ -2087,10 +2148,13 @@
     },
     "interaction.brush": {
       "file": "blocks/interaction.brush.js",
-      "bytes": 4063,
-      "version": 3,
-      "requires": [],
+      "bytes": 3968,
+      "version": 4,
+      "requires": [
+        "lib.pointer"
+      ],
       "closure": [
+        "lib.pointer",
         "interaction.brush"
       ],
       "params": {
@@ -2126,10 +2190,13 @@
     },
     "interaction.crosshair": {
       "file": "blocks/interaction.crosshair.js",
-      "bytes": 2886,
-      "version": 3,
-      "requires": [],
+      "bytes": 2029,
+      "version": 4,
+      "requires": [
+        "lib.pointer"
+      ],
       "closure": [
+        "lib.pointer",
         "interaction.crosshair"
       ],
       "params": {
@@ -2177,10 +2244,13 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 9588,
-      "version": 12,
-      "requires": [],
+      "bytes": 8574,
+      "version": 13,
+      "requires": [
+        "lib.pointer"
+      ],
       "closure": [
+        "lib.pointer",
         "interaction.tooltip"
       ],
       "params": {
@@ -2220,10 +2290,15 @@
     },
     "interaction.zoom": {
       "file": "blocks/interaction.zoom.js",
-      "bytes": 3254,
-      "version": 5,
-      "requires": [],
+      "bytes": 2695,
+      "version": 6,
+      "requires": [
+        "lib.pointer",
+        "lib.view"
+      ],
       "closure": [
+        "lib.pointer",
+        "lib.view",
         "interaction.zoom"
       ],
       "params": {
@@ -2262,10 +2337,13 @@
     },
     "interaction.zoom-controls": {
       "file": "blocks/interaction.zoom-controls.js",
-      "bytes": 2960,
-      "version": 5,
-      "requires": [],
+      "bytes": 2661,
+      "version": 6,
+      "requires": [
+        "lib.view"
+      ],
       "closure": [
+        "lib.view",
         "interaction.zoom-controls"
       ],
       "params": {

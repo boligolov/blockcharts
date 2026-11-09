@@ -1,40 +1,18 @@
 (function () {
   const DEFAULT_RANGE = [2, 24];
 
-  function niceStep(span: number, count: number): number {
-    const raw = span / Math.max(1, count);
-    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
-    const f = raw / pow;
-    return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * pow;
-  }
-
-  /** More ticks than any axis can show: a guard against a span the arithmetic cannot step through. */
-  const MAX_TICKS = 1000;
-
-  /** Round values between the two ends of a domain, smallest first, whichever way the domain runs. None for a domain
-   *  that has no length (a view zoomed to one value) or is not made of numbers: an empty axis, not an exception. */
-  function roundTicks(d0: number, d1: number, count: number): { value: number; label: string }[] {
-    const lo = Math.min(d0, d1);
-    const hi = Math.max(d0, d1);
-    const out: { value: number; label: string }[] = [];
-    if (!(isFinite(lo) && isFinite(hi) && hi > lo)) return out;
-    const step = niceStep(hi - lo, count);
-    if (!(step > 0 && isFinite(step))) return out;
-    // toFixed takes at most 100 digits
-    const decimals = Math.min(100, Math.max(0, -Math.floor(Math.log10(step))));
-    const first = Math.ceil(lo / step - 1e-9);
-    const last = Math.floor(hi / step + 1e-9);
-    for (let i = first; i <= last && out.length < MAX_TICKS; i++) {
-      const value = +(i * step).toFixed(decimals);
-      out.push({ value, label: value.toFixed(decimals) });
-    }
-    return out;
-  }
+  type Ticks = {
+    roundTicks(d0: number, d1: number, count: number): { value: number; label: string }[];
+  };
+  /** From lib.ticks, listed in `requires` so it is on the page. */
+  const ticks = () => (BC.get('lib.ticks') as BC.LibDef).exports as Ticks;
+  const roundTicks: Ticks['roundTicks'] = (d0, d1, count) => ticks().roundTicks(d0, d1, count);
 
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'size',
-    version: 2,
+    version: 3,
+    requires: ['lib.ticks'],
     doc: 'Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.',
     params: {
       zero: {

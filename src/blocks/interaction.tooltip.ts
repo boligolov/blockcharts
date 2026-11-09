@@ -9,15 +9,23 @@
     return s.length > MAX_TEXT ? s.slice(0, MAX_TEXT - 1) + '…' : s;
   }
 
-  function nextFrame(fn: () => void): void {
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => fn());
-    else setTimeout(fn, 0);
-  }
+  type Pointer = {
+    toLogical(live: BC.LiveCtx, ev: MouseEvent): { x: number; y: number };
+    inPlot(live: BC.LiveCtx, p: { x: number; y: number }): boolean;
+  };
+  /** From lib.pointer, listed in `requires` so it is on the page. */
+  const pointer = () => (BC.get('lib.pointer') as BC.LibDef).exports as Pointer;
+
+  type Follow = (live: BC.LiveCtx, show: (ev: PointerEvent) => void, hide: () => void, keepOnPress?: boolean) => void;
+  /** From lib.pointer, listed in `requires` so it is on the page. */
+  const follow: Follow = (live, show, hide, keepOnPress) =>
+    ((BC.get('lib.pointer') as BC.LibDef).exports.follow as Follow)(live, show, hide, keepOnPress);
 
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 12,
+    version: 13,
+    requires: ['lib.pointer'],
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.',
     params: {
       fields: { kind: 'list', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
@@ -171,24 +179,11 @@
         }
       };
 
-      let disposed = false;
-      let scheduled = false;
-      let last: PointerEvent | null = null;
-
       const hide = () => {
         tip.style.display = 'none';
         dot.style.display = 'none';
         highlight.style.display = 'none';
         flows.style.display = 'none';
-      };
-
-      const toLogical = (ev: MouseEvent) => {
-        const r = root.getBoundingClientRect();
-        return { x: ((ev.clientX - r.left) * live.size.w) / r.width, y: ((ev.clientY - r.top) * live.size.h) / r.height };
-      };
-      const inPlot = (p: { x: number; y: number }) => {
-        const b = live.plot;
-        return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
       };
 
       const write = (field: string, row: number): string => {
@@ -254,8 +249,8 @@
       }
 
       function show(ev: PointerEvent): void {
-        const p = toLogical(ev);
-        if (!inPlot(p)) return hide();
+        const p = pointer().toLogical(live, ev);
+        if (!pointer().inPlot(live, p)) return hide();
 
         let best: { pick: BC.Pick; mark: BC.MarkSpec; def: BC.MarkDef; index: number } | null = null;
         live.spec.marks.forEach((mark, i) => {
@@ -409,58 +404,9 @@
         tip.style.top = Math.max(0, top) + 'px';
       }
 
-      // A finger is down whenever it points (buttons is 1 from the first touch on), so for touch a press is the hover: a
-      // tap shows the datum, sliding the finger moves along the data, and the card stays after the finger lifts (which
-      // sends pointerleave) until the reader touches somewhere else. A page scroll that starts on the chart cancels it.
-      const isTouch = (ev: Event) => (ev as PointerEvent).pointerType === 'touch';
-      const onMove = (ev: PointerEvent) => {
-        // dragging with a mouse or a pen is a pan, not a hover
-        if (ev.buttons && !isTouch(ev)) {
-          last = null;
-          return hide();
-        }
-        last = ev;
-        if (scheduled) return;
-        scheduled = true;
-        nextFrame(() => {
-          scheduled = false;
-          if (disposed || !last) return;
-          const e = last;
-          last = null;
-          try {
-            show(e);
-          } catch (err) {
-            hide();
-          }
-        });
-      };
-      const onCancel = () => {
-        last = null;
-        hide();
-      };
-      const onLeave = (ev: Event) => {
-        if (!isTouch(ev)) onCancel();
-      };
-      // a touch anywhere outside the chart puts the card away (with a mouse, leaving the chart already has)
-      const onOutside = (ev: Event) => {
-        const target = ev.target as Node | null;
-        if (isTouch(ev) && target && typeof host.contains === 'function' && !host.contains(target)) onCancel();
-      };
-
-      root.addEventListener('pointermove', onMove as EventListener);
-      root.addEventListener('pointerdown', onMove as EventListener);
-      root.addEventListener('pointerleave', onLeave);
-      root.addEventListener('pointercancel', onCancel);
-      root.addEventListener('wheel', onCancel);
-      if (typeof doc.addEventListener === 'function') doc.addEventListener('pointerdown', onOutside, true);
+      // a tap shows the card and it stays after the finger lifts; a mouse press (a pan starts) puts it away
+      follow(live, show, hide);
       live.cleanup(() => {
-        disposed = true;
-        root.removeEventListener('pointermove', onMove as EventListener);
-        root.removeEventListener('pointerdown', onMove as EventListener);
-        root.removeEventListener('pointerleave', onLeave);
-        root.removeEventListener('pointercancel', onCancel);
-        root.removeEventListener('wheel', onCancel);
-        if (typeof doc.removeEventListener === 'function') doc.removeEventListener('pointerdown', onOutside, true);
         for (const el of [tip, dot, highlight, flows]) if (el.parentNode) el.parentNode.removeChild(el);
         releasePosition();
       });

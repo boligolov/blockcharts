@@ -1,0 +1,2 @@
+"use strict";(function(){function r(f,c,s,l,h){const o=e=>{throw new Error(f+": "+e)},i=e=>Object.prototype.hasOwnProperty.call(c.columns,e);for(const[e,n]of s)n!==void 0&&(typeof n!="string"||!i(n))&&o(`unknown field "${String(n)}" in "${e}"`);const t={};for(const[e,n]of l)t[n]&&o(`"${t[n]}" and "${e}" both name the new column "${n}"`),t[n]=e,i(n)&&h.indexOf(n)<0&&o(`"${n}" is already a column of the data: give the new one another name with "${e}"`)}const a={role:"lib",type:"columns",version:1,exports:{check:r}};BC.define(a)})();
+

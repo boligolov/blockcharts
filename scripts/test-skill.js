@@ -238,7 +238,7 @@ test('skill: the packaged runtime works with nothing from the repo around it', (
     data: { a: [{ k: 'x', v: 1 }] },
     charts: [{ data: 'a', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'rect', x: 'k', y: 'v' }] }],
   });
-  assert.deepStrictEqual(r.blocks, ['scale.band', 'scale.linear', 'mark.rect', 'renderer.svg']);
+  assert.deepStrictEqual(r.blocks, ['lib.ticks', 'scale.band', 'scale.linear', 'mark.rect', 'renderer.svg']);
   assert.throws(
     () => packagedCompose.compose({ data: {}, charts: [{ data: 'a', marks: [] }], distDir: path.join(os.tmpdir(), 'nowhere') }),
     /manifest\.json not found/,

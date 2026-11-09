@@ -161,7 +161,7 @@ const failsWith = (fn, re) => assert.throws(fn, (e) => e instanceof ComposeError
 
 test('compose: only the blocks the charts need are inlined, in a fixed order', () => {
   const r = compose({ data: DATA, charts: [bars()] });
-  assert.deepStrictEqual(r.blocks, ['scale.band', 'scale.linear', 'mark.rect', 'guide.axis', 'renderer.svg']);
+  assert.deepStrictEqual(r.blocks, ['lib.ticks', 'scale.band', 'scale.linear', 'mark.rect', 'guide.axis', 'renderer.svg']);
   const m = JSON.parse(fs.readFileSync(path.join(__dirname, '../dist/manifest.json'), 'utf8'));
   const everything = Object.values(m.blocks).reduce((n, b) => n + b.bytes, m.core.bytes);
   assert(r.bytes < everything * 0.7, `${r.bytes} vs ${everything}`);
@@ -170,6 +170,8 @@ test('compose: only the blocks the charts need are inlined, in a fixed order', (
   assert.deepStrictEqual(
     two.blocks,
     [
+      'lib.pointer',
+      'lib.ticks',
       'scale.band',
       'scale.color',
       'scale.linear',

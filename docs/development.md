@@ -69,6 +69,10 @@ A new block needs a recipe (or a feature in one) that uses it — `test-skill.js
 test proving each new check can fail. On the site a new block needs its line in `BLOCK_SUMMARY` and a new
 recipe its kind in `GALLERY` (both in `site/src/lib/catalog.mjs`): `npm run site` stops without them.
 
+Code that two blocks would both carry goes into a lib block (`src/blocks/lib.*.ts`). A block lists it in
+`requires` and reaches it through `BC.get('lib.…').exports` when it runs. `test-dist.js` fails when two
+compiled blocks share a run of 300 characters of the same code.
+
 ## The skill
 
 `skills/blockcharts/` is committed complete. `SKILL.md`, `README.md`, `.claude-plugin/plugin.json` and

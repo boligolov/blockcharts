@@ -1,13 +1,21 @@
 (function () {
-  function nextFrame(fn: () => void): void {
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => fn());
-    else setTimeout(fn, 0);
-  }
+  type Pointer = {
+    toLogical(live: BC.LiveCtx, ev: MouseEvent): { x: number; y: number };
+    inPlot(live: BC.LiveCtx, p: { x: number; y: number }): boolean;
+  };
+  /** From lib.pointer, listed in `requires` so it is on the page. */
+  const pointer = () => (BC.get('lib.pointer') as BC.LibDef).exports as Pointer;
+
+  type Follow = (live: BC.LiveCtx, show: (ev: PointerEvent) => void, hide: () => void, keepOnPress?: boolean) => void;
+  /** From lib.pointer, listed in `requires` so it is on the page. */
+  const follow: Follow = (live, show, hide, keepOnPress) =>
+    ((BC.get('lib.pointer') as BC.LibDef).exports.follow as Follow)(live, show, hide, keepOnPress);
 
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'crosshair',
-    version: 3,
+    version: 4,
+    requires: ['lib.pointer'],
     doc: 'A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. On a touch screen it follows a tap and the sliding finger, and stays until the reader touches somewhere else. Works with or without the tooltip.',
     params: {
       snap: {
@@ -88,18 +96,14 @@
         return best;
       };
 
-      let last: PointerEvent | null = null;
-      let scheduled = false;
-      let disposed = false;
       const show = (ev: PointerEvent) => {
         const r = root.getBoundingClientRect();
         const hostBox = host.getBoundingClientRect();
         if (!r.width) return hide();
         const k = r.width / live.size.w;
-        const x = (ev.clientX - r.left) / k;
-        const y = (ev.clientY - r.top) / k;
+        const { x, y } = pointer().toLogical(live, ev);
         const p = live.plot;
-        if (x < p.x || x > p.x + p.w || y < p.y || y > p.y + p.h) return hide();
+        if (!pointer().inPlot(live, { x, y })) return hide();
         const at = snap === 'off' ? { x, y } : nearest(x, y);
         if (!at) return hide();
         Object.assign(vline.style, {
@@ -116,58 +120,9 @@
             display: 'block',
           });
       };
-      // a finger is down whenever it points, so for touch a press is the hover (as in interaction.tooltip)
-      const isTouch = (ev: Event) => (ev as PointerEvent).pointerType === 'touch';
-      const onMove = (ev: PointerEvent) => {
-        if (ev.buttons && !isTouch(ev)) {
-          last = null;
-          return hide();
-        }
-        last = ev;
-        if (scheduled) return;
-        scheduled = true;
-        nextFrame(() => {
-          scheduled = false;
-          if (disposed || !last) return;
-          const e = last;
-          last = null;
-          try {
-            show(e);
-          } catch (err) {
-            hide();
-          }
-        });
-      };
-      const onCancel = () => {
-        last = null;
-        hide();
-      };
-      // lifting the finger sends pointerleave: the line stays where it was tapped
-      const onLeave = (ev: Event) => {
-        if (!isTouch(ev)) onCancel();
-      };
-      const onOutside = (ev: Event) => {
-        const target = ev.target as Node | null;
-        if (isTouch(ev) && target && typeof host.contains === 'function' && !host.contains(target)) onCancel();
-      };
       // a mouse press keeps the line where it is; a touch is where the finger points
-      const onTap = (ev: PointerEvent) => {
-        if (isTouch(ev)) onMove(ev);
-      };
-      root.addEventListener('pointermove', onMove as EventListener);
-      root.addEventListener('pointerdown', onTap as EventListener);
-      root.addEventListener('pointerleave', onLeave);
-      root.addEventListener('pointercancel', onCancel);
-      root.addEventListener('wheel', onCancel);
-      if (typeof doc.addEventListener === 'function') doc.addEventListener('pointerdown', onOutside, true);
+      follow(live, show, hide, true);
       live.cleanup(() => {
-        disposed = true;
-        root.removeEventListener('pointermove', onMove as EventListener);
-        root.removeEventListener('pointerdown', onTap as EventListener);
-        root.removeEventListener('pointerleave', onLeave);
-        root.removeEventListener('pointercancel', onCancel);
-        root.removeEventListener('wheel', onCancel);
-        if (typeof doc.removeEventListener === 'function') doc.removeEventListener('pointerdown', onOutside, true);
         for (const el of [vline, hline]) if (el && el.parentNode) el.parentNode.removeChild(el);
         release();
       });

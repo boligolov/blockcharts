@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-49 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+53 blocks: `lib.columns`, `lib.curve`, `lib.pointer`, `lib.ticks`, `lib.view`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -29,9 +29,25 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 | guide | `position` | `top`, `right`, `bottom` or `left`; the default follows the scale (height: left, width: bottom) |
 | mark | channels | `"field"`, `{"field": "f", "scale": "s"}` or `{"value": v}`; see each mark |
 
+## lib.columns
+
+Version 1, 0.5 KB. The check of the columns a transform reads and writes, shared by transform.funnel, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it.
+
 ## lib.curve
 
 Version 2, 1.2 KB. The path of a line through points, shared by mark.line and mark.area: straight segments, a monotone cubic that passes through every point and never overshoots between two of them, or steps (each value holds until the next point). `through(px, py, curve, back)` returns the path commands after the first point for curve "linear", "smooth" or "step"; `back` walks the points from the last to the first. A spec never names it.
+
+## lib.pointer
+
+Version 1, 1.4 KB. The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point)` tells whether such a point is on the plot. `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it.
+
+## lib.ticks
+
+Version 1, 0.6 KB. Round numbers, shared by scale.linear, scale.sequential, scale.size and transform.bin. `niceStep(span, count)` is a step of 1, 2 or 5 × 10^n that cuts `span` into about `count` parts; `roundTicks(d0, d1, count)` lists its multiples between the two ends of a domain as { value, label }, smallest first, and none for a domain with no length or not made of numbers. A spec never names it.
+
+## lib.view
+
+Version 1, 0.8 KB. The arithmetic of zooming a continuous scale, shared by interaction.zoom and interaction.zoom-controls. It runs on numbers that are even on the screen (the logarithms on a log scale; a domain that runs backwards is negated): `current(live, name)` is the view now, `show(live, name, d0, d1)` sets one, shifted back inside the full domain, and `zoom(live, name, factor, maxZoom, anchor)` widens or narrows it around a point. A spec never names it.
 
 ## scale.band
 
@@ -48,7 +64,9 @@ Version 2, 0.8 KB. Categorical color scale: one color per distinct value, in fir
 
 ## scale.linear
 
-Version 4, 1.9 KB. Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.
+Version 5, 1.5 KB. Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.
+
+Needs: `lib.ticks`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -66,11 +84,15 @@ Version 2, 1.8 KB. Logarithmic numeric scale (base 10): equal steps for equal ra
 
 ## scale.sequential
 
-Version 2, 2.2 KB. Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`.
+Version 3, 1.8 KB. Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`.
+
+Needs: `lib.ticks`.
 
 ## scale.size
 
-Version 2, 1.8 KB. Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.
+Version 3, 1.4 KB. Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.
+
+Needs: `lib.ticks`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -98,7 +120,9 @@ Version 1, 4.8 KB. Group-by: one row per distinct combination of the `groupby` f
 
 ## transform.bin
 
-Version 3, 3.1 KB. Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.
+Version 4, 3.0 KB. Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.
+
+Needs: `lib.ticks`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -181,7 +205,9 @@ Version 1, 1.5 KB. Turns a wide table (one column per series: month, online, ret
 
 ## transform.funnel
 
-Version 2, 1.6 KB. A conversion funnel: stages in row order (visits, sign-ups, trials, purchases), each drawn as a bar centered on zero so the shape narrows. Writes the bar's two ends (`<field>0` = -value/2, `<field>1` = +value/2), the share of the first stage (`rate`) and of the stage before (`stepRate`). Draw with mark.rect (x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale) and label with mark.text formatted as percent.
+Version 3, 1.2 KB. A conversion funnel: stages in row order (visits, sign-ups, trials, purchases), each drawn as a bar centered on zero so the shape narrows. Writes the bar's two ends (`<field>0` = -value/2, `<field>1` = +value/2), the share of the first stage (`rate`) and of the stage before (`stepRate`). Draw with mark.rect (x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale) and label with mark.text formatted as percent.
+
+Needs: `lib.columns`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -253,7 +279,9 @@ Version 3, 1.8 KB. Stacks the values of `field` on top of each other within ever
 
 ## transform.treemap
 
-Version 3, 3.5 KB. A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.
+Version 4, 3.2 KB. A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.
+
+Needs: `lib.columns`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -269,7 +297,9 @@ Version 3, 3.5 KB. A treemap: each row becomes a rectangle whose area is its `fi
 
 ## transform.waterfall
 
-Version 2, 2.0 KB. A waterfall (bridge) chart: how a starting value becomes an ending one through gains and losses. In row order, each row adds its `field` to a running total; the transform writes where each bar starts and ends (`<field>0`, `<field>1`), its kind (`step`: "increase", "decrease" or "total"), what it stands for (`amount`: the change, or the total) and its upper end (`top`, for a label above it). Rows marked by the `total` field are subtotals: their bar goes from 0 to the running total, and their own value is ignored. Draw with mark.rect (y = `<field>1`, y2 = `<field>0` on a band x), colored by `step` through a color scale.
+Version 3, 1.7 KB. A waterfall (bridge) chart: how a starting value becomes an ending one through gains and losses. In row order, each row adds its `field` to a running total; the transform writes where each bar starts and ends (`<field>0`, `<field>1`), its kind (`step`: "increase", "decrease" or "total"), what it stands for (`amount`: the change, or the total) and its upper end (`top`, for a label above it). Rows marked by the `total` field are subtotals: their bar goes from 0 to the running total, and their own value is ignored. Draw with mark.rect (y = `<field>1`, y2 = `<field>0` on a band x), colored by `step` through a color scale.
+
+Needs: `lib.columns`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -611,7 +641,9 @@ Version 1, 2.2 KB. Plays the chart in once, when it is first drawn: bars grow fr
 
 ## interaction.brush
 
-Version 3, 4.0 KB. Drag a rectangle over the plot to zoom to it: on the scales in `scales` (default x) the view becomes the selected range, on a category (band) scale the categories under the selection. Shift + drag by default, so it does not fight with the pan of interaction.zoom; Escape cancels while dragging, double-click resets. A drag shorter than `minSize` px is not a selection.
+Version 4, 3.9 KB. Drag a rectangle over the plot to zoom to it: on the scales in `scales` (default x) the view becomes the selected range, on a category (band) scale the categories under the selection. Shift + drag by default, so it does not fight with the pan of interaction.zoom; Escape cancels while dragging, double-click resets. A drag shorter than `minSize` px is not a selection.
+
+Needs: `lib.pointer`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -622,7 +654,9 @@ Version 3, 4.0 KB. Drag a rectangle over the plot to zoom to it: on the scales i
 
 ## interaction.crosshair
 
-Version 3, 2.8 KB. A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. On a touch screen it follows a tap and the sliding finger, and stays until the reader touches somewhere else. Works with or without the tooltip.
+Version 4, 2.0 KB. A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. On a touch screen it follows a tap and the sliding finger, and stays until the reader touches somewhere else. Works with or without the tooltip.
+
+Needs: `lib.pointer`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -641,7 +675,9 @@ Version 2, 2.5 KB. Click an item of a categorical legend to hide or show that ca
 
 ## interaction.tooltip
 
-Version 12, 9.4 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.
+Version 13, 8.4 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.
+
+Needs: `lib.pointer`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -654,7 +690,9 @@ Version 12, 9.4 KB. Shows the datum under the pointer: a marker plus a card with
 
 ## interaction.zoom
 
-Version 5, 3.2 KB. Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen.
+Version 6, 2.6 KB. Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen.
+
+Needs: `lib.pointer`, `lib.view`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -666,7 +704,9 @@ Version 5, 3.2 KB. Wheel zoom around the cursor, drag to pan, double-click to re
 
 ## interaction.zoom-controls
 
-Version 5, 2.9 KB. A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).
+Version 6, 2.6 KB. A small button bar over one corner of the chart: "100%" clears the controlled scales back to their full domain; "−"/"+" step a continuous one in and out around the center of its current view. A band scale only gets "100%" (there is nothing continuous to step).
+
+Needs: `lib.view`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |

@@ -1,11 +1,19 @@
 (function () {
+  type Pointer = {
+    toLogical(live: BC.LiveCtx, ev: MouseEvent): { x: number; y: number };
+    inPlot(live: BC.LiveCtx, p: { x: number; y: number }): boolean;
+  };
+  /** From lib.pointer, listed in `requires` so it is on the page. */
+  const pointer = () => (BC.get('lib.pointer') as BC.LibDef).exports as Pointer;
+
   type Pair = [number, number];
   const OVERLAY_CLASS = 'bc-brush';
 
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'brush',
-    version: 3,
+    version: 4,
+    requires: ['lib.pointer'],
     doc: 'Drag a rectangle over the plot to zoom to it: on the scales in `scales` (default x) the view becomes the selected range, on a category (band) scale the categories under the selection. Shift + drag by default, so it does not fight with the pan of interaction.zoom; Escape cancels while dragging, double-click resets. A drag shorter than `minSize` px is not a selection.',
     params: {
       scales: {
@@ -53,14 +61,8 @@
       // The overlay is positioned against the host, like the tooltip. Claimed only while a drag is in progress.
       let releasePosition: (() => void) | null = null;
 
-      const toLogical = (ev: MouseEvent) => {
-        const r = root.getBoundingClientRect();
-        return { x: ((ev.clientX - r.left) * live.size.w) / r.width, y: ((ev.clientY - r.top) * live.size.h) / r.height };
-      };
-      const inPlot = (p: { x: number; y: number }) => {
-        const b = live.plot;
-        return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
-      };
+      const toLogical = (ev: MouseEvent) => pointer().toLogical(live, ev);
+      const inPlot = (p: { x: number; y: number }) => pointer().inPlot(live, p);
       const clampToPlot = (p: { x: number; y: number }) => {
         const b = live.plot;
         return { x: Math.max(b.x, Math.min(b.x + b.w, p.x)), y: Math.max(b.y, Math.min(b.y + b.h, p.y)) };

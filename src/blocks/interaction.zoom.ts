@@ -1,10 +1,26 @@
 (function () {
+  type Pointer = {
+    toLogical(live: BC.LiveCtx, ev: MouseEvent): { x: number; y: number };
+    inPlot(live: BC.LiveCtx, p: { x: number; y: number }): boolean;
+  };
+  /** From lib.pointer, listed in `requires` so it is on the page. */
+  const pointer = () => (BC.get('lib.pointer') as BC.LibDef).exports as Pointer;
+
+  type View = {
+    current(live: BC.LiveCtx, name: string): [number, number];
+    show(live: BC.LiveCtx, name: string, d0: number, d1: number): void;
+    zoom(live: BC.LiveCtx, name: string, factor: number, maxZoom: number, anchor?: number): void;
+  };
+  /** From lib.view, listed in `requires` so it is on the page. */
+  const view = () => (BC.get('lib.view') as BC.LibDef).exports as View;
+
   type Pair = [number, number];
 
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'zoom',
-    version: 5,
+    version: 6,
+    requires: ['lib.pointer', 'lib.view'],
     doc: 'Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen.',
     params: {
       scales: { kind: 'list', default: ['x'], doc: 'Names of the scales to control.' },
@@ -44,50 +60,11 @@
       const maxZoom = typeof spec.maxZoom === 'number' && spec.maxZoom > 1 ? spec.maxZoom : 50;
       const root = live.root as HTMLElement;
 
-      const toLogical = (ev: MouseEvent) => {
-        const r = root.getBoundingClientRect();
-        return { x: ((ev.clientX - r.left) * live.size.w) / r.width, y: ((ev.clientY - r.top) * live.size.h) / r.height };
-      };
-      const inPlot = (p: { x: number; y: number }) => {
-        const b = live.plot;
-        return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
-      };
+      const toLogical = (ev: MouseEvent) => pointer().toLogical(live, ev);
+      const inPlot = (p: { x: number; y: number }) => pointer().inPlot(live, p);
       const coord = (name: string, p: { x: number; y: number }) => (live.orientation(name) === 'horizontal' ? p.x : p.y);
-      // zoom and pan are even on the screen: on a log scale the arithmetic below runs on the logarithms of the values.
-      // A domain that runs backwards ([100, 0]) is negated, so that below the full domain always runs low to high.
-      const isLog = (name: string) => live.scales[name].kind === 'log';
-      const sign = (name: string) => {
-        const d = live.scales[name].baseDomain();
-        return Number(d[1]) < Number(d[0]) ? -1 : 1;
-      };
-      const to = (name: string, v: unknown) => sign(name) * (isLog(name) ? Math.log10(Number(v)) : Number(v));
-      const from = (name: string, v: number) => (isLog(name) ? Math.pow(10, sign(name) * v) : sign(name) * v);
-      const base = (name: string): Pair => {
-        const d = live.scales[name].baseDomain();
-        return [to(name, d[0]), to(name, d[1])];
-      };
-      const current = (name: string): Pair => {
-        const v = live.getView()[name] as Pair;
-        return [to(name, v[0]), to(name, v[1])];
-      };
-
-      /** Shift a domain back inside the full one; a view that covers everything is no view. */
-      const commit = (name: string, d0: number, d1: number) => {
-        const [b0, b1] = base(name);
-        if (d1 - d0 >= (b1 - b0) * (1 - 1e-9)) {
-          live.setView(name, null);
-          return;
-        }
-        if (d0 < b0) {
-          d1 += b0 - d0;
-          d0 = b0;
-        }
-        if (d1 > b1) {
-          d0 -= d1 - b1;
-          d1 = b1;
-        }
-        live.setView(name, [from(name, d0), from(name, d1)]);
-      };
+      // zoom and pan are even on the screen: lib.view runs on the logarithms of the values of a log scale
+      const current = (name: string): Pair => view().current(live, name);
 
       const onWheel = (ev: WheelEvent) => {
         if (mode === 'off' || (mode === 'ctrl' && !(ev.ctrlKey || ev.metaKey))) return;
@@ -99,11 +76,7 @@
         for (const name of names) {
           const [d0, d1] = current(name);
           const [r0, r1] = live.scales[name].range() as Pair;
-          const [b0, b1] = base(name);
-          const anchor = d0 + ((coord(name, p) - r0) / (r1 - r0)) * (d1 - d0);
-          const span = Math.min(b1 - b0, Math.max((b1 - b0) / maxZoom, (d1 - d0) * factor));
-          const f = span / (d1 - d0);
-          commit(name, anchor - (anchor - d0) * f, anchor + (d1 - anchor) * f);
+          view().zoom(live, name, factor, maxZoom, d0 + ((coord(name, p) - r0) / (r1 - r0)) * (d1 - d0));
         }
         refit();
       };
@@ -135,7 +108,7 @@
           const [r0, r1] = live.scales[name].range() as Pair;
           const dpx = live.orientation(name) === 'horizontal' ? p.x - drag.x : p.y - drag.y;
           const shift = (-dpx / (r1 - r0)) * (d1 - d0);
-          commit(name, d0 + shift, d1 + shift);
+          view().show(live, name, d0 + shift, d1 + shift);
         }
         refit();
       };

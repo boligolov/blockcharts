@@ -281,11 +281,10 @@ test('loader: explicit blocks, no scan, no mount, integrity from the manifest, a
   }
   const n = b.log.scripts.length;
   await b.sandbox.BCLoader.load({ blocks: ['mark.rect', 'scale.linear'], scan: false, mount: false });
-  assert.strictEqual(
-    b.log.scripts.length,
-    n + 1 - (manifest.blocks['mark.rect'].closure.includes('scale.linear') ? 1 : 0),
-    'only what was new',
-  );
+  const loaded = manifest.blocks['mark.rect'].closure;
+  const added = manifest.blocks['scale.linear'].closure.filter((name) => !loaded.includes(name));
+  assert(added.length > 1, 'scale.linear brings its lib along');
+  assert.strictEqual(b.log.scripts.length, n + added.length, 'only what was new');
   assert.strictEqual(b.log.fetched.length, 1, 'the manifest is fetched once');
 });
 
@@ -488,7 +487,7 @@ test('lib blocks: line and area share lib.curve, a page without it says so, and 
     without.validate(spec).some((d) => d.level === 'error' && /mark\.line requires lib\.curve, which is not loaded/.test(d.message)),
     JSON.stringify(without.validate(spec)),
   );
-  const withLib = load(['lib.curve', 'scale.linear', 'mark.line', 'renderer.svg']);
+  const withLib = load(['lib.curve', 'lib.ticks', 'scale.linear', 'mark.line', 'renderer.svg']);
   withLib.data('d', [
     { x: 1, y: 1 },
     { x: 2, y: 3 },
@@ -504,6 +503,48 @@ test('lib blocks: line and area share lib.curve, a page without it says so, and 
     named.some((d) => d.level === 'error' && /mark\.curve/.test(d.message)),
     'a lib block is not a mark',
   );
+});
+
+// A block that copies another's code makes a page carry it twice and lets the copies drift apart: shared code goes into
+// a lib block. Ten lines or so of the same code in two blocks fail; shorter likenesses (a loop over a column, the
+// checks at the start of attach) are how blocks are written, not copies.
+const COPY_CHARS = 300;
+
+/** The longest runs of the same lines (trimmed; comments and blank lines out) in two pieces of code, at least `min`
+ *  characters long without the spaces: [size, first line]. */
+function sharedRuns(a, b, min) {
+  const lines = (src) =>
+    src
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('//') && !l.startsWith('*') && !l.startsWith('/*'));
+  const A = lines(a);
+  const B = lines(b);
+  const at = new Map();
+  B.forEach((l, j) => at.set(l, (at.get(l) || []).concat(j)));
+  const runs = [];
+  for (let i = 0; i < A.length; i++)
+    for (const j of at.get(A[i]) || []) {
+      if (i > 0 && j > 0 && A[i - 1] === B[j - 1]) continue; // inside a run already counted
+      let size = 0;
+      for (let k = 0; i + k < A.length && j + k < B.length && A[i + k] === B[j + k]; k++) size += A[i + k].replace(/\s+/g, '').length;
+      if (size >= min) runs.push([size, A[i]]);
+    }
+  return runs;
+}
+
+test('blocks: no two blocks carry the same code; what they share is a lib block', () => {
+  const code = Object.keys(manifest.blocks).map((name) => [name, fs.readFileSync(path.join(distDir, manifest.blocks[name].file), 'utf8')]);
+  const copies = [];
+  for (let a = 0; a < code.length; a++)
+    for (let b = a + 1; b < code.length; b++)
+      for (const [size, first] of sharedRuns(code[a][1], code[b][1], COPY_CHARS))
+        copies.push(`${code[a][0]} and ${code[b][0]}: ${size} characters from "${first.slice(0, 60)}"`);
+  assert.deepStrictEqual(copies, []);
+  // the measure itself: the tick code that three scales each carried before lib.ticks is a copy
+  const ticks = fs.readFileSync(path.join(distDir, manifest.blocks['lib.ticks'].file), 'utf8');
+  const body = ticks.slice(ticks.indexOf('function niceStep'), ticks.indexOf('const def'));
+  assert.strictEqual(sharedRuns('(function () {\n' + body + '})();', 'const k = 1;\n' + body, COPY_CHARS).length, 1, 'a copy is found');
 });
 
 test('README: the table of blocks lists every block there is, and only those', () => {

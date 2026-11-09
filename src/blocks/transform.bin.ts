@@ -1,12 +1,12 @@
 (function () {
   const MAX_BINS = 5000;
 
-  function niceStep(span: number, count: number): number {
-    const raw = span / Math.max(1, count);
-    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
-    const f = raw / pow;
-    return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * pow;
-  }
+  type Ticks = {
+    niceStep(span: number, count: number): number;
+  };
+  /** From lib.ticks, listed in `requires` so it is on the page. */
+  const ticks = () => (BC.get('lib.ticks') as BC.LibDef).exports as Ticks;
+  const niceStep: Ticks['niceStep'] = (span, count) => ticks().niceStep(span, count);
 
   function outputNames(spec: BC.TransformSpec): [string, string, string] {
     const as = spec.as;
@@ -19,7 +19,8 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'bin',
-    version: 3,
+    version: 4,
+    requires: ['lib.ticks'],
     replacesColumns: true,
     doc: 'Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.',
     params: {
