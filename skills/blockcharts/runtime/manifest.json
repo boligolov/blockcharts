@@ -138,8 +138,8 @@
     },
     "scale.time": {
       "file": "blocks/scale.time.js",
-      "bytes": 2643,
-      "version": 4,
+      "bytes": 2767,
+      "version": 5,
       "requires": [],
       "closure": [
         "scale.time"
@@ -1757,8 +1757,8 @@
     },
     "guide.grid": {
       "file": "blocks/guide.grid.js",
-      "bytes": 446,
-      "version": 1,
+      "bytes": 564,
+      "version": 2,
       "requires": [],
       "closure": [
         "guide.grid"
@@ -1767,9 +1767,13 @@
         "scale": {
           "kind": "scale",
           "required": true
+        },
+        "count": {
+          "kind": "number",
+          "doc": "About how many lines: the `count` of the axis on the same scale."
         }
       },
-      "doc": "Grid lines at the ticks of a positional scale (the same ticks its axis shows). Draws behind the marks."
+      "doc": "Grid lines at the ticks of a positional scale (the same ticks its axis shows). Draws behind the marks. An axis given `count` needs the same `count` here, or the lines and the labels part."
     },
     "guide.kpi": {
       "file": "blocks/guide.kpi.js",

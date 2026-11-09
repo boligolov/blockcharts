@@ -2,10 +2,11 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'grid',
-    version: 1,
-    doc: 'Grid lines at the ticks of a positional scale (the same ticks its axis shows). Draws behind the marks.',
+    version: 2,
+    doc: 'Grid lines at the ticks of a positional scale (the same ticks its axis shows). Draws behind the marks. An axis given `count` needs the same `count` here, or the lines and the labels part.',
     params: {
       scale: { kind: 'scale', required: true },
+      count: { kind: 'number', doc: 'About how many lines: the `count` of the axis on the same scale.' },
     },
     render(spec, ctx) {
       const name = spec.scale;
@@ -13,7 +14,8 @@
       const vertical = ctx.orientation(name) === 'vertical';
       const { x, y, w, h } = ctx.plot;
       let d = '';
-      for (const t of ctx.ticks(name)) {
+      const wish = typeof spec.count === 'number' && spec.count >= 1 ? Math.round(spec.count) : undefined;
+      for (const t of wish === undefined ? ctx.ticks(name) : ctx.ticks(name, wish)) {
         d += vertical ? `M${x} ${t.pos}H${x + w}` : `M${t.pos} ${y}V${y + h}`;
       }
       if (!d) return {};

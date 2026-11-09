@@ -61,11 +61,8 @@ Compared on 2026-11-05 with the galleries of ECharts and Highcharts (also Chart.
 Maps and tables are left out; radar and sunburst stay not planned (see below). In this order:
 
 Done: recipes of what the blocks already drew (Gantt, dumbbell and lollipop, error bars and a confidence band, stacked bars
-with a line, a population pyramid). They showed two gaps of a time axis:
-
-- [ ] **A time axis on a phone picks too long a step**: a Gantt of January to June at 200 px shows one label ("Apr"), a year
-      shows "Jan" and "Jul". With `count: 6` the five months fit.
-- [ ] **guide.grid does not follow `count` of its axis**: with `count: 6` the axis has five labels and the grid one line.
+with a line, a population pyramid). The two gaps of a time axis they showed are fixed in skill 0.22.0: on a narrow chart
+`scale.time` takes a finer step when a coarse one leaves fewer than two labels, and `guide.grid` takes the `count` of its axis.
 Done in skill 0.21.0: a gauge and a progress ring (`mark.arc` `endAngle`, `total`, `center`), a step line (`curve: "step"`),
 a total, a share and a rank of the group on every row (`transform.window` ops `total`, `share`, `rank`) with a bump chart, a
 streamgraph (`transform.stack` `center`). They left:

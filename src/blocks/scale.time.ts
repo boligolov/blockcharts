@@ -73,10 +73,22 @@
     return out;
   }
 
+  /** Ticks for about `count` labels; a calendar step that leaves fewer than two inside the domain (a quarter on half a
+   *  year starting on the 5th of January, so only April) is too coarse, and a finer one is taken. The axis still thins
+   *  labels that do not fit. */
+  function ticksFor(d0: number, d1: number, count: number): { t: number; label: string }[] {
+    let out = makeTicks(d0, d1, count);
+    for (let c = count * 2; out.length < 2 && c <= count * 16; c *= 2) {
+      const finer = makeTicks(d0, d1, c);
+      if (finer.length > out.length) out = finer;
+    }
+    return out;
+  }
+
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'time',
-    version: 4,
+    version: 5,
     doc: 'Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.',
     params: {
       padding: { kind: 'number', default: 0, doc: 'Extra room around the data extent, as a fraction of its span.' },
@@ -150,7 +162,7 @@
         invert: { value: (px: number) => d0 + ((px - r0) / (r1 - r0)) * (d1 - d0) },
         ticks: {
           value: (approxCount: number = 6): BC.Tick[] =>
-            makeTicks(d0, d1, Math.max(1, approxCount)).map((k) => ({ value: k.t, pos: scale(k.t), label: k.label })),
+            ticksFor(d0, d1, Math.max(1, approxCount)).map((k) => ({ value: k.t, pos: scale(k.t), label: k.label })),
         },
       });
       return scale;

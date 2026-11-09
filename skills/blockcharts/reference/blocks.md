@@ -78,7 +78,7 @@ Version 2, 1.8 KB. Numbers to circle radii, so that the area of a circle (not it
 
 ## scale.time
 
-Version 4, 2.6 KB. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.
+Version 5, 2.7 KB. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -522,11 +522,12 @@ Version 11, 6.3 KB. Labels for a positional scale, with an axis line and optiona
 
 ## guide.grid
 
-Version 1, 0.4 KB. Grid lines at the ticks of a positional scale (the same ticks its axis shows). Draws behind the marks.
+Version 2, 0.6 KB. Grid lines at the ticks of a positional scale (the same ticks its axis shows). Draws behind the marks. An axis given `count` needs the same `count` here, or the lines and the labels part.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `scale` | scale, **required** |  |  |
+| `count` | number |  | About how many lines: the `count` of the axis on the same scale. |
 
 ## guide.kpi
 

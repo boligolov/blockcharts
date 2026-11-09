@@ -1106,6 +1106,50 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(isNaN(none.columns.v0[0]), 'a stack of nothing stays nothing');
   });
 
+  // ───────────────────────── time ticks on a narrow chart, grid count ─────────────────────────
+
+  test('scale.time: a step that leaves fewer than two ticks inside the domain gives way to a finer one', () => {
+    const scale = BC.get('scale.time').create({ type: 'time' }, { name: 'x', sources: [['2026-01-05', '2026-06-26']], range: [0, 200] });
+    const t3 = scale.ticks(3);
+    assert(t3.length >= 2, `half a year from the 5th of January at 3 ticks: ${t3.map((t) => t.label).join(', ')}`);
+    assert.deepStrictEqual(
+      t3.map((t) => new Date(t.value).getUTCMonth()),
+      [1, 2, 3, 4, 5],
+      'the months inside, not the one quarter',
+    );
+    const year = BC.get('scale.time').create({ type: 'time' }, { name: 'x', sources: [['2026-01-01', '2026-12-01']], range: [0, 200] });
+    assert(year.ticks(3).length >= 2, 'a year keeps at least two');
+    const day = BC.get('scale.time').create({ type: 'time' }, { name: 'x', sources: [['2026-01-05T10:00', '2026-01-05T10:00:01']], range: [0, 200] });
+    assert(day.ticks(2).length >= 1 && day.ticks(2).every((t) => isFinite(t.pos)), 'a second still has its tick');
+    const one = BC.get('scale.time').create({ type: 'time' }, { name: 'x', sources: [['2026-01-05', '2026-01-05']], range: [0, 200] });
+    assert(one.ticks(3).length <= 1000, 'a domain of one instant does not run away');
+  });
+
+  test('guide.grid count: as many lines as its axis has labels when both are given the same count', () => {
+    BC.data('grid-count', [
+      { d: '2025-01-01', v: 1 },
+      { d: '2026-12-31', v: 2 },
+    ]);
+    const spec = (count) => ({
+      data: 'grid-count',
+      size: [640, 300],
+      scales: { x: { type: 'time' }, y: { type: 'linear' } },
+      guides: [
+        { type: 'grid', scale: 'x', ...(count === undefined ? {} : { count }) },
+        { type: 'axis', scale: 'x', ...(count === undefined ? {} : { count }) },
+      ],
+      marks: [{ type: 'point', x: 'd', y: 'v' }],
+    });
+    const linesOf = (svg) => (paths(layer(svg, 'grid'))[0].d.match(/M/g) || []).length;
+    const labelsOf = (svg) => count(svg, /class="bc-axis-label"/g);
+    // two years: by default a line every half year; asked for 12, a line every quarter or more often
+    const plain = draw(spec(undefined)).svg;
+    const many = draw(spec(12)).svg;
+    assert(linesOf(many) > linesOf(plain), `count 12: ${linesOf(many)} lines, by default ${linesOf(plain)}`);
+    assert(linesOf(many) === labelsOf(many), `${linesOf(many)} grid lines, ${labelsOf(many)} labels`);
+    assert(BC.validate(spec('many')).some((d) => d.path === 'guides[0].count'));
+  });
+
   test('transform.window total: a line of totals over stacked bars, one point per bar however many rows it has', () => {
     const { svg, diagnostics } = drawn(
       [

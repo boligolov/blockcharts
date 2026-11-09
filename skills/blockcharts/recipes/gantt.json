@@ -26,7 +26,7 @@
         },
         "guides": [
           { "type": "grid", "scale": "x" },
-          { "type": "axis", "scale": "x", "format": { "month": "short" }, "count": 6 },
+          { "type": "axis", "scale": "x", "format": { "month": "short" } },
           { "type": "axis", "scale": "y" },
           { "type": "legend", "scale": "color", "position": "auto" }
         ],

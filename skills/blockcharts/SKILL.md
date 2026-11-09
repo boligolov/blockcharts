@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.21.0"
+  version: "0.22.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -208,7 +208,7 @@ Each recipe is a complete `page.json` that composes as it stands.
 - To draw the same rows as a line and as points, use two marks (one `line`, one `point`).
 - A `band` axis thins its labels when there are many categories. With more than about 12, aggregate or filter first so the chart stays readable.
 - Eight categories or more that must be read on a phone: horizontal bars. Vertical bars lose their labels there, horizontal ones keep every label and value.
-- On an axis, `count` asks for more or fewer labels and `anchor: "end"` keeps the last one, so a December report says December.
+- On an axis, `count` asks for more or fewer labels and `anchor: "end"` keeps the last one, so a December report says December. Give the grid of that scale the same `count`, or its lines miss the labels.
 - The same category in several charts of a page: give each color scale the same `domain`. Colors go by first appearance, so a sorted chart would otherwise swap them.
 - A ratio of totals (the share of late orders) is `aggregate` of both fields, then `calculate`. Never the mean of the weekly ratios.
 - Do not invent block types or parameters. Only what is in `reference/blocks.md` exists. An unknown parameter is a warning, an unknown block is an error.
