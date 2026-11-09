@@ -1,0 +1,17 @@
+---
+// The blocks a chart is built from, in the order a page loads them, each with what it weighs in the page (minified KB).
+// A chip links to the block's reference; the dot is the block's role.
+import { baseUrl } from '../lib/site.mjs';
+import { BLOCK_SUMMARY } from '../lib/catalog.mjs';
+
+interface Props { blocks: { name: string; role: string; bytes: number }[]; label?: string }
+const { blocks, label = 'Blocks it is built from, KB each' } = Astro.props;
+const base = baseUrl(import.meta.env.BASE_URL);
+const k = (n: number) => (n / 1024).toFixed(1);
+for (const b of blocks) if (!BLOCK_SUMMARY[b.name]) throw new Error(`BlockChips: no summary for ${b.name}`);
+---
+<ul class="chips" aria-label={label}>
+  {blocks.map((b) => (
+    <li><a href={`${base}blocks/#${b.name}`} title={`${BLOCK_SUMMARY[b.name]} ${k(b.bytes)} KB.`} data-role={b.role}><code>{b.name}</code><span class="num">{k(b.bytes)}</span></a></li>
+  ))}
+</ul>

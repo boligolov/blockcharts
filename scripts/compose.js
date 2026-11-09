@@ -683,7 +683,17 @@ function compose(opts) {
     .filter((s) => s !== '')
     .join('\n');
 
-  return { html, blocks: blockNames, bytes, diagnostics, unusedData, compressed, core };
+  // what the page shows, entry by entry, as settled above: a heading, a chart, or a facet's panels on the scales they share
+  // with the legend drawn once above them; a page of one's own (the site) lays them out from this instead of redoing it
+  const shown = entries.map((e) => {
+    if (e.section !== undefined) return { section: e.section, note: e.note };
+    const common = { title: e.title, note: e.note };
+    if (!e.panels) return { ...common, spec: e.spec };
+    const panels = e.panels.map((p) => ({ label: p.label, spec: p.spec }));
+    return { ...common, facet: e.facet, panels, legend: e.legend, legendId: e.legendId };
+  });
+
+  return { html, blocks: blockNames, bytes, diagnostics, unusedData, compressed, core, entries: shown };
 }
 
 module.exports = { compose, ComposeError, jsonForScript, escapeText, resolveDataset, DEFAULT_CSS };

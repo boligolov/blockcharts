@@ -66,7 +66,8 @@ positions, overlays or two interactions sharing the chart's host element is chec
 (Playwright with the system Chrome).
 
 A new block needs a recipe (or a feature in one) that uses it — `test-skill.js` fails otherwise — and a
-test proving each new check can fail.
+test proving each new check can fail. On the site a new block needs its line in `BLOCK_SUMMARY` and a new
+recipe its kind in `GALLERY` (both in `site/src/lib/catalog.mjs`): `npm run site` stops without them.
 
 ## The skill
 

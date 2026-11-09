@@ -1,24 +1,82 @@
 ---
 import Base from '../../layouts/Base.astro';
-import Card from '../../components/Card.astro';
-import { baseUrl, jsonForScript, lakeOf, loadRecipes, loadRelease } from '../../lib/site.mjs';
+import GalleryCard from '../../components/GalleryCard.astro';
+import { baseUrl, codeOf, entriesOf, jsonForScript, lakeOf, libraryCode, loadRecipes, loadRelease, ROLES } from '../../lib/site.mjs';
+import { coverOf, galleryOf } from '../../lib/catalog.mjs';
 
 const base = baseUrl(import.meta.env.BASE_URL);
 const release = loadRelease();
 const recipes = loadRecipes();
-const { lake, charts } = lakeOf(recipes);
+const kinds = galleryOf(recipes);
+const { lake } = lakeOf(recipes);
+const library = libraryCode();
+const k = (n: number) => (n / 1024).toFixed(0);
+
+// the facts at the top are the extremes of the reports below, so they move with the recipes
+const sized = recipes.map((r) => ({ r, code: codeOf(r) })).sort((a, b) => a.code.bytes - b.code.bytes);
+const lightest = sized[0];
+const heaviest = sized[sized.length - 1];
+const fewest = Math.min(...sized.map((s) => s.code.blocks.length));
+const most = Math.max(...sized.map((s) => s.code.blocks.length));
+const roles = ROLES.filter((role) => sized.some((s) => s.code.blocks.some((b) => b.role === role)));
 ---
-<Base title="Chart examples with their JSON" nav="examples" version={release.version} description="Every chart blockcharts draws, live: bars, lines, waterfall, funnel, treemap, log scale, KPI dashboards and more, each with its JSON and an HTML report.">
-  <h1>Examples</h1>
+<Base
+  title={`Chart gallery: ${recipes.length} examples by kind`}
+  nav="examples"
+  wide
+  version={release.version}
+  description={`${recipes.length} live charts in ${kinds.length} kinds, from bars to Sankey: each with the blocks it is built from, what they weigh in KB, its JSON and a standalone HTML report.`}
+>
+  <h1>Gallery</h1>
   <p class="lead">
-    Every chart below is live: hover, and try Ctrl + wheel, dragging, and clicking the legend where it makes sense. Each example has its JSON,
-    the report the composer makes from it, and the HTML to embed it.
+    {recipes.length} charts in {kinds.length} kinds, all live: hover them, and try Ctrl + wheel, dragging and the legend where it makes sense.
+    Under each one are the blocks its report is built from and what each weighs in the page. A report carries the core and those blocks, nothing else.
   </p>
+
+  <div class="gal-facts">
+    <div>
+      <b class="num">{k(lightest.code.bytes)}–{k(heaviest.code.bytes)} KB</b>
+      <span>of code in each report below, data aside. Lightest: <a href={`#${lightest.r.name}`}>{lightest.r.title}</a>; heaviest: <a href={`#${heaviest.r.name}`}>{heaviest.r.title}</a></span>
+    </div>
+    <div>
+      <b class="num">{fewest}–{most} blocks</b>
+      <span>per report, out of {library.count}; the composer picks them from the JSON</span>
+    </div>
+    <div>
+      <b class="num">{k(library.bytes)} KB</b>
+      <span>the core and all {library.count} blocks together: no page needs them all</span>
+    </div>
+  </div>
+
+  <nav class="kinds" aria-label="Kinds of chart">
+    {kinds.map((kind) => <a href={`#${kind.id}`}>{kind.title} <span class="num">{kind.items.length}</span></a>)}
+  </nav>
+  <p class="roles-key" aria-label="The roles of blocks">
+    {roles.map((role) => <span data-role={role}>{role}</span>)}
+    <a href={`${base}blocks/#sizes`}>What every block weighs</a>
+  </p>
+
   <script is:inline src={`${base}release/kits/full.js`}></script>
   <script is:inline type="application/json" id="bc-data" set:html={jsonForScript(lake)} />
-  <div class="grid">
-    {recipes.map((r) => (
-      <Card title={r.title} href={`${base}examples/${r.name}/`} text={r.need} spec={charts.get(r.name)[0].spec} pill={r.charts.length > 1 ? `${r.charts.length} charts` : undefined} />
-    ))}
-  </div>
+
+  {kinds.map((kind) => (
+    <section class="kind" id={kind.id}>
+      <h2>{kind.title} <span class="count num">{kind.items.length}</span></h2>
+      <p class="intro">{kind.intro}</p>
+      <div class="gal-grid">
+        {kind.items.map((r) => (
+          <GalleryCard
+            id={r.name}
+            href={`${base}examples/${r.name}/`}
+            title={r.title}
+            need={r.need}
+            entry={entriesOf(r, true)[coverOf(r)]}
+            charts={r.charts.length}
+            code={codeOf(r)}
+            library={library}
+          />
+        ))}
+      </div>
+    </section>
+  ))}
 </Base>

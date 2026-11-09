@@ -766,6 +766,32 @@ test('compose: facet draws one chart per value on shared scales, with one legend
   assert.deepStrictEqual(filters[1], filters[0]);
   assert(page.html.includes('id="bc-facet-legend-0"') && page.html.includes('data-bc-legend-index="1" aria-pressed="true"'));
   assert(page.blocks.includes('transform.filter'), 'the filter is on the page');
+  // entries say the same to a page of one's own: the panels as drawn, the legend once, a plain chart as it is
+  const [shown] = page.entries;
+  assert.deepStrictEqual(
+    shown.panels.map((p) => p.label),
+    ['North', 'South'],
+  );
+  assert.deepStrictEqual(
+    shown.panels.map((p) => p.spec),
+    [north, south],
+    'the specs the page carries',
+  );
+  assert.deepStrictEqual(
+    shown.legend.map((l) => l.label),
+    ['Tea', 'Coffee'],
+  );
+  assert.strictEqual(shown.legendId, 'bc-facet-legend-0');
+  assert.deepStrictEqual(shown.facet, { field: 'r', columns: 2 });
+  const mixed = compose({
+    data: { d: rows },
+    charts: [
+      { section: 'S', note: 'n' },
+      { title: 'A', spec: spec() },
+    ],
+  }).entries;
+  assert.deepStrictEqual(mixed[0], { section: 'S', note: 'n' });
+  assert.deepStrictEqual(mixed[1], { title: 'A', note: undefined, spec: spec() });
 
   const free = specs(compose({ data: { d: rows }, charts: [{ spec: spec(), facet: { field: 'r', free: ['y'] } }] }).html);
   assert.strictEqual(free[0].scales.y.domain, undefined, 'a free scale keeps its own');

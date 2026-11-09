@@ -33,6 +33,12 @@ export function loadBlocks() {
   return JSON.parse(read('dist', 'manifest.json'));
 }
 
+/** The size of the report file a reader downloads (code, data, styles and page), as the prebuild wrote it. */
+export function reportFileBytes(name) {
+  return fs.statSync(path.join(repo, 'site', 'public', 'examples', `${name}.report.html`)).size;
+}
+
+/** The bytes of code (core and blocks) in each composed report, by recipe. */
 export function loadReportSizes() {
   return JSON.parse(fs.readFileSync(path.join(repo, 'site', 'src', 'data', 'reports.json'), 'utf8'));
 }
@@ -87,6 +93,81 @@ export function kitFor(recipe, release, blocksOf) {
 export function blocksNeeded(recipe) {
   const { compose } = require(path.join(repo, 'scripts', 'compose.js'));
   return compose({ ...recipe.page, baseDir: path.join(repo, 'skills', 'blockcharts', 'recipes') }).blocks;
+}
+
+const recipesDir = path.join(repo, 'skills', 'blockcharts', 'recipes');
+let minManifest;
+const minOf = () => (minManifest ||= JSON.parse(read('dist', 'min', 'manifest.json')));
+
+/** What a composed page carries, split into its parts: the core the composer picked and each block (role order), in
+ *  bytes of dist/min, the files it inlines. Their sum must be the composer's own count, or the build stops. */
+function weigh(composed, what) {
+  const m = minOf();
+  const variant = Object.entries(m.core.variants || {}).find(([, v]) => v.file === composed.core);
+  const core = { name: variant ? `core.${variant[0]}` : 'core', bytes: variant ? variant[1].bytes : m.core.bytes };
+  const blocks = composed.blocks.map((name) => ({ name, role: name.split('.')[0], bytes: m.blocks[name].bytes }));
+  const bytes = core.bytes + blocks.reduce((n, b) => n + b.bytes, 0);
+  if (bytes !== composed.bytes)
+    throw new Error(`${what}: the core and the blocks add up to ${bytes} bytes, the composer counts ${composed.bytes}`);
+  return { core, blocks, bytes };
+}
+
+const composedCache = new Map();
+/** The composer's result for a recipe, made once per build. */
+function composedOf(recipe) {
+  if (!composedCache.has(recipe.name)) {
+    const { compose } = require(path.join(repo, 'scripts', 'compose.js'));
+    composedCache.set(recipe.name, compose({ ...recipe.page, baseDir: recipesDir }));
+  }
+  return composedCache.get(recipe.name);
+}
+
+const codeCache = new Map();
+/** The code of a recipe's report (all its charts): { core, blocks, bytes }. */
+export function codeOf(recipe) {
+  if (!codeCache.has(recipe.name)) codeCache.set(recipe.name, weigh(composedOf(recipe), `recipe ${recipe.name}`));
+  return codeCache.get(recipe.name);
+}
+
+/**
+ * What a recipe's report shows, entry by entry, as the composer settled it (a facet becomes its panels on shared
+ * scales, with one legend). `prefix` renames the datasets and shared legends to `<recipe>:<name>`, for a page that
+ * holds several recipes (lakeOf).
+ */
+export function entriesOf(recipe, prefix = false) {
+  const entries = composedOf(recipe).entries;
+  if (!prefix) return entries;
+  const legend = (id) => (id ? `${recipe.name}-${id}` : id);
+  const respec = (spec) => ({
+    ...spec,
+    data: `${recipe.name}:${spec.data}`,
+    ...(spec.interaction ? { interaction: spec.interaction.map((x) => (x.legend ? { ...x, legend: legend(x.legend) } : x)) } : {}),
+  });
+  return entries.map((e) =>
+    e.panels
+      ? { ...e, legendId: legend(e.legendId), panels: e.panels.map((p) => ({ ...p, spec: respec(p.spec) })) }
+      : e.spec
+        ? { ...e, spec: respec(e.spec) }
+        : e,
+  );
+}
+
+/** The code one chart of a recipe would need on a page of its own (an entry of recipe.page.charts). */
+export function chartCodeOf(recipe, entry, i) {
+  const key = `${recipe.name}#${i}`;
+  if (!codeCache.has(key)) {
+    const { compose } = require(path.join(repo, 'scripts', 'compose.js'));
+    codeCache.set(key, weigh(compose({ ...recipe.page, charts: [entry], baseDir: recipesDir }), `chart ${i} of ${recipe.name}`));
+  }
+  return codeCache.get(key);
+}
+
+/** The most a composed page can carry: the core with the data decoder and every block there is. */
+export function libraryCode() {
+  const m = minOf();
+  const core = m.core.variants && m.core.variants.composed ? m.core.variants.composed.bytes : m.core.bytes;
+  const blocks = Object.values(m.blocks).reduce((n, b) => n + b.bytes, 0);
+  return { core, blocks, count: Object.keys(m.blocks).length, bytes: core + blocks };
 }
 
 /** The repository, for links to its files: blob/HEAD and tree/HEAD follow the default branch. */

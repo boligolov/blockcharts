@@ -1,0 +1,36 @@
+---
+// One example in the gallery: its chart drawn live, what it is for, the blocks its report is built from and what
+// that code weighs.
+import BlockChips from './BlockChips.astro';
+import Weight from './Weight.astro';
+import ChartEntry from './ChartEntry.astro';
+
+interface Props {
+  id: string;
+  href: string;
+  title: string;
+  need: string;
+  entry: { spec?: unknown; panels?: { label: string; spec: unknown }[] };
+  charts: number;
+  code: { core: { name: string; bytes: number }; blocks: { name: string; role: string; bytes: number }[]; bytes: number };
+  library: { bytes: number; count: number };
+}
+const { id, href, title, need, entry, charts, code, library } = Astro.props;
+const canvas = code.blocks.some((b) => b.name === 'renderer.canvas');
+---
+<article class="gcard" id={id}>
+  <h3><a href={href}>{title}</a></h3>
+  <p class="need">{need}</p>
+  <div class="gchart"><ChartEntry entry={entry} /></div>
+  {(charts > 1 || canvas) && (
+    <p class="tags">
+      {charts > 1 && <span class="pill">{charts} charts on the page</span>}
+      {canvas && <span class="pill">drawn on a canvas</span>}
+    </p>
+  )}
+  <div class="built">
+    <BlockChips blocks={code.blocks} />
+    <Weight code={code} library={library} />
+  </div>
+  <a class="open" href={href}>The JSON, the report and the HTML <span aria-hidden="true">→</span></a>
+</article>

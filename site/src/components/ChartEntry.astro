@@ -1,0 +1,41 @@
+---
+// One entry of a composed page, drawn live: a chart, or a facet's panels on the scales they share with the legend
+// once above them (the same markup the composer writes, from its `entries`).
+import { jsonForScript } from '../lib/site.mjs';
+
+interface Panel { label: string; spec: unknown }
+interface Props {
+  entry: {
+    spec?: unknown;
+    facet?: { columns?: number };
+    panels?: Panel[];
+    legend?: { label: string; color: string }[];
+    legendId?: string;
+  };
+}
+const { entry } = Astro.props;
+const panels = entry.panels;
+const columns = panels ? (entry.facet && entry.facet.columns) || Math.min(panels.length, 3) : 0;
+---
+{panels ? (
+  <div class="facet-block">
+    {entry.legend && (
+      <div class="bc-facet-legend" id={entry.legendId}>
+        {entry.legend.map((l, k) =>
+          entry.legendId ? (
+            <button type="button" data-bc-legend-index={k} aria-pressed="true"><i style={`background:${l.color}`}></i>{l.label}</button>
+          ) : (
+            <span><i style={`background:${l.color}`}></i>{l.label}</span>
+          ),
+        )}
+      </div>
+    )}
+    <div class="bc-facets" style={`--bc-facet-cols:${columns}`}>
+      {panels.map((p) => (
+        <div class="bc-facet"><h4>{p.label}</h4><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(p.spec)} /></div>
+      ))}
+    </div>
+  </div>
+) : (
+  <script is:inline type="application/json" data-bc-chart set:html={jsonForScript(entry.spec)} />
+)}

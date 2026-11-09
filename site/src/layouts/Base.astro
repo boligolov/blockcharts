@@ -10,11 +10,13 @@ interface Props {
   version?: string;
   /** The landing page lays out its own full-width sections; the other pages sit in one column. */
   landing?: boolean;
+  /** A page of many cards (the gallery) takes the full width of the header instead of the reading column. */
+  wide?: boolean;
 }
-const { title, nav, description, version, landing } = Astro.props;
+const { title, nav, description, version, landing, wide } = Astro.props;
 const base = baseUrl(import.meta.env.BASE_URL);
 const links = [
-  ['Examples', 'examples/', 'examples'],
+  ['Gallery', 'examples/', 'examples'],
   ['Embedding', 'embed/', 'embed'],
   ['Guide', 'guide/', 'guide'],
   ['Blocks', 'blocks/', 'blocks'],
@@ -118,13 +120,13 @@ const jsonLd = landing
         </div>
       </div>
     </header>
-    {landing ? <main class="landing"><slot /></main> : <main><div class="wrap narrow"><slot /></div></main>}
+    {landing ? <main class="landing"><slot /></main> : <main><div class={wide ? 'wrap' : 'wrap narrow'}><slot /></div></main>}
     <footer class="site">
       <div class="wrap">
         <div class="cols-f">
           <a class="brand" href={base}><Logo /> blockcharts</a>
           <div class="links">
-            <a href={`${base}examples/`}>Examples</a>
+            <a href={`${base}examples/`}>Gallery</a>
             <a href={`${base}embed/`}>Embedding</a>
             <a href={`${base}guide/`}>Guide</a>
             <a href={`${base}blocks/`}>Blocks</a>

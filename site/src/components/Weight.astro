@@ -1,0 +1,21 @@
+---
+// What a page's code weighs: a bar as wide as the most any page can carry (the core and every block), filled by the
+// core and by the blocks this page uses; and the same in words.
+interface Props {
+  code: { core: { name: string; bytes: number }; blocks: { bytes: number }[]; bytes: number };
+  library: { bytes: number; count: number };
+}
+const { code, library } = Astro.props;
+const k = (n: number) => (n / 1024).toFixed(1);
+const blockBytes = code.blocks.reduce((n, b) => n + b.bytes, 0);
+const pct = (n: number) => ((100 * n) / library.bytes).toFixed(2);
+const share = Math.round((100 * code.bytes) / library.bytes);
+---
+<div class="weight">
+  <div class="meter" role="img" aria-label={`${k(code.bytes)} KB of code, ${share}% of the ${k(library.bytes)} KB that the core and all ${library.count} blocks weigh`}>
+    <span class="m-core" style={`width:${pct(code.core.bytes)}%`}></span><span class="m-blocks" style={`width:${pct(blockBytes)}%`}></span>
+  </div>
+  <p class="num">
+    <b>{k(code.bytes)} KB</b> of code <span class="of">· core {k(code.core.bytes)} + {code.blocks.length} {code.blocks.length === 1 ? 'block' : 'blocks'} {k(blockBytes)}</span>
+  </p>
+</div>

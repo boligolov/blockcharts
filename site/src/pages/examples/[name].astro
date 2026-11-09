@@ -1,7 +1,25 @@
 ---
 import Base from '../../layouts/Base.astro';
+import BlockChips from '../../components/BlockChips.astro';
+import ChartEntry from '../../components/ChartEntry.astro';
 import Snippet from '../../components/Snippet.astro';
-import { baseUrl, blocksNeeded, jsonForScript, kb, kitFor, loadRecipes, loadRelease, loadReportSizes, scriptTag } from '../../lib/site.mjs';
+import Weight from '../../components/Weight.astro';
+import {
+  baseUrl,
+  blocksNeeded,
+  chartCodeOf,
+  codeOf,
+  entriesOf,
+  jsonForScript,
+  kb,
+  kitFor,
+  libraryCode,
+  loadRecipes,
+  loadRelease,
+  reportFileBytes,
+  scriptTag,
+} from '../../lib/site.mjs';
+import { BLOCK_SUMMARY, CORE_USE, placeOf } from '../../lib/catalog.mjs';
 
 export function getStaticPaths() {
   return loadRecipes().map((r) => ({ params: { name: r.name }, props: { recipe: r } }));
@@ -12,7 +30,24 @@ const { recipe } = Astro.props;
 const release = loadRelease();
 const { name: kitName, blocks } = kitFor(recipe, release, blocksNeeded);
 const kit = release.kits[kitName];
-const reportBytes = loadReportSizes()[recipe.name];
+const code = codeOf(recipe);
+const library = libraryCode();
+const fileBytes = reportFileBytes(recipe.name);
+const { kind, prev, next } = placeOf(loadRecipes(), recipe.name);
+const k = (n: number) => (n / 1024).toFixed(1);
+if (!CORE_USE[code.core.name]) throw new Error(`example ${recipe.name}: no text for ${code.core.name}`);
+const rows = [{ name: code.core.name, role: 'core', bytes: code.core.bytes, text: CORE_USE[code.core.name] }].concat(
+  code.blocks.map((b) => ({ ...b, text: BLOCK_SUMMARY[b.name] })),
+);
+const widest = Math.max(...rows.map((r) => r.bytes));
+const blockBytes = code.blocks.reduce((n, b) => n + b.bytes, 0);
+const share = Math.round((100 * code.bytes) / library.bytes);
+// a page of several charts: what each would need on its own (the report carries a block shared by two charts once)
+const several = recipe.charts.length > 1;
+const perChart = several ? recipe.page.charts.map((entry, i) => chartCodeOf(recipe, entry, i)) : [];
+// the charts as the composer settled them: a facet is its panels, on the scales they share
+const entries = entriesOf(recipe);
+const specsOf = (e) => (e.panels ? e.panels.map((p) => ({ label: p.label, spec: p.spec })) : e.spec ? [{ spec: e.spec }] : []);
 
 // what a reader copies: the kit from a CDN, the data, and every chart of the example
 const embedded = [
@@ -22,24 +57,62 @@ const embedded = [
   JSON.stringify(recipe.data),
   '</script>',
   '',
-  ...recipe.charts.flatMap((c) => ['<script type="application/json" data-bc-chart>', JSON.stringify(c.spec, null, 2), '</script>', '']),
+  ...entries.flatMap(specsOf).flatMap((c) => [
+    ...(c.label ? [`<h4>${c.label}</h4>`] : []),
+    '<script type="application/json" data-bc-chart>',
+    JSON.stringify(c.spec, null, 2),
+    '</script>',
+    '',
+  ]),
 ].join('\n').trimEnd();
 const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : embedded;
 ---
-<Base title={`${recipe.title}: chart example`} nav="examples" version={release.version} description={`${recipe.need}: a live chart, its JSON spec and a standalone ${kb(reportBytes)} HTML report.`}>
-  <p class="muted"><a href={`${base}examples/`}>Examples</a> /</p>
+<Base title={`${recipe.title}: chart example`} nav="examples" version={release.version} description={`${recipe.need}: live, with its ${code.blocks.length} blocks (${kb(code.bytes)} of code), the JSON and an HTML report.`}>
+  <p class="muted crumbs"><a href={`${base}examples/`}>Gallery</a> / <a href={`${base}examples/#${kind.id}`}>{kind.title}</a> /</p>
   <h1>{recipe.title}</h1>
   <p class="lead">{recipe.need}.</p>
+  <Weight code={code} library={library} />
 
   <script is:inline src={`${base}release/kits/${kitName}.js`}></script>
   <script is:inline type="application/json" id="bc-data" set:html={jsonForScript(recipe.data)} />
-  {recipe.charts.map((c) => (
+  {entries.map((c, i) => (
     <section class="bc-section">
       {c.title && <h3>{c.title}</h3>}
       {c.note && <p>{c.note}</p>}
-      <div class="demo"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(c.spec)} /></div>
+      <div class="demo"><ChartEntry entry={c} /></div>
+      {several && (
+        <div class="chart-blocks">
+          <p class="muted">On a page of its own this chart would need {perChart[i].blocks.length} blocks, {kb(perChart[i].bytes)} with the core:</p>
+          <BlockChips blocks={perChart[i].blocks} />
+        </div>
+      )}
     </section>
   ))}
+
+  <h2 id="made-of">What the report is made of</h2>
+  <p>
+    The composer reads the JSON below and puts into the page the core and only the blocks its {several ? 'charts use' : 'chart uses'}:
+    {code.blocks.length} of the {library.count}, <b>{kb(code.bytes)}</b> of code, minified, which is {share}% of the {kb(library.bytes)} that the core
+    and every block weigh together.{several && ' A block that two charts use is carried once.'} The report file is {kb(fileBytes)}: that code,
+    the data, the styles and the page around them.
+  </p>
+  <div class="sizes-wrap"><table class="sizes made-of">
+    <thead><tr><th>Block</th><th class="what">What it does</th><th class="wcol"><span class="sr">Share of the code</span></th><th class="n">KB</th></tr></thead>
+    <tbody>
+      {rows.map((r) => (
+        <tr>
+          <td>
+            {r.role === 'core' ? <a href={`${base}blocks/#sizes`} data-role="core"><code>{r.name}</code></a> : <a href={`${base}blocks/#${r.name}`} data-role={r.role}><code>{r.name}</code></a>}
+            <div class="sum">{r.text}</div>
+          </td>
+          <td class="what">{r.text}</td>
+          <td class="wcol"><span class="w-bar" style={`width:${((100 * r.bytes) / widest).toFixed(1)}%`}></span></td>
+          <td class="n num">{k(r.bytes)}</td>
+        </tr>
+      ))}
+      <tr class="total"><td>Total</td><td class="what">The core {k(code.core.bytes)} and {code.blocks.length} blocks {k(blockBytes)}</td><td class="wcol"></td><td class="n num">{k(code.bytes)}</td></tr>
+    </tbody>
+  </table></div>
 
   <h2>The JSON</h2>
   <p>
@@ -47,7 +120,7 @@ const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : emb
     Compose it with <code>node scripts/compose.js {recipe.name}.json report.html</code>.
   </p>
   <Snippet code={recipe.text} label={`${recipe.name}.json`} />
-  <p>The report the composer makes from it is <a href={`${base}examples/${recipe.name}.report.html`}>one standalone file</a> ({kb(reportBytes)}): open it from disk, mail it, print it.</p>
+  <p>The report the composer makes from it is <a href={`${base}examples/${recipe.name}.report.html`}>one standalone file</a> ({kb(fileBytes)}): open it from disk, mail it, print it.</p>
 
   <h2>In a page of your own</h2>
   <p>
@@ -55,4 +128,9 @@ const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : emb
     {blocks.map((b, i) => <>{i ? ', ' : ' '}<code>{b}</code></>)}.
   </p>
   <Snippet code={shown} label="HTML" />
+
+  <nav class="pager" aria-label={`More ${kind.title.toLowerCase()}`}>
+    {prev ? <a class="prev" href={`${base}examples/${prev.name}/`}><span>Previous in {kind.title}</span>{prev.title}</a> : <span />}
+    {next ? <a class="next" href={`${base}examples/${next.name}/`}><span>Next in {kind.title}</span>{next.title}</a> : <a class="next" href={`${base}examples/#${kind.id}`}><span>{kind.title}</span>All {kind.items.length} in the gallery</a>}
+  </nav>
 </Base>
