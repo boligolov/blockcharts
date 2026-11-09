@@ -24,9 +24,9 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 14,
+    version: 15,
     requires: ['lib.pointer'],
-    doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.',
+    doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.',
     params: {
       fields: { kind: 'list', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
       formats: {
@@ -222,16 +222,20 @@
         return def && def.markColor === false ? '' : live.color(index);
       }
 
-      function lines(mark: BC.MarkSpec, def: BC.MarkDef, row: number, skip?: string | null): [string, string][] {
+      /** The lines of a datum. A shape that stands for several rows (Pick.rows) shows only what they have in common: a
+       *  line through a quarter's total says the total, not the product of whichever row of the quarter came first. */
+      function lines(mark: BC.MarkSpec, def: BC.MarkDef, row: number, rows: number[]): [string, string][] {
         const out: [string, string][] = [];
-        const seen = new Set<string>(skip ? [skip] : []);
+        const seen = new Set<string>();
         const add = (field: string) => {
           const col = live.table.columns[field];
           if (!col || seen.has(field)) return;
           seen.add(field);
           // the summary and outlier rows of transform.quartiles do not share their fields
           if (live.table.sparse && typeof col[row] === 'number' && isNaN(col[row] as number)) return;
-          out.push([labels[field] || field, write(field, row)]);
+          const text = write(field, row);
+          if (rows.some((r) => write(field, r) !== text)) return;
+          out.push([labels[field] || field, text]);
         };
         if (only) {
           only.forEach(add);
@@ -270,15 +274,27 @@
         const { pick, mark, def, index } = best as { pick: BC.Pick; mark: BC.MarkSpec; def: BC.MarkDef; index: number };
 
         const card = pick.card;
-        const heading = card ? null : headingField(mark);
-        const rows = card ? card.lines : lines(mark, def, pick.row);
+        const same = pick.rows && pick.rows.length > 1 ? pick.rows : [pick.row];
+        const named = card ? null : headingField(mark);
+        const heading = named && same.every((r) => write(named, r) === write(named, pick.row)) ? named : null;
+        const rows = card ? card.lines : lines(mark, def, pick.row, same);
         let custom: BC.TooltipContent;
         const fn = card ? undefined : contentFn();
         if (fn) {
           const values: Record<string, unknown> = {};
           for (const name of Object.keys(live.table.columns)) values[name] = live.table.columns[name][pick.row];
           try {
-            custom = fn({ row: pick.row, values, lines: rows, mark, markIndex: index, x: pick.x, y: pick.y, table: live.table });
+            custom = fn({
+              row: pick.row,
+              values,
+              rows: same,
+              lines: rows,
+              mark,
+              markIndex: index,
+              x: pick.x,
+              y: pick.y,
+              table: live.table,
+            });
           } catch (e) {
             if (!warnedThrow) {
               warnedThrow = true;

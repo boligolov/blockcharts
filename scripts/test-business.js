@@ -2627,6 +2627,87 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.strictEqual(partOf(host, 'bc-tooltip-highlight').style.display, 'block', 'the node lights up');
   });
 
+  test('a value repeated on every row of its group is drawn once, and its tooltip says only what the rows share', async () => {
+    BC.data('quarters', [
+      { q: 'Q1', p: 'Hardware', a: 30, m: 0.21 },
+      { q: 'Q1', p: 'Software', a: 20, m: 0.21 },
+      { q: 'Q1', p: 'Services', a: 10, m: 0.21 },
+      { q: 'Q2', p: 'Hardware', a: 35, m: 0.24 },
+      { q: 'Q2', p: 'Software', a: 25, m: 0.24 },
+      { q: 'Q2', p: 'Services', a: 15, m: 0.24 },
+    ]);
+    const stacked = (marks, interaction) => ({
+      data: 'quarters',
+      size: [600, 400],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      transforms: [
+        { type: 'window', field: 'a', op: 'total', group: 'q', as: 'total' },
+        { type: 'stack', field: 'a', by: 'q', group: 'p' },
+      ],
+      scales: {
+        x: { type: 'band' },
+        y: { type: 'linear', zero: true },
+        y2: { type: 'linear', range: 'height', domain: [0, 0.25] },
+        color: { type: 'color' },
+      },
+      marks: [{ type: 'rect', x: 'q', y: 'a1', y2: 'a0', color: 'p' }, ...marks],
+      interaction,
+    });
+    // the total over each stack: one label and one dot per quarter, not three on one spot
+    const once = draw(
+      stacked([
+        { type: 'text', x: 'q', y: 'total', text: 'total', dy: -6, baseline: 'auto' },
+        { type: 'point', x: 'q', y: 'total' },
+      ]),
+    );
+    assert.deepStrictEqual(texts(layer(once.svg, 'marks')), ['60', '75']);
+    assert.strictEqual(circlesOf(once.svg).length, 2);
+    // dots that let others show through are all drawn: where they pile up is worth seeing
+    assert.strictEqual(circlesOf(draw(stacked([{ type: 'point', x: 'q', y: 'total', opacity: 0.5 }])).svg).length, 6);
+
+    // a line of the margin over the stacks: its point at Q1 is the margin of Q1, not one product's row of it
+    const card = async (type) => {
+      const host = new FakeNode('div');
+      const fields = ['p', 'a', 'm'];
+      BC.chart(host, stacked([{ type, x: 'q', y: { field: 'm', scale: 'y2' } }], [{ type: 'tooltip', fields }]));
+      const svg = svgOf(host);
+      const [x, y] =
+        type === 'line'
+          ? /M([\d.]+) ([\d.]+)/
+              .exec(paths(layer(svg, 'marks')).pop().d)
+              .slice(1)
+              .map(Number)
+          : [circlesOf(svg)[0].x, circlesOf(svg)[0].y];
+      const box = host.children[0].getBoundingClientRect();
+      await hover(host, box.left + (x * box.width) / 600, box.top + (y * box.height) / 400);
+      const tip = tipOf(host);
+      const heading = tip.children.find((c) => c.attrs.class === 'bc-tooltip-heading');
+      return [heading.children[heading.children.length - 1].text, ...partOf(tip, 'bc-tooltip-lines').children.map((c) => c.text)];
+    };
+    assert.deepStrictEqual(await card('line'), ['Q1', 'm', '0.21']);
+    assert.deepStrictEqual(await card('point'), ['Q1', 'm', '0.21']);
+
+    // a beeswarm's equal values are separate dots, each its own row
+    BC.data('bees2', [
+      { g: 'a', v: 50, who: 'Ann' },
+      { g: 'a', v: 50, who: 'Bob' },
+    ]);
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'bees2',
+      size: [400, 300],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      scales: { y: { type: 'band' }, x: { type: 'linear', domain: [0, 100] } },
+      marks: [{ type: 'point', x: 'v', y: 'g', r: 6, swarm: true }],
+      interaction: [{ type: 'tooltip', fields: ['who'] }],
+    });
+    const bees = circlesOf(svgOf(host));
+    assert.strictEqual(bees.length, 2);
+    const box = host.children[0].getBoundingClientRect();
+    await hover(host, box.left + (bees[1].x * box.width) / 400, box.top + (bees[1].y * box.height) / 300);
+    assert(partOf(tipOf(host), 'bc-tooltip-lines').children.some((c) => c.text === 'Ann' || c.text === 'Bob'));
+  });
+
   test('interaction.tooltip: heading names what heads the card, and a field that is not there is an error', async () => {
     BC.data('headed', [
       { m: '2024-01-01', rev: 1 },

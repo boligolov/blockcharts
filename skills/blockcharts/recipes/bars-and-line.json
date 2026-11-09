@@ -47,7 +47,7 @@
     },
     {
       "title": "Each line's share of its quarter",
-      "note": "transform.window with op \"total\" writes the sum of each quarter on every row of it, and op \"share\" each row as a part of that sum, without collapsing the rows as aggregate would. The share labels the segments; a line of totals over the bars is a line mark of the total column.",
+      "note": "transform.window with op \"total\" writes the sum of each quarter on every row of it, and op \"share\" each row as a part of that sum, without collapsing the rows as aggregate would. The share labels the segments, and the total stands over each stack: it is on every row of its quarter, and a label repeated on one spot is written once.",
       "spec": {
         "data": "revenue",
         "size": [720, 340],
@@ -69,7 +69,8 @@
         ],
         "marks": [
           { "type": "rect", "x": "quarter", "y": "amount1", "y2": "amount0", "color": "line" },
-          { "type": "text", "x": "quarter", "y": "amount1", "y2": "amount0", "text": "share", "format": "percent", "on": "line" }
+          { "type": "text", "x": "quarter", "y": "amount1", "y2": "amount0", "text": "share", "format": "percent", "on": "line" },
+          { "type": "text", "x": "quarter", "y": "quarterTotal", "text": "quarterTotal", "baseline": "auto", "dy": -6, "weight": 600 }
         ],
         "interaction": [
           {

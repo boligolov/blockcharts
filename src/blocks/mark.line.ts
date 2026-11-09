@@ -76,7 +76,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 14,
+    version: 15,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -202,8 +202,16 @@
         const lineY = ys[a] + (ys[b] - ys[a]) * t;
         const dist = Math.abs(py - lineY);
         if (dist > reach || (best && dist >= best.dist)) continue;
-        const row = Math.abs(px - xs[a]) <= Math.abs(px - xs[b]) ? a : b;
+        const near = Math.abs(px - xs[a]) <= Math.abs(px - xs[b]);
+        const row = near ? a : b;
         best = { row, x: xs[row], y: ys[row], dist };
+        // a vertex that several rows put on one spot (a total repeated on each row of its quarter) stands for all of them
+        let k0 = near ? lo : Math.min(lo + 1, pts.length - 1);
+        let k1 = k0;
+        const at = (k: number) => xs[pts[k]] === xs[row] && ys[pts[k]] === ys[row];
+        while (k0 > 0 && at(k0 - 1)) k0--;
+        while (k1 < pts.length - 1 && at(k1 + 1)) k1++;
+        if (k1 > k0) best.rows = pts.slice(k0, k1 + 1);
       }
       return best;
     },

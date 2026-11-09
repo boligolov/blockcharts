@@ -140,8 +140,8 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'point',
-    version: 11,
-    doc: 'One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible; on a narrow screen its points shrink so they still fit.',
+    version: 12,
+    doc: 'One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible; on a narrow screen its points shrink so they still fit. An opaque dot that rows repeat on one spot is drawn once; with `opacity` below 1 every one is drawn, so piles show.',
     params: {
       r: { kind: 'number', default: 3, doc: 'Radius in px (when there is no `size` channel).' },
       fill: { kind: 'string', doc: 'Any CSS color. Default: theme color by mark index.' },
@@ -185,6 +185,9 @@
       const stroke = typeof spec.stroke === 'string' ? spec.stroke : undefined;
       const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
       const sw = swarm(spec, ctx, radius);
+      // an opaque dot drawn again on itself changes nothing (a total repeated on each row of its quarter): it is drawn
+      // once. Dots that let others show through are all drawn, as where they pile up is worth seeing
+      const seen = opacity === undefined || opacity >= 1 ? new Set<string>() : null;
       const out: BC.Prim[] = [];
       for (const i of order(spec, ctx, radius)) {
         const px = cx.mapped[i] + (sw && sw.across === 'x' ? sw.shift[i] : 0);
@@ -193,6 +196,11 @@
         if (!isFinite(px) || !isFinite(py) || !isFinite(r)) continue;
         const c = colors ? colors[i] : fill;
         if (!c) continue;
+        if (seen) {
+          const key = `${px},${py},${r},${c}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+        }
         out.push({
           type: 'circle',
           cx: px + halfX,
@@ -232,7 +240,16 @@
       }
       // a few pixels of slack: small dots are hard to hit exactly
       if (best < 0 || bestGap > 6) return null;
-      return { row: best, x: bestX, y: bestY, dist: bestGap };
+      // dots on one spot are one dot to the pointer: the pick stands for every row of them
+      const r0 = radius(best);
+      const c0 = colors ? colors[best] : '';
+      const rows: number[] = [];
+      for (const i of order(spec, ctx, radius)) {
+        const x = cx.mapped[i] + halfX + (sw && sw.across === 'x' ? sw.shift[i] : 0);
+        const y = cy.mapped[i] + halfY + (sw && sw.across === 'y' ? sw.shift[i] : 0);
+        if (x === bestX && y === bestY && radius(i) === r0 && (!colors || colors[i] === c0)) rows.push(i);
+      }
+      return rows.length > 1 ? { row: best, x: bestX, y: bestY, dist: bestGap, rows } : { row: best, x: bestX, y: bestY, dist: bestGap };
     },
   };
 

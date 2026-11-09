@@ -62,10 +62,9 @@ Done in skill 0.21.0: a gauge and a progress ring (`mark.arc` `endAngle`, `total
 a total, a share and a rank of the group on every row (`transform.window` ops `total`, `share`, `rank`) with a bump chart, a
 streamgraph (`transform.stack` `center`). They left:
 
-- [ ] **A row repeated per group is drawn once per row** by mark.text and mark.point (mark.rule draws it once): a label of
-      the quarter's total over a stacked bar is three labels on one spot, so the recipe shows shares instead.
-- [ ] **The tooltip of a line over stacked bars** shows one product's row ("Q1, Services, 10, 21%"): the line's point is
-      every row of its quarter, and the card takes one of them.
+Done in skill 0.29.0: a value repeated on every row of its group is drawn once by mark.text and mark.point, as by mark.rule,
+so `bars-and-line` writes the total over each stack. Its tooltip shows only the fields those rows share (`Pick.rows`).
+
 - [ ] **Distributions**: done in skill 0.23.0, violins and ridgelines (`transform.density`, `mark.violin`). A beeswarm is `mark.point`
       `swarm`. Left: hexbin and density contours; a square 2D histogram (transform.bin of two fields, drawn as rect) would
       need no new mark. A violin with a box plot inside it is two tables, which one chart cannot hold.

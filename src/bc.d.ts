@@ -123,7 +123,9 @@ declare namespace BC {
     row: number;
     /** Every column of that row, not only the ones the mark reads. */
     values: Record<string, unknown>;
-    /** The default content: a label and a formatted value per line. */
+    /** Every row the shape under the pointer stands for (see Pick.rows); just `row` for most shapes. */
+    rows: number[];
+    /** The default content: a label and a formatted value per line, only what all of `rows` have in common. */
     lines: [string, string][];
     mark: MarkSpec;
     markIndex: number;
@@ -461,6 +463,9 @@ declare namespace BC {
     card?: { title: string; color?: string; lines: [string, string][] };
     /** Shapes a tooltip lights up while this is hovered, as SVG paths in chart coordinates (the flows of a Sankey node). */
     flows?: { d: string; fill: string }[];
+    /** Every row the shape stands for, `row` among them, when the mark draws several rows as one: a line through a total
+     *  that a transform repeated on every row of its quarter, dots on one spot. A tooltip shows what they have in common. */
+    rows?: number[];
   }
 
   interface MarkDef extends BlockBase {
