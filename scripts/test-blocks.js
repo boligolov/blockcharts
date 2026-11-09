@@ -2006,6 +2006,51 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(hit(host), null, 'below the arc');
   });
 
+  test('mark.point swarm: the pointer finds a point where the swarm moved it, not where its value alone would put it', async () => {
+    BC.data('bees-hover', [1, 2, 3].map((id) => ({ g: 'a', v: 50, id })));
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'bees-hover',
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      scales: { y: { type: 'band', paddingInner: 0, paddingOuter: 0 }, x: { type: 'linear', domain: [0, 100], nice: false } },
+      marks: [{ type: 'point', x: 'v', y: 'g', r: 10, swarm: true }],
+      interaction: [{ type: 'tooltip', fields: ['id'] }],
+    });
+    // one band, 400 px tall: the first point on its middle (200), the next 21 px below, the third 21 px above
+    await hover(host, 320, 221);
+    assert.deepStrictEqual(hit(host), ['g: a', 'id: 2']);
+    await hover(host, 320, 179);
+    assert.deepStrictEqual(hit(host), ['g: a', 'id: 3']);
+    await hover(host, 320, 200);
+    assert.deepStrictEqual(hit(host), ['g: a', 'id: 1']);
+  });
+
+  test('mark.violin: the pointer finds the category and the value under it, inside the shape only', async () => {
+    const rows = [];
+    for (let i = 0; i < 200; i++) rows.push({ g: 'a', v: 10 + ((i % 21) - 10) * 0.3 }, { g: 'b', v: 30 + ((i % 11) - 5) });
+    BC.data('vio-hover', rows);
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'vio-hover',
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      transforms: [{ type: 'density', field: 'v', group: 'g' }],
+      scales: { x: { type: 'band', paddingInner: 0, paddingOuter: 0 }, y: { type: 'linear', domain: [0, 40], nice: false } },
+      marks: [{ type: 'violin', x: 'g', y: 'value', density: 'density' }],
+      interaction: [{ type: 'tooltip', fields: ['count'] }],
+    });
+    // 640 x 400, two bands of 320 px; value 10 is at y 300
+    await hover(host, 160, 300);
+    assert.deepStrictEqual(hit(host), ['g: a', 'count: 200'], 'the middle of the a violin');
+    await hover(host, 280, 300);
+    assert.deepStrictEqual(hit(host), ['g: a', 'count: 200'], 'near its widest edge');
+    await hover(host, 315, 300);
+    assert.strictEqual(hit(host), null, 'past the edge, in its own band');
+    await hover(host, 160, 20);
+    assert.strictEqual(hit(host), null, 'above the end of its curve');
+    await hover(host, 480, 100);
+    assert.deepStrictEqual(hit(host), ['g: b', 'count: 200'], 'the b violin, around 30');
+  });
+
   test('mark.arc: donut hole, start angle, sort, one slice, and rows that are not slices', async () => {
     const donut = new FakeNode('div');
     BC.chart(donut, pieSpec({ innerRadius: 0.5 }));

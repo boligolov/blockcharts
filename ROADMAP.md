@@ -63,6 +63,7 @@ Maps and tables are left out; radar and sunburst stay not planned (see below). I
 Done: recipes of what the blocks already drew (Gantt, dumbbell and lollipop, error bars and a confidence band, stacked bars
 with a line, a population pyramid). The two gaps of a time axis they showed are fixed in skill 0.22.0: on a narrow chart
 `scale.time` takes a finer step when a coarse one leaves fewer than two labels, and `guide.grid` takes the `count` of its axis.
+
 Done in skill 0.21.0: a gauge and a progress ring (`mark.arc` `endAngle`, `total`, `center`), a step line (`curve: "step"`),
 a total, a share and a rank of the group on every row (`transform.window` ops `total`, `share`, `rank`) with a bump chart, a
 streamgraph (`transform.stack` `center`). They left:
@@ -71,7 +72,11 @@ streamgraph (`transform.stack` `center`). They left:
       the quarter's total over a stacked bar is three labels on one spot, so the recipe shows shares instead.
 - [ ] **The tooltip of a line over stacked bars** shows one product's row ("Q1, Services, 10, 21%"): the line's point is
       every row of its quarter, and the card takes one of them.
-- [ ] **Distributions**: a density transform for violin and ridgeline charts; a beeswarm layout; hexbin and density contours.
+- [ ] **Distributions**: done in skill 0.23.0, violins and ridgelines (`transform.density`, `mark.violin`). A beeswarm is `mark.point`
+      `swarm`. Left: hexbin and density contours; a square 2D histogram (transform.bin of two fields, drawn as rect) would
+      need no new mark. A violin with a box plot inside it is two tables, which one chart cannot hold.
+- [ ] **A beeswarm on a phone** runs out of room: the value axis is 2.5 times shorter, so in the recipe 77 of 270 dots are laid
+      over others at 390 px (none at 768 px and wider). The swarm could shrink `r` for the whole mark until every category fits.
 - Not planned: force-directed networks, chords, word clouds, 3D, Venn diagrams, polar rose and radial bars (they read like
   radar); trees, dendrograms, packed circles and icicles only if a report asks for them; a waffle chart is rect + calculate.
 

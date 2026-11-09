@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-47 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.decimate`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+49 blocks: `lib.curve`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -144,6 +144,20 @@ Version 3, 3.4 KB. Level of detail for long lines: keeps only the rows that can 
 | `group` | field |  | Decimate every series (value of this field) on its own. |
 | `buckets` | number |  | Pixel columns to split the plot width into. Default: one per px of plot width. |
 | `threshold` | number | `4` | Decimate only when the window holds more than `threshold` rows per column. |
+
+## transform.density
+
+Version 1, 2.7 KB. How the raw values of `field` are spread, as a smooth curve (a kernel density estimate): for every group, `steps` evenly spaced rows from a little below its smallest value to a little above its largest, each with the `value` and the `density` there. Draw it with mark.violin (violin plots, ridgelines), or with mark.area / mark.line on x = value, y = density. The curve of each group encloses an area of 1 (with `counts`, its number of samples, so bigger groups are bigger). Replaces the rows: the output has the group field, value, density and `count`, the number of samples of the group.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `field` | field, **required** |  | Numeric field with the raw samples. Missing and non-numeric values are ignored. |
+| `group` | field |  | A curve per value of this field (the category of a violin or a ridge). A missing value is a group of its own. Default: one curve. |
+| `bandwidth` | number |  | How smooth the curve is, in the units of the field: the width of the bump each sample adds. Default: Silverman's rule, per group. Smaller shows more detail and more noise. |
+| `steps` | number | `80` | Rows per curve (2 to 1000). |
+| `extent` | list |  | The range [low, high] the curves are cut to: [0, null] for values that cannot be negative (times, prices), so a curve does not run below 0. null leaves that end to the data. |
+| `counts` | boolean | `false` | Multiply each curve by its number of samples, so a group of 500 is ten times a group of 50. |
+| `as` | list |  | Names of the two new columns: [value, density]. |
 
 ## transform.filter
 
@@ -397,7 +411,7 @@ Needs: `lib.curve`.
 
 ## mark.point
 
-Version 9, 1.6 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top.
+Version 10, 3.1 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -412,6 +426,8 @@ Version 9, 1.6 KB. One circle per row. Channels x and y, optional color (a field
 | `fill` | string |  | Any CSS color. Default: theme color by mark index. |
 | `opacity` | number | `1` | Bubbles overlap: 0.7 lets the ones behind show through. |
 | `stroke` | string |  | Outline color; bubbles read better with the card color as one ("var(--bc-tooltip-bg, #fff)", which follows the dark theme). |
+| `swarm` | boolean | `false` | Spread the points of each category across its band so that none overlap, keeping each at its value: a beeswarm. Needs a band scale on one axis and a value on the other. A point that finds no room in its band is laid over the others: use a smaller r, or for thousands of points a violin (transform.density). |
+| `swarmGap` | number | `1` | Space between the points of a swarm, px. |
 
 ## mark.rect
 
@@ -504,6 +520,27 @@ Version 8, 4.7 KB. A text label per row at (x, y): value labels on bars, annotat
 | `negative` | one of `same`, `flip` | `"same"` | "flip" mirrors the placement of a row whose value is below zero, so that the label of a negative bar sits past its end, not inside it: `baseline` and `dy` on a value y, `anchor` and `dx` on a value x (with a band y, as in horizontal bars). |
 | `collide` | one of `show`, `hide` | `"show"` | "hide" keeps labels off each other, for names on points: in row order, a label that would touch one already placed tries the other side of its point (mirrored `baseline` and `dy`) and is left out if that is taken too. Sort the rows to choose which labels win. |
 | `minSize` | number | `8` | The smallest font size a label that does not fit may shrink to; a label that would need less is not drawn. Set it to `size` to never shrink. |
+
+## mark.violin
+
+Version 1, 2.9 KB. The shape of a distribution per category, from the rows of transform.density (one row per point of a curve): a violin, mirrored on both sides of its band, or with `side: "one"` a ridge standing on the bottom of its band and rising into the one above (a ridgeline, joy plot). Put the categories on a band scale: on x the violins stand up and the value runs along y; on y the shapes lie down and the value runs along x (the usual ridgeline). All shapes share one width scale, so a wider shape is a denser spot; `normalize: "each"` fits every shape to its band instead. Shapes further down are drawn over the ones above them.
+
+| Channel | | Accepted scales | Notes |
+| --- | --- | --- | --- |
+| `x` | **required** | `band`, `linear`, `log`, `time` | The category (band) for violins, or the value for ridges. |
+| `y` | **required** | `band`, `linear`, `log`, `time` | The value for violins, or the category (band) for ridges. |
+| `density` | **required** | none (a plain field) | Numeric field with the density at each point (`density` of transform.density). |
+| `color` | optional | `color`, `sequential` | Fill per category, from a color scale; a category the scale hides is not drawn. |
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `side` | one of `both`, `one` | `"both"` | "both": a violin, the curve mirrored around the middle of the band. "one": a ridge on one side, rising from the bottom of the band (on a band y) or from its left (on a band x). |
+| `extent` | number |  | How much of the band the widest point fills: default 0.9 for a violin, 1.6 for a ridge (above 1 a ridge rises into the band above it, as ridgelines do). |
+| `normalize` | one of `all`, `each` | `"all"` | "all": one width scale for every shape, so they compare. "each": every shape as tall as its band, to read shapes rather than sizes. |
+| `fill` | string |  | Any CSS color, when there is no color channel. Default: the first theme color. |
+| `opacity` | number | `0.85` | Fill opacity. |
+| `stroke` | string |  | Outline color. Default: none for a violin; the card color for a ridge, so a ridge in front stands apart from the one behind it. |
+| `strokeWidth` | number | `1.5` |  |
 
 ## guide.axis
 

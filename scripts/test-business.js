@@ -1106,6 +1106,155 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(isNaN(none.columns.v0[0]), 'a stack of nothing stays nothing');
   });
 
+  // ───────────────────────── distributions: transform.density, mark.violin ─────────────────────────
+
+  /** A deterministic normal sample (Box–Muller on a small LCG), so the tests do not depend on Math.random. */
+  const normal = (n, mu, sd, seed = 1) => {
+    let s = seed;
+    const u = () => ((s = (s * 48271) % 2147483647) / 2147483647);
+    return Array.from({ length: n }, () => mu + sd * Math.sqrt(-2 * Math.log(u())) * Math.cos(2 * Math.PI * u()));
+  };
+  /** The area under one curve of a density table, by trapezoids. */
+  const areaOf = (t, from = 0, to = t.length) => {
+    let a = 0;
+    for (let i = from + 1; i < to; i++) a += ((t.columns.density[i] + t.columns.density[i - 1]) / 2) * (t.columns.value[i] - t.columns.value[i - 1]);
+    return a;
+  };
+
+  test('transform.density: a curve per group of steps rows, its area 1 (or its count), its peak where the samples are', () => {
+    const rows = [...normal(400, 10, 2).map((v) => ({ g: 'a', v })), ...normal(100, 30, 4, 7).map((v) => ({ g: 'b', v }))];
+    const t = apply('density', rows, { field: 'v', group: 'g' });
+    assert.strictEqual(t.length, 160, '80 rows per group');
+    assert.deepStrictEqual([t.columns.g[0], t.columns.g[80]], ['a', 'b'], 'groups in first-appearance order');
+    assert(near(areaOf(t, 0, 80), 1, 0.02) && near(areaOf(t, 80, 160), 1, 0.02), `areas ${areaOf(t, 0, 80)}, ${areaOf(t, 80, 160)}`);
+    let peak = 0;
+    for (let i = 1; i < 80; i++) if (t.columns.density[i] > t.columns.density[peak]) peak = i;
+    assert(Math.abs(t.columns.value[peak] - 10) < 1, `the peak of a is near 10: ${t.columns.value[peak]}`);
+    assert.strictEqual(t.columns.count[0], 400);
+    assert.strictEqual(t.columns.count[80], 100);
+
+    const counted = apply('density', rows, { field: 'v', group: 'g', counts: true });
+    assert(near(areaOf(counted, 0, 80), 400, 8), 'with counts the area is the number of samples');
+    const sharp = apply('density', rows, { field: 'v', group: 'g', bandwidth: 0.2, steps: 200 });
+    const blunt = apply('density', rows, { field: 'v', group: 'g', bandwidth: 3, steps: 200 });
+    const top = (x) => Math.max(...x.columns.density.slice(0, 200));
+    assert(top(sharp) > top(blunt), 'a smaller bandwidth makes a taller, noisier curve');
+    const cut = apply('density', [{ v: 0.2 }, { v: 0.5 }, { v: 3 }], { field: 'v', extent: [0, null] });
+    assert(Math.min(...cut.columns.value) === 0, 'the extent cuts the curve at 0');
+    const named = apply('density', [{ v: 1 }, { v: 2 }], { field: 'v', as: ['ms', 'share'], steps: 5 });
+    assert.deepStrictEqual(Object.keys(named.columns).sort(), ['count', 'ms', 'share']);
+  });
+
+  test('transform.density: hostile input — no numbers, one sample, all alike, bad params, odd groups, a long table', () => {
+    const t = (rows, spec) => apply('density', rows, { field: 'v', ...spec });
+    assert.strictEqual(t([{ v: null }, { v: 'x' }], {}).length, 0, 'nothing to estimate is an empty table, not an error');
+    const one = t([{ v: 5 }], {});
+    assert(one.columns.density.every((d) => isFinite(d) && d >= 0) && Math.max(...one.columns.density) > 0, 'one sample is a bump');
+    const same = t([{ v: 0 }, { v: 0 }, { v: 0 }], {});
+    assert(same.columns.density.every(isFinite) && same.columns.value.every(isFinite), 'samples all alike do not divide by zero');
+    const beyond = t([{ v: -5 }, { v: -4 }], { extent: [0, null] });
+    assert.strictEqual(beyond.length, 0, 'a group lying wholly outside the extent has no curve');
+    for (const [spec, re] of [
+      [{ steps: 1 }, /"steps" must be a whole number from 2 to 1000/],
+      [{ steps: 2.5 }, /"steps"/],
+      [{ bandwidth: 0 }, /"bandwidth" must be a positive number/],
+      [{ bandwidth: 'wide' }, /"bandwidth"/],
+      [{ extent: [5, 1] }, /"extent" must run from low to high/],
+      [{ extent: [0] }, /"extent" must be \[low, high\]/],
+      [{ as: ['a', 'a'] }, /"as" must be two different column names/],
+      [{ field: 'nope' }, /unknown field "nope"/],
+      [{ group: 'nope' }, /unknown field "nope"/],
+    ])
+      assert.throws(() => t([{ v: 1 }], spec), re, JSON.stringify(spec));
+    const odd = t(
+      [
+        { g: null, v: 1 },
+        { g: NaN, v: 2 },
+        { g: 0, v: 3 },
+      ],
+      { group: 'g', steps: 3 },
+    );
+    assert.strictEqual(odd.length, 6, 'null and NaN are one missing group, 0 another');
+    const big = normal(200000, 0, 1).map((v, i) => ({ g: i % 4, v }));
+    const t0 = Date.now();
+    t(big, { group: 'g' });
+    assert(Date.now() - t0 < 2000, `a long table stays fast: ${Date.now() - t0} ms`);
+  });
+
+  const violinOf = (mark, scales, rows) => {
+    BC.data('vio', rows || [...normal(300, 10, 2).map((v) => ({ g: 'a', v })), ...normal(300, 20, 4, 5).map((v) => ({ g: 'b', v }))]);
+    return draw({
+      data: 'vio',
+      size: [400, 300],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      transforms: [{ type: 'density', field: 'v', group: 'g' }],
+      scales: scales || { x: { type: 'band', paddingInner: 0, paddingOuter: 0 }, y: { type: 'linear' } },
+      marks: [{ type: 'violin', x: 'g', y: 'value', density: 'density', ...mark }],
+    });
+  };
+
+  test('mark.violin: a shape per category, mirrored on its band, the widest point 0.9 of the band, one width scale for all', () => {
+    const { svg, h } = violinOf({});
+    assert.deepStrictEqual(h.diagnostics, []);
+    const ps = paths(layer(svg, 'marks'));
+    assert.strictEqual(ps.length, 2);
+    const [a, b] = ps.map((p) => reach(p.d));
+    // bands of 200 px: a is centered on 100, b on 300
+    assert(near((a.x0 + a.x1) / 2, 100, 0.05) && near((b.x0 + b.x1) / 2, 300, 0.05), 'centered on their bands');
+    assert(near(a.x1 - a.x0, 180, 0.1), `the denser shape is 0.9 of its band: ${a.x1 - a.x0}`);
+    assert(b.x1 - b.x0 < 120, 'the spread-out one is narrower: one scale for both');
+    assert(a.y1 - a.y0 < b.y1 - b.y0, 'and shorter along the values');
+    const each = violinOf({ normalize: 'each' });
+    const [ea, eb] = paths(layer(each.svg, 'marks')).map((p) => reach(p.d));
+    assert(near(ea.x1 - ea.x0, 180, 0.1) && near(eb.x1 - eb.x0, 180, 0.1), 'normalize "each" fits both to the band');
+    assert(!/stroke=/.test(ps[0].attrs), 'a violin has no outline by default');
+  });
+
+  test('mark.violin side "one": ridges stand on the bottom of their bands, rise above them, and the lower ones are drawn last', () => {
+    const { svg, h } = violinOf(
+      { x: 'value', y: 'g', side: 'one' },
+      { y: { type: 'band', paddingInner: 0, paddingOuter: 0 }, x: { type: 'linear' } },
+    );
+    assert.deepStrictEqual(h.diagnostics, []);
+    const ps = paths(layer(svg, 'marks'));
+    const [a, b] = ps.map((p) => reach(p.d));
+    // bands of 150 px: a from 0 to 150, b from 150 to 300; ridges rise from 150 and 300
+    assert(near(a.y1, 150, 0.05) && near(b.y1, 300, 0.05), `bases on the bottoms of the bands: ${a.y1}, ${b.y1}`);
+    assert(near(a.y1 - a.y0, 240, 0.1), `the tallest ridge is 1.6 bands: ${a.y1 - a.y0}`);
+    assert(/stroke="var\(--bc-tooltip-bg, #fff\)"/.test(ps[1].attrs), 'a ridge is outlined in the card color');
+    assert(svg.indexOf(ps[1].d) > svg.indexOf(ps[0].d), 'the ridge in front comes after the one behind');
+  });
+
+  test('mark.violin: hostile input — no band scale, a category with one row, a hidden category, nothing to draw', async () => {
+    const plain = violinOf({}, { x: { type: 'linear' }, y: { type: 'linear' } });
+    assert(plain.h.diagnostics.some((d) => d.level === 'error' && /put the categories on a band scale/.test(d.message)));
+    BC.data('vio1', [{ g: 'a', value: 1, density: 0.5 }]);
+    const lone = draw({
+      data: 'vio1',
+      scales: { x: { type: 'band' }, y: { type: 'linear' } },
+      marks: [{ type: 'violin', x: 'g', y: 'value', density: 'density' }],
+    });
+    assert.deepStrictEqual(lone.h.diagnostics, []);
+    assert.strictEqual(paths(layer(lone.svg, 'marks')).length, 0, 'one point is no shape');
+    BC.data('vio2', [
+      { g: 'a', value: 1, density: 0 },
+      { g: 'a', value: 2, density: 0 },
+      { g: 'b', value: 1, density: -1 },
+      { g: 'b', value: 2, density: null },
+    ]);
+    const flat = draw({
+      data: 'vio2',
+      scales: { x: { type: 'band' }, y: { type: 'linear' } },
+      marks: [{ type: 'violin', x: 'g', y: 'value', density: 'density' }],
+    });
+    assert(!/NaN|Infinity/.test(flat.svg), 'a density of zero everywhere draws a flat line, not NaN');
+    const hidden = violinOf({ color: 'g' }, { x: { type: 'band' }, y: { type: 'linear' }, color: { type: 'color' } });
+    assert.strictEqual(paths(layer(hidden.svg, 'marks')).length, 2);
+    hidden.h.setView('color', ['a']); // what a legend filter does
+    await flush();
+    assert.strictEqual(paths(layer(svgOf(hidden.host), 'marks')).length, 1, 'a category the legend hides is not drawn');
+  });
+
   // ───────────────────────── time ticks on a narrow chart, grid count ─────────────────────────
 
   test('scale.time: a step that leaves fewer than two ticks inside the domain gives way to a finer one', () => {
@@ -1148,6 +1297,70 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(linesOf(many) > linesOf(plain), `count 12: ${linesOf(many)} lines, by default ${linesOf(plain)}`);
     assert(linesOf(many) === labelsOf(many), `${linesOf(many)} grid lines, ${labelsOf(many)} labels`);
     assert(BC.validate(spec('many')).some((d) => d.path === 'guides[0].count'));
+  });
+
+  // ───────────────────────── beeswarm: mark.point swarm ─────────────────────────
+
+  const circlesOf = (svg) =>
+    [...layer(svg, 'marks').matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)" r="([\d.]+)"/g)].map((m) => ({ x: +m[1], y: +m[2], r: +m[3] }));
+  const swarmOf = (rows, mark, scales) => {
+    BC.data('bees', rows);
+    return draw({
+      data: 'bees',
+      size: [400, 300],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      scales: scales || { y: { type: 'band', paddingInner: 0, paddingOuter: 0 }, x: { type: 'linear', domain: [0, 100], nice: false } },
+      marks: [{ type: 'point', x: 'v', y: 'g', r: 4, swarm: true, ...mark }],
+    });
+  };
+
+  test('mark.point swarm: no two points touch, each stays at its value and inside its band', () => {
+    const rows = [];
+    for (let i = 0; i < 60; i++) rows.push({ g: 'a', v: 40 + (i % 13) * 0.8 }, { g: 'b', v: 10 + ((i * 7) % 80) });
+    const { svg, h } = swarmOf(rows);
+    assert.deepStrictEqual(h.diagnostics, []);
+    const cs = circlesOf(svg);
+    assert.strictEqual(cs.length, 120);
+    for (let i = 0; i < cs.length; i++)
+      for (let j = i + 1; j < cs.length; j++) {
+        const d = Math.hypot(cs[i].x - cs[j].x, cs[i].y - cs[j].y);
+        assert(d >= 8.9, `points ${i} and ${j} are ${d} px apart`);
+      }
+    // x is the value, kept: 400 px for 0..100
+    const xs = new Set(cs.map((c) => c.x));
+    for (const r of rows) assert([...xs].some((x) => Math.abs(x - r.v * 4) < 0.01), `a point at ${r.v}: ${[...xs].sort((p, q) => p - q).join(' ')}`);
+    // bands of 150 px: a around 75, b around 225; nobody leaves its band
+    assert(
+      cs.every((c) => (c.y >= 4 && c.y <= 146) || (c.y >= 154 && c.y <= 296)),
+      'inside the bands',
+    );
+    const plain = swarmOf(rows, { swarm: false });
+    assert(circlesOf(plain.svg).every((c) => c.y === 75 || c.y === 225), 'without swarm every point is on the middle of its band');
+  });
+
+  test('mark.point swarm: upright on a band x, with a gap between the points', () => {
+    const rows = Array.from({ length: 30 }, (_, i) => ({ g: 'a', v: 50 + (i % 3) }));
+    const up = swarmOf(rows, { x: 'g', y: 'v', swarmGap: 4 }, { x: { type: 'band', paddingInner: 0, paddingOuter: 0 }, y: { type: 'linear', domain: [0, 100], nice: false } });
+    const cs = circlesOf(up.svg);
+    assert(new Set(cs.map((c) => c.x)).size > 5, 'spread along x');
+    for (let i = 0; i < cs.length; i++)
+      for (let j = i + 1; j < cs.length; j++) assert(Math.hypot(cs[i].x - cs[j].x, cs[i].y - cs[j].y) >= 11.9, 'the gap is kept');
+  });
+
+  test('mark.point swarm: hostile input — no band, thousands of equal values, a band too narrow, missing values', () => {
+    const noBand = swarmOf([{ g: 1, v: 1 }], {}, { y: { type: 'linear' }, x: { type: 'linear' } });
+    assert(noBand.h.diagnostics.some((d) => d.level === 'error' && /one of x and y needs a band scale/.test(d.message)));
+    const same = Array.from({ length: 3000 }, () => ({ g: 'a', v: 50 }));
+    const t0 = Date.now();
+    const pile = swarmOf(same);
+    assert(Date.now() - t0 < 3000, `3000 equal values stay fast: ${Date.now() - t0} ms`);
+    const cs = circlesOf(pile.svg);
+    assert.strictEqual(cs.length, 3000, 'all are drawn');
+    assert(cs.every((c) => c.y >= 0 && c.y <= 300 && isFinite(c.x)), 'the ones that do not fit stay inside the band, laid over the others');
+    const narrow = swarmOf([{ g: 'a', v: 1 }, { g: 'a', v: 1 }], { r: 400 });
+    assert(!/NaN|Infinity/.test(narrow.svg), 'a point wider than its band is drawn on the middle');
+    const holes = swarmOf([{ g: 'a', v: null }, { g: null, v: 3 }, { g: 'a', v: 'x' }, { g: 'a', v: 5 }]);
+    assert(!/NaN/.test(holes.svg));
   });
 
   test('transform.window total: a line of totals over stacked bars, one point per bar however many rows it has', () => {
