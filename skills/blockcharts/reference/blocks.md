@@ -411,7 +411,7 @@ Needs: `lib.curve`.
 
 ## mark.point
 
-Version 10, 3.1 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible.
+Version 11, 3.5 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible; on a narrow screen its points shrink so they still fit.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -426,8 +426,9 @@ Version 10, 3.1 KB. One circle per row. Channels x and y, optional color (a fiel
 | `fill` | string |  | Any CSS color. Default: theme color by mark index. |
 | `opacity` | number | `1` | Bubbles overlap: 0.7 lets the ones behind show through. |
 | `stroke` | string |  | Outline color; bubbles read better with the card color as one ("var(--bc-tooltip-bg, #fff)", which follows the dark theme). |
-| `swarm` | boolean | `false` | Spread the points of each category across its band so that none overlap, keeping each at its value: a beeswarm. Needs a band scale on one axis and a value on the other. A point that finds no room in its band is laid over the others: use a smaller r, or for thousands of points a violin (transform.density). |
-| `swarmGap` | number | `1` | Space between the points of a swarm, px. |
+| `swarm` | boolean | `false` | Spread the points of each category across its band so that none overlap, keeping each at its value: a beeswarm. Needs a band scale on one axis and a value on the other. When a category does not fit its band (on a phone, say), all points of the mark shrink as little as makes them fit (see `swarmShrink`); a point that still finds no room is laid over the others: use a taller chart, or for thousands of points a violin (transform.density). |
+| `swarmGap` | number | `1` | Space between the points of a swarm, px; it shrinks with the points. |
+| `swarmShrink` | number | `0.5` | How much smaller the points of a swarm may get when a category does not fit its band, as a share of their radius: 0.5 lets them get half as big, 0 keeps them as given (at most 0.9). |
 
 ## mark.rect
 

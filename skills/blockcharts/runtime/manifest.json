@@ -1302,8 +1302,8 @@
     },
     "mark.point": {
       "file": "blocks/mark.point.js",
-      "bytes": 3158,
-      "version": 10,
+      "bytes": 3617,
+      "version": 11,
       "requires": [],
       "closure": [
         "mark.point"
@@ -1330,12 +1330,17 @@
         "swarm": {
           "kind": "boolean",
           "default": false,
-          "doc": "Spread the points of each category across its band so that none overlap, keeping each at its value: a beeswarm. Needs a band scale on one axis and a value on the other. A point that finds no room in its band is laid over the others: use a smaller r, or for thousands of points a violin (transform.density)."
+          "doc": "Spread the points of each category across its band so that none overlap, keeping each at its value: a beeswarm. Needs a band scale on one axis and a value on the other. When a category does not fit its band (on a phone, say), all points of the mark shrink as little as makes them fit (see `swarmShrink`); a point that still finds no room is laid over the others: use a taller chart, or for thousands of points a violin (transform.density)."
         },
         "swarmGap": {
           "kind": "number",
           "default": 1,
-          "doc": "Space between the points of a swarm, px."
+          "doc": "Space between the points of a swarm, px; it shrinks with the points."
+        },
+        "swarmShrink": {
+          "kind": "number",
+          "default": 0.5,
+          "doc": "How much smaller the points of a swarm may get when a category does not fit its band, as a share of their radius: 0.5 lets them get half as big, 0 keeps them as given (at most 0.9)."
         }
       },
       "channels": {
@@ -1371,7 +1376,7 @@
           "doc": "Radius per row from a scale.size (a bubble chart); rows without a size (missing or negative) are not drawn."
         }
       },
-      "doc": "One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible."
+      "doc": "One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible; on a narrow screen its points shrink so they still fit."
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",

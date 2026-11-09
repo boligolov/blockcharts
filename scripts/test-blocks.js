@@ -2025,6 +2025,27 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(hit(host), ['g: a', 'id: 1']);
   });
 
+  test('mark.point swarm: points shrunk to fit their band are found where they are drawn, at the size they are drawn', async () => {
+    // 30 equal values at r 10 need about 630 px of a 400 px band: the points shrink
+    BC.data('bees-shrunk', Array.from({ length: 30 }, (_, id) => ({ g: 'a', v: 50, id })));
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'bees-shrunk',
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      scales: { y: { type: 'band', paddingInner: 0, paddingOuter: 0 }, x: { type: 'linear', domain: [0, 100], nice: false } },
+      marks: [{ type: 'point', x: 'v', y: 'g', r: 10, swarm: true }],
+      interaction: [{ type: 'tooltip', fields: ['id'] }],
+    });
+    const cs = [...svgOf(host).matchAll(/<circle cx="([\d.-]+)" cy="([\d.-]+)" r="([\d.]+)"/g)].map((m) => ({ x: +m[1], y: +m[2], r: +m[3] }));
+    assert.strictEqual(cs.length, 30);
+    assert(cs[0].r < 10 && cs[0].r >= 5, `shrunk: r ${cs[0].r}`);
+    // the points are drawn in row order; the edge of each is closer to its own centre than any other point is
+    for (const id of [0, 7, 18, 29]) {
+      await hover(host, cs[id].x, cs[id].y + cs[id].r * 0.8);
+      assert.deepStrictEqual(hit(host), ['g: a', `id: ${id}`], `point ${id} at ${cs[id].x}, ${cs[id].y}`);
+    }
+  });
+
   test('mark.violin: the pointer finds the category and the value under it, inside the shape only', async () => {
     const rows = [];
     for (let i = 0; i < 200; i++) rows.push({ g: 'a', v: 10 + ((i % 21) - 10) * 0.3 }, { g: 'b', v: 30 + ((i % 11) - 5) });

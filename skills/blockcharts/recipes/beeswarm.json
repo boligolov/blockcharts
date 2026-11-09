@@ -277,7 +277,7 @@
   "charts": [
     {
       "title": "Deals closed this year, by team, USD",
-      "note": "mark.point with swarm: true on a band scale spreads the deals of each team across its band so none overlap, each at its own value: every deal is visible, the clusters and the outliers too. A log scale suits amounts that span orders of magnitude. How many dots a band holds is set by r, swarmGap and the height of the chart; a dot with no room left is laid over the others, which on a phone (a shorter value axis) happens sooner. For thousands of points per category, use a violin.",
+      "note": "mark.point with swarm: true on a band scale spreads the deals of each team across its band so none overlap, each at its own value: every deal is visible, the clusters and the outliers too. A log scale suits amounts that span orders of magnitude. How many dots a band holds is set by r, swarmGap and the height of the chart; on a phone, where the value axis is shorter, the dots shrink so they still fit. For thousands of points per category, use a violin.",
       "spec": {
         "data": "deals",
         "size": [

@@ -1363,6 +1363,104 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(!/NaN/.test(holes.svg));
   });
 
+  test('mark.point swarm: a category that does not fit its band shrinks every point of the mark, as little as makes it fit', () => {
+    // a: 200 values packed into 10 units; b: 20 spread out, which fit at any width
+    const rows = [];
+    for (let i = 0; i < 200; i++) rows.push({ g: 'a', v: 40 + (i % 41) * 0.25 });
+    for (let i = 0; i < 20; i++) rows.push({ g: 'b', v: 5 + i * 4.5 });
+    const apart = (cs, d) => {
+      for (let i = 0; i < cs.length; i++)
+        for (let j = i + 1; j < cs.length; j++) {
+          const dist = Math.hypot(cs[i].x - cs[j].x, cs[i].y - cs[j].y);
+          if (dist < d) return `points ${i} and ${j} are ${dist.toFixed(2)} px apart, ${d.toFixed(2)} needed`;
+        }
+      return '';
+    };
+    const { svg, h } = swarmOf(rows);
+    assert.deepStrictEqual(h.diagnostics, []);
+    const cs = circlesOf(svg);
+    assert.strictEqual(cs.length, 220);
+    const r = cs[0].r;
+    assert(cs.every((c) => c.r === r), 'one radius for the whole mark, b shrinks with a');
+    assert(r < 4 && r > 2, `shrunk, but not to the floor: r ${r}`);
+    // the gap shrinks with the points: 1 px at r 4, so the closest neighbours are 2r + r/4 apart, not 2r + 1
+    assert.strictEqual(apart(cs, 2 * r + r / 4 - 0.01), '', 'no two touch');
+    assert.notStrictEqual(apart(cs, 2 * r + r / 4 + 0.01), '', 'neighbours sit at the shrunk gap');
+    assert(cs.every((c) => (c.y >= r - 0.01 && c.y <= 150 - r + 0.01) || (c.y >= 150 + r - 0.01 && c.y <= 300 - r + 0.01)), 'inside the bands');
+    // as little as makes it fit: a little bigger, and some point is laid over another
+    const bigger = circlesOf(swarmOf(rows, { r: r * 1.03, swarmShrink: 0 }).svg);
+    assert.notStrictEqual(apart(bigger, 2 * r * 1.03 + 1 - 0.01), '', `at r ${(r * 1.03).toFixed(2)} they would not fit`);
+
+    // a chart wide enough keeps the radius it was given; the same rows on a narrow one shrink
+    const wide = circlesOf(swarmOf(rows.slice(0, 60)).svg);
+    assert(wide.every((c) => c.r === 4), 'a swarm that fits keeps r');
+    BC.data('bees', rows.slice(0, 60));
+    const narrow = circlesOf(
+      draw({
+        data: 'bees',
+        size: [120, 300],
+        padding: { top: 0, right: 0, bottom: 0, left: 0 },
+        scales: { y: { type: 'band', paddingInner: 0, paddingOuter: 0 }, x: { type: 'linear', domain: [0, 100], nice: false } },
+        marks: [{ type: 'point', x: 'v', y: 'g', r: 4, swarm: true }],
+      }).svg,
+    );
+    assert(narrow[0].r < 4, `on a narrow chart: r ${narrow[0].r}`);
+    assert.strictEqual(apart(narrow, 2 * narrow[0].r + narrow[0].r / 4 - 0.01), '');
+  });
+
+  test('mark.point swarm: a zoom lays the swarm out again, so the points grow back when the values spread apart', async () => {
+    const rows = Array.from({ length: 200 }, (_, i) => ({ g: 'a', v: 40 + (i % 41) * 0.25 }));
+    const { host, h, svg } = swarmOf(rows);
+    const r0 = circlesOf(svg)[0].r;
+    assert(r0 < 4, `shrunk at first: r ${r0}`);
+    h.setView('x', [38, 52]); // what a zoom does: the 10 units now take most of the 400 px
+    await flush();
+    const zoomed = circlesOf(svgOf(host));
+    assert(zoomed.every((c) => c.r === 4), `zoomed in: r ${zoomed[0].r}`);
+    h.setView('x', null);
+    await flush();
+    assert.strictEqual(circlesOf(svgOf(host))[0].r, r0, 'back out: the same layout as before');
+  });
+
+  test('mark.point swarmShrink: 0 keeps r and lays over what does not fit; the floor holds; bad values fall back', () => {
+    const rows = Array.from({ length: 200 }, (_, i) => ({ g: 'a', v: 40 + (i % 41) * 0.25 }));
+    const kept = circlesOf(swarmOf(rows, { swarmShrink: 0 }).svg);
+    assert(kept.every((c) => c.r === 4), 'swarmShrink 0: the radius as given');
+    let over = 0;
+    for (let i = 0; i < kept.length; i++)
+      for (let j = i + 1; j < kept.length; j++) if (Math.hypot(kept[i].x - kept[j].x, kept[i].y - kept[j].y) < 8) over++;
+    assert(over > 0, 'and what does not fit is laid over');
+    // thousands of equal values never fit: the points go down to the floor and no further, and stay fast
+    const same = Array.from({ length: 3000 }, () => ({ g: 'a', v: 50 }));
+    const t0 = Date.now();
+    const pile = circlesOf(swarmOf(same).svg);
+    assert(Date.now() - t0 < 3000, `3000 equal values stay fast: ${Date.now() - t0} ms`);
+    assert(pile.every((c) => c.r === 2), `half of r 4 by default: ${pile[0].r}`);
+    assert(circlesOf(swarmOf(same.slice(0, 500), { swarmShrink: 0.25 }).svg).every((c) => c.r === 3), 'swarmShrink 0.25: three quarters');
+    assert(circlesOf(swarmOf(same.slice(0, 500), { swarmShrink: 5 }).svg).every((c) => Math.abs(c.r - 0.4) < 1e-9), 'at most 0.9');
+    assert(circlesOf(swarmOf(same.slice(0, 500), { swarmShrink: -1 }).svg).every((c) => c.r === 2), 'a negative one is the default');
+    const odd = swarmOf(same.slice(0, 50), { swarmShrink: 'lots' });
+    assert(odd.h.diagnostics.some((d) => d.path === 'marks[0].swarmShrink'), 'a string is reported');
+    assert(!/NaN|Infinity/.test(odd.svg));
+    // bubbles shrink in proportion, so the biggest stays the biggest
+    BC.data('bubbles', rows.map((r, i) => ({ ...r, s: 1 + (i % 4) })));
+    const bub = circlesOf(
+      draw({
+        data: 'bubbles',
+        size: [400, 300],
+        padding: { top: 0, right: 0, bottom: 0, left: 0 },
+        scales: {
+          y: { type: 'band', paddingInner: 0, paddingOuter: 0 },
+          x: { type: 'linear', domain: [0, 100], nice: false },
+          size: { type: 'size', range: [2, 8] },
+        },
+        marks: [{ type: 'point', x: 'v', y: 'g', size: 's', swarm: true }],
+      }).svg,
+    );
+    const radii = [...new Set(bub.map((c) => +c.r.toFixed(6)))].sort((a, b) => a - b);
+    assert(radii.length === 4 && radii[3] < 8, `four sizes, shrunk: ${radii.join(' ')}`);
+  });
+
   test('transform.window total: a line of totals over stacked bars, one point per bar however many rows it has', () => {
     const { svg, diagnostics } = drawn(
       [

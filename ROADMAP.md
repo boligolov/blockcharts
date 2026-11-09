@@ -75,8 +75,6 @@ streamgraph (`transform.stack` `center`). They left:
 - [ ] **Distributions**: done in skill 0.23.0, violins and ridgelines (`transform.density`, `mark.violin`). A beeswarm is `mark.point`
       `swarm`. Left: hexbin and density contours; a square 2D histogram (transform.bin of two fields, drawn as rect) would
       need no new mark. A violin with a box plot inside it is two tables, which one chart cannot hold.
-- [ ] **A beeswarm on a phone** runs out of room: the value axis is 2.5 times shorter, so in the recipe 77 of 270 dots are laid
-      over others at 390 px (none at 768 px and wider). The swarm could shrink `r` for the whole mark until every category fits.
 - Not planned: force-directed networks, chords, word clouds, 3D, Venn diagrams, polar rose and radial bars (they read like
   radar); trees, dendrograms, packed circles and icicles only if a report asks for them; a waffle chart is rect + calculate.
 

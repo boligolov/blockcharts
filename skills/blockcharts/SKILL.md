@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.23.0"
+  version: "0.24.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -76,7 +76,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Violin plot and ridgeline**: `{"type": "density", "field": "ms", "group": "region"}` turns raw samples into a smooth curve per group (rows `value`, `density`, `count`; it replaces the rows, so it goes last). Draw it with `{"type": "violin", "x": "region", "y": "value", "density": "density"}` on a band x: a violin per category, which shows what a box plot hides (two humps, a long tail). On a band y with `"side": "one"` the same rows are a ridgeline, a ridge per category rising into the band above (`"paddingInner": 0` on the band scale, and room on top: `padding.top` about 40). For values that cannot be negative give the density `"extent": [0, null]`. A violin needs a few dozen samples per category; with fewer, show the points. See `recipes/violin.json`, `recipes/ridgeline.json`.
 
-**Beeswarm**: every sample as a dot, `mark.point` with `"swarm": true` on a band scale (categories on y, the value on x, or the other way round): the dots of each category spread across its band so none overlap, each at its own value. A band of about 90 px on a 720 px chart holds about a hundred dots of a category at `"r": 3, "swarmGap": 0.5`; a dot that finds no room is laid over the others, and a phone, with its shorter value axis, has room for fewer. With more dots use a smaller `r`, a taller chart or a violin. See `recipes/beeswarm.json`.
+**Beeswarm**: every sample as a dot, `mark.point` with `"swarm": true` on a band scale (categories on y, the value on x, or the other way round): the dots of each category spread across its band so none overlap, each at its own value. A band of about 90 px on a 720 px chart holds about a hundred dots of a category at `"r": 3, "swarmGap": 0.5`. When a category does not fit (on a phone the value axis is shorter), every dot of the mark shrinks as little as makes it fit, down to half its `r` (`swarmShrink` sets how far, 0 keeps `r`); a dot that still finds no room is laid over the others. With more dots use a taller chart or a violin. See `recipes/beeswarm.json`.
 
 **Coloring by a number** (heatmap, colored dots): declare `"color": {"type": "sequential"}` (optionally `"range": ["#hex", "#hex", ...]`, hex colors only; 0 is a real value with a color, `null` is not drawn), give a `rect` or `point` mark `"color": "<numeric field>"`, and add the legend. A row with no number gets no color and is not drawn.
 
