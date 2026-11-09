@@ -556,7 +556,9 @@
               checkParams(path, s, def, ['scale', 'position']);
               if (s.scale !== undefined && (typeof s.scale !== 'string' || !scales[s.scale]))
                 err(`${path}.scale`, `scale "${String(s.scale)}" is not declared in scales`);
-              const places: readonly string[] = s.type === 'legend' ? [...SIDES, 'auto'] : SIDES;
+              // the four sides, unless the guide declares the places it takes (a legend also takes "auto")
+              const declared = def.params && def.params.position;
+              const places: readonly string[] = declared && declared.kind === 'enum' && declared.values ? declared.values : SIDES;
               if (s.position !== undefined && places.indexOf(s.position) < 0)
                 err(`${path}.position`, `position must be one of: ${places.join(', ')}`);
             });
@@ -591,19 +593,21 @@
 
   // ───────────────────────── pipeline ─────────────────────────
 
+  /** The light palette, the one place it is written: a chart falls back on it, and the composer and the site write their
+   *  --bc-c<N> from BC.palette. One strong blue among calm colors, every one far enough from the others. */
   const PALETTE = [
-    '#4e79a7',
-    '#f28e2b',
-    '#e15759',
-    '#76b7b2',
-    '#59a14f',
-    '#edc948',
-    '#b07aa1',
-    '#ff9da7',
-    '#9c755f',
-    '#bab0ac',
-    '#2f6f73',
-    '#a0522d',
+    '#3a6fe4',
+    '#16a39d',
+    '#f29b38',
+    '#e0527a',
+    '#8a6be8',
+    '#5d718f',
+    '#2e9e62',
+    '#ea7b4f',
+    '#8c6d46',
+    '#a3ad3a',
+    '#1f7a9c',
+    '#b0479a',
   ];
 
   function colorAt(index: number): string {
@@ -757,19 +761,19 @@
 
     for (const name of Object.keys(scaleSpecs)) {
       const s = scaleSpecs[name];
+      const def = registry.get(`scale.${s.type}`) as BC.ScaleDef;
       const sources: BC.Column[] = [];
       for (const m of spec.marks) {
-        const def = markDef(m);
-        for (const ch of Object.keys(def.channels)) {
-          const ref = channelRef(m, ch, def.channels[ch]);
+        const md = markDef(m);
+        for (const ch of Object.keys(md.channels)) {
+          const ref = channelRef(m, ch, md.channels[ch]);
           if (!ref || ref.scale !== name) continue;
           if (ref.field !== undefined) sources.push(table.columns[ref.field]);
-          // a constant has to be on the scale it is a value of (a band takes its categories from the data)
-          else if (s.type !== 'band') sources.push([ref.value] as unknown as BC.Column);
+          // a constant has to be on the scale it is a value of, unless the scale takes its domain from fields alone (a band)
+          else if (!def.fieldsOnly) sources.push([ref.value] as unknown as BC.Column);
         }
       }
       if (typeof s.field === 'string') sources.push(table.columns[s.field]);
-      const def = registry.get(`scale.${s.type}`) as BC.ScaleDef;
       scales[name] = def.create(s, { name, sources, range: resolveRange(name, s, plot), color: colorAt });
     }
     const initial = spec.view || {};
@@ -786,7 +790,9 @@
       for (const ch of Object.keys(def.channels)) {
         const ref = channelRef(m, ch, def.channels[ch]);
         const scale = ref && ref.field === undefined && ref.scale !== undefined ? scales[ref.scale] : undefined;
-        if (!ref || !scale || (scale.kind !== 'band' && scale.kind !== 'linear' && scale.kind !== 'log' && scale.kind !== 'time')) continue;
+        // only a scale along the width or the height of the plot has a place to miss
+        const along = scale ? rangeSetting(ref!.scale as string, scaleSpecs[ref!.scale as string]) : undefined;
+        if (!ref || !scale || (along !== 'width' && along !== 'height')) continue;
         const px = scale(ref.value) as number;
         const [a, b] = scale.range() as number[];
         if (!(px >= Math.min(a, b) - 0.5 && px <= Math.max(a, b) + 0.5))
@@ -923,12 +929,17 @@
           approxCount !== undefined
             ? approxCount
             : Math.max(2, Math.round(o === 'vertical' ? plot.h / 40 : o === 'horizontal' ? plot.w / 80 : 6));
-        // categories are named, not sampled: show every label that fits (measured), thin them only when they do not
+        // categories are named, not sampled: show every label that fits, as the guides that write them measure it, and
+        // thin them only when they do not
         if (approxCount === undefined && scale.kind === 'band' && o) {
-          count = Math.max(
-            count,
-            Math.min((scale.domain() as unknown[]).length, ctx.bandLabels(name, o === 'horizontal' ? plot.w : plot.h)),
-          );
+          for (const g of spec.guides || []) {
+            const gd = g.scale === name ? (registry.get(`guide.${g.type}`) as BC.GuideDef | undefined) : undefined;
+            if (gd && gd.fits)
+              count = Math.max(
+                count,
+                Math.min((scale.domain() as unknown[]).length, gd.fits(g, ctx, o === 'horizontal' ? plot.w : plot.h)),
+              );
+          }
         }
         const key = `${name}:${count}`;
         let t = tickCache.get(key);
@@ -943,25 +954,6 @@
           if (c && c.edge === edge) taken[c.side] = Math.max(taken[c.side], c.width);
         }
         return taken;
-      },
-      bandLabels(name, length) {
-        const scale = scales[name];
-        const horizontal = ctx.orientation(name) === 'horizontal';
-        let widest = 0;
-        for (const v of scale.domain() as unknown[]) {
-          const text = String(v);
-          if (!horizontal) {
-            widest = Math.max(widest, ctx.measure(text, 11).h);
-            continue;
-          }
-          // a horizontal axis wraps a long label onto two lines, so what has to fit is about half of it (or its longest word)
-          const full = ctx.measure(text, 11).w;
-          // text without spaces in Chinese, Japanese or Korean breaks anywhere, so a word of it is no limit
-          const word = text.split(/\s+/).reduce((m, part) => Math.max(m, ctx.measure(part, 11).w / (wide(part) ? 2 : 1)), 0);
-          widest = Math.max(widest, Math.min(full, Math.max(word, full / 2)));
-        }
-        // measure() is deliberately generous (layout must never clip), so real labels are narrower than it says: allow for that
-        return Math.floor(length / (horizontal ? widest * 0.9 + 4 : widest + 3));
       },
       rows(mark) {
         let r = rowsCache.get(mark);
@@ -1683,6 +1675,7 @@
     get: (name) => registry.get(name),
     blocks: () => Array.from(registry.keys()) as BC.BlockName[],
     color: colorAt,
+    palette: Object.freeze(PALETTE.slice()),
     data,
     ready,
     defineFn: (name, fn) => {

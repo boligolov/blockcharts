@@ -106,7 +106,7 @@ test('canvas: a chart is one <canvas>, and the bars, grid, axes and labels are d
   assert(/display:block;width:100%;height:auto/.test(canvas.attrs.style), 'scales with its container');
   assert.strictEqual(host.children.length, 1);
   const f = frame(ctx);
-  const filled = ops(f, 'fill').filter((c) => c.fillStyle === '#4e79a7');
+  const filled = ops(f, 'fill').filter((c) => c.fillStyle === '#3a6fe4');
   assert.strictEqual(filled.length, 3, 'one filled rectangle per bar, in the theme color');
   assert.strictEqual(ops(f, 'rect').filter((c) => c.args[2] > 0 && c.args[3] > 0).length >= 3, true);
   assert(
@@ -127,7 +127,7 @@ test('canvas: colors come from CSS variables of the page, with their fallbacks, 
     return frame(draw(w, bars()).ctx);
   };
   const fills = (f) => ops(f, 'fill').map((c) => c.fillStyle);
-  assert.deepStrictEqual(fills(marks({})), ['#4e79a7', '#4e79a7', '#4e79a7'], 'no variable: the fallback written in the mark');
+  assert.deepStrictEqual(fills(marks({})), ['#3a6fe4', '#3a6fe4', '#3a6fe4'], 'no variable: the fallback written in the mark');
   assert.deepStrictEqual(fills(marks({ '--bc-c0': '#ff0000' })), ['#ff0000', '#ff0000', '#ff0000'], 'the page decides');
   assert.deepStrictEqual(
     fills(marks({ '--bc-c0': 'var(--brand, #00ff00)' })),

@@ -3099,6 +3099,92 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.strictEqual(await panned(false), true, 'any other drag pans');
   });
 
+  test('the core knows no scale or guide by name: one of another name that declares the same is treated the same', () => {
+    BC.data(
+      'years',
+      Array.from({ length: 30 }, (_, i) => ({ k: String(1990 + i), v: 10 + i })),
+    );
+    const warned = (spec, what) => BC.chart(new FakeNode('div'), spec).diagnostics.some((d) => what.test(d.message));
+    // marks name the scales their channels take, so these copies of rect and rule take any
+    for (const base of ['rect', 'rule'])
+      if (!BC.get(`mark.any${base}`)) {
+        const d = BC.get('mark.' + base);
+        const channels = {};
+        for (const k of Object.keys(d.channels)) channels[k] = { ...d.channels[k], scales: undefined };
+        BC.define({ ...d, type: 'any' + base, version: 1, channels });
+      }
+
+    // bands of other names: a constant at a category that is not in the data adds it only where the scale does not say
+    // its domain is from fields alone
+    if (!BC.get('scale.slots')) BC.define({ ...BC.get('scale.band'), type: 'slots', version: 1 });
+    if (!BC.get('scale.bins')) BC.define({ ...BC.get('scale.band'), type: 'bins', version: 1, fieldsOnly: false });
+    const ruled = (type) => ({
+      data: 'bullet',
+      size: [640, 400],
+      scales: { x: { type }, y: { type: 'linear', zero: true } },
+      marks: [
+        { type: 'anyrect', x: 'k', y: 'v' },
+        { type: 'anyrule', x: { value: 'C' } },
+      ],
+    });
+    assert.deepStrictEqual(BC.chart(new FakeNode('div'), ruled('bins')).diagnostics, []);
+    assert.strictEqual(warned(ruled('slots'), /constant C is outside scale "x"/), true, 'fieldsOnly: C is no category');
+    assert.strictEqual(warned(ruled('bins'), /constant C/), false, 'otherwise C is one');
+
+    // a number scale of a kind the core has never heard of still has a place along the height for a constant to miss
+    if (!BC.get('scale.pow')) {
+      const linear = BC.get('scale.linear');
+      BC.define({
+        ...linear,
+        type: 'pow',
+        version: 1,
+        create(spec, ctx) {
+          const inner = linear.create(spec, ctx);
+          const own = Object.getOwnPropertyDescriptors(inner);
+          for (const k of ['length', 'name', 'prototype']) delete own[k];
+          return Object.defineProperties((v) => inner(v), { ...own, kind: { value: 'pow' } });
+        },
+      });
+    }
+    const target = {
+      data: 'bullet',
+      size: [640, 400],
+      scales: { x: { type: 'band' }, y: { type: 'pow', domain: [0, 100] } },
+      marks: [
+        { type: 'anyrect', x: 'k', y: 'v' },
+        { type: 'anyrule', y: { value: 500 } },
+      ],
+    };
+    assert.strictEqual(warned(target, /constant 500 is outside scale "y"/), true, 'a constant off a positional scale of any kind');
+
+    // a legend of another name takes the places it declares, "auto" among them
+    if (!BC.get('guide.key')) BC.define({ ...BC.get('guide.legend'), type: 'key', version: 1 });
+    const keyed = (position) => ({
+      ...ruled('band'),
+      marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
+      guides: [{ type: 'key', scale: 'color', position }],
+    });
+    assert.strictEqual(warned(keyed('auto'), /position must be/), false, 'auto, as the key declares');
+    assert.strictEqual(warned(keyed('middle'), /position must be one of: top, right, bottom, left, auto/), true);
+
+    // how many categories show is what the guides that write them say fits
+    if (!BC.get('guide.roomy')) BC.define({ ...BC.get('guide.axis'), type: 'roomy', version: 1, fits: () => 1000 });
+    const labels = (type) => {
+      const host = new FakeNode('div');
+      BC.chart(host, {
+        data: 'years',
+        size: [320, 200],
+        scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+        marks: [{ type: 'rect', x: 'k', y: 'v' }],
+        guides: [{ type, scale: 'x' }],
+      });
+      return texts(layer(svgOf(host), 'axes')).length;
+    };
+    assert(labels('axis') < 30, `the axis thins thirty years on a phone: ${labels('axis')}`);
+    assert.strictEqual(labels('roomy'), 30, 'a guide that says all thirty fit gets all thirty');
+  });
+
   // ───────────────────────── responsive layout ─────────────────────────
 
   test('responsive: a container narrower than the size lays the chart out at its width, again when it changes, keeping the zoom', async () => {

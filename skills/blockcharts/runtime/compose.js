@@ -65,38 +65,70 @@ const jsonForScript = (v) =>
 
 const plain = (v) => JSON.parse(JSON.stringify(v));
 
+/** The chart colors of a dark theme, one for each color of the core's palette (BC.palette: the light colors a chart falls
+ *  back on where a page sets none), lighter so they read on a dark card. */
+const DARK_PALETTE = [
+  '#6f98f4',
+  '#3cc7c0',
+  '#f6b25e',
+  '#f27b9b',
+  '#a88ff3',
+  '#8fa2bd',
+  '#55c68b',
+  '#f69a73',
+  '#c4a57a',
+  '#c6d05e',
+  '#58b4d6',
+  '#dc7cc6',
+];
+
+/** Black or white text, whichever has more contrast on a color (#rrggbb): the rule mark.text follows where a page sets none. */
+function inkOn(hex) {
+  const lin = (i) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  const lum = 0.2126 * lin(1) + 0.7152 * lin(3) + 0.0722 * lin(5);
+  // #111 is not black: its luminance is 0.0056
+  return (lum + 0.05) / 0.0556 >= 1.05 / (lum + 0.05) ? '#111' : '#fff';
+}
+
+/** The css variables of a palette: each color as --bc-c<N>, then the text that reads on it as --bc-on-c<N>. */
+const paletteVars = (colors) =>
+  colors.map((c, i) => `--bc-c${i}:${c};`).join('') + '\n' + colors.map((c, i) => `--bc-on-c${i}:${inkOn(c)}`).join(';');
+
 // Readable without any styling by the caller, and the chart colors follow the reader's light/dark setting. The look of a
 // business dashboard: a quiet grey page, white cards, one strong blue among calm colors, the reader's own UI font (no web
 // font: a report loads nothing), figures that line up. Every color is a variable, so a company palette is a few lines of css.
-const DEFAULT_CSS = [
-  ':root{--bg:#f4f5f7;--card:#fff;--fg:#0f172a;--muted:#64748b;--line:#e4e7ec;',
-  '--bc-text:#1e293b;--bc-label:#64748b;--bc-axis:#cbd2dc;--bc-grid:#edf0f4;--bc-tooltip-bg:#fff;--bc-kpi:#0f172a;--bc-good:#11a05a;--bc-bad:#e5484d;',
-  '--bc-c0:#3a6fe4;--bc-c1:#16a39d;--bc-c2:#f29b38;--bc-c3:#e0527a;--bc-c4:#8a6be8;--bc-c5:#5d718f;--bc-c6:#2e9e62;--bc-c7:#ea7b4f;--bc-c8:#8c6d46;--bc-c9:#a3ad3a;--bc-c10:#1f7a9c;--bc-c11:#b0479a;',
-  '--bc-on-c0:#fff;--bc-on-c1:#111;--bc-on-c2:#111;--bc-on-c3:#111;--bc-on-c4:#111;--bc-on-c5:#fff;--bc-on-c6:#111;--bc-on-c7:#111;--bc-on-c8:#fff;--bc-on-c9:#111;--bc-on-c10:#fff;--bc-on-c11:#fff}',
-  '@media (prefers-color-scheme:dark){:root{--bg:#0c1016;--card:#141a22;--fg:#e8edf4;--muted:#8a96a8;--line:#232b36;',
-  '--bc-text:#d9e0ea;--bc-label:#8a96a8;--bc-axis:#3a4452;--bc-grid:#212a35;--bc-tooltip-bg:#1b2330;--bc-kpi:#f3f6fa;--bc-good:#3dc57f;--bc-bad:#ff6b6f;',
-  '--bc-c0:#6f98f4;--bc-c1:#3cc7c0;--bc-c2:#f6b25e;--bc-c3:#f27b9b;--bc-c4:#a88ff3;--bc-c5:#8fa2bd;--bc-c6:#55c68b;--bc-c7:#f69a73;--bc-c8:#c4a57a;--bc-c9:#c6d05e;--bc-c10:#58b4d6;--bc-c11:#dc7cc6;',
-  '--bc-on-c0:#111;--bc-on-c1:#111;--bc-on-c2:#111;--bc-on-c3:#111;--bc-on-c4:#111;--bc-on-c5:#111;--bc-on-c6:#111;--bc-on-c7:#111;--bc-on-c8:#111;--bc-on-c9:#111;--bc-on-c10:#111;--bc-on-c11:#111}}',
-  '*{box-sizing:border-box}',
-  'body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased}',
-  ':lang(ja){font-family:Inter,"Hiragino Sans","Yu Gothic UI","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif}',
-  ':lang(ko){font-family:Inter,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans CJK KR",sans-serif}',
-  ':lang(zh){font-family:Inter,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif}',
-  ':lang(zh-Hant),:lang(zh-TW),:lang(zh-HK){font-family:Inter,"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif}',
-  '.bc-page{max-width:880px;margin:0 auto;padding:32px 20px 56px}.bc-page.bc-wide{max-width:1240px}',
-  '.bc-header{margin:0 0 20px}.bc-header h1{font-size:24px;line-height:1.2;letter-spacing:-.02em;margin:0 0 4px}.bc-header p{margin:0;color:var(--muted)}',
-  '.bc-grid{display:grid;grid-template-columns:repeat(var(--bc-cols,1),minmax(0,1fr));gap:16px}',
-  '.bc-section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 14px;min-width:0;box-shadow:0 1px 2px rgba(16,24,40,.04)}',
-  '.bc-section h2,.bc-section h3{font-size:14px;font-weight:600;margin:0 0 2px}.bc-section p{margin:0 0 10px;color:var(--muted);font-size:13px}',
-  '.bc-group{grid-column:1/-1;margin:16px 0 -4px}.bc-group:first-child{margin-top:0}.bc-group h2{font-size:18px;line-height:1.3;letter-spacing:-.01em;font-weight:650;margin:0}.bc-group p{margin:2px 0 0;color:var(--muted)}',
-  '.bc-facets{display:grid;grid-template-columns:repeat(var(--bc-facet-cols,2),minmax(0,1fr));gap:12px 16px}.bc-facet{min-width:0}.bc-section h4{font-size:12px;font-weight:600;margin:0 0 2px}',
-  '.bc-facet-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;margin:0 0 8px}.bc-facet-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.bc-facet-legend button{all:unset;cursor:pointer}.bc-facet-legend button:focus-visible{outline:2px solid currentColor;outline-offset:2px}.bc-facet-legend [aria-pressed=false]{opacity:.4}',
-  '@media (max-width:720px){.bc-facets{grid-template-columns:repeat(min(var(--bc-facet-cols,2),2),minmax(0,1fr))}}@media (max-width:480px){.bc-facets{grid-template-columns:minmax(0,1fr)}}',
-  '.bc-scroll{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}',
-  '.bc-chart{user-select:none}.bc-chart text{font-variant-numeric:tabular-nums}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}',
-  '@media (max-width:720px){.bc-grid{grid-template-columns:repeat(var(--bc-phone-cols,1),minmax(0,1fr))}.bc-grid>.bc-section{grid-column:1/-1!important}.bc-grid>.bc-section.bc-tile{grid-column:auto!important}.bc-page{padding:20px 12px 40px}}',
-  '@media print{body{background:#fff}.bc-page,.bc-page.bc-wide{max-width:none;padding:0}.bc-section{box-shadow:none;break-inside:avoid}.bc-group{break-after:avoid}.bc-scroll{overflow:visible}}',
-].join('\n');
+// The light colors are the core's, so a page and a chart that falls back on them never differ.
+const defaultCss = (light) =>
+  [
+    ':root{--bg:#f4f5f7;--card:#fff;--fg:#0f172a;--muted:#64748b;--line:#e4e7ec;',
+    '--bc-text:#1e293b;--bc-label:#64748b;--bc-axis:#cbd2dc;--bc-grid:#edf0f4;--bc-tooltip-bg:#fff;--bc-kpi:#0f172a;--bc-good:#11a05a;--bc-bad:#e5484d;',
+    paletteVars(light) + '}',
+    '@media (prefers-color-scheme:dark){:root{--bg:#0c1016;--card:#141a22;--fg:#e8edf4;--muted:#8a96a8;--line:#232b36;',
+    '--bc-text:#d9e0ea;--bc-label:#8a96a8;--bc-axis:#3a4452;--bc-grid:#212a35;--bc-tooltip-bg:#1b2330;--bc-kpi:#f3f6fa;--bc-good:#3dc57f;--bc-bad:#ff6b6f;',
+    paletteVars(DARK_PALETTE) + '}}',
+    '*{box-sizing:border-box}',
+    'body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased}',
+    ':lang(ja){font-family:Inter,"Hiragino Sans","Yu Gothic UI","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif}',
+    ':lang(ko){font-family:Inter,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans CJK KR",sans-serif}',
+    ':lang(zh){font-family:Inter,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif}',
+    ':lang(zh-Hant),:lang(zh-TW),:lang(zh-HK){font-family:Inter,"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif}',
+    '.bc-page{max-width:880px;margin:0 auto;padding:32px 20px 56px}.bc-page.bc-wide{max-width:1240px}',
+    '.bc-header{margin:0 0 20px}.bc-header h1{font-size:24px;line-height:1.2;letter-spacing:-.02em;margin:0 0 4px}.bc-header p{margin:0;color:var(--muted)}',
+    '.bc-grid{display:grid;grid-template-columns:repeat(var(--bc-cols,1),minmax(0,1fr));gap:16px}',
+    '.bc-section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 14px;min-width:0;box-shadow:0 1px 2px rgba(16,24,40,.04)}',
+    '.bc-section h2,.bc-section h3{font-size:14px;font-weight:600;margin:0 0 2px}.bc-section p{margin:0 0 10px;color:var(--muted);font-size:13px}',
+    '.bc-group{grid-column:1/-1;margin:16px 0 -4px}.bc-group:first-child{margin-top:0}.bc-group h2{font-size:18px;line-height:1.3;letter-spacing:-.01em;font-weight:650;margin:0}.bc-group p{margin:2px 0 0;color:var(--muted)}',
+    '.bc-facets{display:grid;grid-template-columns:repeat(var(--bc-facet-cols,2),minmax(0,1fr));gap:12px 16px}.bc-facet{min-width:0}.bc-section h4{font-size:12px;font-weight:600;margin:0 0 2px}',
+    '.bc-facet-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;margin:0 0 8px}.bc-facet-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.bc-facet-legend button{all:unset;cursor:pointer}.bc-facet-legend button:focus-visible{outline:2px solid currentColor;outline-offset:2px}.bc-facet-legend [aria-pressed=false]{opacity:.4}',
+    '@media (max-width:720px){.bc-facets{grid-template-columns:repeat(min(var(--bc-facet-cols,2),2),minmax(0,1fr))}}@media (max-width:480px){.bc-facets{grid-template-columns:minmax(0,1fr)}}',
+    '.bc-scroll{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}',
+    '.bc-chart{user-select:none}.bc-chart text{font-variant-numeric:tabular-nums}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}',
+    '@media (max-width:720px){.bc-grid{grid-template-columns:repeat(var(--bc-phone-cols,1),minmax(0,1fr))}.bc-grid>.bc-section{grid-column:1/-1!important}.bc-grid>.bc-section.bc-tile{grid-column:auto!important}.bc-page{padding:20px 12px 40px}}',
+    '@media print{body{background:#fff}.bc-page,.bc-page.bc-wide{max-width:none;padding:0}.bc-section{box-shadow:none;break-inside:avoid}.bc-group{break-after:avoid}.bc-scroll{overflow:visible}}',
+  ].join('\n');
 
 const COMPRESS_MIN_CHARS = 2048;
 const COMPRESS_MIN_GAIN = 0.75;
@@ -666,7 +698,7 @@ function compose(opts) {
     '<!doctype html>',
     `<html lang="${pageLang || 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`,
     `<title>${escapeText(options.title || 'Charts')}</title>`,
-    styleTag([options.defaultCss === false ? '' : DEFAULT_CSS, options.css ? String(options.css) : '']),
+    styleTag([options.defaultCss === false ? '' : defaultCss(Array.from(BC.palette)), options.css ? String(options.css) : '']),
     '</head><body>',
     `<main class="bc-page${columns > 1 ? ' bc-wide' : ''}">`,
     header,
@@ -696,7 +728,7 @@ function compose(opts) {
   return { html, blocks: blockNames, bytes, diagnostics, unusedData, compressed, core, entries: shown };
 }
 
-module.exports = { compose, ComposeError, jsonForScript, escapeText, resolveDataset, DEFAULT_CSS };
+module.exports = { compose, ComposeError, jsonForScript, escapeText, resolveDataset, DARK_PALETTE, paletteVars };
 
 // CLI: node scripts/compose.js page.json out.html
 //   page.json = { "title": "...", "data": { ... }, "charts": [ ... ] }

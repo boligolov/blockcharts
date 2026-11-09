@@ -6,7 +6,7 @@ const vm = require('vm');
 const zlib = require('zlib');
 const assert = require('assert');
 const { buildManifest } = require('./build-manifest.js');
-const { compose, ComposeError, DEFAULT_CSS } = require('./compose.js');
+const { compose, ComposeError, DARK_PALETTE } = require('./compose.js');
 
 let passed = 0;
 let failed = 0;
@@ -306,8 +306,9 @@ test('compose: the text set on each palette color is the one with more contrast,
     return 0.2126 * part(0) + 0.7152 * part(2) + 0.0722 * part(4);
   };
   const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-  const colors = [...DEFAULT_CSS.matchAll(/--bc-c(\d+):#([0-9a-f]{6})/g)];
-  const inks = [...DEFAULT_CSS.matchAll(/--bc-on-c(\d+):#(fff|111)/g)];
+  const css = compose({ data: DATA, charts: [bars()] }).html.match(/<style>[\s\S]*?<\/style>/)[0];
+  const colors = [...css.matchAll(/--bc-c(\d+):#([0-9a-f]{6})/g)];
+  const inks = [...css.matchAll(/--bc-on-c(\d+):#(fff|111)/g)];
   assert.strictEqual(colors.length, 24, 'twelve colors, two themes');
   assert.strictEqual(inks.length, 24);
   colors.forEach(([, n, hex], i) => {
@@ -316,6 +317,28 @@ test('compose: the text set on each palette color is the one with more contrast,
     const dark = contrast(lum(hex), lum('111111'));
     assert.strictEqual(inks[i][2], dark >= light ? '111' : 'fff', `--bc-c${n}: #${hex}`);
   });
+});
+
+test('compose: the light colors of a page are the ones the core falls back on, and the dark ones as many', () => {
+  const dist = path.join(__dirname, '../dist/min');
+  const sandbox = {};
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(dist, 'core.js'), 'utf8'), sandbox);
+  const palette = Array.from(sandbox.BC.palette);
+  assert.strictEqual(palette.length, 12);
+  palette.forEach((c, i) => assert.strictEqual(sandbox.BC.color(i), `var(--bc-c${i}, ${c})`));
+  assert.strictEqual(DARK_PALETTE.length, palette.length, 'a dark color for every light one');
+  const css = compose({ data: DATA, charts: [bars()], distDir: dist }).html.match(/<style>[\s\S]*?<\/style>/)[0];
+  const light = css.slice(0, css.indexOf('prefers-color-scheme:dark'));
+  const dark = css.slice(css.indexOf('prefers-color-scheme:dark'));
+  assert.deepStrictEqual(
+    [...light.matchAll(/--bc-c\d+:(#[0-9a-f]{6})/g)].map((m) => m[1]),
+    palette,
+  );
+  assert.deepStrictEqual(
+    [...dark.matchAll(/--bc-c\d+:(#[0-9a-f]{6})/g)].map((m) => m[1]),
+    DARK_PALETTE,
+  );
 });
 
 test('compose: unused datasets stay off the page, unless a script of the page may read them', () => {

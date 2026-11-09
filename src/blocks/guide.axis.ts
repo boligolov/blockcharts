@@ -58,8 +58,29 @@
     }
     if (cats.length < 2 || length / cats.length < MIN_SLANT_STEP) return 0;
     if (cats.every((c) => typeof c === 'number' || c instanceof Date || SEQUENCE.test(String(c)))) return 0;
-    if (ctx.bandLabels(spec.scale as string, length) >= cats.length) return 0;
+    if (fits(spec, ctx, length) >= cats.length) return 0;
     return length / cats.length < MIN_TILT_STEP ? 90 : 45;
+  }
+
+  /** How many categories of the band fit along `length` px. A horizontal axis wraps a long label onto two lines, so what
+   *  has to fit is about half of it (or its longest word); a vertical one stacks them a line apart. */
+  function fits(spec: BC.GuideSpec, ctx: BC.ChartCtx, length: number): number {
+    const name = spec.scale as string;
+    const horizontal = ctx.orientation(name) === 'horizontal';
+    let widest = 0;
+    for (const v of ctx.scales[name].domain() as unknown[]) {
+      const text = String(v);
+      if (!horizontal) {
+        widest = Math.max(widest, ctx.measure(text, FONT).h);
+        continue;
+      }
+      const full = ctx.measure(text, FONT).w;
+      // text without spaces in Chinese, Japanese or Korean breaks anywhere, so a word of it is no limit
+      const word = text.split(/\s+/).reduce((m, part) => Math.max(m, ctx.measure(part, FONT).w / (ctx.wide(part) ? 2 : 1)), 0);
+      widest = Math.max(widest, Math.min(full, Math.max(word, full / 2)));
+    }
+    // measure() is deliberately generous (layout must never clip), so real labels are narrower than it says: allow for that
+    return Math.floor(length / (horizontal ? widest * 0.9 + 4 : widest + 3));
   }
 
   const shorten = (label: string) => (label.length > MAX_SLANT_CHARS ? label.slice(0, MAX_SLANT_CHARS - 1) + '…' : label);
@@ -156,7 +177,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 11,
+    version: 12,
     doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.',
     params: {
       scale: { kind: 'scale', required: true },
@@ -184,6 +205,7 @@
         doc: 'Which end thinned labels count from: "end" keeps the last one, for a report about the latest period.',
       },
     },
+    fits,
     measure(spec, ctx) {
       if (!spec.scale) return {};
       const side = sideOf(spec, ctx);

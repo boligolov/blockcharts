@@ -16,7 +16,8 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'band',
-    version: 2,
+    version: 3,
+    fieldsOnly: true,
     doc: "Categorical scale: one band per distinct value, in first-seen order. Maps a value to the band's lower edge; `bandwidth` is the band width. Bands always run in increasing pixel order (left to right, top to bottom), also on a vertical axis, so horizontal bars list their categories from the top. Zoom = a window of categories.",
     params: {
       paddingInner: { kind: 'number', default: 0.2, doc: 'Gap between bands, as a fraction of the step.' },

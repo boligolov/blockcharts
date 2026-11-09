@@ -2,13 +2,15 @@
 //   site/public/release/                 the real kits, loader and blocks, so every page loads them from its own origin
 //   site/public/examples/<name>.report.html   what the composer makes from each recipe
 //   site/src/data/reports.json           { name: bytes } of those reports, for the pages
+//   site/src/data/palette.css            the chart colors: the core's light palette and the composer's dark one
 //   site/public/blockcharts.skill        the agent skill as an uploadable zip, the download the site links to
 // Needs `npm run build && npm run manifest` first (the site scripts in package.json do it).
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const vm = require('vm');
 const { buildRelease } = require('./build-dist.js');
-const { compose } = require('./compose.js');
+const { compose, DARK_PALETTE, paletteVars } = require('./compose.js');
 const { checkSkill, packSkill } = require('./build-skill.js');
 
 const repo = path.join(__dirname, '..');
@@ -21,6 +23,24 @@ function forDownload(html, name) {
   const head = '<meta name="robots" content="noindex">\n<link rel="canonical" href="' + SITE + '/examples/' + name + '/">\n';
   if (html.split('</head>').length !== 2) throw new Error(`report ${name}: no single </head> to put the robots tag before`);
   return html.replace('</head>', () => head + '</head>');
+}
+
+/** The chart colors in the site's own switch of themes: light from the core (BC.palette, what a chart falls back on), dark
+ *  from the composer, so the site, a composed report and a chart without a page around it show the same colors. */
+function paletteCss(distDir) {
+  const manifest = JSON.parse(fs.readFileSync(path.join(distDir, 'manifest.json'), 'utf8'));
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(distDir, manifest.core.file), 'utf8'), sandbox);
+  const light = paletteVars(Array.from(sandbox.BC.palette));
+  const dark = paletteVars(DARK_PALETTE);
+  return [
+    '/* made by scripts/site-prebuild.js */',
+    `:root{${light}}`,
+    `@media (prefers-color-scheme: dark){:root:not([data-theme='light']){${dark}}}`,
+    `:root[data-theme='dark']{${dark}}`,
+    '',
+  ].join('\n');
 }
 
 function prebuild() {
@@ -54,6 +74,7 @@ function prebuild() {
     }
     fs.mkdirSync(path.join(site, 'src', 'data'), { recursive: true });
     fs.writeFileSync(path.join(site, 'src', 'data', 'reports.json'), JSON.stringify(sizes, null, 2) + '\n');
+    fs.writeFileSync(path.join(site, 'src', 'data', 'palette.css'), paletteCss(distDir));
     // the download is the committed skill, and only while it is current
     const stale = checkSkill();
     if (stale.length) throw new Error(`skills/blockcharts is out of date, run npm run skill: ${stale.join(', ')}`);

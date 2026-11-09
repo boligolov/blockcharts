@@ -2,7 +2,7 @@
 // Usage: npm run page   (or: node scripts/page.js)  → dist/page.html
 const fs = require('fs');
 const path = require('path');
-const { compose } = require('./compose.js');
+const { compose, DARK_PALETTE, paletteVars } = require('./compose.js');
 
 const DAY = 86400000;
 
@@ -166,16 +166,16 @@ const charts = [
 ];
 
 // ── page chrome ──
+// the light chart colors are the ones the core falls back on; the dark ones are the composer's
 const css = `
 :root{--bg:#fafaf9;--card:#fff;--line:#e7e5e4;--fg:#1c1917;--muted:#78716c;
- --bc-text:#44403c;--bc-axis:#a8a29e;--bc-grid:#eeeceb;--bc-tooltip-bg:#fff;
- --bc-c0:#4e79a7;--bc-c1:#f28e2b;--bc-c2:#e15759;--bc-c3:#76b7b2;--bc-c4:#59a14f;--bc-c5:#edc948;--bc-c6:#b07aa1;--bc-c7:#ff9da7}
+ --bc-text:#44403c;--bc-axis:#a8a29e;--bc-grid:#eeeceb;--bc-tooltip-bg:#fff}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#141312;--card:#1c1b19;--line:#2e2c29;--fg:#f5f5f4;--muted:#a8a29e;
  --bc-text:#d6d3d1;--bc-axis:#78716c;--bc-grid:#2a2826;--bc-tooltip-bg:#292725;
- --bc-c0:#7aa6d6;--bc-c1:#ffb066;--bc-c2:#ff7f80;--bc-c3:#8fd3ce;--bc-c4:#7ec672;--bc-c5:#f5d76e;--bc-c6:#d0a0c6;--bc-c7:#ffb3bc}}
+ ${paletteVars(DARK_PALETTE)}}}
 :root[data-theme=dark]{--bg:#141312;--card:#1c1b19;--line:#2e2c29;--fg:#f5f5f4;--muted:#a8a29e;
  --bc-text:#d6d3d1;--bc-axis:#78716c;--bc-grid:#2a2826;--bc-tooltip-bg:#292725;
- --bc-c0:#7aa6d6;--bc-c1:#ffb066;--bc-c2:#ff7f80;--bc-c3:#8fd3ce;--bc-c4:#7ec672;--bc-c5:#f5d76e;--bc-c6:#d0a0c6;--bc-c7:#ffb3bc}
+ ${paletteVars(DARK_PALETTE)}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}
 main{max-width:760px;margin:0 auto;padding:24px 16px 64px}
 header{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:8px}

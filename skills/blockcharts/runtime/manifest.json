@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 30608,
+    "bytes": 30405,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 25289,
+        "bytes": 25051,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 22277,
+        "bytes": 22039,
         "off": [
           "CHECKS",
           "DECODE"
@@ -74,8 +74,8 @@
     },
     "scale.band": {
       "file": "blocks/scale.band.js",
-      "bytes": 1216,
-      "version": 2,
+      "bytes": 1230,
+      "version": 3,
       "requires": [],
       "closure": [
         "scale.band"
@@ -1900,8 +1900,8 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 6438,
-      "version": 11,
+      "bytes": 6793,
+      "version": 12,
       "requires": [],
       "closure": [
         "guide.axis"

@@ -1078,6 +1078,37 @@ name its own type. The scan finds all seven places that named another block befo
 and interactions under new names with the same declarations, and checks that they are treated the same way. Putting
 back the old tooltip, crosshair, line, animate or zoom fails it.
 
+## The core knows no block
+
+The third item of the audit: the core named blocks in four places, and now it reads what they declare.
+
+- **`ScaleDef.fieldsOnly`** (band): the domain comes from fields alone. A constant a channel writes, such as a rule at one
+  category, adds nothing to it. Before, the core skipped constants for a scale of type `band`.
+- **The constants check** warns about a constant that misses its scale only along the width or the height of the
+  plot. That is a scale named `x` or `y`, or one with `range: "width"` or `"height"`. Before, it listed the kinds band,
+  linear, log and time. A size scale was among them, though a radius has no place to miss.
+- **`position` of a guide** is checked against the values the guide declares. Without a declaration it is one of the
+  four sides. Before, the core added `auto` for a guide of type `legend`.
+- **`GuideDef.fits`** (axis): how many labels of its band fit along a length. `ChartCtx.ticks` of a band shows as many
+  as the guides bound to that scale say fit. The measuring moved from the core's `bandLabels` into guide.axis.
+
+**The palette has one source.** The core's `PALETTE` was Tableau's. The composer and the site wrote the dashboard palette
+over it, and the site set only 8 of the 12 colors. So the 9th to 12th series on the site, and every color of a chart on
+a page with no CSS, came from another palette. Now:
+
+- the light palette is written once, in the core, and given as `BC.palette`;
+- the composer writes its `--bc-c<N>` from it, and the text on each color, `--bc-on-c<N>`, by contrast;
+- the dark palette lives in the composer (`DARK_PALETTE`);
+- the site generates `site/src/data/palette.css` from both in `site-prebuild.js`;
+- the demo page sets only the dark colors.
+
+The core is 0.2 KB lighter and guide.axis is 0.35 KB heavier. A test defines a band, a number scale of a new kind, a
+legend and an axis under other names, and checks that each is treated as what it declares. Putting back any of the
+four old names in the core fails it. Another test checks that the light colors of a composed page are `BC.palette`.
+
+One leak is left for later. A mark lists the scale types its channels accept by name (`scales: ['linear', ...]`), so
+a scale of a new name fits no built-in mark. The test uses copies of rect and rule that accept any scale.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

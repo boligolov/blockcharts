@@ -329,8 +329,6 @@ declare namespace BC {
     wide(text: string): boolean;
     /** The px an overlay (InteractionDef.corner) takes from the left and the right end of the chart's top or bottom edge. */
     edgeTaken(edge: 'top' | 'bottom'): { left: number; right: number };
-    /** How many labels of a band scale fit along `length` px, the way an axis writes them. */
-    bandLabels(scale: string, length: number): number;
     /** An interaction on the chart reads it along x, at any height (InteractionDef.alongX, a crosshair): a mark's pick
      *  then answers for the x of the pointer above or below its shape too. */
     readonly alongX: boolean;
@@ -415,6 +413,9 @@ declare namespace BC {
   interface ScaleDef extends BlockBase {
     role: 'scale';
     create(spec: ScaleSpec, ctx: ScaleCtx): Scale;
+    /** true: a domain it infers comes from fields alone, and a constant a channel writes (a rule at one category) adds
+     *  nothing to it. A band takes its categories from the data; a number scale stretches to show a constant. */
+    fieldsOnly?: boolean;
   }
 
   /** What a view-dependent transform may look at: where the plot is and the scales as they are drawn now (zoomed). */
@@ -497,6 +498,9 @@ declare namespace BC {
      *  `position: "right"` uses it to draw outside the first one instead of
      *  on top of it. Zero on all sides when this is the only guide there. */
     render(spec: GuideSpec, ctx: ChartCtx, offset: Insets): Emission;
+    /** For a guide that writes the categories of a band scale (an axis): how many of its labels fit along `length` px,
+     *  the way it writes them. ChartCtx.ticks shows every category that fits for the guides of that scale. */
+    fits?(spec: GuideSpec, ctx: ChartCtx, length: number): number;
   }
 
   interface InteractionDef extends BlockBase {
@@ -581,6 +585,9 @@ declare namespace BC {
     blocks(): BlockName[];
     /** The palette color of an index: what a color scale gives its n-th category. */
     color(index: number): string;
+    /** The colors of the palette, light, as `color(index)` falls back on them where a page sets no `--bc-c<N>`. A page
+     *  in another theme (dark) sets the variables; the composer writes these for the light one. */
+    readonly palette: readonly string[];
 
     /** Add/replace a dataset in the data lake (the page's #bc-data is loaded on mount). Rows and columns are
      *  available at once; an EncodedDataset is decoded in the background (a failure is reported by the charts
