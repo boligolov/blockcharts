@@ -129,14 +129,12 @@
       const strokeWidth = typeof spec.strokeWidth === 'number' ? spec.strokeWidth : 1.5;
       return l.shapes
         .filter((s) => s.rows.length > 1)
-        .map(
-          (s): BC.Prim => ({
-            type: 'path',
-            d: outline(l, s),
-            style: { fill: s.color, fillOpacity: opacity, stroke, strokeWidth: stroke ? strokeWidth : undefined },
-            ref: { mark: index, row: s.rows[0] },
-          }),
-        );
+        .map((s): BC.Prim => ({
+          type: 'path',
+          d: outline(l, s),
+          style: { fill: s.color, fillOpacity: opacity, stroke, strokeWidth: stroke ? strokeWidth : undefined },
+          ref: { mark: index, row: s.rows[0] },
+        }));
     },
     pick(spec, ctx, index, px, py) {
       const l = layout(spec, ctx, index);

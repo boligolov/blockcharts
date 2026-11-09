@@ -15,7 +15,11 @@
     doc: 'Marks the rows to set apart in a new column `as`: "yes" there and "no" elsewhere (or your own words, `yes` and `no`). Choose them by `pick` (the max or min of `field`, its first or last usable row; ties are all marked) or by `value` (the rows of `field` equal to it). Give the column to a color channel with a scale of two colors, and the best month stands out from the bars around it.',
     params: {
       field: { kind: 'field', required: true, doc: 'The field the rows are chosen by.' },
-      pick: { kind: 'enum', values: PICKS, doc: 'Which rows: the largest or smallest number, the first or last row that has one. Or give `value`.' },
+      pick: {
+        kind: 'enum',
+        values: PICKS,
+        doc: 'Which rows: the largest or smallest number, the first or last row that has one. Or give `value`.',
+      },
       value: { kind: 'any', doc: 'The rows of `field` equal to this, text or a number, instead of `pick`.' },
       as: { kind: 'string', default: 'highlight', doc: 'Name of the new column.' },
       yes: { kind: 'string', default: 'yes', doc: 'What a marked row holds; it is what a legend would show.' },
@@ -47,7 +51,8 @@
           last = i;
           if (!(best === best) || (spec.pick === 'max' ? v > best : v < best)) best = v;
         }
-        chosen = spec.pick === 'first' ? (i) => i === first : spec.pick === 'last' ? (i) => i === last : (i) => usable(i) && col[i] === best;
+        chosen =
+          spec.pick === 'first' ? (i) => i === first : spec.pick === 'last' ? (i) => i === last : (i) => usable(i) && col[i] === best;
       }
       const yes = textOf(spec.yes, 'yes');
       const no = textOf(spec.no, 'no');

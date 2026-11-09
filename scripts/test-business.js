@@ -781,7 +781,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
         guides: [{ type: 'legend', scale: 'color', position: 'auto' }],
         marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
       });
-      assert.deepStrictEqual(h.diagnostics.filter((d) => d.level === 'error'), []);
+      assert.deepStrictEqual(
+        h.diagnostics.filter((d) => d.level === 'error'),
+        [],
+      );
       const m = /class="bc-legend-item"[\s\S]*?<rect[^>]* x="([\d.]+)"[^>]* y="([\d.]+)"/.exec(host.children[0].serialize());
       const out = { x: +m[1], y: +m[2] };
       h.destroy();
@@ -805,9 +808,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
   const months = ['2025-09', '2025-10', '2025-11', '2025-12'].map((m, i) => ({ m, v: [5, 9, 2, 7][i] }));
 
   test('guide.kpi: a note without a change is drawn, and a plain total takes no room for the line under it', () => {
-    const tile = (extra) => drawn(months, { size: [280, 120], guides: [{ type: 'kpi', field: 'v', aggregate: 'sum', compare: 'none', ...extra }] });
+    const tile = (extra) =>
+      drawn(months, { size: [280, 120], guides: [{ type: 'kpi', field: 'v', aggregate: 'sum', compare: 'none', ...extra }] });
     assert(/bc-kpi-note[\s\S]*37% of total/.test(tile({ note: '37% of total' }).svg));
-    const small = drawn(months, { size: [280, 60], padding: { top: 0, bottom: 0 }, guides: [{ type: 'kpi', field: 'v', aggregate: 'sum', compare: 'none' }] });
+    const small = drawn(months, {
+      size: [280, 60],
+      padding: { top: 0, bottom: 0 },
+      guides: [{ type: 'kpi', field: 'v', aggregate: 'sum', compare: 'none' }],
+    });
     assert.deepStrictEqual(small.diagnostics, []);
   });
 
@@ -873,9 +881,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
   });
 
   test('mark.arc: labelFormat writes shares and values', () => {
-    const rows = [{ k: 'a', v: 451 }, { k: 'b', v: 549 }];
-    const pie = (label, labelFormat) =>
-      drawn(rows, { size: [300, 300], marks: [{ type: 'arc', value: 'v', label, labelFormat }] }).svg;
+    const rows = [
+      { k: 'a', v: 451 },
+      { k: 'b', v: 549 },
+    ];
+    const pie = (label, labelFormat) => drawn(rows, { size: [300, 300], marks: [{ type: 'arc', value: 'v', label, labelFormat }] }).svg;
     assert(pie('percent', { style: 'percent', maximumFractionDigits: 1 }).includes('45.1%'));
     assert(pie('percent').includes('45%'));
     assert(pie('value', { suffix: ' kg' }).includes('451 kg'));
@@ -884,7 +894,11 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
   // ───────────────────────── gauges: mark.arc endAngle, total, center ─────────────────────────
 
   const gauge = (rows, extra, size = [400, 300]) =>
-    drawn(rows, { size, padding: { top: 0, right: 0, bottom: 0, left: 0 }, marks: [{ type: 'arc', value: 'v', innerRadius: 0.7, ...extra }] });
+    drawn(rows, {
+      size,
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      marks: [{ type: 'arc', value: 'v', innerRadius: 0.7, ...extra }],
+    });
   /** Every point of a path's commands (M, L, A ends), to see where an arc reaches. */
   const reach = (d) => {
     const nums = [...d.matchAll(/[ML]([\d.-]+) ([\d.-]+)|A[\d.]+ [\d.]+ 0 [01] [01] ([\d.-]+) ([\d.-]+)/g)].map((m) =>
@@ -952,7 +966,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       [{ total: -5 }, /total has to be a positive number/],
     ]) {
       const d = gauge([{ v: 1 }], extra).diagnostics;
-      assert(d.some((x) => x.level === 'error' && re.test(x.message)), `${JSON.stringify(extra)}: ${JSON.stringify(d)}`);
+      assert(
+        d.some((x) => x.level === 'error' && re.test(x.message)),
+        `${JSON.stringify(extra)}: ${JSON.stringify(d)}`,
+      );
     }
     assert(BC.validate({ data: 'gaps', marks: [{ type: 'arc', value: 'v', center: 'middle' }] }).some((d) => d.path === 'marks[0].center'));
   });
@@ -1016,10 +1033,19 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
 
   test('transform.window total and share: hostile input — nothing to add, a sum of zero, negatives, size and odd groups', () => {
     const t = (rows, spec) => apply('window', rows, { field: 'v', ...spec });
-    const none = t([{ g: 1, v: null }, { g: 1, v: 'x' }], { op: 'total', group: 'g' });
+    const none = t(
+      [
+        { g: 1, v: null },
+        { g: 1, v: 'x' },
+      ],
+      { op: 'total', group: 'g' },
+    );
     assert(isNaN(none.columns.total_v[0]) && isNaN(none.columns.total_v[1]), 'a group with no number has no total');
     const zero = t([{ v: 5 }, { v: -5 }], { op: 'share' });
-    assert(zero.columns.share_v.every((x) => isNaN(x)), 'a share of a sum of zero is no share, not Infinity');
+    assert(
+      zero.columns.share_v.every((x) => isNaN(x)),
+      'a share of a sum of zero is no share, not Infinity',
+    );
     const neg = t([{ v: 30 }, { v: -10 }], { op: 'share' });
     assert.deepStrictEqual([...neg.columns.share_v], [1.5, -0.5], 'negatives count against the sum, as in a bridge');
     assert.throws(() => t([{ v: 1 }], { op: 'total', size: 3 }), /"size" applies to sum, mean, min and max, not to "total"/);
@@ -1111,13 +1137,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
   /** A deterministic normal sample (Box–Muller on a small LCG), so the tests do not depend on Math.random. */
   const normal = (n, mu, sd, seed = 1) => {
     let s = seed;
-    const u = () => ((s = (s * 48271) % 2147483647) / 2147483647);
+    const u = () => (s = (s * 48271) % 2147483647) / 2147483647;
     return Array.from({ length: n }, () => mu + sd * Math.sqrt(-2 * Math.log(u())) * Math.cos(2 * Math.PI * u()));
   };
   /** The area under one curve of a density table, by trapezoids. */
   const areaOf = (t, from = 0, to = t.length) => {
     let a = 0;
-    for (let i = from + 1; i < to; i++) a += ((t.columns.density[i] + t.columns.density[i - 1]) / 2) * (t.columns.value[i] - t.columns.value[i - 1]);
+    for (let i = from + 1; i < to; i++)
+      a += ((t.columns.density[i] + t.columns.density[i - 1]) / 2) * (t.columns.value[i] - t.columns.value[i - 1]);
     return a;
   };
 
@@ -1268,7 +1295,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     );
     const year = BC.get('scale.time').create({ type: 'time' }, { name: 'x', sources: [['2026-01-01', '2026-12-01']], range: [0, 200] });
     assert(year.ticks(3).length >= 2, 'a year keeps at least two');
-    const day = BC.get('scale.time').create({ type: 'time' }, { name: 'x', sources: [['2026-01-05T10:00', '2026-01-05T10:00:01']], range: [0, 200] });
+    const day = BC.get('scale.time').create(
+      { type: 'time' },
+      { name: 'x', sources: [['2026-01-05T10:00', '2026-01-05T10:00:01']], range: [0, 200] },
+    );
     assert(day.ticks(2).length >= 1 && day.ticks(2).every((t) => isFinite(t.pos)), 'a second still has its tick');
     const one = BC.get('scale.time').create({ type: 'time' }, { name: 'x', sources: [['2026-01-05', '2026-01-05']], range: [0, 200] });
     assert(one.ticks(3).length <= 1000, 'a domain of one instant does not run away');
@@ -1328,19 +1358,30 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       }
     // x is the value, kept: 400 px for 0..100
     const xs = new Set(cs.map((c) => c.x));
-    for (const r of rows) assert([...xs].some((x) => Math.abs(x - r.v * 4) < 0.01), `a point at ${r.v}: ${[...xs].sort((p, q) => p - q).join(' ')}`);
+    for (const r of rows)
+      assert(
+        [...xs].some((x) => Math.abs(x - r.v * 4) < 0.01),
+        `a point at ${r.v}: ${[...xs].sort((p, q) => p - q).join(' ')}`,
+      );
     // bands of 150 px: a around 75, b around 225; nobody leaves its band
     assert(
       cs.every((c) => (c.y >= 4 && c.y <= 146) || (c.y >= 154 && c.y <= 296)),
       'inside the bands',
     );
     const plain = swarmOf(rows, { swarm: false });
-    assert(circlesOf(plain.svg).every((c) => c.y === 75 || c.y === 225), 'without swarm every point is on the middle of its band');
+    assert(
+      circlesOf(plain.svg).every((c) => c.y === 75 || c.y === 225),
+      'without swarm every point is on the middle of its band',
+    );
   });
 
   test('mark.point swarm: upright on a band x, with a gap between the points', () => {
     const rows = Array.from({ length: 30 }, (_, i) => ({ g: 'a', v: 50 + (i % 3) }));
-    const up = swarmOf(rows, { x: 'g', y: 'v', swarmGap: 4 }, { x: { type: 'band', paddingInner: 0, paddingOuter: 0 }, y: { type: 'linear', domain: [0, 100], nice: false } });
+    const up = swarmOf(
+      rows,
+      { x: 'g', y: 'v', swarmGap: 4 },
+      { x: { type: 'band', paddingInner: 0, paddingOuter: 0 }, y: { type: 'linear', domain: [0, 100], nice: false } },
+    );
     const cs = circlesOf(up.svg);
     assert(new Set(cs.map((c) => c.x)).size > 5, 'spread along x');
     for (let i = 0; i < cs.length; i++)
@@ -1356,10 +1397,24 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(Date.now() - t0 < 3000, `3000 equal values stay fast: ${Date.now() - t0} ms`);
     const cs = circlesOf(pile.svg);
     assert.strictEqual(cs.length, 3000, 'all are drawn');
-    assert(cs.every((c) => c.y >= 0 && c.y <= 300 && isFinite(c.x)), 'the ones that do not fit stay inside the band, laid over the others');
-    const narrow = swarmOf([{ g: 'a', v: 1 }, { g: 'a', v: 1 }], { r: 400 });
+    assert(
+      cs.every((c) => c.y >= 0 && c.y <= 300 && isFinite(c.x)),
+      'the ones that do not fit stay inside the band, laid over the others',
+    );
+    const narrow = swarmOf(
+      [
+        { g: 'a', v: 1 },
+        { g: 'a', v: 1 },
+      ],
+      { r: 400 },
+    );
     assert(!/NaN|Infinity/.test(narrow.svg), 'a point wider than its band is drawn on the middle');
-    const holes = swarmOf([{ g: 'a', v: null }, { g: null, v: 3 }, { g: 'a', v: 'x' }, { g: 'a', v: 5 }]);
+    const holes = swarmOf([
+      { g: 'a', v: null },
+      { g: null, v: 3 },
+      { g: 'a', v: 'x' },
+      { g: 'a', v: 5 },
+    ]);
     assert(!/NaN/.test(holes.svg));
   });
 
@@ -1381,19 +1436,28 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     const cs = circlesOf(svg);
     assert.strictEqual(cs.length, 220);
     const r = cs[0].r;
-    assert(cs.every((c) => c.r === r), 'one radius for the whole mark, b shrinks with a');
+    assert(
+      cs.every((c) => c.r === r),
+      'one radius for the whole mark, b shrinks with a',
+    );
     assert(r < 4 && r > 2, `shrunk, but not to the floor: r ${r}`);
     // the gap shrinks with the points: 1 px at r 4, so the closest neighbours are 2r + r/4 apart, not 2r + 1
     assert.strictEqual(apart(cs, 2 * r + r / 4 - 0.01), '', 'no two touch');
     assert.notStrictEqual(apart(cs, 2 * r + r / 4 + 0.01), '', 'neighbours sit at the shrunk gap');
-    assert(cs.every((c) => (c.y >= r - 0.01 && c.y <= 150 - r + 0.01) || (c.y >= 150 + r - 0.01 && c.y <= 300 - r + 0.01)), 'inside the bands');
+    assert(
+      cs.every((c) => (c.y >= r - 0.01 && c.y <= 150 - r + 0.01) || (c.y >= 150 + r - 0.01 && c.y <= 300 - r + 0.01)),
+      'inside the bands',
+    );
     // as little as makes it fit: a little bigger, and some point is laid over another
     const bigger = circlesOf(swarmOf(rows, { r: r * 1.03, swarmShrink: 0 }).svg);
     assert.notStrictEqual(apart(bigger, 2 * r * 1.03 + 1 - 0.01), '', `at r ${(r * 1.03).toFixed(2)} they would not fit`);
 
     // a chart wide enough keeps the radius it was given; the same rows on a narrow one shrink
     const wide = circlesOf(swarmOf(rows.slice(0, 60)).svg);
-    assert(wide.every((c) => c.r === 4), 'a swarm that fits keeps r');
+    assert(
+      wide.every((c) => c.r === 4),
+      'a swarm that fits keeps r',
+    );
     BC.data('bees', rows.slice(0, 60));
     const narrow = circlesOf(
       draw({
@@ -1416,7 +1480,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     h.setView('x', [38, 52]); // what a zoom does: the 10 units now take most of the 400 px
     await flush();
     const zoomed = circlesOf(svgOf(host));
-    assert(zoomed.every((c) => c.r === 4), `zoomed in: r ${zoomed[0].r}`);
+    assert(
+      zoomed.every((c) => c.r === 4),
+      `zoomed in: r ${zoomed[0].r}`,
+    );
     h.setView('x', null);
     await flush();
     assert.strictEqual(circlesOf(svgOf(host))[0].r, r0, 'back out: the same layout as before');
@@ -1425,7 +1492,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
   test('mark.point swarmShrink: 0 keeps r and lays over what does not fit; the floor holds; bad values fall back', () => {
     const rows = Array.from({ length: 200 }, (_, i) => ({ g: 'a', v: 40 + (i % 41) * 0.25 }));
     const kept = circlesOf(swarmOf(rows, { swarmShrink: 0 }).svg);
-    assert(kept.every((c) => c.r === 4), 'swarmShrink 0: the radius as given');
+    assert(
+      kept.every((c) => c.r === 4),
+      'swarmShrink 0: the radius as given',
+    );
     let over = 0;
     for (let i = 0; i < kept.length; i++)
       for (let j = i + 1; j < kept.length; j++) if (Math.hypot(kept[i].x - kept[j].x, kept[i].y - kept[j].y) < 8) over++;
@@ -1435,15 +1505,33 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     const t0 = Date.now();
     const pile = circlesOf(swarmOf(same).svg);
     assert(Date.now() - t0 < 3000, `3000 equal values stay fast: ${Date.now() - t0} ms`);
-    assert(pile.every((c) => c.r === 2), `half of r 4 by default: ${pile[0].r}`);
-    assert(circlesOf(swarmOf(same.slice(0, 500), { swarmShrink: 0.25 }).svg).every((c) => c.r === 3), 'swarmShrink 0.25: three quarters');
-    assert(circlesOf(swarmOf(same.slice(0, 500), { swarmShrink: 5 }).svg).every((c) => Math.abs(c.r - 0.4) < 1e-9), 'at most 0.9');
-    assert(circlesOf(swarmOf(same.slice(0, 500), { swarmShrink: -1 }).svg).every((c) => c.r === 2), 'a negative one is the default');
+    assert(
+      pile.every((c) => c.r === 2),
+      `half of r 4 by default: ${pile[0].r}`,
+    );
+    assert(
+      circlesOf(swarmOf(same.slice(0, 500), { swarmShrink: 0.25 }).svg).every((c) => c.r === 3),
+      'swarmShrink 0.25: three quarters',
+    );
+    assert(
+      circlesOf(swarmOf(same.slice(0, 500), { swarmShrink: 5 }).svg).every((c) => Math.abs(c.r - 0.4) < 1e-9),
+      'at most 0.9',
+    );
+    assert(
+      circlesOf(swarmOf(same.slice(0, 500), { swarmShrink: -1 }).svg).every((c) => c.r === 2),
+      'a negative one is the default',
+    );
     const odd = swarmOf(same.slice(0, 50), { swarmShrink: 'lots' });
-    assert(odd.h.diagnostics.some((d) => d.path === 'marks[0].swarmShrink'), 'a string is reported');
+    assert(
+      odd.h.diagnostics.some((d) => d.path === 'marks[0].swarmShrink'),
+      'a string is reported',
+    );
     assert(!/NaN|Infinity/.test(odd.svg));
     // bubbles shrink in proportion, so the biggest stays the biggest
-    BC.data('bubbles', rows.map((r, i) => ({ ...r, s: 1 + (i % 4) })));
+    BC.data(
+      'bubbles',
+      rows.map((r, i) => ({ ...r, s: 1 + (i % 4) })),
+    );
     const bub = circlesOf(
       draw({
         data: 'bubbles',
@@ -1486,7 +1574,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.deepStrictEqual(diagnostics, []);
     const line = paths(layer(svg, 'marks')).find((p) => /fill="none"/.test(p.attrs));
     const ys = [...line.d.matchAll(/[ML][\d.]+ ([\d.]+)/g)].map((m) => +m[1]);
-    assert(ys.every((y) => y === 100 || y === 0), `the line stays at each total (40 → y 100, 60 → y 0): ${line.d}`);
+    assert(
+      ys.every((y) => y === 100 || y === 0),
+      `the line stays at each total (40 → y 100, 60 → y 0): ${line.d}`,
+    );
   });
 
   test('tooltip: a table that says so has no lines for the fields a row does not have', async () => {

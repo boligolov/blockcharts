@@ -406,7 +406,11 @@ function compose(opts) {
       throw new ComposeError(`charts[${i}].span must be a whole number from 1 to ${columns} (layout.columns)`);
     }
     if (!entry.spec || typeof entry.spec !== 'object') throw new ComposeError(`charts[${i}] is not a chart spec`);
-    if (entry.spec.data === undefined && entry.spec.marks === undefined && (entry.spec.title !== undefined || entry.spec.note !== undefined))
+    if (
+      entry.spec.data === undefined &&
+      entry.spec.marks === undefined &&
+      (entry.spec.title !== undefined || entry.spec.note !== undefined)
+    )
       throw new ComposeError(`charts[${i}] has text and no chart: text alone is { "section": "Heading", "note": "..." }`);
     const bad = findUnserializable(entry.spec, `charts[${i}]`, []);
     if (bad) throw new ComposeError(`${bad.path} ${bad.why}`);

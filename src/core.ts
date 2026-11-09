@@ -1048,7 +1048,10 @@
     const inset = (side: keyof BC.Insets) => Math.max(pad[side] + claimed[side], overhang[side]);
     plot = insetsPlot(size, { top: inset('top'), right: inset('right'), bottom: inset('bottom'), left: inset('left') });
     if (inset('top') + inset('bottom') > size.h)
-      warn('size', `padding and guides need ${inset('top') + inset('bottom')} px of height and the chart has ${size.h}, so its bottom is cut off`);
+      warn(
+        'size',
+        `padding and guides need ${inset('top') + inset('bottom')} px of height and the chart has ${size.h}, so its bottom is cut off`,
+      );
     for (const name of Object.keys(scales)) scales[name].setRange(resolveRange(name, scaleSpecs[name], plot));
     channelCache.clear();
     tickCache.clear();

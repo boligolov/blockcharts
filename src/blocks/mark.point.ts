@@ -42,7 +42,9 @@
     const bandX = !!(cx.scale && cx.scale.bandwidth !== undefined);
     const bandY = !!(cy.scale && cy.scale.bandwidth !== undefined);
     if (bandX === bandY)
-      throw new Error('mark.point: swarm spreads the points of a category across its band, so one of x and y needs a band scale and the other a value');
+      throw new Error(
+        'mark.point: swarm spreads the points of a category across its band, so one of x and y needs a band scale and the other a value',
+      );
     const cached = swarms.get(bandX ? cy : cx);
     if (cached) return cached;
     const cat = bandX ? cx.mapped : cy.mapped;

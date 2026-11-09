@@ -594,7 +594,14 @@ test('compose: a tooltip function registered by name in an "after" script is fou
 test('compose: phoneColumns keeps tiles side by side, and text with no chart is told what to use', () => {
   const data = { d: [{ k: 'a', v: 1 }] };
   const tile = { data: 'd', scales: {}, marks: [], guides: [{ type: 'kpi', field: 'v' }] };
-  const { html } = compose({ data, layout: { columns: 4, phoneColumns: 2 }, charts: [{ spec: tile, span: 1 }, { spec: tile, span: 3 }] });
+  const { html } = compose({
+    data,
+    layout: { columns: 4, phoneColumns: 2 },
+    charts: [
+      { spec: tile, span: 1 },
+      { spec: tile, span: 3 },
+    ],
+  });
   assert(html.includes('--bc-phone-cols:2'));
   assert.strictEqual(html.split('bc-section bc-tile').length, 2, 'only the span 1 card is a tile');
   assert.throws(() => compose({ data, charts: [{ title: 'Note', note: 'Text' }] }), /text alone is/);

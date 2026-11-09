@@ -142,7 +142,10 @@
         kind: 'any',
         doc: 'How to write the value (a preset such as "compact" or "percent", or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }).',
       },
-      note: { kind: 'string', doc: 'A few words after the change ("vs last month", "vs target"), or in its place when there is no change.' },
+      note: {
+        kind: 'string',
+        doc: 'A few words after the change ("vs last month", "vs target"), or in its place when there is no change.',
+      },
       rowField: {
         kind: 'field',
         doc: 'Names the row the figure comes from, after the label: with aggregate "max" and field "month", "Best month: 2025-09". For aggregate last, first, min and max: a sum has no row of its own.',

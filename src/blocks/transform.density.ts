@@ -53,7 +53,11 @@
         kind: 'list',
         doc: 'The range [low, high] the curves are cut to: [0, null] for values that cannot be negative (times, prices), so a curve does not run below 0. null leaves that end to the data.',
       },
-      counts: { kind: 'boolean', default: false, doc: 'Multiply each curve by its number of samples, so a group of 500 is ten times a group of 50.' },
+      counts: {
+        kind: 'boolean',
+        default: false,
+        doc: 'Multiply each curve by its number of samples, so a group of 500 is ten times a group of 50.',
+      },
       as: { kind: 'list', doc: 'Names of the two new columns: [value, density].' },
     },
     outputs(spec) {
@@ -72,13 +76,15 @@
       if (!(typeof steps === 'number' && Math.floor(steps) === steps && steps >= 2 && steps <= MAX_STEPS))
         fail(`"steps" must be a whole number from 2 to ${MAX_STEPS}`);
       const given = spec.bandwidth;
-      if (given !== undefined && !(typeof given === 'number' && isFinite(given) && given > 0)) fail('"bandwidth" must be a positive number');
+      if (given !== undefined && !(typeof given === 'number' && isFinite(given) && given > 0))
+        fail('"bandwidth" must be a positive number');
       let lo = -Infinity;
       let hi = Infinity;
       if (spec.extent !== undefined) {
         const e = spec.extent as unknown[];
         const ok = (v: unknown) => v === null || (typeof v === 'number' && isFinite(v));
-        if (!Array.isArray(e) || e.length !== 2 || !ok(e[0]) || !ok(e[1])) fail('"extent" must be [low, high]: two numbers, or null for an end the data decides');
+        if (!Array.isArray(e) || e.length !== 2 || !ok(e[0]) || !ok(e[1]))
+          fail('"extent" must be [low, high]: two numbers, or null for an end the data decides');
         if (typeof e[0] === 'number') lo = e[0];
         if (typeof e[1] === 'number') hi = e[1];
         if (!(lo < hi)) fail('"extent" must run from low to high');

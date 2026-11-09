@@ -112,9 +112,7 @@
 
   function formatted(spec: BC.GuideSpec, ctx: BC.ChartCtx): BC.Tick[] {
     const scale = ctx.scales[spec.scale as string];
-    const ticks = slanted.has(spec)
-      ? ctx.ticks(spec.scale as string, (scale.domain() as unknown[]).length)
-      : requested(spec, ctx);
+    const ticks = slanted.has(spec) ? ctx.ticks(spec.scale as string, (scale.domain() as unknown[]).length) : requested(spec, ctx);
     if (spec.format === undefined) return ticks;
     const kind = ctx.scales[spec.scale as string].kind;
     if (kind !== 'linear' && kind !== 'log' && kind !== 'time' && kind !== 'band') return ticks;
@@ -175,7 +173,10 @@
         doc: 'The axis line. "auto": drawn along a horizontal axis (the baseline bars stand on), left out on a vertical one, where grid lines do the job.',
       },
       ticks: { kind: 'boolean', default: false, doc: 'Small tick marks at the labels.' },
-      count: { kind: 'number', doc: 'About how many labels to show: 12 for the months of a year. Labels that would not fit are still thinned.' },
+      count: {
+        kind: 'number',
+        doc: 'About how many labels to show: 12 for the months of a year. Labels that would not fit are still thinned.',
+      },
       anchor: {
         kind: 'enum',
         values: ['start', 'end'],
