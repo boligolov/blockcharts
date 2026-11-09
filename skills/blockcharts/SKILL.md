@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.29.0"
+  version: "0.30.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -78,7 +78,9 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Beeswarm**: every sample as a dot, `mark.point` with `"swarm": true` on a band scale (categories on y, the value on x, or the other way round): the dots of each category spread across its band so none overlap, each at its own value. A band of about 90 px on a 720 px chart holds about a hundred dots of a category at `"r": 3, "swarmGap": 0.5`. When a category does not fit (on a phone the value axis is shorter), every dot of the mark shrinks as little as makes it fit, down to half its `r` (`swarmShrink` sets how far, 0 keeps `r`); a dot that still finds no room is laid over the others. With more dots use a taller chart or a violin. See `recipes/beeswarm.json`.
 
-**Coloring by a number** (heatmap, colored dots): declare `"color": {"type": "sequential"}` (optionally `"range": ["#hex", "#hex", ...]`, hex colors only; 0 is a real value with a color, `null` is not drawn), give a `rect` or `point` mark `"color": "<numeric field>"`, and add the legend. A row with no number gets no color and is not drawn.
+**Hexbin**: with thousands of points of two measures a scatter turns into a blot. `{"type": "hexbin", "x": "km", "y": "minutes", "bins": 26}` counts them in hexagons instead: a row per hexagon with points in it, holding its box (`x0`, `x1`, `y0`, `y1`), its `count`, and its center under the names of `x` and `y`. It replaces the rows. Draw it with `{"type": "rect", "shape": "hexagon", "x": "x0", "x2": "x1", "y": "y0", "y2": "y1", "color": "count"}` on two linear scales with `"nice": false` and a `sequential` color with `"exponent": 0.5`, and give the tooltip `"fields": ["count", "km", "minutes"]`. `bins` is about how many hexagons fit across. They are binned for the plot as it is drawn: regular at any width and zoom, each covering the same area of the data, so the counts and the legend mean the same on a phone. See `recipes/hexbin.json`.
+
+**Coloring by a number** (heatmap, colored dots): declare `"color": {"type": "sequential"}` (optionally `"range": ["#hex", "#hex", ...]`, hex colors only; 0 is a real value with a color, `null` is not drawn), give a `rect` or `point` mark `"color": "<numeric field>"`, and add the legend. A row with no number gets no color and is not drawn. For counts where a few cells hold most of them, `"exponent": 0.5` gives the small values more of the colors.
 
 **Pie and donut**: `mark.arc` with `"value": "<numeric field>"` and `"color": "<category field>"`. It needs no x or y scale, only the color scale (and its legend). `innerRadius` makes a donut, `label: "percent"` writes percentages, `sort: "desc"` puts the biggest slice first. Use it for a handful of parts of one whole; prefer bars for more than about six categories.
 
@@ -184,6 +186,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | Parts of a whole, as one circle | `recipes/pie.json` |
 | A very long series (tens of thousands of points and more) | `recipes/long-series.json` |
 | A scatter plot of tens of thousands of points (canvas, binary columns) | `recipes/scatter-large.json` |
+| Where thousands of points of two measures pile up: their density, not every point (hexbin) | `recipes/hexbin.json` |
 | Several charts on one page | `recipes/dashboard.json` |
 | A business dashboard: KPI tiles with sparklines, a trend against plan, a donut, a bridge and a funnel in a grid | `recipes/executive-dashboard.json` |
 | How a start value becomes an end value through gains and losses (profit bridge) | `recipes/waterfall.json` |

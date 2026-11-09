@@ -1650,6 +1650,282 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.throws(() => apply('marimekko', [{ c: 'A', v: 1 }], { field: 'v', category: 'c', shareAs: 'x0' }), /different names/);
   });
 
+  // ───────────────────────── transform.hexbin, mark.rect shape hexagon ─────────────────────────
+
+  /** Points of two clusters, from a fixed seed. */
+  const cloud = (n) => {
+    let s = 7;
+    const rnd = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+    const gauss = () => Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd());
+    const rows = [];
+    for (let i = 0; i < n; i++) {
+      const far = i % 3 === 0;
+      rows.push({ w: (far ? 80 : 60) + gauss() * 8, h: (far ? 180 : 165) + gauss() * 6 });
+    }
+    return rows;
+  };
+
+  test('transform.hexbin: every point is counted in the hexagon whose center is nearest, found by brute force', () => {
+    const rows = cloud(3000);
+    const bins = 17;
+    const aspect = 1.5;
+    const t = apply('hexbin', rows, { x: 'w', y: 'h', bins, aspect });
+    const c = t.columns;
+    const total = c.count.reduce((a, b) => a + b, 0);
+    assert.strictEqual(total, 3000, 'no point lost or counted twice');
+    // the lattice in the units where the data is `a` wide and 1 tall (a: what the transform settled on for its boxes to be
+    // `aspect` times as wide as tall, read back from the height of a hexagon), and each point's nearest center over all of it
+    const xs = rows.map((r) => r.w);
+    const ys = rows.map((r) => r.h);
+    const [xmin, xmax, ymin, ymax] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    const a = (((c.y1[0] - c.y0[0]) / 2) * bins * Math.sqrt(3)) / (ymax - ymin);
+    assert(Math.abs(a / aspect - 1) < 0.2, 'near the aspect: ' + a);
+    const dx = a / bins;
+    const dy = (dx / Math.sqrt(3)) * 1.5;
+    // a point exactly between two centers (the outermost points are on the edges of the grid) may go to either
+    const key = (cu, cv) => `${Math.round(cu * 1e6)},${Math.round(cv * 1e6)}`;
+    const sure = new Map();
+    const either = new Map();
+    for (const r of rows) {
+      const u = ((r.w - xmin) / (xmax - xmin)) * a;
+      const v = (r.h - ymin) / (ymax - ymin);
+      const all = [];
+      for (let j = -2; j <= Math.ceil(1 / dy) + 2; j++)
+        for (let i = -2; i <= bins + 2; i++) {
+          const cu = (i + (j & 1) / 2) * dx;
+          all.push([(u - cu) ** 2 + (v - j * dy) ** 2, key(cu, j * dy)]);
+        }
+      const least = Math.min(...all.map((d) => d[0]));
+      const nearest = all.filter((d) => d[0] <= least + 1e-12).map((d) => d[1]);
+      if (nearest.length === 1) sure.set(nearest[0], (sure.get(nearest[0]) || 0) + 1);
+      else for (const k of nearest) either.set(k, (either.get(k) || 0) + 1);
+    }
+    for (let k = 0; k < t.length; k++) {
+      const at = key(((c.w[k] - xmin) / (xmax - xmin)) * a, (c.h[k] - ymin) / (ymax - ymin));
+      const n = c.count[k];
+      assert(n >= (sure.get(at) || 0) && n <= (sure.get(at) || 0) + (either.get(at) || 0), `hexagon ${at}: ${n}`);
+    }
+    assert.strictEqual(
+      [...sure.keys()].filter(
+        (k) => !t.columns.count.some((_, i) => key(((c.w[i] - xmin) / (xmax - xmin)) * a, (c.h[i] - ymin) / (ymax - ymin)) === k),
+      ).length,
+      0,
+      'every hexagon with points is there',
+    );
+    // the boxes: all one size, regular in those units (as tall as 2 / sqrt(3) of their width), around their center; all
+    // of them together `aspect` times as wide as tall, as the scales will span them
+    const spanned =
+      (((Math.max(...c.x1) - Math.min(...c.x0)) / (xmax - xmin)) * a) / ((Math.max(...c.y1) - Math.min(...c.y0)) / (ymax - ymin)) / aspect;
+    assert(near(spanned, 1, 0.02), 'the boxes span about `aspect`: ' + spanned);
+    for (let k = 0; k < t.length; k++) {
+      const wu = ((c.x1[k] - c.x0[k]) / (xmax - xmin)) * a;
+      const hv = (c.y1[k] - c.y0[k]) / (ymax - ymin);
+      assert(near(wu, dx, 1e-9) && near(hv / wu, 2 / Math.sqrt(3), 1e-9), `hexagon ${k}`);
+      assert(near((c.x0[k] + c.x1[k]) / 2, c.w[k], 1e-9) && near((c.y0[k] + c.y1[k]) / 2, c.h[k], 1e-9));
+    }
+    // bottom row first, each row from the left: the same data in another order gives the same table
+    const shuffled = apply('hexbin', rows.slice().reverse(), { x: 'w', y: 'h', bins, aspect });
+    assert.deepStrictEqual(shuffled, t);
+  });
+
+  test('transform.hexbin: hostile rows and parameters', () => {
+    const t = apply(
+      'hexbin',
+      [
+        { x: 1, y: 2 },
+        { x: NaN, y: 1 },
+        { x: 'a', y: 1 },
+        { x: null, y: 1 },
+        { x: 3, y: Infinity },
+        { x: 2, y: 3 },
+      ],
+      {
+        x: 'x',
+        y: 'y',
+      },
+    );
+    assert.strictEqual(
+      t.columns.count.reduce((a, b) => a + b, 0),
+      2,
+      'only rows with two numbers count',
+    );
+    const empty = { length: 0, columns: { x: [], y: [] } };
+    assert.deepStrictEqual(BC.get('transform.hexbin').apply(empty, { type: 'hexbin', x: 'x', y: 'y' }), {
+      length: 0,
+      columns: { x0: [], x1: [], y0: [], y1: [], count: [], x: [], y: [] },
+    });
+    // every point on one spot: one hexagon around it, not a division by zero
+    const one = apply(
+      'hexbin',
+      [
+        { x: 5, y: 5 },
+        { x: 5, y: 5 },
+      ],
+      { x: 'x', y: 'y' },
+    );
+    assert.strictEqual(one.length, 1);
+    assert.strictEqual(one.columns.count[0], 2);
+    assert(Object.values(one.columns).every((col) => col.every(Number.isFinite)));
+    // bins and aspect that make no sense fall back, a huge bins is capped
+    const rows = cloud(500);
+    const plain = apply('hexbin', rows, { x: 'w', y: 'h' });
+    for (const bad of [{ bins: 0 }, { bins: -3 }, { bins: NaN }, { bins: 'many' }, { aspect: 0 }, { aspect: -1 }, { aspect: Infinity }])
+      assert.deepStrictEqual(apply('hexbin', rows, { x: 'w', y: 'h', ...bad }), plain, JSON.stringify(bad));
+    const fine = apply('hexbin', rows, { x: 'w', y: 'h', bins: 1e9 });
+    assert(fine.length <= 500 && fine.columns.count.reduce((a, b) => a + b, 0) === 500);
+    const started = Date.now();
+    assert.strictEqual(
+      apply('hexbin', cloud(200000), { x: 'w', y: 'h', bins: 40 }).columns.count.reduce((a, b) => a + b, 0),
+      200000,
+    );
+    assert(Date.now() - started < 2000, 'quick on 200,000 points');
+    assert.throws(() => apply('hexbin', [{ x: 1, y: 1 }], { x: 'nope', y: 'y' }), /transform.hexbin: unknown field "nope" in "x"/);
+    assert.throws(
+      () => apply('hexbin', [{ x: 1, y: 1 }], { x: 'x', y: 'y', countAs: 'x' }),
+      /"countAs" and "x" both name the new column "x"/,
+    );
+    // the data may have a column called count: the result is a table of its own
+    assert.strictEqual(apply('hexbin', [{ x: 1, y: 1, count: 9 }], { x: 'x', y: 'y' }).columns.count[0], 1);
+  });
+
+  test('transform.hexbin without aspect follows the plot: regular on it whatever its shape and zoom, and says when it cannot', () => {
+    const def = BC.get('transform.hexbin');
+    assert.strictEqual(def.viewDependent({ type: 'hexbin', x: 'w', y: 'h' }), true, 'follows the plot');
+    assert.strictEqual(def.viewDependent({ type: 'hexbin', x: 'w', y: 'h', aspect: 1.5 }), false, 'a fixed aspect is binned once');
+    assert.strictEqual(def.viewDependent({ type: 'hexbin', x: 'w', y: 'h', aspect: -1 }), true, 'an aspect that makes no sense follows');
+    const rows = cloud(2000);
+    const cols = { w: rows.map((r) => r.w), h: rows.map((r) => r.h) };
+    const linear = (domain, range) => {
+      const s = (v) => range[0] + ((v - domain[0]) / (domain[1] - domain[0])) * (range[1] - range[0]);
+      s.domain = () => domain;
+      s.range = () => range;
+      return s;
+    };
+    const warned = [];
+    const viewOf = (scales) => ({ plot: { x: 0, y: 0, w: 1, h: 1 }, scales, warn: (m) => warned.push(m) });
+    // wide, narrow, zoomed into a corner, y named otherwise: every hexagon as wide as sqrt(3)/2 of its height in px
+    for (const [x, y, extra] of [
+      [linear([30, 110], [0, 600]), linear([140, 200], [300, 0]), {}],
+      [linear([30, 110], [0, 160]), linear([140, 200], [300, 0]), {}],
+      [linear([60, 70], [0, 600]), linear([160, 170], [300, 0]), {}],
+      [linear([30, 110], [0, 400]), linear([140, 200], [300, 0]), { yScale: 'up' }],
+    ]) {
+      const t = def.apply(
+        { length: 2000, columns: cols },
+        { type: 'hexbin', x: 'w', y: 'h', bins: 14, ...extra },
+        viewOf(extra.yScale ? { x, up: y } : { x, y }),
+      );
+      assert.strictEqual(
+        t.columns.count.reduce((a, b) => a + b, 0),
+        2000,
+      );
+      for (let k = 0; k < t.length; k++) {
+        const w = Math.abs(x(t.columns.x1[k]) - x(t.columns.x0[k]));
+        const h = Math.abs(y(t.columns.y1[k]) - y(t.columns.y0[k]));
+        assert(near(w / h, Math.sqrt(3) / 2, 1e-9), `hexagon ${k}: ${w} × ${h}`);
+      }
+      // as much of the data in each as in a hexagon binned for a plot 1.6 times as wide as tall, whatever the plot: 1/14
+      // of the data across, and 2 * 1.6 / (14 * sqrt(3)) of it up
+      const [spanX, spanY] = [Math.max(...cols.w) - Math.min(...cols.w), Math.max(...cols.h) - Math.min(...cols.h)];
+      const area = (spanX / 14) * ((2 * 1.6 * spanY) / (14 * Math.sqrt(3)));
+      for (let k = 0; k < t.length; k++)
+        assert(near(((t.columns.x1[k] - t.columns.x0[k]) * (t.columns.y1[k] - t.columns.y0[k])) / area, 1, 1e-9), `area of hexagon ${k}`);
+      // so the counts are about those the scales take their domains from, and the color legend holds
+      const most = Math.max(...t.columns.count);
+      assert(
+        near(most / Math.max(...apply('hexbin', rows, { x: 'w', y: 'h', bins: 14 }).columns.count), 1, 0.35),
+        'the largest count: ' + most,
+      );
+    }
+    assert.deepStrictEqual(warned, []);
+    // a scale it cannot follow: said once per binning, and binned as with no plot at all
+    const plain = apply('hexbin', rows, { x: 'w', y: 'h', bins: 14 });
+    for (const scales of [{}, { x: linear([5, 5], [0, 600]), y: linear([140, 200], [300, 0]) }]) {
+      warned.length = 0;
+      assert.deepStrictEqual(
+        def.apply({ length: 2000, columns: cols }, { type: 'hexbin', x: 'w', y: 'h', bins: 14 }, viewOf(scales)),
+        plain,
+      );
+      assert(warned.length === 1 && /transform\.hexbin: the scales "x" and "y" cannot be followed/.test(warned[0]), warned.join());
+    }
+  });
+
+  test('a hexbin without aspect stays regular at any size of the chart, and its scales take their domains from it', () => {
+    BC.data('cloud', cloud(2000));
+    for (const size of [
+      [640, 400],
+      [300, 400],
+      [640, 200],
+    ]) {
+      const { host, h } = draw({
+        data: 'cloud',
+        size,
+        transforms: [{ type: 'hexbin', x: 'w', y: 'h', bins: 16 }],
+        scales: { x: { type: 'linear', nice: false }, y: { type: 'linear', nice: false }, color: { type: 'sequential' } },
+        guides: [
+          { type: 'axis', scale: 'x' },
+          { type: 'axis', scale: 'y' },
+        ],
+        marks: [{ type: 'rect', shape: 'hexagon', x: 'x0', x2: 'x1', y: 'y0', y2: 'y1', color: 'count' }],
+      });
+      assert.deepStrictEqual(h.diagnostics, [], String(size));
+      const hexes = paths(layer(svgOf(host), 'marks')).map((p) => p.d.match(/-?[\d.]+/g).map(Number));
+      assert(hexes.length > 20, String(size));
+      for (const [mx, top, rx, q1, , q3] of hexes) {
+        // the sides as long as the slanted edges, to the 0.01 px the path is written in
+        const side = q3 - q1;
+        assert(near(side / Math.hypot(rx - mx, q1 - top), 1, 0.01), `${size}: side ${side}`);
+      }
+    }
+  });
+
+  test('mark.rect shape hexagon: the cells of a hexbin tile, and the pointer finds the hexagon it is in', async () => {
+    BC.data('cloud', cloud(2000));
+    const picked = [];
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      data: 'cloud',
+      size: [640, 400],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      transforms: [{ type: 'hexbin', x: 'w', y: 'h', bins: 16, aspect: 1.6 }],
+      scales: { x: { type: 'linear', nice: false }, y: { type: 'linear', nice: false }, color: { type: 'sequential' } },
+      marks: [{ type: 'rect', shape: 'hexagon', x: 'x0', x2: 'x1', y: 'y0', y2: 'y1', color: 'count' }],
+      interaction: [{ type: 'tooltip', content: (d) => picked.push(d.row) && undefined }],
+    });
+    assert.deepStrictEqual(h.diagnostics, []);
+    const hexes = paths(layer(svgOf(host), 'marks')).map((p) => p.d.match(/-?[\d.]+/g).map(Number));
+    assert(hexes.length > 20 && hexes.every((v) => v.length === 12), 'six corners each');
+    // regular on a plot as wide as the aspect says: the sides are as long as the slanted edges
+    const [mx, top, rx, q1, , q3, , bottom, lx] = hexes[0];
+    const side = q3 - q1;
+    const edge = Math.hypot(rx - mx, q1 - top);
+    assert(near(side / edge, 1, 0.02), `side ${side}, edge ${edge}`);
+    assert(near((bottom - top) / (2 * side), 1, 0.02) && near((rx - lx) / (Math.sqrt(3) * side), 1, 0.02));
+    // the pointer finds the hexagon it is in, also in the corners where the boxes of two rows overlap
+    const box = host.children[0].getBoundingClientRect();
+    const at = async (x, y) => {
+      picked.length = 0;
+      await hover(host, box.left + (x * box.width) / 640, box.top + (y * box.height) / 400);
+      return tipOf(host).style.display === 'block' ? picked[picked.length - 1] : null;
+    };
+    const inside = (v, x, y) => {
+      const u = Math.abs(x - v[0]) / ((v[2] - v[8]) / 2);
+      const w = Math.abs(y - (v[1] + v[7]) / 2) / ((v[7] - v[1]) / 2);
+      return u <= 1 && w <= 1 - u / 2;
+    };
+    let corners = 0;
+    for (let k = 0; k < hexes.length; k++) {
+      const v = hexes[k];
+      assert.strictEqual(await at(v[0], (v[1] + v[7]) / 2), k, `the middle of hexagon ${k}`);
+      // just inside the top right corner of its box, which is outside the hexagon
+      const [x, y] = [v[2] - 1, v[1] + 1];
+      const owner = hexes.findIndex((o) => inside(o, x, y));
+      assert.strictEqual(await at(x, y), owner < 0 ? null : owner, `the corner of the box of hexagon ${k}`);
+      if (owner >= 0 && owner !== k) corners++;
+    }
+    assert(corners > 5, 'corners that belong to a neighbor were tried: ' + corners);
+  });
+
   // ───────────────────────── mark.sankey ────
   const flows = (rows, extra = {}) => {
     BC.data('flows', rows);

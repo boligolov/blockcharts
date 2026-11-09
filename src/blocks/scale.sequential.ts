@@ -31,11 +31,17 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'sequential',
-    version: 4,
+    version: 5,
     merge: 'extent',
     requires: ['lib.ticks'],
-    doc: 'Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`.',
-    params: {},
+    doc: 'Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`. `exponent` spreads the colors over the small values, for counts where a few cells hold most of them.',
+    params: {
+      exponent: {
+        kind: 'number',
+        default: 1,
+        doc: 'Colors by the value raised to this power (keeping its sign, so a symmetric domain stays symmetric). 0.5, a square root, gives the small values more of the colors: the cells of a hexbin or a 2D histogram, where a few cells hold most of the points. The legend keeps its labels where the values are, so most of its colors gather at the small end.',
+      },
+    },
     create(spec, ctx) {
       const stops = (Array.isArray(spec.range) && spec.range.length ? spec.range : DEFAULT_RANGE).map(parseColor);
       if (stops.length < 2) throw new Error('scale.sequential: range needs at least two colors');
@@ -67,6 +73,8 @@
       }
       let d0 = b0;
       let d1 = b1;
+      const e = typeof spec.exponent === 'number' && spec.exponent > 0 && isFinite(spec.exponent) ? spec.exponent : 1;
+      const pow = (v: number) => (e === 1 ? v : v < 0 ? -Math.pow(-v, e) : Math.pow(v, e));
 
       const colorAt = (t: number): string => {
         const x = Math.max(0, Math.min(1, t)) * (stops.length - 1);
@@ -77,7 +85,8 @@
         return '#' + hex(a[0] + (b[0] - a[0]) * f) + hex(a[1] + (b[1] - a[1]) * f) + hex(a[2] + (b[2] - a[2]) * f);
       };
 
-      const scale = ((v: unknown) => (typeof v === 'number' && isFinite(v) ? colorAt((v - d0) / (d1 - d0)) : NONE)) as unknown as BC.Scale<
+      const scale = ((v: unknown) =>
+        typeof v === 'number' && isFinite(v) ? colorAt((pow(v) - pow(d0)) / (pow(d1) - pow(d0))) : NONE) as unknown as BC.Scale<
         number,
         string
       >;

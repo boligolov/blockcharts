@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-53 blocks: `lib.columns`, `lib.curve`, `lib.pointer`, `lib.ticks`, `lib.view`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+54 blocks: `lib.columns`, `lib.curve`, `lib.pointer`, `lib.ticks`, `lib.view`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.hexbin`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -84,9 +84,13 @@ Version 3, 1.8 KB. Logarithmic numeric scale (base 10): equal steps for equal ra
 
 ## scale.sequential
 
-Version 4, 1.8 KB. Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`.
+Version 5, 2.0 KB. Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`. `exponent` spreads the colors over the small values, for counts where a few cells hold most of them.
 
 Needs: `lib.ticks`.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `exponent` | number | `1` | Colors by the value raised to this power (keeping its sign, so a symmetric domain stays symmetric). 0.5, a square root, gives the small values more of the colors: the cells of a hexbin or a 2D histogram, where a few cells hold most of the points. The legend keeps its labels where the values are, so most of its colors gather at the small end. |
 
 ## scale.size
 
@@ -215,6 +219,23 @@ Needs: `lib.columns`.
 | `as` | list |  | Names of the two end columns. Default [<field>0, <field>1]. |
 | `rateAs` | string | `"rate"` | Name of the column with the share of the first stage (0..1). |
 | `stepAs` | string | `"stepRate"` | Name of the column with the share of the previous stage (0..1; the first stage has none). |
+
+## transform.hexbin
+
+Version 1, 3.2 KB. Hexagonal binning, for a scatter of too many points to read: the plane is tiled with hexagons and each row of the result is one hexagon that has points in it, with how many (`count`). It writes the box of each hexagon (x0, x1, y0, y1), for a mark.rect with `shape: "hexagon"` on two linear scales with `nice: false`, x: x0, x2: x1, y: y0, y2: y1, colored by `count` on a sequential scale; and its center under the names of `x` and `y`, for the tooltip. The hexagons are binned anew for the size the chart is drawn at, and at every zoom, so they stay regular on a phone as on a wide screen; each covers the same area of the data whatever its shape, so a count, and the color legend, mean the same at every size. The scales take their domains from a first binning for a plot 1.6 times as wide as tall, so on a plot of another shape the outer hexagons may stand a little over its edge. Rows where x or y is not a number are left out.
+
+Needs: `lib.columns`.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `x` | field, **required** |  | Numeric field along x. |
+| `y` | field, **required** |  | Numeric field along y. |
+| `bins` | number | `20` | How many hexagons fit across the width of the data on a plot 1.6 times as wide as tall. On a narrower plot fewer fit across, as large in the data, so they stay as large on the screen. |
+| `aspect` | number |  | Width / height of the plot, to bin once for that shape instead of following the plot: the scales then keep exactly to the hexagons, but at another size the hexagons come out stretched. The plot is the chart less its axes and legend: a 640 × 400 chart with axes on the left and bottom has a plot of about 560 × 320 (1.75). |
+| `xScale` | scale | `"x"` | Name of the x scale the hexagons are drawn on: they are binned for its size. |
+| `yScale` | scale | `"y"` | Name of the y scale the hexagons are drawn on. |
+| `as` | list |  | Names of the four columns of the box. Default [x0, x1, y0, y1]. |
+| `countAs` | string | `"count"` | Name of the column with the number of points. |
 
 ## transform.highlight
 
@@ -462,7 +483,7 @@ Version 12, 3.9 KB. One circle per row. Channels x and y, optional color (a fiel
 
 ## mark.rect
 
-Version 11, 3.1 KB. Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field).
+Version 12, 3.7 KB. Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field). `shape: "hexagon"` draws a hexagon in the box instead, for the cells of transform.hexbin.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -479,6 +500,7 @@ Version 11, 3.1 KB. Rectangles. On a band scale a channel spans the band; on a c
 | `fill` | string |  | Any CSS color. Default: theme color by mark index. |
 | `opacity` | number | `1` |  |
 | `radius` | number | `0` | Corner radius in px. |
+| `shape` | one of `rect`, `hexagon` | `"rect"` | "hexagon": a hexagon pointy at the top in the box the rectangle would fill, its corners on the middle of the top and bottom edges and a quarter of the way down the sides. The boxes transform.hexbin writes tile with it. |
 | `thickness` | number | `1` | Share of the band a bar fills, centered (0.4 = a slim bar; a bullet chart draws the value slimmer than the ranges behind it). |
 | `dodgePadding` | number | `0.1` | Gap between the bars of one dodged category, as a fraction of each bar's share of the band. |
 

@@ -1611,6 +1611,23 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(s(5), '#21908d');
   });
 
+  test('scale.sequential exponent: colors by a power of the value with its sign kept, and a bad one is 1', () => {
+    const bw = ['#000000', '#ffffff'];
+    const root = seq({ range: bw, exponent: 0.5 }, [0, 100]);
+    assert.deepStrictEqual([root(0), root(25), root(100)], ['#000000', '#808080', '#ffffff'], 'a square root: 25 of 100 is halfway');
+    const div = seq({ range: ['#0000ff', '#ffffff', '#ff0000'], domain: [-100, 100], exponent: 0.5 }, [1]);
+    assert.deepStrictEqual(
+      [div(-100), div(-25), div(0), div(25), div(100)],
+      ['#0000ff', '#8080ff', '#ffffff', '#ff8080', '#ff0000'],
+      'a symmetric domain stays symmetric',
+    );
+    const squared = seq({ range: bw, exponent: 2 }, [1, 3]);
+    assert.strictEqual(squared(2), '#606060', '(4 - 1) / (9 - 1) of the way');
+    for (const exponent of [0, -1, NaN, Infinity, '2', null]) {
+      assert.strictEqual(seq({ range: bw, exponent }, [0, 100])(25), '#404040', `exponent ${String(exponent)} is 1`);
+    }
+  });
+
   test('scale.sequential: bad ranges and domains are clear errors, ticks are fractions of the domain', () => {
     for (const range of [
       ['red', 'blue'],

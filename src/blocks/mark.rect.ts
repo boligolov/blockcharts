@@ -98,12 +98,25 @@
     };
   }
 
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  /** A hexagon pointy at the top and bottom in a box given as [left, width] and [top, height] px. */
+  function hexagonPath(hx: [number, number], hy: [number, number]): string {
+    const [x, w] = hx;
+    const [y, h] = hy;
+    const m = r2(x + w / 2);
+    const l = r2(x);
+    const rt = r2(x + w);
+    const q1 = r2(y + h / 4);
+    const q3 = r2(y + (3 * h) / 4);
+    return `M${m} ${r2(y)}L${rt} ${q1}L${rt} ${q3}L${m} ${r2(y + h)}L${l} ${q3}L${l} ${q1}Z`;
+  }
+
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rect',
-    version: 11,
+    version: 12,
     enter: 'grow',
-    doc: 'Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field).',
+    doc: 'Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field). `shape: "hexagon"` draws a hexagon in the box instead, for the cells of transform.hexbin.',
     params: {
       baseline: {
         kind: 'number',
@@ -113,6 +126,12 @@
       fill: { kind: 'string', doc: 'Any CSS color. Default: theme color by mark index.' },
       opacity: { kind: 'number', default: 1 },
       radius: { kind: 'number', default: 0, doc: 'Corner radius in px.' },
+      shape: {
+        kind: 'enum',
+        values: ['rect', 'hexagon'],
+        default: 'rect',
+        doc: '"hexagon": a hexagon pointy at the top in the box the rectangle would fill, its corners on the middle of the top and bottom edges and a quarter of the way down the sides. The boxes transform.hexbin writes tile with it.',
+      },
       thickness: {
         kind: 'number',
         default: 1,
@@ -143,6 +162,7 @@
       const fill = typeof spec.fill === 'string' ? spec.fill : ctx.color(index);
       const opacity = typeof spec.opacity === 'number' ? spec.opacity : undefined;
       const r = typeof spec.radius === 'number' && spec.radius > 0 ? spec.radius : undefined;
+      const hexagon = spec.shape === 'hexagon';
       const { from, to } = ctx.rows(spec);
       const dodge = dodgeOf(ctx, spec, from, to);
       const ax = axis(ctx, spec, 'x', baseline, dodge);
@@ -155,7 +175,9 @@
         if (!hx || !hy) continue;
         const c = colors ? colors[i] : fill;
         if (!c) continue;
-        out.push({ type: 'rect', x: hx[0], y: hy[0], w: hx[1], h: hy[1], r, style: { fill: c, opacity }, ref: { mark: index, row: i } });
+        if (hexagon) out.push({ type: 'path', d: hexagonPath(hx, hy), style: { fill: c, opacity }, ref: { mark: index, row: i } });
+        else
+          out.push({ type: 'rect', x: hx[0], y: hy[0], w: hx[1], h: hy[1], r, style: { fill: c, opacity }, ref: { mark: index, row: i } });
       }
       return out;
     },
@@ -166,6 +188,7 @@
       const ax = axis(ctx, spec, 'x', baseline, dodge);
       const ay = axis(ctx, spec, 'y', baseline, dodge);
       const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+      const hexagon = spec.shape === 'hexagon';
       const SLACK = 2;
       // the last row is drawn on top, so it wins where rectangles overlap
       for (let i = to - 1; i >= from; i--) {
@@ -173,6 +196,13 @@
         const hx = ax(i);
         const hy = ay(i);
         if (!hx || !hy) continue;
+        if (hexagon) {
+          // the rows of hexagons interlock, so their boxes overlap: what counts is the hexagon itself
+          const u = Math.abs(px - (hx[0] + hx[1] / 2)) / (hx[1] / 2);
+          const v = Math.abs(py - (hy[0] + hy[1] / 2)) / (hy[1] / 2);
+          if (u <= 1 && v <= 1 - u / 2) return { row: i, x: hx[0] + hx[1] / 2, y: hy[0] + hy[1] / 2, dist: 0 };
+          continue;
+        }
         if (px >= hx[0] - SLACK && px <= hx[0] + hx[1] + SLACK && py >= hy[0] - SLACK && py <= hy[0] + hy[1] + SLACK) {
           return { row: i, x: hx[0] + hx[1] / 2, y: hy[0], dist: 0, box: { x: hx[0], y: hy[0], w: hx[1], h: hy[1] } };
         }
