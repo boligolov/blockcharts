@@ -76,8 +76,10 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 13,
+    version: 14,
     requires: ['lib.curve'],
+    series: true,
+    enter: 'wipe',
     doc: 'A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: "step"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.',
     params: {
       group: { kind: 'field', doc: 'Field whose distinct values become separate lines (long-format data).' },
@@ -177,7 +179,7 @@
       const ys = ctx.channel(spec, 'y').mapped;
       const colorCh = spec.color !== undefined ? ctx.channel(spec, 'color') : null;
       // a crosshair follows the pointer at any height, so the value it points at has to as well
-      const reach = (ctx.spec.interaction || []).some((s) => s.type === 'crosshair') ? Infinity : REACH;
+      const reach = ctx.alongX ? Infinity : REACH;
       let best: BC.Pick | null = null;
       for (const { rows } of ctx.series(spec, xs)) {
         if (colorCh && !colorCh.mapped[rows[0]]) continue;

@@ -19,9 +19,9 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'zoom',
-    version: 6,
+    version: 7,
     requires: ['lib.pointer', 'lib.view'],
-    doc: 'Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen.',
+    doc: 'Wheel zoom around the cursor, drag to pan, double-click to reset. A drag another interaction claims (interaction.brush, with its modifier held) is left to it. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen.',
     params: {
       scales: { kind: 'list', default: ['x'], doc: 'Names of the scales to control.' },
       wheel: {
@@ -81,17 +81,11 @@
         refit();
       };
 
-      // a drag that starts a brush selection (its modifier held) is the brush's, not a pan: both would move at once, and
-      // the selection would be read off a view that slid away under it
-      const brushes = (live.spec.interaction || []).filter((i) => i.type === 'brush');
-      const startsBrush = (ev: PointerEvent) =>
-        brushes.some((b) =>
-          b.modifier === 'none' ? false : b.modifier === 'alt' ? ev.altKey : b.modifier === 'ctrl' ? ev.ctrlKey || ev.metaKey : ev.shiftKey,
-        );
-
       let drag: { x: number; y: number; start: Record<string, Pair> } | null = null;
       const onDown = (ev: PointerEvent) => {
-        if (ev.button !== 0 || startsBrush(ev)) return;
+        // a drag another interaction claimed (a brush selection) is not a pan: both would move at once, and the
+        // selection would be read off a view that slid away under it
+        if (ev.button !== 0 || live.dragClaimed(ev)) return;
         const p = toLogical(ev);
         if (!inPlot(p)) return;
         const start: Record<string, Pair> = {};

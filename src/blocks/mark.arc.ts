@@ -129,7 +129,9 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'arc',
-    version: 2,
+    version: 3,
+    enter: 'pop',
+    markColor: false,
     doc: "Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock. A gauge or a progress ring is the same mark: `startAngle` -90 and `endAngle` 90 make a half circle, `total` the maximum (the rest of the arc is an empty track), `center` writes the figure in the middle.",
     params: {
       innerRadius: { kind: 'number', default: 0, doc: 'Hole size as a fraction of the radius (0 = pie, 0.5 = donut).' },

@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 30429,
+    "bytes": 30608,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 25108,
+        "bytes": 25289,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 22096,
+        "bytes": 22277,
         "off": [
           "CHECKS",
           "DECODE"
@@ -912,8 +912,8 @@
     },
     "mark.arc": {
       "file": "blocks/mark.arc.js",
-      "bytes": 4845,
-      "version": 2,
+      "bytes": 4870,
+      "version": 3,
       "requires": [],
       "closure": [
         "mark.arc"
@@ -1003,8 +1003,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2537,
-      "version": 9,
+      "bytes": 2561,
+      "version": 10,
       "requires": [
         "lib.curve"
       ],
@@ -1274,8 +1274,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3727,
-      "version": 13,
+      "bytes": 3704,
+      "version": 14,
       "requires": [
         "lib.curve"
       ],
@@ -1441,8 +1441,8 @@
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",
-      "bytes": 3212,
-      "version": 10,
+      "bytes": 3225,
+      "version": 11,
       "requires": [],
       "closure": [
         "mark.rect"
@@ -1666,8 +1666,8 @@
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 4800,
-      "version": 8,
+      "bytes": 4813,
+      "version": 9,
       "requires": [],
       "closure": [
         "mark.text"
@@ -2114,8 +2114,8 @@
     },
     "interaction.animate": {
       "file": "blocks/interaction.animate.js",
-      "bytes": 2264,
-      "version": 1,
+      "bytes": 2276,
+      "version": 2,
       "requires": [],
       "closure": [
         "interaction.animate"
@@ -2148,8 +2148,8 @@
     },
     "interaction.brush": {
       "file": "blocks/interaction.brush.js",
-      "bytes": 3968,
-      "version": 4,
+      "bytes": 3743,
+      "version": 5,
       "requires": [
         "lib.pointer"
       ],
@@ -2174,7 +2174,7 @@
             "none"
           ],
           "default": "shift",
-          "doc": "Key that must be held to start a selection. \"none\" conflicts with the pan of interaction.zoom (turn its `pan` off)."
+          "doc": "Key that must be held to start a selection. With \"none\" every drag is a selection, so the pan of interaction.zoom never starts."
         },
         "fit": {
           "kind": "list",
@@ -2190,8 +2190,8 @@
     },
     "interaction.crosshair": {
       "file": "blocks/interaction.crosshair.js",
-      "bytes": 2029,
-      "version": 4,
+      "bytes": 2087,
+      "version": 5,
       "requires": [
         "lib.pointer"
       ],
@@ -2220,8 +2220,8 @@
     },
     "interaction.legend-filter": {
       "file": "blocks/interaction.legend-filter.js",
-      "bytes": 2528,
-      "version": 2,
+      "bytes": 2552,
+      "version": 3,
       "requires": [],
       "closure": [
         "interaction.legend-filter"
@@ -2244,8 +2244,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 8574,
-      "version": 13,
+      "bytes": 8615,
+      "version": 14,
       "requires": [
         "lib.pointer"
       ],
@@ -2290,8 +2290,8 @@
     },
     "interaction.zoom": {
       "file": "blocks/interaction.zoom.js",
-      "bytes": 2695,
-      "version": 6,
+      "bytes": 2533,
+      "version": 7,
       "requires": [
         "lib.pointer",
         "lib.view"
@@ -2333,7 +2333,7 @@
           "doc": "How far in you can go, as a multiple of the full domain."
         }
       },
-      "doc": "Wheel zoom around the cursor, drag to pan, double-click to reset. A drag with the modifier of interaction.brush is left to the brush. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen."
+      "doc": "Wheel zoom around the cursor, drag to pan, double-click to reset. A drag another interaction claims (interaction.brush, with its modifier held) is left to it. Works on continuous scales (linear, log, time; a log scale zooms by ratios) by changing their view through setView; the layout stays frozen."
     },
     "interaction.zoom-controls": {
       "file": "blocks/interaction.zoom-controls.js",

@@ -331,6 +331,9 @@ declare namespace BC {
     edgeTaken(edge: 'top' | 'bottom'): { left: number; right: number };
     /** How many labels of a band scale fit along `length` px, the way an axis writes them. */
     bandLabels(scale: string, length: number): number;
+    /** An interaction on the chart reads it along x, at any height (InteractionDef.alongX, a crosshair): a mark's pick
+     *  then answers for the x of the pointer above or below its shape too. */
+    readonly alongX: boolean;
   }
 
   /** Available to interactions once the chart is in the DOM. */
@@ -360,6 +363,12 @@ declare namespace BC {
      *  every claim on it has called the returned release function. Interactions must not set `host.style.position`
      *  themselves — more than one may need it at once, and a plain "save it, restore it" fights the others. */
     claimPosition(): () => void;
+    /** Claim the drags that `when` says yes to (a brush: those with its modifier held), so that another interaction
+     *  (the pan of a zoom) leaves them alone. A claim lasts as long as the chart is built as it is now: a rebuild
+     *  attaches the interactions again, and they claim again. */
+    claimDrag(when: (ev: PointerEvent) => boolean): void;
+    /** Whether an interaction has claimed this drag (claimDrag). One that drags by default asks before it starts. */
+    dragClaimed(ev: PointerEvent): boolean;
   }
 
   // ───────────────────────── blocks ─────────────────────────
@@ -459,6 +468,15 @@ declare namespace BC {
     /** Hit-testing lives with the mark that knows its shapes. Return the closest datum within a mark-specific
      *  reach of (x, y), or null. Interactions (tooltip) call it on every mark and keep the smallest `dist`. */
     pick?(spec: MarkSpec, ctx: ChartCtx, index: number, x: number, y: number): Pick | null;
+    // What the mark offers to interactions, which read these rather than naming marks:
+    /** It draws each series as one shape through its rows in x order (a line, an area): a crosshair snaps to it. */
+    series?: boolean;
+    /** How interaction.animate brings it in: bars grow from their baseline ("grow"), series are drawn from left to
+     *  right ("wipe"), slices open from the center ("pop"). Without one it fades in. */
+    enter?: 'grow' | 'wipe' | 'pop';
+    /** false: it is not drawn in ChartCtx.color(index) when no color channel, fill or stroke says otherwise (a pie
+     *  gives each slice its own color, a label takes the text color), so a tooltip shows no color for its datum. */
+    markColor?: boolean;
   }
 
   /** What a guide needs around the plot. The side keys are space the guide occupies and add up with other guides
@@ -486,6 +504,8 @@ declare namespace BC {
     /** For an overlay that sits in a corner of the chart: which one, and how far along its edge from the end of the chart.
      *  Read at layout, so what is drawn along that edge can keep clear of it. */
     corner?(spec: InteractionSpec, ctx: ChartCtx): { edge: 'top' | 'bottom'; side: 'left' | 'right'; width: number } | null;
+    /** It reads the chart along x at any height (a crosshair): ChartCtx.alongX is true while it is on the chart. */
+    alongX?: boolean;
     attach(spec: InteractionSpec, live: LiveCtx): void;
   }
 

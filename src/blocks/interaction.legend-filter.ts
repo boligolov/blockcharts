@@ -6,7 +6,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'legend-filter',
-    version: 2,
+    version: 3,
     doc: 'Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.',
     params: {
       scale: { kind: 'scale', doc: 'The color scale to filter. Default: the scale of the first legend.' },
@@ -18,8 +18,11 @@
     },
     attach(spec, live) {
       const outer = typeof spec.legend === 'string' ? spec.legend : null;
-      const legends = (live.spec.guides || []).filter((g) => g.type === 'legend' && typeof g.scale === 'string');
-      const name = typeof spec.scale === 'string' ? spec.scale : legends.length ? (legends[0].scale as string) : undefined;
+      // by default the scale of the first guide of a categorical color scale: the legend that shows its categories
+      const shown = (live.spec.guides || []).find(
+        (g) => typeof g.scale === 'string' && !!live.scales[g.scale] && live.scales[g.scale].kind === 'color',
+      );
+      const name = typeof spec.scale === 'string' ? spec.scale : shown ? (shown.scale as string) : undefined;
       const scale = name ? live.scales[name] : undefined;
       if (!name || !scale || scale.kind !== 'color') {
         console.warn(

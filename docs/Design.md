@@ -1047,6 +1047,37 @@ blocks. The copies the audit found were 450 to 800 characters long. The likeness
 distinct values of band and color, the sort key of sort and window, the pick of line and area. They are a loop or a
 check that two blocks write alike, below the limit.
 
+## Blocks meet through what they declare
+
+The second item of the audit: blocks that named other blocks. Each connection now goes through a declaration that any
+block can make, and the core reads it:
+
+- **`MarkDef.series`** (line, area): the mark draws each series as one shape through its rows in x order. With `snap:
+  "lines"`, the crosshair snaps to marks that say so, not to the two it used to name.
+- **`MarkDef.enter`**: rect says `"grow"`, line and area `"wipe"`, arc `"pop"`. In `"auto"` mode the animation takes
+  the effect the marks ask for, by the old rules: a pie opens; bars grow unless a series is drawn over them. A bar's
+  baseline comes from the first mark that grows.
+- **`MarkDef.markColor: false`** (arc, text): the mark is not drawn in `color(index)`. A tooltip then shows no color
+  for its datum unless a color channel, fill or stroke gives one.
+- **`InteractionDef.alongX`** (crosshair): it reads the chart along x at any height. `ChartCtx.alongX` says one is on
+  the chart, and the pick of a line answers wherever the pointer is above or below it. Before, the line looked for an
+  interaction of type `crosshair`.
+- **`LiveCtx.claimDrag(when)` and `dragClaimed(ev)`**: a gesture claim in the core, as `claimPosition` is for the
+  host's positioning. The brush claims the drags its modifier is held for, and the zoom pans only drags nobody
+  claimed. Before, the zoom read the brushes' modifiers and the brush warned about the zoom.
+
+The brush now behaves differently with `modifier: "none"`. It claims every drag, so a zoom on the same chart never
+pans. Before, both moved at once and a warning said so.
+
+- **legend-filter** filtered the scale of the first `legend` guide by default. Now it filters the scale of the first
+  guide bound to a categorical color scale, which is the same legend, found by its scale.
+
+What the core adds weighs 0.2 KB. A test in `test-dist.js` scans every compiled block for a `.type` compared with
+another block's type, and for another block asked for by name. Lib blocks may be asked for by name, and a block may
+name its own type. The scan finds all seven places that named another block before. Another test defines marks
+and interactions under new names with the same declarations, and checks that they are treated the same way. Putting
+back the old tooltip, crosshair, line, animate or zoom fails it.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

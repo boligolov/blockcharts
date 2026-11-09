@@ -698,6 +698,11 @@
       };
     };
 
+    // A drag can mean a pan (interaction.zoom) or a selection (interaction.brush, with its modifier held). The one that
+    // wants a particular drag claims it; the one that drags by default asks first, so neither has to know the other.
+    // The claims are made anew with every build, as the interactions are attached anew.
+    const dragClaims: ((ev: PointerEvent) => boolean)[] = [];
+
     // 1 table + transforms. Transforms before the first view-dependent one run once; that one and the rest run at every
     // redraw (see draw), on the table the static ones produced. Scale domains come from that static table: the full data.
     const transformSpecs = spec.transforms || [];
@@ -902,6 +907,10 @@
       scales,
       measure,
       wide,
+      alongX: (spec.interaction || []).some((is) => {
+        const def = registry.get(`interaction.${is.type}`) as BC.InteractionDef | undefined;
+        return !!(def && def.alongX);
+      }),
       orientation(name) {
         const r = scaleSpecs[name] && rangeSetting(name, scaleSpecs[name]);
         return r === 'width' ? 'horizontal' : r === 'height' ? 'vertical' : null;
@@ -1266,6 +1275,8 @@
       getView: { value: getView },
       fit: { value: fit },
       claimPosition: { value: claimPosition },
+      claimDrag: { value: (when: (ev: PointerEvent) => boolean) => dragClaims.push(when) },
+      dragClaimed: { value: (ev: PointerEvent) => dragClaims.some((when) => when(ev)) },
     }) as BC.LiveCtx;
     (spec.interaction || []).forEach((is, i) => {
       try {

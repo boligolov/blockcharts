@@ -12,7 +12,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'brush',
-    version: 4,
+    version: 5,
     requires: ['lib.pointer'],
     doc: 'Drag a rectangle over the plot to zoom to it: on the scales in `scales` (default x) the view becomes the selected range, on a category (band) scale the categories under the selection. Shift + drag by default, so it does not fight with the pan of interaction.zoom; Escape cancels while dragging, double-click resets. A drag shorter than `minSize` px is not a selection.',
     params: {
@@ -25,7 +25,7 @@
         kind: 'enum',
         values: ['shift', 'alt', 'ctrl', 'none'],
         default: 'shift',
-        doc: 'Key that must be held to start a selection. "none" conflicts with the pan of interaction.zoom (turn its `pan` off).',
+        doc: 'Key that must be held to start a selection. With "none" every drag is a selection, so the pan of interaction.zoom never starts.',
       },
       fit: { kind: 'list', doc: 'Scales to refit to the selected window (usually ["y"]).' },
       minSize: { kind: 'number', default: 6, doc: 'Smallest selection, in px, along each selected axis.' },
@@ -46,11 +46,6 @@
       });
       const modifier = spec.modifier === 'alt' || spec.modifier === 'ctrl' || spec.modifier === 'none' ? spec.modifier : 'shift';
       const minSize = typeof spec.minSize === 'number' && spec.minSize >= 0 ? spec.minSize : 6;
-      if (modifier === 'none' && (live.spec.interaction || []).some((i) => i.type === 'zoom' && i.pan !== false)) {
-        console.warn(
-          '[blockcharts] interaction.brush: without a modifier it drags at the same time as the pan of interaction.zoom; set "modifier" or turn "pan" off',
-        );
-      }
 
       const root = live.root as HTMLElement;
       const host = live.host;
@@ -69,6 +64,8 @@
       };
       const held = (ev: MouseEvent) =>
         modifier === 'none' || (modifier === 'shift' ? ev.shiftKey : modifier === 'alt' ? ev.altKey : ev.ctrlKey || ev.metaKey);
+      // a drag with the modifier held is a selection: the pan of a zoom on the same chart leaves it alone
+      live.claimDrag(held);
 
       let drag: { x0: number; y0: number; x1: number; y1: number; box: HTMLElement } | null = null;
 

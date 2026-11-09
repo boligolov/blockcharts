@@ -547,6 +547,43 @@ test('blocks: no two blocks carry the same code; what they share is a lib block'
   assert.strictEqual(sharedRuns('(function () {\n' + body + '})();', 'const k = 1;\n' + body, COPY_CHARS).length, 1, 'a copy is found');
 });
 
+/** Where a block's code names another block: a `.type` compared with the type of another block (also through indexOf or
+ *  includes), or another block asked for by its full name. Lib blocks are asked for by name; that is what they are for. */
+function namesIn(name, code, all) {
+  const own = name.slice(name.indexOf('.') + 1);
+  const types = new Set(all.map((n) => n.slice(n.indexOf('.') + 1)));
+  const found = [];
+  for (const re of [
+    /\.type\s*[!=]==?\s*(['"`])([\w-]+)\1/g,
+    /(['"`])([\w-]+)\1\s*[!=]==?\s*[\w$.]*\.type\b/g,
+    /\b(?:indexOf|includes)\(\s*(['"`])([\w-]+)\1\s*\)/g,
+  ])
+    for (const m of code.matchAll(re)) if (types.has(m[2]) && m[2] !== own) found.push(m[0]);
+  for (const m of code.matchAll(/\.get\(\s*(['"`])([a-z]+\.[\w-]+)\1/g))
+    if (all.includes(m[2]) && !m[2].startsWith('lib.') && m[2] !== name) found.push(m[0]);
+  return found;
+}
+
+test('blocks: no block names another; marks and interactions meet through what they declare', () => {
+  const all = Object.keys(manifest.blocks);
+  const named = [];
+  for (const name of all) {
+    const found = namesIn(name, fs.readFileSync(path.join(distDir, manifest.blocks[name].file), 'utf8'), all);
+    if (found.length) named.push(`${name}: ${found.join(', ')}`);
+  }
+  assert.deepStrictEqual(named, []);
+  // the measure itself, on what blocks did before they declared: each of these is found, and a block's own type is not
+  for (const code of [
+    "if (snap === 'lines' && mark.type !== 'line') continue;",
+    "const reach = (ctx.spec.interaction || []).some((s) => s.type === 'crosshair') ? Infinity : 14;",
+    "if (types.indexOf('arc') >= 0) return 'pop';",
+    "'brush' === i.type",
+    "BC.get('mark.rect')",
+  ])
+    assert.strictEqual(namesIn('interaction.probe', code, all).length, 1, code);
+  assert.deepStrictEqual(namesIn('mark.line', "if (m.type === 'line') n++; BC.get('lib.curve');", all), []);
+});
+
 test('README: the table of blocks lists every block there is, and only those', () => {
   const readme = fs.readFileSync(path.join(repo, 'README.md'), 'utf8');
   const listed = [];

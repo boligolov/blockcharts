@@ -2993,6 +2993,112 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     }
   });
 
+  test('blocks meet through what they declare: a mark or an interaction of another name that declares the same is treated the same', async () => {
+    // marks with the code of line, rect and arc under names no block knows, saying what those say or not
+    const like = (base, type, own) => {
+      if (!BC.get('mark.' + type)) BC.define({ ...BC.get('mark.' + base), type, version: 1, ...own });
+    };
+    like('line', 'trace');
+    like('line', 'stroke', { series: false, enter: undefined });
+    like('rect', 'slab');
+    like('rect', 'tile', { markColor: false });
+    const marked = (type, extra) => monthly({ marks: [{ type, x: 'm', y: 'rev' }], ...extra });
+    const firstPoint = (host) =>
+      /L([\d.]+) ([\d.]+)/
+        .exec(paths(layer(svgOf(host), 'marks'))[0].d)
+        .slice(1)
+        .map(Number);
+
+    // crosshairs of other names, one reading the chart along x and one not
+    if (!BC.get('interaction.ruler')) BC.define({ ...BC.get('interaction.crosshair'), type: 'ruler', version: 1 });
+    if (!BC.get('interaction.hairline')) BC.define({ ...BC.get('interaction.crosshair'), type: 'hairline', version: 1, alongX: false });
+    // a series: a crosshair snaps to it; along x, the pick of a line answers at any height
+    for (const [type, cross, snaps, anyHeight] of [
+      ['trace', 'ruler', true, true],
+      ['stroke', 'ruler', false, true],
+      ['trace', 'hairline', true, false],
+    ]) {
+      const host = new FakeNode('div');
+      BC.chart(host, marked(type, { interaction: [{ type: 'tooltip' }, { type: cross }] }));
+      const [x, y] = firstPoint(host);
+      await hover(host, x + 3, y > 200 ? y - 120 : y + 120);
+      assert.strictEqual(partOf(host, 'bc-crosshair').style.display, snaps ? 'block' : 'none', `${type} + ${cross}: snapped`);
+      assert.strictEqual(tipOf(host).style.display === 'block', anyHeight, `${type} + ${cross}: the value far from the line`);
+    }
+
+    // the color a tooltip shows next to the heading
+    const swatch = async (type) => {
+      const host = new FakeNode('div');
+      BC.chart(host, {
+        data: 'bullet',
+        size: [640, 400],
+        scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+        marks: [{ type, x: 'k', y: 'v' }],
+        interaction: [{ type: 'tooltip' }],
+      });
+      const b = rects(layer(svgOf(host), 'marks'))[0];
+      await hover(host, b.x + b.w / 2, b.y + b.h / 2);
+      const head = tipOf(host).children.find((c) => c.attrs.class === 'bc-tooltip-heading');
+      return head.children.length > 1;
+    };
+    assert.strictEqual(await swatch('slab'), true, 'a mark drawn in its own color shows it');
+    assert.strictEqual(await swatch('tile'), false, 'markColor: false shows none');
+
+    // the effect of interaction.animate
+    const calls = [];
+    const proto = FakeNode.prototype;
+    const saved = { animate: proto.animate, querySelector: proto.querySelector };
+    proto.animate = function (frames) {
+      calls.push(frames);
+      return { cancel() {} };
+    };
+    proto.querySelector = function (sel) {
+      const m = /data-bc-layer="(\w+)"/.exec(sel);
+      return (this.children || []).find((c) => c.attrs && c.attrs['data-bc-layer'] === (m && m[1])) || null;
+    };
+    try {
+      const effect = (spec) => {
+        calls.length = 0;
+        BC.chart(new FakeNode('div'), { ...spec, interaction: [{ type: 'animate' }] });
+        const f = calls[0][0];
+        return f.clipPath ? 'wipe' : /scale[XY]\(0\)/.test(f.transform) ? 'grow' : /scale/.test(f.transform) ? 'pop' : 'fade';
+      };
+      assert.strictEqual(effect(marked('trace')), 'wipe');
+      assert.strictEqual(effect(marked('stroke')), 'fade', 'no enter: it fades in');
+      const bars = { data: 'bullet', size: [640, 400], scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } } };
+      assert.strictEqual(effect({ ...bars, marks: [{ type: 'slab', x: 'k', y: 'v' }] }), 'grow');
+    } finally {
+      proto.animate = saved.animate;
+      proto.querySelector = saved.querySelector;
+    }
+
+    // a drag an interaction of any name claims is not a pan
+    if (!BC.get('interaction.grab'))
+      BC.define({
+        role: 'interaction',
+        type: 'grab',
+        version: 1,
+        doc: 'test',
+        params: {},
+        attach: (spec, live) => live.claimDrag((ev) => ev.altKey),
+      });
+    const host = new FakeNode('div');
+    const h = BC.chart(host, monthly({ interaction: [{ type: 'zoom' }, { type: 'grab' }] }));
+    const [d0, d1] = h.getView().x.map(Number);
+    const view = [d0 + (d1 - d0) * 0.2, d0 + (d1 - d0) * 0.7];
+    const panned = async (altKey) => {
+      h.setView('x', view);
+      await flush();
+      host.children[0].fire('pointerdown', { button: 0, clientX: 300, clientY: 150, pointerId: 1, altKey });
+      host.children[0].fire('pointermove', { clientX: 200, clientY: 150, buttons: 1, altKey });
+      host.children[0].fire('pointerup', { clientX: 200, clientY: 150 });
+      await flush();
+      return Number(h.getView().x[0]) !== view[0];
+    };
+    assert.strictEqual(await panned(true), false, 'the claimed drag is left alone');
+    assert.strictEqual(await panned(false), true, 'any other drag pans');
+  });
+
   // ───────────────────────── responsive layout ─────────────────────────
 
   test('responsive: a container narrower than the size lays the chart out at its width, again when it changes, keeping the zoom', async () => {

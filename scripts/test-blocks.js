@@ -2640,20 +2640,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     press(none, 200, 150, { shiftKey: false });
     assert(overlay(none), 'modifier "none" needs no key');
 
+    // without a modifier every drag is the brush's: it claims them, and the pan of a zoom on the chart never starts
     logged.warn.length = 0;
-    BC.chart(new FakeNode('div'), lineSpec({ interaction: [{ type: 'zoom' }, { type: 'brush', modifier: 'none' }] }));
-    assert(logged.warn.some((w) => /same time as the pan of interaction\.zoom/.test(w)));
-    logged.warn.length = 0;
-    BC.chart(
-      new FakeNode('div'),
-      lineSpec({
-        interaction: [
-          { type: 'zoom', pan: false },
-          { type: 'brush', modifier: 'none' },
-        ],
-      }),
-    );
-    assert.strictEqual(logged.warn.length, 0, 'no conflict when zoom does not pan');
+    const both = new FakeNode('div');
+    const hb = BC.chart(both, lineSpec({ interaction: [{ type: 'zoom' }, { type: 'brush', modifier: 'none' }] }));
+    const [z0, z1] = hb.getView().x;
+    const zoomedIn = [z0 + (z1 - z0) * 0.2, z0 + (z1 - z0) * 0.7];
+    hb.setView('x', zoomedIn);
+    await flush();
+    press(both, 300, 150, { shiftKey: false });
+    both.children[0].fire('pointermove', { clientX: 200, clientY: 150, buttons: 1 });
+    await flush();
+    assert(overlay(both), 'the drag draws a selection');
+    assert.deepStrictEqual(hb.getView().x, zoomedIn, 'and does not pan');
+    assert.strictEqual(logged.warn.length, 0, 'nothing to warn about');
+    hb.destroy();
 
     const bad = new FakeNode('div');
     BC.chart(

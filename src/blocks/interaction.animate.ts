@@ -3,18 +3,25 @@
   /** Charts that have played already: a rebuild of the same chart (a new width, an update) does not play again. */
   const played = typeof WeakSet === 'function' ? new WeakSet<object>() : null;
 
-  /** The effect that suits the marks: bars grow, lines and areas are drawn left to right, pies open, the rest fades in. */
+  /** How a mark asks to be brought in (MarkDef.enter), if it does. */
+  function enterOf(mark: BC.MarkSpec): Effect | undefined {
+    const def = BC.get(`mark.${mark.type}`) as BC.MarkDef | undefined;
+    return def && def.enter;
+  }
+
+  /** The effect that suits the marks: a pie opens, bars grow (unless series are drawn over them), series are drawn left
+   *  to right, the rest fades in. */
   function auto(spec: BC.ChartSpec): Effect {
-    const types = spec.marks.map((m) => m.type);
-    if (types.indexOf('arc') >= 0) return 'pop';
-    if (types.indexOf('rect') >= 0 && types.indexOf('line') < 0 && types.indexOf('area') < 0) return 'grow';
-    if (types.indexOf('line') >= 0 || types.indexOf('area') >= 0) return 'wipe';
+    const asked = spec.marks.map(enterOf);
+    if (asked.indexOf('pop') >= 0) return 'pop';
+    if (asked.indexOf('grow') >= 0 && asked.indexOf('wipe') < 0) return 'grow';
+    if (asked.indexOf('wipe') >= 0) return 'wipe';
     return 'fade';
   }
 
   /** Where bars stand: the y (or, for horizontal bars, the x) of the value 0 if it is in view, else the plot's edge. */
   function baseline(live: BC.LiveCtx): { horizontal: boolean; at: number } {
-    const rect = live.spec.marks.find((m) => m.type === 'rect');
+    const rect = live.spec.marks.find((m) => enterOf(m) === 'grow');
     let horizontal = false;
     if (rect) {
       try {
@@ -34,7 +41,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'animate',
-    version: 1,
+    version: 2,
     doc: "Plays the chart in once, when it is first drawn: bars grow from their baseline, lines and areas are drawn from left to right, a pie opens from its center, anything else fades in. Never again on zoom, filter or update of the view, and not at all for readers who ask their system for reduced motion. Uses the browser's own animation of the SVG layer (no timer loop); on a canvas chart it fades the canvas in.",
     params: {
       effect: {

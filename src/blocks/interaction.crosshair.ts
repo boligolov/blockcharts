@@ -11,11 +11,18 @@
   const follow: Follow = (live, show, hide, keepOnPress) =>
     ((BC.get('lib.pointer') as BC.LibDef).exports.follow as Follow)(live, show, hide, keepOnPress);
 
+  /** A mark that draws its series as one shape each (a line, an area): what "lines" snaps to. */
+  function isSeries(mark: BC.MarkSpec): boolean {
+    const def = BC.get(`mark.${mark.type}`) as BC.MarkDef | undefined;
+    return !!(def && def.series);
+  }
+
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'crosshair',
-    version: 4,
+    version: 5,
     requires: ['lib.pointer'],
+    alongX: true,
     doc: 'A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. On a touch screen it follows a tap and the sliding finger, and stays until the reader touches somewhere else. Works with or without the tooltip.',
     params: {
       snap: {
@@ -71,7 +78,7 @@
       const nearest = (x: number, y: number): { x: number; y: number } | null => {
         let best: { x: number; y: number; d: number } | null = null;
         for (const mark of live.spec.marks) {
-          if (snap === 'lines' && mark.type !== 'line' && mark.type !== 'area') continue;
+          if (snap === 'lines' && !isSeries(mark)) continue;
           let xs: ArrayLike<number>;
           let ys: ArrayLike<number> | null = null;
           let half = 0;

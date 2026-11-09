@@ -24,7 +24,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 13,
+    version: 14,
     requires: ['lib.pointer'],
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair.',
     params: {
@@ -218,7 +218,8 @@
         }
         if (typeof mark.fill === 'string') return mark.fill;
         if (typeof mark.stroke === 'string') return mark.stroke;
-        return mark.type === 'arc' || mark.type === 'text' ? '' : live.color(index);
+        const def = BC.get(`mark.${mark.type}`) as BC.MarkDef | undefined;
+        return def && def.markColor === false ? '' : live.color(index);
       }
 
       function lines(mark: BC.MarkSpec, def: BC.MarkDef, row: number, skip?: string | null): [string, string][] {

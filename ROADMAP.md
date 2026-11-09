@@ -36,9 +36,6 @@ skill, which cost 44% more tokens and gave heavier pages. Still to do:
 
 Audited on 2026-11-01. Scales, transforms and renderers are clean; these are the leaks, in the order to fix them:
 
-- [ ] **Blocks naming other blocks**: `mark.line` reads `crosshair`, tooltip names `arc` and `text`, crosshair names `line` and
-      `area`, zoom and brush read each other (a gesture claim in the core, like `claimPosition`). Marks declare what they
-      offer, and a test fails when a block names another.
 - [ ] **The core knowing blocks**: the list of scale kinds (`src/core.ts`, the constants check), `auto` of the legend in validation,
       the axis label wrapping in `bandLabels`. The palette lives in both `PALETTE` and the composer's CSS.
 - [ ] **Facets in the composer** name scale types, `legend` and `legend-filter`: a new scale type is silently not faceted. Blocks
