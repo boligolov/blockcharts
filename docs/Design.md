@@ -1109,6 +1109,34 @@ four old names in the core fails it. Another test checks that the light colors o
 One leak is left for later. A mark lists the scale types its channels accept by name (`scales: ['linear', ...]`), so
 a scale of a new name fits no built-in mark. The test uses copies of rect and rule that accept any scale.
 
+## Facets read what the blocks declare
+
+The fourth item of the audit. The composer's facets named scale types, `legend` and `legend-filter`. Now:
+
+- **`ScaleDef.merge`** says how the panels' domains go together: `"union"` (band, color) or `"extent"` (linear, log,
+  time, sequential, size). A scale that declares a `nice` param is not rounded again. Without `merge`, each panel
+  keeps its own domain.
+- **`GuideDef.shownOnce`** (legend): the guide shows its scale and nothing of its panel. When the panels share that
+  scale and it merges by union, the page draws it once above them.
+- **`InteractionDef.outerLegend`** (legend-filter): it can follow a legend outside the chart, given `legend` and
+  `scale`.
+
+The composer used to cut shared scales out of a legend-filter's `fit`. That step is gone. A shared scale has its
+domain written in, and `fit` leaves such a domain alone. A test in test-blocks now holds that rule.
+
+Two behaviors change:
+
+- **A size scale is shared** like the others, so a bubble of one size is one value in every panel. Before, size was not
+  in the list, and each panel scaled its bubbles alone.
+- **`free: ["color"]`** keeps the legend in each panel. Before, the legend left the panels, and an empty one was drawn
+  above them.
+
+A test builds a dist with a scale, a legend and a filter under new names. They only hand the work to the real blocks.
+Putting back any of the three names in the composer fails the test.
+
+The skill's note on facets was out of date: a legend-filter has worked across panels, and the field could come from a
+transform, since the commit that made it so. The note now says so.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

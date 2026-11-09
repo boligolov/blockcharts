@@ -416,6 +416,10 @@ declare namespace BC {
     /** true: a domain it infers comes from fields alone, and a constant a channel writes (a rule at one category) adds
      *  nothing to it. A band takes its categories from the data; a number scale stretches to show a constant. */
     fieldsOnly?: boolean;
+    /** How charts that share this scale (the panels of a facet) put their domains together: "union" takes every value any
+     *  of them has, in the order first seen (categories); "extent" from the least to the greatest (numbers, dates). Without
+     *  it each panel keeps its own. A scale that declares a `nice` param is not rounded again: each panel already was. */
+    merge?: 'union' | 'extent';
   }
 
   /** What a view-dependent transform may look at: where the plot is and the scales as they are drawn now (zoomed). */
@@ -501,6 +505,9 @@ declare namespace BC {
     /** For a guide that writes the categories of a band scale (an axis): how many of its labels fit along `length` px,
      *  the way it writes them. ChartCtx.ticks shows every category that fits for the guides of that scale. */
     fits?(spec: GuideSpec, ctx: ChartCtx, length: number): number;
+    /** It shows its scale and nothing of the panel it is in (a legend). On a facet whose panels share that scale, and the
+     *  scale is of categories (merged by "union"), the page draws it once above them, as a row of swatches. */
+    shownOnce?: boolean;
   }
 
   interface InteractionDef extends BlockBase {
@@ -510,6 +517,9 @@ declare namespace BC {
     corner?(spec: InteractionSpec, ctx: ChartCtx): { edge: 'top' | 'bottom'; side: 'left' | 'right'; width: number } | null;
     /** It reads the chart along x at any height (a crosshair): ChartCtx.alongX is true while it is on the chart. */
     alongX?: boolean;
+    /** It can follow a legend outside the chart (legend-filter): a page that draws one legend for several charts, as the
+     *  composer does above a facet, gives it `legend`, the id of that element, and `scale`, the scale the legend shows. */
+    outerLegend?: boolean;
     attach(spec: InteractionSpec, live: LiveCtx): void;
   }
 

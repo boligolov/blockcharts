@@ -42,7 +42,8 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'log',
-    version: 2,
+    version: 3,
+    merge: 'extent',
     doc: 'Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten, or to 1, 2 or 5 of a power when the data spans less than two of them. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain.',
     params: {
       nice: { kind: 'boolean', default: true, doc: 'Extend the inferred domain to round values.' },

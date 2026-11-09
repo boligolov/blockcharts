@@ -74,8 +74,8 @@
     },
     "scale.band": {
       "file": "blocks/scale.band.js",
-      "bytes": 1230,
-      "version": 3,
+      "bytes": 1244,
+      "version": 4,
       "requires": [],
       "closure": [
         "scale.band"
@@ -96,8 +96,8 @@
     },
     "scale.color": {
       "file": "blocks/scale.color.js",
-      "bytes": 815,
-      "version": 2,
+      "bytes": 829,
+      "version": 3,
       "requires": [],
       "closure": [
         "scale.color"
@@ -106,8 +106,8 @@
     },
     "scale.linear": {
       "file": "blocks/scale.linear.js",
-      "bytes": 1538,
-      "version": 5,
+      "bytes": 1553,
+      "version": 6,
       "requires": [
         "lib.ticks"
       ],
@@ -136,8 +136,8 @@
     },
     "scale.log": {
       "file": "blocks/scale.log.js",
-      "bytes": 1864,
-      "version": 2,
+      "bytes": 1879,
+      "version": 3,
       "requires": [],
       "closure": [
         "scale.log"
@@ -153,8 +153,8 @@
     },
     "scale.sequential": {
       "file": "blocks/scale.sequential.js",
-      "bytes": 1878,
-      "version": 3,
+      "bytes": 1893,
+      "version": 4,
       "requires": [
         "lib.ticks"
       ],
@@ -167,8 +167,8 @@
     },
     "scale.size": {
       "file": "blocks/scale.size.js",
-      "bytes": 1465,
-      "version": 3,
+      "bytes": 1480,
+      "version": 4,
       "requires": [
         "lib.ticks"
       ],
@@ -187,8 +187,8 @@
     },
     "scale.time": {
       "file": "blocks/scale.time.js",
-      "bytes": 2767,
-      "version": 5,
+      "bytes": 2782,
+      "version": 6,
       "requires": [],
       "closure": [
         "scale.time"
@@ -2077,8 +2077,8 @@
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",
-      "bytes": 5285,
-      "version": 9,
+      "bytes": 5299,
+      "version": 10,
       "requires": [],
       "closure": [
         "guide.legend"
@@ -2220,8 +2220,8 @@
     },
     "interaction.legend-filter": {
       "file": "blocks/interaction.legend-filter.js",
-      "bytes": 2552,
-      "version": 3,
+      "bytes": 2567,
+      "version": 4,
       "requires": [],
       "closure": [
         "interaction.legend-filter"

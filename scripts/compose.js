@@ -14,8 +14,8 @@
 //           how many grid columns it takes; minWidth = the px below which the chart keeps its width and its card scrolls sideways.
 //           { section } is a heading over the whole width that starts a group of cards
 //           { spec, facet: { field, columns?, values?, free? } } draws the chart once per value of a field of the dataset, in one
-//           card, on shared axes: every scale without a domain of its own gets the union of the panels, except those named in
-//           free; a legend of categories is drawn once above the panels
+//           card, on shared scales: every scale without a domain of its own that says how domains merge (ScaleDef.merge) gets
+//           the union of the panels, except those named in free; a legend of shared categories is drawn once above the panels
 //   lang    the language of the page ("ko", "ja", "zh-CN"): <html lang>, the font for that language, and the language numbers
 //           and dates are written in. A { section } or a chart entry can take a lang of its own; a section's lasts until the next
 //   title / subtitle  the page heading (and the <title>) and one line under it
@@ -540,40 +540,39 @@ function compose(opts) {
     captured.length = 0; // the empty panels of this look are not news; the trial run says what is
     const free = entry.facet.free || [];
     const scales = { ...(entry.spec.scales || {}) };
+    // what each block says of itself decides, not its name: how a scale's domains merge, which guide is drawn once
+    const defOf = (role, type) => BC.get(`${role}.${type}`) || {};
     for (const name of Object.keys(scales)) {
       const s = scales[name];
       if (free.includes(name) || s.domain !== undefined) continue;
       const seen = views.map((v) => v[name]).filter(Array.isArray);
       if (!seen.length) continue;
-      if (s.type === 'band' || s.type === 'color') scales[name] = { ...s, domain: Array.from(new Set(seen.flat())) };
-      else if (['linear', 'log', 'time', 'sequential'].includes(s.type)) {
+      const def = defOf('scale', s.type);
+      if (def.merge === 'union') scales[name] = { ...s, domain: Array.from(new Set(seen.flat())) };
+      else if (def.merge === 'extent') {
         const ends = seen.flat().map(Number);
         scales[name] = { ...s, domain: [Math.min(...ends), Math.max(...ends)] };
-        if (s.type === 'linear' || s.type === 'log') scales[name].nice = false; // each panel was already rounded
+        if (def.params && def.params.nice) scales[name].nice = false; // each panel was already rounded
       }
     }
-    // a legend of categories says the same in every panel: it goes above them, once
-    const legendOf = (entry.spec.guides || []).find((g) => g.type === 'legend' && scales[g.scale] && scales[g.scale].type === 'color');
+    // a legend of categories says the same in every panel that shares them: it goes above the panels, once
+    const legendOf = (entry.spec.guides || []).find((g) => {
+      const s = scales[g.scale];
+      return defOf('guide', g.type).shownOnce && s && s.domain !== undefined && defOf('scale', s.type).merge === 'union';
+    });
+    const outer = (x) => !!legendOf && !!defOf('interaction', x.type).outerLegend;
     if (legendOf) {
-      if ((entry.spec.interaction || []).some((x) => x.type === 'legend-filter')) entry.legendId = `bc-facet-legend-${entry.index}`;
+      if ((entry.spec.interaction || []).some(outer)) entry.legendId = `bc-facet-legend-${entry.index}`;
       const s = scales[legendOf.scale];
       const range = Array.isArray(s.range) && s.range.length ? s.range : null;
-      entry.legend = (s.domain || []).map((v, k) => ({ label: String(v), color: range ? range[k % range.length] : BC.color(k) }));
+      entry.legend = s.domain.map((v, k) => ({ label: String(v), color: range ? range[k % range.length] : BC.color(k) }));
     }
     for (const panel of entry.panels) {
       const guides = (entry.spec.guides || []).filter((g) => !legendOf || g !== legendOf);
-      // the panels filter together from the legend above them; a shared scale is not refitted, or they would stop being comparable
+      // the panels filter together from the legend above them. A shared scale has its domain written in, so a filter
+      // that refits scales leaves it as it is, and the panels stay comparable
       const interaction = entry.spec.interaction
-        ? entry.spec.interaction.map((x) =>
-            legendOf && x.type === 'legend-filter'
-              ? {
-                  ...x,
-                  scale: legendOf.scale,
-                  legend: entry.legendId,
-                  ...(x.fit ? { fit: x.fit.filter((n) => free.includes(n)) } : {}),
-                }
-              : x,
-          )
+        ? entry.spec.interaction.map((x) => (outer(x) ? { ...x, scale: legendOf.scale, legend: entry.legendId } : x))
         : undefined;
       Object.assign(panel.spec, { scales, guides }, interaction ? { interaction } : {});
     }

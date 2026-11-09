@@ -11,7 +11,8 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'size',
-    version: 3,
+    version: 4,
+    merge: 'extent',
     requires: ['lib.ticks'],
     doc: 'Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.',
     params: {

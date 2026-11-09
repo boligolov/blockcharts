@@ -36,8 +36,6 @@ skill, which cost 44% more tokens and gave heavier pages. Still to do:
 
 Audited on 2026-11-01. Scales, transforms and renderers are clean; these are the leaks, in the order to fix them:
 
-- [ ] **Facets in the composer** name scale types, `legend` and `legend-filter`: a new scale type is silently not faceted. Blocks
-      should say how a domain merges and how a guide is shared.
 - [ ] **The layout of `mark.sankey`** moves to a transform, as treemap, funnel and Marimekko have it.
 - [ ] **Marks name the scale types they accept** (`scales: ['linear', 'log', 'time', 'band']` on a channel), so a scale
       block of a new name fits no built-in mark. A scale could declare what it is (positional, a number, categories) and a

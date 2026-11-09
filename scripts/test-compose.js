@@ -750,6 +750,69 @@ test('compose: lang sets the page, a section and a chart, and the language of th
   }
 });
 
+test('compose: a facet reads what the blocks declare, so a scale, a legend and a filter of other names are faceted the same', () => {
+  // the built blocks and four more, under names the composer has never seen, that hand everything to a block it has
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bc-facet-'));
+  for (const f of ['core.js', 'blocks']) fs.cpSync(path.join(__dirname, '../dist', f), path.join(dir, f), { recursive: true });
+  const like = (role, type, base, extra) =>
+    fs.writeFileSync(
+      path.join(dir, 'blocks', `${role}.${type}.js`),
+      `"use strict";(function(){const b=()=>BC.get('${base}');BC.define({role:'${role}',type:'${type}',version:1,` +
+        `requires:['${base}'],doc:'test',${extra}});})();`,
+    );
+  // marks name the scales they take, so this point takes any
+  like('mark', 'dot', 'mark.point', 'channels:{x:{required:true},y:{required:true},color:{}},params:{},render:(s,c,i)=>b().render(s,c,i)');
+  like('scale', 'hue', 'scale.color', "merge:'union',params:{},create:(s,c)=>b().create(s,c)");
+  like('scale', 'tall', 'scale.linear', "params:{zero:{kind:'boolean'}},create:(s,c)=>b().create(s,c)");
+  like('guide', 'key', 'guide.legend', 'shownOnce:true,params:{},measure:(s,c)=>b().measure(s,c),render:(s,c,o)=>b().render(s,c,o)');
+  like(
+    'interaction',
+    'sieve',
+    'interaction.legend-filter',
+    "outerLegend:true,params:{scale:{kind:'scale'},legend:{kind:'string'}},attach:(s,l)=>b().attach(s,l)",
+  );
+  fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify(buildManifest(dir)));
+  const rows = [
+    { r: 'North', m: 1, p: 'Tea', v: 10 },
+    { r: 'North', m: 2, p: 'Tea', v: 20 },
+    { r: 'South', m: 1, p: 'Tea', v: 500 },
+    { r: 'South', m: 3, p: 'Coffee', v: 900 },
+  ];
+  const spec = {
+    data: 'd',
+    size: [300, 180],
+    scales: { x: { type: 'linear' }, y: { type: 'tall', zero: true }, color: { type: 'hue' } },
+    guides: [{ type: 'key', scale: 'color' }],
+    marks: [{ type: 'dot', x: 'm', y: 'v', color: 'p' }],
+    interaction: [{ type: 'sieve' }],
+  };
+  const page = compose({ data: { d: rows }, charts: [{ spec, facet: { field: 'r' } }], distDir: dir });
+  assert.deepStrictEqual(page.diagnostics, []);
+  const [north, south] = page.entries[0].panels.map((p) => p.spec);
+  assert.deepStrictEqual(north.scales.color.domain, ['Tea', 'Coffee'], 'merge "union": the categories of every panel');
+  assert.deepStrictEqual(north.scales.color, south.scales.color);
+  assert.strictEqual(north.scales.y.domain, undefined, 'no merge declared: each panel keeps its own');
+  assert.deepStrictEqual(north.guides, [], 'shownOnce: the key is drawn above the panels');
+  assert.deepStrictEqual(
+    page.entries[0].legend.map((l) => l.label),
+    ['Tea', 'Coffee'],
+  );
+  assert.deepStrictEqual(north.interaction, [{ type: 'sieve', scale: 'color', legend: 'bc-facet-legend-0' }], 'outerLegend');
+  fs.rmSync(dir, { recursive: true, force: true });
+
+  // a size scale says it merges too, so a bubble of one size is one value in every panel (before, each panel had its own)
+  const bubbles = {
+    data: 'd',
+    size: [300, 180],
+    scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'size' } },
+    marks: [{ type: 'point', x: 'm', y: 'v', size: 'v' }],
+  };
+  const sized = compose({ data: { d: rows }, charts: [{ spec: bubbles, facet: { field: 'r' } }] }).entries[0].panels;
+  const [n, s] = sized.map((p) => p.spec.scales.size.domain);
+  assert.deepStrictEqual(n, s);
+  assert(n[0] <= 10 && n[1] >= 900, String(n));
+});
+
 test('compose: facet draws one chart per value on shared scales, with one legend', () => {
   const rows = [
     { r: 'North', m: '2024-01-01', p: 'Tea', v: 10 },
@@ -820,6 +883,13 @@ test('compose: facet draws one chart per value on shared scales, with one legend
 
   const free = specs(compose({ data: { d: rows }, charts: [{ spec: spec(), facet: { field: 'r', free: ['y'] } }] }).html);
   assert.strictEqual(free[0].scales.y.domain, undefined, 'a free scale keeps its own');
+  // colors of its own in each panel: the legend says something different in each, so each panel keeps its legend
+  const ownColors = compose({ data: { d: rows }, charts: [{ spec: spec(), facet: { field: 'r', free: ['color'] } }] }).html;
+  assert(!ownColors.includes('class="bc-facet-legend"'), 'no legend above the panels');
+  for (const s of specs(ownColors)) {
+    assert(s.guides.some((g) => g.type === 'legend'));
+    assert.deepStrictEqual(s.interaction[1], { type: 'legend-filter' }, 'each filters its own legend');
+  }
 
   const given = spec();
   given.scales.y = { type: 'linear', domain: [0, 2000] };

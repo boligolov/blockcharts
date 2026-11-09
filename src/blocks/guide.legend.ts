@@ -137,7 +137,8 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 9,
+    version: 10,
+    shownOnce: true,
     doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
       scale: { kind: 'scale', required: true, doc: 'A color, sequential or size scale.' },

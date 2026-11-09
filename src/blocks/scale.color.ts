@@ -16,7 +16,8 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'color',
-    version: 2,
+    version: 3,
+    merge: 'union',
     doc: 'Categorical color scale: one color per distinct value, in first-seen order. Colors come from `range` (a list of CSS colors) or from the theme palette (--bc-c0 …). Colors stay tied to the value when the domain is narrowed (setView, a legend filter); a value outside the visible domain gets no color, so marks do not draw it.',
     create(spec, ctx) {
       const base = spec.domain ? spec.domain.slice() : unique(ctx.sources);

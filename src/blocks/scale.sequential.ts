@@ -31,7 +31,8 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'sequential',
-    version: 3,
+    version: 4,
+    merge: 'extent',
     requires: ['lib.ticks'],
     doc: 'Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`.',
     params: {},

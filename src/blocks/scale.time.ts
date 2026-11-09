@@ -88,7 +88,8 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'time',
-    version: 5,
+    version: 6,
+    merge: 'extent',
     doc: 'Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.',
     params: {
       padding: { kind: 'number', default: 0, doc: 'Extra room around the data extent, as a fraction of its span.' },

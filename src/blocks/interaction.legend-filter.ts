@@ -6,7 +6,8 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'legend-filter',
-    version: 3,
+    version: 4,
+    outerLegend: true,
     doc: 'Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.',
     params: {
       scale: { kind: 'scale', doc: 'The color scale to filter. Default: the scale of the first legend.' },

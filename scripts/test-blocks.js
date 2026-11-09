@@ -2360,6 +2360,12 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     click(noFit, 1);
     await flush();
     assert.deepStrictEqual(hn.getView().y, [1, 8], 'without fit the y domain stays');
+    // a domain written in (the panels of a facet share theirs this way) is not refitted: the panels stay comparable
+    const given = new FakeNode('div');
+    const hg = BC.chart(given, { ...spec, scales: { ...spec.scales, y: { type: 'linear', domain: [0, 10], nice: false } } });
+    click(given, 1);
+    await flush();
+    assert.deepStrictEqual(hg.getView().y, [0, 10], 'a given domain stays');
   });
 
   test('legend-filter: a clear warning when there is nothing to filter, a class for the stylesheet, and full cleanup', async () => {

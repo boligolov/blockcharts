@@ -51,7 +51,7 @@ Version 1, 0.8 KB. The arithmetic of zooming a continuous scale, shared by inter
 
 ## scale.band
 
-Version 3, 1.2 KB. Categorical scale: one band per distinct value, in first-seen order. Maps a value to the band's lower edge; `bandwidth` is the band width. Bands always run in increasing pixel order (left to right, top to bottom), also on a vertical axis, so horizontal bars list their categories from the top. Zoom = a window of categories.
+Version 4, 1.2 KB. Categorical scale: one band per distinct value, in first-seen order. Maps a value to the band's lower edge; `bandwidth` is the band width. Bands always run in increasing pixel order (left to right, top to bottom), also on a vertical axis, so horizontal bars list their categories from the top. Zoom = a window of categories.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -60,11 +60,11 @@ Version 3, 1.2 KB. Categorical scale: one band per distinct value, in first-seen
 
 ## scale.color
 
-Version 2, 0.8 KB. Categorical color scale: one color per distinct value, in first-seen order. Colors come from `range` (a list of CSS colors) or from the theme palette (--bc-c0 …). Colors stay tied to the value when the domain is narrowed (setView, a legend filter); a value outside the visible domain gets no color, so marks do not draw it.
+Version 3, 0.8 KB. Categorical color scale: one color per distinct value, in first-seen order. Colors come from `range` (a list of CSS colors) or from the theme palette (--bc-c0 …). Colors stay tied to the value when the domain is narrowed (setView, a legend filter); a value outside the visible domain gets no color, so marks do not draw it.
 
 ## scale.linear
 
-Version 5, 1.5 KB. Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.
+Version 6, 1.5 KB. Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.
 
 Needs: `lib.ticks`.
 
@@ -76,7 +76,7 @@ Needs: `lib.ticks`.
 
 ## scale.log
 
-Version 2, 1.8 KB. Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten, or to 1, 2 or 5 of a power when the data spans less than two of them. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain.
+Version 3, 1.8 KB. Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten, or to 1, 2 or 5 of a power when the data spans less than two of them. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -84,13 +84,13 @@ Version 2, 1.8 KB. Logarithmic numeric scale (base 10): equal steps for equal ra
 
 ## scale.sequential
 
-Version 3, 1.8 KB. Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`.
+Version 4, 1.8 KB. Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`.
 
 Needs: `lib.ticks`.
 
 ## scale.size
 
-Version 3, 1.4 KB. Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.
+Version 4, 1.4 KB. Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.
 
 Needs: `lib.ticks`.
 
@@ -100,7 +100,7 @@ Needs: `lib.ticks`.
 
 ## scale.time
 
-Version 5, 2.7 KB. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.
+Version 6, 2.7 KB. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -620,7 +620,7 @@ Version 7, 4.2 KB. A key figure as the heading of a chart: a label, the value in
 
 ## guide.legend
 
-Version 9, 5.2 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
+Version 10, 5.2 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -665,7 +665,7 @@ Needs: `lib.pointer`.
 
 ## interaction.legend-filter
 
-Version 3, 2.5 KB. Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.
+Version 4, 2.5 KB. Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
