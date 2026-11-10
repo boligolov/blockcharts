@@ -2168,8 +2168,8 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 6763,
-      "version": 14,
+      "bytes": 7795,
+      "version": 15,
       "requires": [],
       "closure": [
         "guide.axis"
@@ -2225,7 +2225,7 @@
           "doc": "Which end thinned labels count from: \"end\" keeps the last one, for a report about the latest period."
         }
       },
-      "doc": "Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few."
+      "doc": "Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover."
     },
     "guide.grid": {
       "file": "blocks/guide.grid.js",

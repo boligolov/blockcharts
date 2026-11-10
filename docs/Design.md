@@ -1295,6 +1295,11 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
 - **The top label of a color bar keeps clear of the title.** A label sits on the middle of its value, so the top one of
   a column bar stood half a line above the bar, over the title ("Level" on "8" in the contour lines). The bar starts
   half a line lower when there is a title.
+- **Long names on a vertical axis keep to 30% of the chart.** A ranking of departments or products took as much room
+  for its names as the longest one asked: on a phone the bars were a few pixels wide. Now the labels of a vertical axis
+  take at most 30% of the chart's width; a longer one breaks at a space onto a second line when its band is tall
+  enough for two (between characters in Chinese or Japanese), the rest is cut with an ellipsis, and the whole name is
+  the label's title on hover. A single word longer than the room is cut, not put on a line of its own past it.
 
 ## Next steps
 

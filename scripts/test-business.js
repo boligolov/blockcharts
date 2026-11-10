@@ -775,6 +775,56 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     }
   });
 
+  test('guide.axis: long names on a vertical axis take at most 30% of the chart, on two lines or cut, whole on hover', () => {
+    const name = 'Department of Infrastructure, Transport, Regional Development and Communications';
+    const draw = (names, size) => {
+      BC.data(
+        'ranked',
+        names.map((k, i) => ({ k, v: i + 1 })),
+      );
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'ranked',
+        size,
+        scales: { x: { type: 'linear' }, y: { type: 'band' } },
+        guides: [{ type: 'axis', scale: 'y' }],
+        marks: [{ type: 'rect', x: 'v', y: 'k' }],
+      });
+      assert.deepStrictEqual(h.diagnostics, []);
+      const svg = svgOf(host);
+      const bars = rects(layer(svg, 'marks'));
+      const labels = [
+        ...layer(svg, 'axes').matchAll(
+          /<text [^>]*y="([\d.]+)"[^>]*class="bc-axis-label"[^>]*>([^<]*)(?:<title>([^<]*)<\/title>)?<\/text>/g,
+        ),
+      ].map((m) => ({ y: +m[1], text: m[2], title: m[3] }));
+      h.destroy();
+      return { left: Math.min(...bars.map((b) => b.x)), labels };
+    };
+    const tall = draw([name, 'Treasury'], [324, 320]);
+    assert(tall.left <= 324 * 0.3 + 30, 'the plot starts within 30% of the chart, its padding and gap: ' + tall.left);
+    const [one, two, other] = tall.labels;
+    assert.strictEqual(one.text, 'Department of');
+    assert(two.text.endsWith('…') && two.y > one.y, 'the rest on a second line, cut: ' + two.text);
+    assert.strictEqual(one.title, name, 'the whole name on hover');
+    assert.strictEqual(two.title, name);
+    assert.deepStrictEqual([other.text, other.title], ['Treasury', undefined], 'a name that fits is left alone');
+    // forty bands in 320 px have no room for two lines: one line, cut
+    const many = draw([name, ...Array.from({ length: 39 }, (_, i) => `Agency ${i}`)], [324, 320]);
+    assert(many.labels[0].text.endsWith('…') && many.labels[0].title === name, many.labels[0].text);
+    assert(
+      many.labels.slice(1).every((l) => /^Agency \d+$/.test(l.text) && !l.title),
+      'the others stay as they are',
+    );
+    assert(many.left <= 324 * 0.3 + 30, 'labels, their gap and the padding: ' + many.left);
+    // one word longer than the room is cut, not put on a line of its own past it
+    const word = draw(['Donaudampfschifffahrtsgesellschaftskapitänsmützenabzeichenhersteller GmbH', 'b'], [324, 320]);
+    assert(word.labels[0].text.endsWith('…') && word.labels.length === 2, JSON.stringify(word.labels));
+    // a desk: the same names take what they need up to 30% of 1200
+    assert.strictEqual(draw([name, 'Treasury'], [1200, 320]).labels[0].text.length < name.length, true);
+    assert.strictEqual(draw(['Treasury', 'Defence'], [324, 320]).labels.length, 2, 'short names stay one line each');
+  });
+
   test('guide.legend: the top label of a color bar in a column keeps clear of the title', () => {
     BC.data('bar-title', [
       { k: 'a', v: 1 },

@@ -158,12 +158,64 @@
   const title = (spec: BC.GuideSpec): string => (typeof spec.title === 'string' ? spec.title : '');
   const LINE = FONT * 1.25;
 
+  /** The most of the chart's width the labels of a vertical axis may take: long names of categories (a ranking of
+   *  products) would leave the plot a sliver on a phone. */
+  const VERTICAL_SHARE = 0.3;
+
+  /** The text cut to at most `room` wide, ending in an ellipsis when it had to be cut; whole characters only. */
+  function cut(text: string, room: number, ctx: BC.ChartCtx): string {
+    if (ctx.measure(text, FONT).w <= room) return text;
+    const chars = Array.from(text);
+    let lo = 0;
+    let hi = chars.length;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (ctx.measure(chars.slice(0, mid).join('') + '\u2026', FONT).w <= room) lo = mid;
+      else hi = mid - 1;
+    }
+    return chars.slice(0, lo).join('').trimEnd() + '\u2026';
+  }
+
+  /** The first line of a label broken to `room`: as many words as fit (characters, in a script without spaces); the rest
+   *  goes on. Null when not even the first word fits. */
+  function firstLine(label: string, room: number, ctx: BC.ChartCtx): [string, string] | null {
+    const words = label.split(/\s+/).filter(Boolean);
+    if (words.length < 2) {
+      if (!ctx.wide(label)) return null;
+      const chars = Array.from(label);
+      let k = 0;
+      while (k < chars.length - 1 && ctx.measure(chars.slice(0, k + 1).join(''), FONT).w <= room) k++;
+      return k ? [chars.slice(0, k).join(''), chars.slice(k).join('')] : null;
+    }
+    if (ctx.measure(words[0], FONT).w > room) return null;
+    let first = words[0];
+    let k = 1;
+    while (k < words.length - 1 && ctx.measure(first + ' ' + words[k], FONT).w <= room) first += ' ' + words[k++];
+    return [first, words.slice(k).join(' ')];
+  }
+
+  /** Labels of a vertical axis are kept to a share of the chart's width: one too long breaks onto a second line when its
+   *  band has room for two, and what still does not fit is cut with an ellipsis. */
+  function stacker(spec: BC.GuideSpec, ctx: BC.ChartCtx): (label: string) => string[] {
+    const scale = ctx.scales[spec.scale as string];
+    const n = scale.input === 'category' ? scale.domain().length : 0;
+    const room = Math.max(4 * FONT, ctx.size.w * VERTICAL_SHARE);
+    const two = n > 0 && ctx.plot.h / n >= 2 * LINE + 2;
+    return (label) => {
+      if (ctx.measure(label, FONT).w <= room) return [label];
+      const lines = two ? firstLine(label, room, ctx) : null;
+      return lines ? [lines[0], cut(lines[1], room, ctx)] : [cut(label, room, ctx)];
+    };
+  }
+
   /** Category labels on a horizontal axis that are wider than their band break at spaces onto a second line (a third
-   *  line never: the rest stays on the second). Other labels are one line. */
+   *  line never: the rest stays on the second). Labels of a vertical axis are kept to their room (see stacker). Other
+   *  labels are one line. */
   function wrapper(spec: BC.GuideSpec, ctx: BC.ChartCtx, side: Side): (label: string) => string[] {
+    if (spec.scale && (side === 'left' || side === 'right')) return stacker(spec, ctx);
     const scale = spec.scale ? ctx.scales[spec.scale as string] : undefined;
     const n = scale && scale.input === 'category' ? scale.domain().length : 0;
-    if (!n || side === 'left' || side === 'right') return (label) => [label];
+    if (!n) return (label) => [label];
     const room = ctx.plot.w / n - 6;
     return (label) => {
       if (ctx.measure(label, FONT).w <= room) return [label];
@@ -186,8 +238,8 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 14,
-    doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.',
+    version: 15,
+    doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover.',
     params: {
       scale: { kind: 'scale', required: true },
       position: { kind: 'enum', values: ['top', 'right', 'bottom', 'left'] },
@@ -282,19 +334,25 @@
         const dir = side === 'left' ? -1 : 1;
         const x0 = side === 'left' ? x - offset.left : x + w + offset.right;
         d = showLine(spec, side) ? `M${x0} ${y}V${y + h}` : '';
+        const wrap = wrapper(spec, ctx, side);
         for (const t of ticks) {
           if (marks) d += `M${x0} ${t.pos}H${x0 + dir * TICK}`;
-          labelSpace = Math.max(labelSpace, ctx.measure(t.label, FONT).w);
-          texts.push({
-            type: 'text',
-            x: x0 + dir * r,
-            y: t.pos,
-            text: t.label,
-            size: FONT,
-            anchor: dir < 0 ? 'end' : 'start',
-            baseline: 'middle',
-            style: { fill: LABEL },
-            cls: 'bc-axis-label',
+          const lines = wrap(t.label);
+          const whole = lines.length === 1 && lines[0] === t.label ? undefined : t.label;
+          lines.forEach((line, k) => {
+            labelSpace = Math.max(labelSpace, ctx.measure(line, FONT).w);
+            texts.push({
+              type: 'text',
+              x: x0 + dir * r,
+              y: t.pos + (k - (lines.length - 1) / 2) * LINE,
+              text: line,
+              size: FONT,
+              anchor: dir < 0 ? 'end' : 'start',
+              baseline: 'middle',
+              style: { fill: LABEL },
+              cls: 'bc-axis-label',
+              title: whole,
+            });
           });
         }
         const tx = x0 + dir * (r + labelSpace + PAD + TITLE_ROOM / 2);
