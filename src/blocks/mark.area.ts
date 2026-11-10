@@ -37,7 +37,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 13,
+    version: 14,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -135,12 +135,15 @@
         const b = pts[Math.min(lo + 1, pts.length - 1)];
         const span = xs[b] - xs[a];
         const t = span > 0 ? Math.min(1, Math.max(0, (px - xs[a]) / span)) : 0;
-        const yTop = top[a] + (top[b] - top[a]) * t;
-        const yBottom = bottom(a) + (bottom(b) - bottom(a)) * t;
+        // a step holds a's edges up to b's x
+        const held = px < xs[b] ? a : b;
+        const step = spec.curve === 'step';
+        const yTop = step ? top[held] : top[a] + (top[b] - top[a]) * t;
+        const yBottom = step ? bottom(held) : bottom(a) + (bottom(b) - bottom(a)) * t;
         if (py < Math.min(yTop, yBottom) - 1 || py > Math.max(yTop, yBottom) + 1) continue;
         // zoomed, a series keeps a point past each edge so its area runs on: the reader cannot see it, so it is not picked
         const seen = (i: number) => xs[i] >= ctx.plot.x - 0.5 && xs[i] <= ctx.plot.x + ctx.plot.w + 0.5;
-        const nearer = Math.abs(px - xs[a]) <= Math.abs(px - xs[b]) ? a : b;
+        const nearer = step ? held : Math.abs(px - xs[a]) <= Math.abs(px - xs[b]) ? a : b;
         const row = seen(nearer) ? nearer : nearer === a ? b : a;
         if (!seen(row)) continue;
         // overlapping areas: the one drawn last is on top

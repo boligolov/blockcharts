@@ -1193,8 +1193,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2697,
-      "version": 13,
+      "bytes": 2747,
+      "version": 14,
       "requires": [
         "lib.curve"
       ],
@@ -1480,8 +1480,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 4072,
-      "version": 20,
+      "bytes": 4298,
+      "version": 21,
       "requires": [
         "lib.curve"
       ],

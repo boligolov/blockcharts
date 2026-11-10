@@ -3577,6 +3577,41 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     h.destroy();
   });
 
+  test('curve "step": the tooltip finds the line where it is drawn, the held value and the riser, not the diagonal', async () => {
+    BC.data('steps', [
+      { t: 0, v: 0 },
+      { t: 10, v: 10 },
+      { t: 20, v: 10 },
+    ]);
+    // t 0..20 on 16..624 px, v 0..10 on 384..16 px
+    const X = (t) => 16 + (t / 20) * 608;
+    const Y = (v) => 384 - (v / 10) * 368;
+    for (const type of ['line', 'area']) {
+      const host = new FakeNode('div');
+      BC.chart(host, {
+        data: 'steps',
+        size: [640, 400],
+        padding: { top: 16, right: 16, bottom: 16, left: 16 },
+        scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true } },
+        marks: [{ type, x: 't', y: 'v', curve: 'step' }],
+        interaction: [{ type: 'tooltip' }],
+      });
+      const shown = async (t, v) => {
+        await hover(host, X(t), Y(v));
+        return tipOf(host).style.display === 'block' ? partOf(tipOf(host), 'bc-tooltip-lines').children[1].text : null;
+      };
+      if (type === 'line') {
+        assert.strictEqual(await shown(8, 0), '0', 'on the held value, near the jump: the value held');
+        assert.strictEqual(await shown(8, 8), null, 'where a straight line would be: nothing is drawn there');
+        assert.strictEqual(await shown(10, 5), '10', 'on the riser: the value it rises to');
+        assert.strictEqual(await shown(9.9, 5), '10', 'a hair left of it, too');
+      } else {
+        assert.strictEqual(await shown(8, 3), null, 'above the held value: outside the area');
+        assert.strictEqual(await shown(12, 9), '10', 'under the next one: inside it');
+      }
+    }
+  });
+
   test('a chart speaks its own language on hover, after another chart drew, and the page keeps its own', async () => {
     BC.data('flows', [
       { s: 'A', t: 'B', v: 1000500 },

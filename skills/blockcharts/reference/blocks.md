@@ -409,7 +409,7 @@ Version 6, 4.8 KB. Pie and donut chart: one slice per row, its angle proportiona
 
 ## mark.area
 
-Version 13, 2.6 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve` matches a smooth or a step line. x also takes a band scale, as on mark.line.
+Version 14, 2.7 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve` matches a smooth or a step line. x also takes a band scale, as on mark.line.
 
 Needs: `lib.curve`.
 
@@ -474,7 +474,7 @@ Version 3, 2.3 KB. Open-high-low-close candles, one per row: a body from `open` 
 
 ## mark.line
 
-Version 20, 4.0 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: "step"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
+Version 21, 4.2 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: "step"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
 
 Needs: `lib.curve`.
 

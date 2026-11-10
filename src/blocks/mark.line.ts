@@ -78,7 +78,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 20,
+    version: 21,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -204,13 +204,26 @@
         }
         const a = pts[lo];
         const b = pts[Math.min(lo + 1, pts.length - 1)];
-        // height of the line under the pointer: interpolated between the two vertices around it
-        const span = xs[b] - xs[a];
-        const t = span > 0 ? Math.min(1, Math.max(0, (px - xs[a]) / span)) : 0;
-        const lineY = ys[a] + (ys[b] - ys[a]) * t;
-        const dist = Math.abs(py - lineY);
+        let dist: number;
+        let near: boolean;
+        if (spec.curve === 'step') {
+          // a step holds each value up to the next point's x and rises there straight to it: the pointer is near the
+          // shelf it is over (the value held) or a riser, the one up to a or the one up to b (the value risen to)
+          const riser = (from: number, to: number) =>
+            py >= Math.min(ys[from], ys[to]) && py <= Math.max(ys[from], ys[to]) ? Math.abs(px - xs[to]) : Infinity;
+          const shelf = Math.abs(py - (px < xs[b] ? ys[a] : ys[b]));
+          const upToA = riser(pts[Math.max(0, lo - 1)], a);
+          const upToB = riser(a, b);
+          dist = Math.min(shelf, upToA, upToB);
+          near = upToB > dist && (px < xs[b] || upToA === dist);
+        } else {
+          // height of the line under the pointer: interpolated between the two vertices around it
+          const span = xs[b] - xs[a];
+          const t = span > 0 ? Math.min(1, Math.max(0, (px - xs[a]) / span)) : 0;
+          dist = Math.abs(py - (ys[a] + (ys[b] - ys[a]) * t));
+          near = Math.abs(px - xs[a]) <= Math.abs(px - xs[b]);
+        }
         if (dist > reach || (best && dist >= best.dist)) continue;
-        let near = Math.abs(px - xs[a]) <= Math.abs(px - xs[b]);
         if (!seen(near ? a : b)) near = !near;
         const row = near ? a : b;
         if (!seen(row)) continue;

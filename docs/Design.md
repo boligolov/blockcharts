@@ -1322,6 +1322,12 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   crosshair the nearest of all, so near an edge they showed a datum the reader could not see, with its marker and line
   outside the plot. Now a point out of view gives way to its neighbour in view, and between two points that are both
   out of view (a window narrower than the spacing) there is nothing to show.
+- **A step line is picked where it is drawn.** `curve: "step"` holds each value up to the next point and rises there,
+  but the line's pick measured the distance to the straight segment between the points: on the shelf near a jump the
+  tooltip found nothing, and in the empty corner where a straight line would run it found a value. Now the pick measures
+  to the shelf the pointer is over (the value held) and to the risers (the value risen to), and a step area takes the
+  held edges for the column the pointer is in. Under a step line with an area beneath it, the column decides on the
+  riser itself, a pixel wide.
 
 ## Next steps
 
