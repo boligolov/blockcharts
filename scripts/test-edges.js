@@ -293,6 +293,126 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     }
   });
 
+  test('scale.linear: values that differ only by rounding are one value, not two ends a thousand ticks apart', () => {
+    const s = linear({}, [[0.1 + 0.2, 0.3, 0.3]]);
+    const ticks = s.ticks(5);
+    assert(ticks.length >= 2 && ticks.length <= 10, JSON.stringify(s.domain()) + ': ' + ticks.length);
+    assert(s.domain()[1] - s.domain()[0] >= 1, 'widened like a single value: ' + JSON.stringify(s.domain()));
+    const { roundTicks } = BC.get('lib.ticks').exports;
+    assert.deepStrictEqual(roundTicks(0.3, 0.1 + 0.2, 5), [], 'a view with ends that differ by rounding has no ticks');
+    assert(roundTicks(1e-300, 3e-300, 5).length > 0, 'tiny values that do differ have ticks');
+  });
+
+  test('a domain of numbers or dates is [from, to]: anything else is an error at its path, not dropped without a word', () => {
+    BC.data('dom', [
+      { d: '2024-01-01', v: 1, k: 'a' },
+      { d: '2024-06-01', v: 5, k: 'b' },
+    ]);
+    const errors = (name, scale) => {
+      const scales = {
+        x: { type: 'time' },
+        y: { type: 'linear' },
+        color: { type: 'sequential', range: ['#ff0000', '#ffffff', '#0000ff'] },
+        size: { type: 'size' },
+        l: { type: 'log', range: 'height' },
+      };
+      scales[name] = { ...scales[name], ...scale };
+      return BC.validate({
+        data: 'dom',
+        scales,
+        marks: [
+          { type: 'point', x: 'd', y: 'v', color: 'v', size: 'v' },
+          { type: 'point', x: 'd', y: { field: 'v', scale: 'l' } },
+        ],
+      })
+        .filter((d) => d.level === 'error')
+        .map((d) => [d.path, d.message]);
+    };
+    for (const [name, domain] of [
+      ['x', ['2024-01-01']],
+      ['x', ['2024-01-01', '2024-01-01']],
+      ['x', ['soon', 'later']],
+      ['y', [0, 50, 100]],
+      ['y', ['0', '100']],
+      ['size', [0]],
+      ['l', [1, 10, 100]],
+    ]) {
+      const e = errors(name, { domain });
+      assert.deepStrictEqual(
+        e.map((x) => x[0]),
+        [`scales.${name}.domain`],
+        JSON.stringify([name, domain, e]),
+      );
+      assert.match(e[0][1], new RegExp(`^the domain of scale "${name}" is \\[from, to\\]: two different (numbers|dates)`));
+    }
+    assert.match(errors('color', { domain: [-10, 0, 10] })[0][1], /not \[-10,0,10\]; a diverging scale is three colors in "range"/);
+    // what a scale reads is fine, and a band's domain is its categories, as many as it has
+    assert.deepStrictEqual(
+      errors('x', { domain: ['2024-06-01', Date.UTC(2024, 0, 1)] }),
+      [],
+      'later to earlier runs the axis the other way',
+    );
+    assert.deepStrictEqual(errors('color', { domain: [-10, 10] }), []);
+  });
+
+  test('scale.time: the other way, milliseconds, the years 0 to 99, and years given as numbers', () => {
+    const time = (spec, sources = [[]]) =>
+      BC.get('scale.time').create({ type: 'time', ...spec }, { name: 'x', sources, range: [0, 600], color: () => '#000' });
+    // [later, earlier]: the same ticks, placed right to left
+    const back = time({ domain: ['2024-12-31', '2024-01-01'] });
+    const ticks = back.ticks(6);
+    assert(ticks.length >= 3, JSON.stringify(ticks));
+    assert(ticks[0].pos > ticks[ticks.length - 1].pos, 'earlier ticks on the right');
+    assert.throws(() => time({ domain: ['2024-01-01', '2024-01-01'] }), /scale\.time: domain must be two different dates/);
+    assert.throws(() => time({ domain: ['2024-01-01', '2024-02-01', '2024-03-01'] }), /scale\.time: domain must be two different dates/);
+    // a trace of a few milliseconds has ticks of milliseconds
+    const t0 = Date.UTC(2024, 0, 1, 9, 30, 15);
+    const fast = time({}, [[t0, t0 + 4]]).ticks(5);
+    assert(fast.length >= 3, JSON.stringify(fast));
+    assert.strictEqual(fast[0].label, '09:30:15.000');
+    assert.strictEqual(fast[1].label, '09:30:15.001');
+    // the years 0 to 99 are those years, not 1900 to 1999
+    const year = (y) => {
+      const d = new Date(Date.UTC(2000, 0, 1));
+      d.setUTCFullYear(y);
+      return d.getTime();
+    };
+    const ancient = time({ domain: [year(10), year(90)] }).ticks(5);
+    assert(ancient.length >= 3, JSON.stringify(ancient));
+    assert(
+      ancient.every((t) => new Date(t.value).getUTCFullYear() < 100 && t.label === String(new Date(t.value).getUTCFullYear())),
+      JSON.stringify(ancient),
+    );
+    const months = time({ domain: [year(50), year(51)] }).ticks(5);
+    assert(
+      months.length >= 3 && months.every((t) => new Date(t.value).getUTCFullYear() === 50 || new Date(t.value).getUTCFullYear() === 51),
+      JSON.stringify(months),
+    );
+    // years as numbers are milliseconds into 1970 to a time scale: said, with what to do
+    assert.throws(() => time({}, [[2019, 2020, 2021, 2023]]), /the numbers look like years \(2019 to 2023\).*"2019" is 1 January/);
+    assert.doesNotThrow(() => time({}, [['2019', '2023']]), 'years as text are dates');
+    assert.doesNotThrow(() => time({}, [[Date.UTC(2024, 0, 1), 2019]]), 'one small number among dates is just a small number');
+    assert.doesNotThrow(() => time({}, [[1500.5, 2000.25]]), 'fractions are milliseconds, whatever they are');
+    // the other scales of numbers refuse a domain they cannot read, too, also where no validation runs
+    const ctx = { name: 'c', sources: [[1, 2]], range: [2, 20], color: () => '#000' };
+    assert.throws(() => BC.get('scale.size').create({ type: 'size', domain: [0, 5, 10] }, ctx), /scale\.size: domain must be \[min, max\]/);
+    // in a chart, at the scale
+    BC.data('yrs', [
+      { year: 2019, v: 1 },
+      { year: 2020, v: 2 },
+    ]);
+    const h = BC.chart(new FakeNode('div'), {
+      data: 'yrs',
+      scales: { x: { type: 'time' }, y: { type: 'linear' } },
+      marks: [{ type: 'line', x: 'year', y: 'v' }],
+    });
+    logged.error.length = 0;
+    assert.deepStrictEqual(
+      h.diagnostics.map((d) => [d.level, d.path]),
+      [['error', 'scales.x']],
+    );
+  });
+
   test('scale.sequential and scale.size: a reversed or empty domain gives ticks, not a crash or a thousand of them', () => {
     const ctx = (sources) => ({ name: 'c', sources, range: [], color: () => '#000' });
     const seq = BC.get('scale.sequential').create({ type: 'sequential', domain: [10, 0] }, ctx([]));

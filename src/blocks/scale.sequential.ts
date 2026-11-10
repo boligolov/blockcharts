@@ -31,7 +31,7 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'sequential',
-    version: 6,
+    version: 7,
     output: 'color',
     input: 'number',
     merge: 'extent',
@@ -49,10 +49,15 @@
       if (stops.length < 2) throw new Error('scale.sequential: range needs at least two colors');
 
       let b0: number, b1: number;
-      if (spec.domain && spec.domain.length === 2) {
-        b0 = Number(spec.domain[0]);
-        b1 = Number(spec.domain[1]);
-        if (!isFinite(b0) || !isFinite(b1) || b0 === b1) throw new Error('scale.sequential: domain must be [min, max] with min < max');
+      // a domain given is read, or refused: [-10, 0, 10] used to be dropped without a word
+      if (spec.domain !== undefined && spec.domain !== null) {
+        const d: unknown[] = Array.isArray(spec.domain) && spec.domain.length === 2 ? spec.domain : [NaN, NaN];
+        b0 = Number(d[0]);
+        b1 = Number(d[1]);
+        if (!isFinite(b0) || !isFinite(b1) || b0 === b1)
+          throw new Error(
+            `scale.sequential: domain must be two different numbers, [min, max], not ${JSON.stringify(spec.domain)}; a diverging scale is three colors in "range" and a domain even around the middle, such as [-10, 10]`,
+          );
       } else {
         b0 = Infinity;
         b1 = -Infinity;

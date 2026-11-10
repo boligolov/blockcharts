@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 38113,
+    "bytes": 38610,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 27512,
+        "bytes": 27631,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 24483,
+        "bytes": 24602,
         "off": [
           "CHECKS",
           "DECODE"
@@ -64,8 +64,8 @@
     },
     "lib.ticks": {
       "file": "blocks/lib.ticks.js",
-      "bytes": 621,
-      "version": 1,
+      "bytes": 661,
+      "version": 2,
       "requires": [],
       "closure": [
         "lib.ticks"
@@ -120,8 +120,8 @@
     },
     "scale.linear": {
       "file": "blocks/scale.linear.js",
-      "bytes": 1564,
-      "version": 7,
+      "bytes": 1603,
+      "version": 8,
       "requires": [
         "lib.ticks"
       ],
@@ -152,8 +152,8 @@
     },
     "scale.log": {
       "file": "blocks/scale.log.js",
-      "bytes": 2014,
-      "version": 5,
+      "bytes": 2098,
+      "version": 6,
       "requires": [],
       "closure": [
         "scale.log"
@@ -171,8 +171,8 @@
     },
     "scale.sequential": {
       "file": "blocks/scale.sequential.js",
-      "bytes": 2069,
-      "version": 6,
+      "bytes": 2274,
+      "version": 7,
       "requires": [
         "lib.ticks"
       ],
@@ -193,8 +193,8 @@
     },
     "scale.size": {
       "file": "blocks/scale.size.js",
-      "bytes": 1489,
-      "version": 5,
+      "bytes": 1585,
+      "version": 6,
       "requires": [
         "lib.ticks"
       ],
@@ -215,8 +215,8 @@
     },
     "scale.time": {
       "file": "blocks/scale.time.js",
-      "bytes": 2793,
-      "version": 7,
+      "bytes": 3593,
+      "version": 8,
       "requires": [],
       "closure": [
         "scale.time"
@@ -230,7 +230,7 @@
           "doc": "Extra room around the data extent, as a fraction of its span."
         }
       },
-      "doc": "Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset (\"2024-03-01\", \"2024-03-01T09:00\", \"2024-03-01 09:00\") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it."
+      "doc": "Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset (\"2024-03-01\", \"2024-03-01T09:00\", \"2024-03-01 09:00\") is UTC, so every reader sees the same hours. Ticks snap to calendar units (milliseconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it. So does it for years given as numbers (2019 is 2 seconds into 1970): give them as text (\"2019\") or dates. A domain from later to earlier runs the axis the other way."
     },
     "transform.aggregate": {
       "file": "blocks/transform.aggregate.js",

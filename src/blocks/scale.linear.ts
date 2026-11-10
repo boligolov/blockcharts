@@ -27,7 +27,7 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'linear',
-    version: 7,
+    version: 8,
     output: 'position',
     input: 'number',
     merge: 'extent',
@@ -59,7 +59,8 @@
           b0 = Math.min(b0, 0);
           b1 = Math.max(b1, 0);
         }
-        if (b0 === b1) {
+        // values that differ only by rounding (0.1 + 0.2 and 0.3) are one value: as two ends they made a thousand ticks
+        if (b1 - b0 <= 1e-12 * Math.max(Math.abs(b0), Math.abs(b1))) {
           b0 -= 1;
           b1 += 1;
         }

@@ -47,7 +47,7 @@ Version 1, 0.4 KB. Statistics shared by transform.density and transform.contour.
 
 ## lib.ticks
 
-Version 1, 0.6 KB. Round numbers, shared by scale.linear, scale.sequential, scale.size and transform.bin. `niceStep(span, count)` is a step of 1, 2 or 5 × 10^n that cuts `span` into about `count` parts; `roundTicks(d0, d1, count)` lists its multiples between the two ends of a domain as { value, label }, smallest first, and none for a domain with no length or not made of numbers. A spec never names it.
+Version 2, 0.6 KB. Round numbers, shared by scale.linear, scale.sequential, scale.size and transform.bin. `niceStep(span, count)` is a step of 1, 2 or 5 × 10^n that cuts `span` into about `count` parts; `roundTicks(d0, d1, count)` lists its multiples between the two ends of a domain as { value, label }, smallest first, and none for a domain with no length or not made of numbers. A spec never names it.
 
 ## lib.view
 
@@ -68,7 +68,7 @@ Version 4, 0.8 KB. It colors categories. Categorical color scale: one color per 
 
 ## scale.linear
 
-Version 7, 1.5 KB. It places numbers. Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.
+Version 8, 1.6 KB. It places numbers. Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.
 
 Needs: `lib.ticks`.
 
@@ -80,7 +80,7 @@ Needs: `lib.ticks`.
 
 ## scale.log
 
-Version 5, 2.0 KB. It places numbers. Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten, or to 1, 2 or 5 of a power when the data spans less than two of them. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain.
+Version 6, 2.0 KB. It places numbers. Logarithmic numeric scale (base 10): equal steps for equal ratios, so 10 → 100 is as long as 100 → 1,000. For values that span several orders of magnitude (company sizes, populations) or growth compared as rates. Only positive values have a place on it: zero, negatives and missing values are left out (a line breaks there), and the domain is inferred from the positive ones. `nice` extends it to whole powers of ten, or to 1, 2 or 5 of a power when the data spans less than two of them. Ticks are the powers of ten, with 2 and 5 between them when the domain spans few of them; their labels are compact (1K, 10K, 1M) unless the axis has a `format`. Bars on a log scale start at the bottom of the domain.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -88,7 +88,7 @@ Version 5, 2.0 KB. It places numbers. Logarithmic numeric scale (base 10): equal
 
 ## scale.sequential
 
-Version 6, 2.0 KB. It colors numbers. Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`. `exponent` spreads the colors over the small values, for counts where a few cells hold most of them.
+Version 7, 2.2 KB. It colors numbers. Continuous color scale: numbers map to colors along `range` (two or more #hex colors, mixed piecewise-linearly; default viridis). Values outside an explicit `domain` take the end colors; a missing or non-numeric value has no color, and marks do not draw such rows. Use it for heatmaps and for coloring points or bars by a number; for a diverging scale give three colors and a symmetric `domain`. `exponent` spreads the colors over the small values, for counts where a few cells hold most of them.
 
 Needs: `lib.ticks`.
 
@@ -98,7 +98,7 @@ Needs: `lib.ticks`.
 
 ## scale.size
 
-Version 5, 1.5 KB. It sizes numbers. Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.
+Version 6, 1.5 KB. It sizes numbers. Numbers to circle radii, so that the area of a circle (not its radius) grows with the value: a bubble chart reads true. `range` is [smallest, largest] radius in px (default [2, 24]). The domain starts at 0 unless `zero` is false, so a value twice as big is a circle twice the area. Missing, non-numeric and negative values have no size, and marks do not draw such rows. Pair with mark.point `size` and a guide.legend on the same scale.
 
 Needs: `lib.ticks`.
 
@@ -108,7 +108,7 @@ Needs: `lib.ticks`.
 
 ## scale.time
 
-Version 7, 2.7 KB. It places dates. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (seconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it.
+Version 8, 3.5 KB. It places dates. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (milliseconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it. So does it for years given as numbers (2019 is 2 seconds into 1970): give them as text ("2019") or dates. A domain from later to earlier runs the axis the other way.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |

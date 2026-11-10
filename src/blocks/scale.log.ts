@@ -42,7 +42,7 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'log',
-    version: 5,
+    version: 6,
     output: 'position',
     input: 'number',
     merge: 'extent',
@@ -52,11 +52,13 @@
     },
     create(spec, ctx) {
       let b0: number, b1: number;
-      if (spec.domain && spec.domain.length === 2) {
-        b0 = Number(spec.domain[0]);
-        b1 = Number(spec.domain[1]);
-        if (!(b0 > 0 && b1 > 0 && isFinite(b0) && isFinite(b1)))
-          fail(`the domain must be two positive numbers, not [${spec.domain.join(', ')}]`);
+      // a domain given is read, or refused: one of three values used to be dropped without a word
+      if (spec.domain !== undefined && spec.domain !== null) {
+        const d: unknown[] = Array.isArray(spec.domain) && spec.domain.length === 2 ? spec.domain : [NaN, NaN];
+        b0 = Number(d[0]);
+        b1 = Number(d[1]);
+        if (!(b0 > 0 && b1 > 0 && isFinite(b0) && isFinite(b1) && b0 !== b1))
+          fail(`the domain must be two different positive numbers, not ${JSON.stringify(spec.domain)}`);
       } else {
         const e = extent(ctx.sources);
         [b0, b1] = e || [1, 10];

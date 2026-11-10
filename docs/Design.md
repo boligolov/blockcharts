@@ -1250,6 +1250,17 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   such a column stays text, with a warning, and `"1e400"`, which is Infinity and null in JSON, is not a number. A
   page.json at the root of a drive could read no file, since "inside the folder" was a prefix test against `C:\` plus a separator;
   it is `path.relative` now.
+- **A domain is read or refused, and time has every scale of it.** The sequential, log, time and size scales took a
+  domain of two values and dropped any other without a word: `[-10, 0, 10]` for a diverging color scale became the
+  extent of the data, and the colors lied about where zero is (one of our own dogfooding dashboards had exactly that).
+  Now validation checks the domain of every scale of numbers or dates as it checks a view, two different ends the
+  scale can read, at `scales.x.domain`, with the way to a diverging scale when a color scale is given three values;
+  the blocks refuse it too, where no validation runs, and a scale that cannot be made is reported at `scales.<name>`.
+  A time domain from later to earlier runs the axis the other way, with ticks, where it had none. A time scale had no
+  step below a second, so a trace of a few milliseconds had no labels; it has steps of 1 ms to 500 ms now. Years as
+  numbers (2019 … 2023) are milliseconds into 1970 to a time scale: it says so and how to give years. The years 0 to
+  99 were ticked as 1900 to 1999 (`Date.UTC` reads two digits so). And values that differ only by rounding
+  (`0.1 + 0.2` and `0.3`) were two ends 5.6e-17 apart, with a thousand ticks: they are one value now.
 
 ## Next steps
 

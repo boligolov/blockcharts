@@ -16,7 +16,8 @@
     const lo = Math.min(d0, d1);
     const hi = Math.max(d0, d1);
     const out: { value: number; label: string }[] = [];
-    if (!(isFinite(lo) && isFinite(hi) && hi > lo)) return out;
+    // ends that differ only by rounding (0.1 + 0.2 and 0.3) have no length either: steps of 1e-17 are not ticks
+    if (!(isFinite(lo) && isFinite(hi) && hi - lo > 1e-12 * Math.max(Math.abs(lo), Math.abs(hi)))) return out;
     const step = niceStep(hi - lo, count);
     if (!(step > 0 && isFinite(step))) return out;
     // toFixed takes at most 100 digits
@@ -33,7 +34,7 @@
   const def: BC.LibDef = {
     role: 'lib',
     type: 'ticks',
-    version: 1,
+    version: 2,
     doc: 'Round numbers, shared by scale.linear, scale.sequential, scale.size and transform.bin. `niceStep(span, count)` is a step of 1, 2 or 5 × 10^n that cuts `span` into about `count` parts; `roundTicks(d0, d1, count)` lists its multiples between the two ends of a domain as { value, label }, smallest first, and none for a domain with no length or not made of numbers. A spec never names it.',
     exports: { niceStep, roundTicks },
   };

@@ -1052,11 +1052,11 @@ test('compose dry run: a problem that only shows when a chart is drawn stops the
   // valid as a spec (validation cannot know these colors are unusable), a runtime error when the scale is built
   failsWith(
     () => compose({ data: DATA, charts: [bars(), sequentialChart({ type: 'sequential', range: ['red', 'blue'] })] }),
-    /charts\[1\]: scale\.sequential: range colors must be #rgb or #rrggbb/,
+    /charts\[1\]\.scales\.color: scale\.sequential: range colors must be #rgb or #rrggbb/,
   );
   failsWith(
     () => compose({ data: DATA, charts: [sequentialChart({ type: 'sequential', domain: [1, 1] })] }),
-    /domain must be \[min, max\]/,
+    /charts\[0\]\.scales\.color\.domain: the domain of scale "color" is \[from, to\]: two different numbers, not \[1,1\]/,
   );
   try {
     compose({ data: DATA, charts: [sequentialChart({ type: 'sequential', range: ['red', 'blue'] })] });

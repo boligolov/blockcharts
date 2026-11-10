@@ -11,7 +11,7 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'size',
-    version: 5,
+    version: 6,
     output: 'size',
     input: 'number',
     merge: 'extent',
@@ -32,11 +32,13 @@
       let r1 = r[1];
 
       let b0: number, b1: number;
-      if (spec.domain && spec.domain.length === 2) {
-        b0 = Number(spec.domain[0]);
-        b1 = Number(spec.domain[1]);
+      // a domain given is read, or refused: one of three values used to be dropped without a word
+      if (spec.domain !== undefined && spec.domain !== null) {
+        const d: unknown[] = Array.isArray(spec.domain) && spec.domain.length === 2 ? spec.domain : [NaN, NaN];
+        b0 = Number(d[0]);
+        b1 = Number(d[1]);
         if (!isFinite(b0) || !isFinite(b1) || b0 >= b1 || b0 < 0)
-          throw new Error('scale.size: domain must be [min, max] with 0 <= min < max');
+          throw new Error(`scale.size: domain must be [min, max] with 0 <= min < max, not ${JSON.stringify(spec.domain)}`);
       } else {
         b0 = Infinity;
         b1 = -Infinity;

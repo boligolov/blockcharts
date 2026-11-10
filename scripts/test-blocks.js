@@ -1650,7 +1650,12 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       assert.throws(() => seq({ range }, [0, 1]), /range colors must be #rgb or #rrggbb/, JSON.stringify(range));
     }
     assert.throws(() => seq({ range: ['#fff'] }, [0, 1]), /at least two colors/);
-    assert.throws(() => seq({ domain: [1, 1] }, [0, 1]), /domain must be \[min, max\]/);
+    assert.throws(() => seq({ domain: [1, 1] }, [0, 1]), /domain must be two different numbers, \[min, max\], not \[1,1\]/);
+    assert.throws(
+      () => seq({ domain: [-10, 0, 10] }, [0, 1]),
+      /not \[-10,0,10\]; a diverging scale is three colors in "range" and a domain even around the middle, such as \[-10, 10\]/,
+      'a midpoint is not dropped without a word',
+    );
     assert.throws(() => seq({ domain: ['a', 'b'] }, [0, 1]), /domain must be/);
     const t = seq({}, [0, 100]).ticks(4);
     assert(t.length >= 3 && t.length <= 6);
@@ -4506,9 +4511,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       guides: [{ type: 'axis', scale: 'x' }],
       marks: [{ type: 'line', x: 't', y: 'v' }],
     });
-    assert(
-      h.diagnostics.some((d) => d.level === 'error' && /scale\.time: domain/.test(d.message)),
-      JSON.stringify(h.diagnostics),
+    // validation finds it first, at its path
+    assert.deepStrictEqual(
+      h.diagnostics.map((d) => [d.level, d.path]),
+      [['error', 'scales.x.domain']],
     );
   });
 
@@ -5331,8 +5337,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       [-1, 10],
       [1, Infinity],
       ['a', 10],
+      [5, 5],
+      [1, 10, 100],
     ])
-      assert.throws(() => logOf([[1, 2]], { domain }), /scale\.log: the domain must be two positive numbers/, JSON.stringify(domain));
+      assert.throws(
+        () => logOf([[1, 2]], { domain }),
+        /scale\.log: the domain must be two different positive numbers/,
+        JSON.stringify(domain),
+      );
     assert.deepStrictEqual(
       logOf([['100', 'x', null, Infinity, 50, true]]).domain(),
       [1, 1000],

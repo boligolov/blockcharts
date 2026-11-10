@@ -637,6 +637,13 @@
             err('marks', 'marks must be a list (an empty one is fine when the chart has a guide, such as a KPI)');
           else if (!spec.marks.length && !hasGuides) err('marks', 'at least one mark is required (or a guide, such as a KPI)');
 
+          /** [from, to] as a scale of numbers or dates reads them: two different ends it can read, or it draws nothing. */
+          const twoEnds = (input: BC.ScaleInput, v: unknown[]) => {
+            const ends = v.map((x) => (input === 'date' ? time(x) : typeof x === 'number' ? x : NaN));
+            return v.length === 2 && ends.every((e) => isFinite(e)) && ends[0] !== ends[1];
+          };
+          const endsWord = (input: BC.ScaleInput) => (input === 'date' ? 'dates ("2024-03-01" or ms)' : 'numbers');
+
           if (spec.view !== undefined) {
             if (!spec.view || typeof spec.view !== 'object') err('view', 'view must map scale names to domains');
             else {
@@ -647,15 +654,12 @@
                 else if (!Array.isArray(v)) err(`view.${name}`, 'a view is a list (the visible domain)');
                 else if (block && block.input === 'category') {
                   if (!v.length) err(`view.${name}`, 'a view of categories lists at least one of them');
-                } else if (block) {
+                } else if (block && !twoEnds(block.input, v)) {
                   // from and to, as the scale reads them: a view it cannot read leaves the plot empty
-                  const read = (x: unknown) => (block.input === 'date' ? time(x) : typeof x === 'number' ? x : NaN);
-                  const ends = v.map(read);
-                  if (v.length !== 2 || !ends.every((e) => isFinite(e)) || ends[0] === ends[1])
-                    err(
-                      `view.${name}`,
-                      `a view of "${name}" is [from, to]: two different ${block.input === 'date' ? 'dates ("2024-03-01" or ms)' : 'numbers'}, not ${JSON.stringify(v)}`,
-                    );
+                  err(
+                    `view.${name}`,
+                    `a view of "${name}" is [from, to]: two different ${endsWord(block.input)}, not ${JSON.stringify(v)}`,
+                  );
                 }
               }
             }
@@ -676,8 +680,18 @@
             if (!def) continue;
             checkParams(path, s, def, ['field', 'domain', 'range']);
             if (typeof s.field === 'string') checkField(`${path}.field`, s.field);
+            const sd = def as BC.ScaleDef;
             if (s.domain !== undefined && !Array.isArray(s.domain))
               err(`${path}.domain`, 'domain must be a list: [min, max], or the categories in order');
+            // a domain of numbers or dates the scale cannot read was dropped without a word ([-10, 0, 10]), or drew nothing
+            else if (Array.isArray(s.domain) && sd.input !== 'category' && !twoEnds(sd.input, s.domain))
+              err(
+                `${path}.domain`,
+                `the domain of scale "${name}" is [from, to]: two different ${endsWord(sd.input)}, not ${JSON.stringify(s.domain)}` +
+                  (sd.output === 'color' && s.domain.length === 3
+                    ? '; a diverging scale is three colors in "range" and a domain even around the middle, such as [-10, 10]'
+                    : ''),
+              );
             if (s.range !== undefined && s.range !== 'width' && s.range !== 'height' && !Array.isArray(s.range)) {
               err(`${path}.range`, 'range must be "width", "height" or a list');
             } else if (Array.isArray(s.range) && (def as BC.ScaleDef).output === 'color') {
@@ -1008,8 +1022,15 @@
         sources.push(table.columns[s.field]);
         said(`scales.${name}.field`, unreadable(reader, s.field, own(table, s.field), def.input));
       }
+      // a scale that cannot be made (a domain it cannot read, numbers that are no dates) is reported at the scale
+      let made: BC.ScaleMapping;
+      try {
+        made = def.create(s, { name, sources, range: resolveRange(name, s, plot), color: colorAt });
+      } catch (e) {
+        throw Object.assign(new Error(e instanceof Error ? e.message : String(e)), { path: `scales.${name}` });
+      }
       // what the block declares goes on the scale itself: everything that reads a scale goes by it
-      scales[name] = Object.defineProperties(def.create(s, { name, sources, range: resolveRange(name, s, plot), color: colorAt }), {
+      scales[name] = Object.defineProperties(made, {
         output: { value: def.output },
         input: { value: def.input },
       }) as BC.Scale;
