@@ -2512,8 +2512,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 8750,
-      "version": 19,
+      "bytes": 8843,
+      "version": 20,
       "requires": [
         "lib.pointer"
       ],

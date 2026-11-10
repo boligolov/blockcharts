@@ -1306,6 +1306,13 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   its center mapped a hair outside, so the first and the last dot of a scatter never had a card. The tooltip now looks
   12 px past the plot (a dot's radius and the slack of its pick); every pick is bounded, so over the axis labels it
   still shows nothing. Found while hovering in real Chrome at 1100 px.
+- **A card of long text stays on a phone screen.** The tooltip card never wrapped (`white-space: nowrap`), so a long
+  name made it wider than a 390 px phone: placed at the left edge, it still ran off the right one and the page
+  scrolled sideways. Now the card is at most as wide as the part of the chart the reader sees (`border-box`, so a page
+  without the composer's reset gets the same width) and a long text wraps, breaking a URL anywhere; a short card is
+  still one line per field. Checked by a new suite in real Chrome, `npm run test:chrome` (`scripts/test-chrome.js`,
+  also in CI): it composes pages, hovers every point at phone and desk widths, and measures where the card lands, also
+  on a chart wider than the screen that scrolls in its card.
 
 ## Next steps
 

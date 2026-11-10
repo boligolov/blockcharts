@@ -1,5 +1,7 @@
 (function () {
   const OFFSET = 12;
+  /** The narrowest a card is made, however little of the chart is seen. */
+  const MIN_CARD = 120;
   /** How far past the plot the pointer still looks for a datum: the radius of a dot, and the slack its pick allows. */
   const EDGE = 12;
   const MAX_TEXT = 80;
@@ -26,7 +28,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 19,
+    version: 20,
     requires: ['lib.pointer'],
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.',
     params: {
@@ -99,7 +101,10 @@
         display: 'none',
         pointerEvents: 'none',
         zIndex: '10',
-        whiteSpace: 'nowrap',
+        boxSizing: 'border-box',
+        // long text wraps (a URL anywhere) once the card is as wide as the reader can see; short text keeps to a line
+        whiteSpace: 'normal',
+        overflowWrap: 'anywhere',
         fontSize: '12px',
         lineHeight: '1.45',
         fontVariantNumeric: 'tabular-nums',
@@ -409,9 +414,6 @@
           dot.style.display = 'none';
           highlight.style.display = 'none';
         }
-        tip.style.display = 'block';
-        const w = tip.offsetWidth || 0;
-        const h = tip.offsetHeight || 0;
         // a chart wider than its scrolling card reaches past the screen: what counts is the part the reader sees
         const view = (doc.defaultView || globalThis) as { innerWidth?: number };
         const seenLeft = Math.max(0, -hostBox.left);
@@ -419,6 +421,11 @@
           typeof view.innerWidth === 'number' && view.innerWidth > 0
             ? Math.min(hostBox.width, view.innerWidth - hostBox.left)
             : hostBox.width;
+        // no wider than what is seen: a long text wraps rather than reaching off the screen
+        tip.style.display = 'block';
+        tip.style.maxWidth = Math.max(MIN_CARD, seenRight - seenLeft) + 'px';
+        const w = tip.offsetWidth || 0;
+        const h = tip.offsetHeight || 0;
         const left = ax + OFFSET + w > seenRight ? ax - OFFSET - w : ax + OFFSET;
         const top = ay - OFFSET - h >= 0 ? ay - OFFSET - h : ay + OFFSET;
         tip.style.left = Math.max(seenLeft, left) + 'px';

@@ -36,6 +36,10 @@ jobs:
       - name: Test
         run: npm test
 
+      # layout in a real browser (the runner's Google Chrome): where a card lands, what sticks out of a phone screen
+      - name: Layout in Chrome
+        run: node scripts/test-chrome.js
+
       # the release, the example reports, the skill download, Astro, then the link and chart checks
       - name: Site
         run: npm run site

@@ -232,6 +232,7 @@ The site has its own `package.json`, so the library itself keeps no dependencies
 ```sh
 npm install
 npm test          # build, manifest, then core/blocks, canvas, composer, CSV, skill and release tests
+npm run test:chrome  # layout in a real browser (the system Chrome)
 npm run skill     # refresh the skill's generated parts (skills/blockcharts), write dist/blockcharts.skill
 npm run release   # CDN files, kits, loader -> release/ (minified)
 npm run site      # the website -> site/dist

@@ -22,7 +22,7 @@ docs/                   the documentation (an index: docs/README.md)
   Design.md               the design journal: every decision and why
 site/                   blockcharts.online (Astro, its own package.json); serves the skill's download
 .claude-plugin/         the Claude Code plugin marketplace (one plugin: the skill)
-.github/workflows/      ci.yml: format check, npm test and npm run site on every push and pull request
+.github/workflows/      ci.yml: format check, npm test, the Chrome suite and npm run site on every push and pull request
 kits.json               which blocks each kit contains
 LICENSE  README.md  ROADMAP.md  package.json  tsconfig.json
 ```
@@ -62,8 +62,9 @@ line of each: `N of N passed`.
 | `test-dist.js` | the release: manifest sizes and SRI hashes, determinism, kits, the loader, minified code drawing the same as the source |
 
 The fake DOM cannot see layout: `getBoundingClientRect` and `getComputedStyle` are stubs. Anything about
-positions, overlays or two interactions sharing the chart's host element is checked in a real browser too
-(Playwright with the system Chrome).
+positions, overlays or two interactions sharing the chart's host element is checked in a real browser too:
+`npm run test:chrome` (`scripts/test-chrome.js`, also run by CI) composes pages, opens them in the system
+Chrome through playwright-core and measures where things land, at phone and desk widths.
 
 A new block needs a recipe (or a feature in one) that uses it — `test-skill.js` fails otherwise — and a
 test proving each new check can fail. On the site a new block needs its line in `BLOCK_SUMMARY` and a new

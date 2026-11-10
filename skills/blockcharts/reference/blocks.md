@@ -753,7 +753,7 @@ Version 5, 2.5 KB. Click an item of a categorical legend to hide or show that ca
 
 ## interaction.tooltip
 
-Version 19, 8.5 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.
+Version 20, 8.6 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.
 
 Needs: `lib.pointer`.
 
