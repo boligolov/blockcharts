@@ -68,6 +68,49 @@
     return length / cats.length < MIN_TILT_STEP ? 90 : 45;
   }
 
+  // Chinese and Japanese break between characters, but not anywhere: a line starts after a wide character, never with a
+  // mark that closes (、。」ー and small kana) nor ends with one that opens (「); a number keeps the word before it that it
+  // belongs to (第1四半期, the 1st quarter) unless a number stands before that word too (年 in 2024年1月 ends the year)
+  const NO_START = /[、。，．・：；？！）」』】〕》〉ーゝゞ々ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ]/;
+  const NO_END = /[（「『【〔《〈]/;
+  const DIGIT = /\d/;
+  function breaksOf(chars: string[], ctx: BC.ChartCtx): number[] {
+    const out: number[] = [];
+    for (let k = 1; k < chars.length; k++) {
+      const before = chars[k - 1];
+      const next = chars[k];
+      if (!ctx.wide(before) || NO_START.test(next) || NO_END.test(before)) continue;
+      if (DIGIT.test(next) && !(k >= 2 && DIGIT.test(chars[k - 2]))) continue;
+      out.push(k);
+    }
+    return out;
+  }
+
+  /** A label without spaces in Chinese or Japanese on two lines: of the places it may break, the one whose first line
+   *  fits `room` and whose lines are the most even (2024年 / 1月, not 2024 / 年1月). One line when it may not break. */
+  function splitWide(label: string, room: number, ctx: BC.ChartCtx): string[] {
+    const chars = Array.from(label);
+    const width = (from: number, to: number) => ctx.measure(chars.slice(from, to).join(''), FONT).w;
+    let best = -1;
+    let widest = Infinity;
+    for (const k of breaksOf(chars, ctx)) {
+      const first = width(0, k);
+      if (first > room) break;
+      const m = Math.max(first, width(k, chars.length));
+      if (m < widest) {
+        widest = m;
+        best = k;
+      }
+    }
+    if (best < 0) {
+      // not even the shortest first line fits: break there anyway, and let the labels go at an angle if it is too long
+      const at = breaksOf(chars, ctx);
+      if (!at.length) return [label];
+      best = at[0];
+    }
+    return [chars.slice(0, best).join(''), chars.slice(best).join('')];
+  }
+
   /** How many categories of the band fit along `length` px. A horizontal axis wraps a long label onto two lines, so what
    *  has to fit is about half of it (or its longest word); a vertical one stacks them a line apart. */
   function fits(spec: BC.GuideSpec, ctx: BC.ChartCtx, length: number): number {
@@ -81,8 +124,12 @@
         continue;
       }
       const full = ctx.measure(text, FONT).w;
-      // text without spaces in Chinese, Japanese or Korean breaks anywhere, so a word of it is no limit
-      const word = text.split(/\s+/).reduce((m, part) => Math.max(m, ctx.measure(part, FONT).w / (ctx.wide(part) ? 2 : 1)), 0);
+      // text without spaces in Chinese or Japanese breaks where it may: its two lines are what has to fit
+      const parts = text.split(/\s+/).filter(Boolean);
+      const word =
+        parts.length === 1 && ctx.wide(text)
+          ? Math.max(...splitWide(text, Infinity, ctx).map((line) => ctx.measure(line, FONT).w))
+          : parts.reduce((m, part) => Math.max(m, ctx.measure(part, FONT).w), 0);
       widest = Math.max(widest, Math.min(full, Math.max(word, full / 2)));
     }
     // measure() is deliberately generous (layout must never clip), so real labels are narrower than it says: allow for that
@@ -220,14 +267,7 @@
     return (label) => {
       if (ctx.measure(label, FONT).w <= room) return [label];
       const words = label.split(/\s+/).filter(Boolean);
-      if (words.length < 2) {
-        if (!ctx.wide(label)) return [label];
-        // Chinese, Japanese and Korean have no spaces to break at and may break between any two characters
-        const chars = Array.from(label);
-        let k = 1;
-        while (k < chars.length - 1 && ctx.measure(chars.slice(0, k + 1).join(''), FONT).w <= room) k++;
-        return [chars.slice(0, k).join(''), chars.slice(k).join('')];
-      }
+      if (words.length < 2) return ctx.wide(label) ? splitWide(label, room, ctx) : [label];
       let first = words[0];
       let k = 1;
       while (k < words.length - 1 && ctx.measure(first + ' ' + words[k], FONT).w <= room) first += ' ' + words[k++];
@@ -238,7 +278,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 15,
+    version: 16,
     doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover.',
     params: {
       scale: { kind: 'scale', required: true },

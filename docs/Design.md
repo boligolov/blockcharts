@@ -1339,6 +1339,12 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   The label is now drawn by the rule's `labels()` above every mark, in a halo of the card color
   (`--bc-tooltip-bg`), and only while the end of its line is in view, so a zoom does not leave it on the edge. The halo
   is a new style field, `paintOrder: "stroke"` (the stroke under the fill), which both renderers follow.
+- **Japanese and Chinese labels break where a reader would.** A band label without spaces broke after as many
+  characters as fit: 2024年1月 became "2024 / 年1月" and 2024年第1四半期 "2024年第 / 1四半期". A line now breaks only
+  after a wide character, keeps a number with the word in front of it (第1) unless a number stands before that word too
+  (年 after 2024 ends the year), never starts with a closing mark (、。」ー, small kana) nor ends with an opening one
+  (「); of those places it takes the one whose first line fits and whose two lines are the most even: "2024年 / 1月",
+  "2024年 / 第1四半期". Whether the labels go at an angle is decided by the wider of those two lines, not half the label.
 
 ## Next steps
 

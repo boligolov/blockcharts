@@ -3308,6 +3308,82 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     );
   });
 
+  test('a date in Japanese or Chinese on a band breaks after the year, and no line starts with a closing mark', () => {
+    // the labels of a band axis, as the lines of each label (in order) and whether they stand at an angle
+    const labels = (spec) => {
+      const found = [...layer(draw(spec).svg, 'axes').matchAll(/<text ([^>]*)class="bc-axis-label"[^>]*>([^<]*)<\/text>/g)];
+      const by = new Map();
+      for (const m of found) {
+        const x = /\bx="([-0-9.]+)"/.exec(m[1])[1];
+        by.set(x, (by.get(x) || []).concat(m[2]));
+      }
+      return { lines: [...by.values()], tilted: found.some((m) => /rotate/.test(m[1])) };
+    };
+    BC.data(
+      'cjk-months',
+      Array.from({ length: 12 }, (_, i) => ({ m: `2024-${String(i + 1).padStart(2, '0')}-01`, v: i + 1 })),
+    );
+    BC.data(
+      'cjk-quarters',
+      Array.from({ length: 8 }, (_, i) => ({ q: `${2024 + Math.floor(i / 4)}-${String((i % 4) * 3 + 1).padStart(2, '0')}-01`, v: i })),
+    );
+    const bars = (data, field, locale, format, width) => ({
+      data,
+      locale,
+      size: [width, 300],
+      padding: { top: 16, right: 16, bottom: 16, left: 16 },
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      guides: [{ type: 'axis', scale: 'x', format }],
+      marks: [{ type: 'rect', x: field, y: 'v' }],
+    });
+    // 2024年1月 is wider than its band at both widths; at 520 px "2024年" is a little wider than the room too
+    for (const width of [640, 520]) {
+      const { lines, tilted } = labels(bars('cjk-months', 'm', 'ja-JP', 'month', width));
+      assert(!tilted, `${width}: upright`);
+      assert.deepStrictEqual(lines[0], ['2024年', '1月'], `${width}: ${lines[0]}`);
+      assert(
+        lines.every((l) => l.length === 2 && /^2024年$/.test(l[0]) && /^\d+月$/.test(l[1])),
+        `${width}: the year, then the month: ${lines.join(' | ')}`,
+      );
+    }
+    // a quarter keeps 第 with its number: 2024年 / 第1四半期, not 2024年第 / 1四半期 nor 2024年第1四 / 半期
+    for (const [locale, rest] of [
+      ['ja-JP', '四半期'],
+      ['zh-CN', '季度'],
+    ]) {
+      const { lines, tilted } = labels(bars('cjk-quarters', 'q', locale, 'quarter', 640));
+      assert(!tilted, locale);
+      assert.deepStrictEqual(lines[0], ['2024年', '第1' + rest], `${locale}: ${lines[0]}`);
+      assert.deepStrictEqual(lines[7], ['2025年', '第4' + rest], `${locale}: ${lines[7]}`);
+    }
+    // 、 does not start a line, 「 does not end one, even where the lines would be more even
+    for (const [cats, bad, first] of [
+      [['あああ、いい', 'かかか、きき', 'さささ、しし', 'たたた、ちち'], (l) => /^、/.test(l[1]), ['ああ', 'あ、いい']],
+      // the first line has to fit its room: ああ「い would be more even, but it is wider than the band
+      [['ああ「いいいいい', 'かか「ききききき', 'ささ「ししししし', 'たた「ちちちちち'], (l) => /「$/.test(l[0]), ['ああ', '「いいいいい']],
+    ]) {
+      BC.data(
+        'kinsoku',
+        cats.map((k, i) => ({ k, v: i + 1 })),
+      );
+      const { lines, tilted } = labels(bars('kinsoku', 'k', 'ja-JP', undefined, 220));
+      assert(!tilted, cats[0]);
+      assert(lines.every((l) => l.length === 2) && !lines.some(bad), lines.join(' | '));
+      assert.deepStrictEqual(lines[0], first);
+      assert.deepStrictEqual(
+        lines.map((l) => l.join('')),
+        cats,
+        'all of each',
+      );
+    }
+    // what has to fit is the wider of the two lines (あ、いい), not half the label: narrower, the labels go at an angle
+    BC.data(
+      'kinsoku',
+      ['あああ、いい', 'かかか、きき', 'さささ、しし', 'たたた、ちち'].map((k, i) => ({ k, v: i + 1 })),
+    );
+    assert(labels(bars('kinsoku', 'k', 'ja-JP', undefined, 182)).tilted, 'too narrow for あ、いい upright');
+  });
+
   test('band axis: labels too close for 45° stand upright, and stay apart', () => {
     BC.data(
       'fifteen',

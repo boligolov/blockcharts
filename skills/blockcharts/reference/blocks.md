@@ -653,7 +653,7 @@ Version 3, 2.9 KB. The shape of a distribution per category, from the rows of tr
 
 ## guide.axis
 
-Version 15, 7.6 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover.
+Version 16, 8.2 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
