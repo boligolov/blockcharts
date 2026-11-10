@@ -72,10 +72,10 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'window',
-    version: 3,
+    version: 4,
     doc: 'A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%); `total` the sum of the whole group on every row of it (a line of totals over stacked bars) and `share` each row as a part of that sum (0.25 = 25%), so rows are not collapsed as by aggregate; `rank` the place of each row in its group by `field`, 1 for the largest (`order` "asc": for the smallest), ties sharing a place (1, 2, 2, 4): rank by year with group = the year, and a line per item over the years is a bump chart. Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default "<op>_<field>") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true.',
     params: {
-      field: { kind: 'field', required: true, doc: 'Numeric field to compute from.' },
+      field: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field to compute from.' },
       op: {
         kind: 'enum',
         values: OPS,

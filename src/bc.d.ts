@@ -406,6 +406,9 @@ declare namespace BC {
     default?: unknown;
     /** for kind "enum" */
     values?: readonly string[];
+    /** for kind "field" of a transform: what it reads from the field. A field with none of them is an error when the
+     *  chart is built, and one with a few values it cannot read a warning, naming them. */
+    reads?: 'number' | 'date';
     doc?: string;
   }
 

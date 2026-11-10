@@ -479,6 +479,123 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
 
   // ── names every object has ──
 
+  test('a reader of numbers given text says so: none is an error at the channel, a few a warning naming them', () => {
+    BC.data('cash', [
+      { m: 'Jan', usd: '$1,200', n: 1200, mixed: 1200, quoted: '1200', d: '2024-01-01', when: 'TBD', csv: '1200' },
+      { m: 'Feb', usd: '$1,750', n: 1750, mixed: 'n/a', quoted: '1750', d: '2024-02-01', when: 'soon', csv: '1750' },
+      { m: 'Mar', usd: null, n: 1300, mixed: 1300, quoted: null, d: 'March', when: '', csv: 'n/a' },
+      { m: 'Apr', usd: '', n: 1250, mixed: '—', quoted: '1250', d: '2024-04-01', when: null, csv: '1250' },
+    ]);
+    const draw = (spec) => {
+      const h = BC.chart(new FakeNode('div'), { data: 'cash', size: [400, 300], ...spec });
+      logged.error.length = 0;
+      logged.warn.length = 0;
+      return h.diagnostics.map((d) => [d.level, d.path, d.message]);
+    };
+    const bars = (y, x) => ({
+      scales: { x: { type: x ? 'time' : 'band' }, y: { type: 'linear' } },
+      marks: [{ type: x ? 'point' : 'rect', x: x || 'm', y }],
+    });
+    const [none] = draw(bars('usd'));
+    assert.deepStrictEqual(none.slice(0, 2), ['error', 'marks[0].y']);
+    assert.strictEqual(
+      none[2],
+      'scale "y" reads numbers from "usd", and it has none: its values are like "$1,200", "$1,750", so nothing of it is drawn. A number is written as a number: 1750.5, not "1750.5", "1,750.50", "1750,5" or "$1,750"; where there is no value, null',
+      'missing values (null, "") are not counted',
+    );
+    assert.deepStrictEqual(draw(bars('n')), [], 'numbers are fine');
+    const [some, ...rest] = draw(bars('mixed'));
+    assert.deepStrictEqual(rest, []);
+    assert.deepStrictEqual(some.slice(0, 2), ['warn', 'marks[0].y']);
+    assert.match(
+      some[2],
+      /^scale "y" reads numbers from "mixed", and 2 of its 4 values are not numbers, so they are left out: "n\/a", "—"\. /,
+    );
+    assert.match(draw(bars('quoted'))[0][2], /it has none: its values are like "1200", "1750", "1250"/, 'numbers in quotes are text');
+    assert.match(
+      draw(bars('csv'))[0][2],
+      /it has none: its values are like "n\/a", "1200", "1750"/,
+      'a CSV column that one cell keeps as text: that cell is named first',
+    );
+    // dates: ISO text is read, a word is not
+    const dates = draw(bars('n', 'd'));
+    assert.deepStrictEqual(
+      dates.map((d) => d.slice(0, 2)),
+      [['warn', 'marks[0].x']],
+    );
+    assert.match(
+      dates[0][2],
+      /^scale "x" reads dates from "d", and 1 of its 4 values is not a date, so it is left out: "March"\. A date is ISO text/,
+    );
+    assert.match(draw(bars('n', 'when'))[0][2], /^scale "x" reads dates from "when", and it has none: its values are like "TBD", "soon"/);
+    // a scale of categories reads anything; a scale's own field is read like a channel
+    assert.deepStrictEqual(draw({ ...bars('n'), scales: { x: { type: 'band', field: 'usd' }, y: { type: 'linear' } } }), []);
+    assert.deepStrictEqual(
+      draw({ ...bars('n'), scales: { x: { type: 'band' }, y: { type: 'linear', field: 'usd' } } }).map((d) => d.slice(0, 2)),
+      [['error', 'scales.y.field']],
+    );
+
+    // a transform that reads numbers, at its own parameter
+    const binned = draw({
+      transforms: [{ type: 'bin', field: 'usd' }],
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [{ type: 'rect', x: 'bin0', x2: 'bin1', y: 'count' }],
+    });
+    assert.deepStrictEqual(binned[0].slice(0, 2), ['error', 'transforms[0].field']);
+    assert.match(binned[0][2], /^transform\.bin reads numbers from "usd", and it has none/);
+    // one that fails on it: what it could not read is the reason, at the parameter
+    const boxes = draw({
+      transforms: [{ type: 'quartiles', field: 'usd', group: 'm' }],
+      scales: { x: { type: 'band' }, y: { type: 'linear' } },
+      marks: [{ type: 'boxplot', x: 'm', low: 'low', q1: 'q1', median: 'median', q3: 'q3', high: 'high' }],
+    });
+    assert.deepStrictEqual(
+      boxes.map((d) => d.slice(0, 2)),
+      [['error', 'transforms[0].field']],
+    );
+    assert.match(boxes[0][2], /^transform\.quartiles reads numbers from "usd", and it has none/);
+    // and one that runs again at every redraw (hexbin follows the plot's shape): looked at, once
+    const hexes = draw({
+      transforms: [{ type: 'hexbin', x: 'usd', y: 'n' }],
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [{ type: 'rect', shape: 'hexagon', x: 'x0', x2: 'x1', y: 'y0', y2: 'y1' }],
+    });
+    assert.deepStrictEqual(
+      hexes.map((d) => d.slice(0, 2)),
+      [['error', 'transforms[0].x']],
+    );
+    // and one that adds up text: sum and mean need numbers; count and distinct do not
+    const summed = draw({
+      transforms: [{ type: 'aggregate', groupby: ['m'], measures: [{ op: 'sum', field: 'usd', as: 'total' }] }],
+      ...bars('total'),
+    });
+    assert.deepStrictEqual(summed, [
+      [
+        'error',
+        'transforms[0]',
+        'transform.aggregate: measures[0]: "sum" needs numbers, and "usd" has none: its values are like "$1,200". A number is written as a number: 1750.5, not "1750.5", "1,750.50" or "$1,750"',
+      ],
+    ]);
+    assert.deepStrictEqual(
+      draw({ transforms: [{ type: 'aggregate', groupby: ['m'], measures: [{ op: 'distinct', field: 'usd', as: 'k' }] }], ...bars('k') }),
+      [],
+    );
+    // a field with numbers among the text is summed: the measures leave out what is not a number, as documented
+    assert.deepStrictEqual(
+      draw({
+        transforms: [{ type: 'aggregate', groupby: ['m'], measures: [{ op: 'sum', field: 'mixed', as: 'total' }] }],
+        ...bars('total'),
+      }),
+      [],
+    );
+    assert.deepStrictEqual(
+      Array.from(
+        apply('aggregate', [{ v: 1200 }, { v: 'n/a' }, { v: 1300 }], { measures: [{ op: 'sum', field: 'v', as: 't' }] }).columns.t,
+      ),
+      [2500],
+    );
+  });
+
   test('a name every object has ("constructor", "toString", "__proto__") is not taken for a scale, a format or a column', () => {
     BC.data('names', [
       { k: 'a', v: 1 },

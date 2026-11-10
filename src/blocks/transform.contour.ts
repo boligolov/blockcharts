@@ -114,13 +114,13 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'contour',
-    version: 1,
+    version: 2,
     requires: ['lib.columns', 'lib.stats'],
     replacesColumns: true,
     doc: 'Density contours, for a scatter of too many points to read: where the points of two measures gather, as regions nested like the rings of a map. It smooths the points into a density (a kernel density estimate in two dimensions) and draws the outline of where it is at least each of a few levels. A row of the result is a point of an outline, under the names of `x` and `y`, in order; `ring` names its outline and `level` the region it bounds, 1 the outermost; `share` is how many of the points lie inside that region (0 to 1) and `density` the level itself. Draw it with mark.polygon (`group: "level"`, `ring: "ring"`), colored by `share` or `level` on a sequential scale; outlines of holes run the other way, so a region with a hole in it is drawn with the hole. Rows where x or y is not a number are left out.',
     params: {
-      x: { kind: 'field', required: true, doc: 'Numeric field along x.' },
-      y: { kind: 'field', required: true, doc: 'Numeric field along y.' },
+      x: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field along x.' },
+      y: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field along y.' },
       shares: {
         kind: 'list',
         doc: 'Regions by how many of the points they hold: [0.25, 0.5, 0.75, 0.95] draws the smallest region with a quarter of the points, then with half, and so on (each number above 0 and below 1). Without it, `levels` regions at even steps of the density.',

@@ -1231,6 +1231,17 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   other than x and y has no range of its own: without `range` everything it placed was drawn at one point, and now it
   is an error at the scale. A spec nested a hundred levels deep is refused by the composer with its path, where it
   used to overflow the stack.
+- **A reader of numbers given text says so.** A CSV column of amounts with one `n/a`, a `$1,750` or a decimal comma
+  is text, as written; a number scale skips text, a sum of it is 0, and the page was written with an empty chart and
+  exit code 0. Now, when the chart is built, a scale of numbers or dates that reads a field with none of them is an
+  error at the channel (`marks[0].y`), and one that leaves a few out is a warning; both name the values, the odd ones
+  before numbers in quotes. A transform declares what a field parameter reads (`reads: "number"` on the field of bin,
+  stack, window, quartiles and the others, `"date"` on calendar) and is checked the same way, once, also when it
+  reruns at every redraw; aggregate refuses a sum, mean, min, max or median of a field with no numbers. A transform
+  that fails on such a field reports what it could not read, and any failure of a transform is reported at
+  `transforms[i]`, no longer at the chart. The CSV reader warns about a column that is mostly numbers but text because
+  of a few cells, names them and says what to do: `nullValues` for "no value", plain numbers for amounts, `types` for
+  a column that is text.
 
 ## Next steps
 

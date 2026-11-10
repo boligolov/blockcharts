@@ -128,6 +128,7 @@ function parseCsv(text, options) {
   }
 
   const columns = {};
+  const warnings = [];
   header.forEach((name, c) => {
     if (name === '__proto__') throw new CsvError('a column cannot be named "__proto__"; rename it in the header');
     const forced = opts.types && Object.prototype.hasOwnProperty.call(opts.types, name) ? opts.types[name] : undefined;
@@ -142,8 +143,24 @@ function parseCsv(text, options) {
     }
     const asNumber = forced === 'number' || (forced === undefined && allNumbers);
     columns[name] = cells.map((v) => (v === null ? null : asNumber ? Number(v.trim()) : v));
+    // a column of numbers but for a few cells ("n/a", "$1,750", "1,5") is text, and a chart of it draws nothing: say which
+    if (forced === undefined && !allNumbers) {
+      const odd = present.filter((v) => !NUMBER.test(v.trim()));
+      if (odd.length * 2 < present.length) {
+        const shown = Array.from(new Set(odd.map((v) => v.trim())))
+          .slice(0, 3)
+          .map((v) => JSON.stringify(v.length > 24 ? v.slice(0, 24) + '…' : v));
+        warnings.push({
+          column: name,
+          message:
+            `column "${name}" is read as text, because ${odd.length} of its ${present.length} values ${odd.length === 1 ? 'is not a plain number' : 'are not plain numbers'}: ${shown.join(', ')}. ` +
+            `A value that means "no value" goes in "nullValues"; a number is written without a currency sign or thousands separators, with a dot for decimals; ` +
+            `if the column is text, "types": { "${name}": "string" } says so`,
+        });
+      }
+    }
   });
-  return { columns };
+  return { columns, warnings };
 }
 
 /**

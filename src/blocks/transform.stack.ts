@@ -11,11 +11,11 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'stack',
-    version: 3,
+    version: 4,
     viewDependent: (spec) => typeof spec.follows === 'string',
     doc: "Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. `center` puts the middle of every stack on 0, so the layers flow around a center line: a streamgraph (draw it with mark.area, y = end, y2 = start, curve smooth, and no y axis, since only the thickness of a layer means anything). With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again.",
     params: {
-      field: { kind: 'field', required: true, doc: 'Numeric field to stack.' },
+      field: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field to stack.' },
       by: { kind: 'field', required: true, doc: 'Field whose values are the stacks (the x of a stacked bar).' },
       group: { kind: 'field', doc: 'Field that tells the series apart. Without it rows stack in data order.' },
       as: { kind: 'list', doc: 'Names of the two new columns: [start, end].' },

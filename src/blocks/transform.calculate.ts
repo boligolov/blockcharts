@@ -15,12 +15,12 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'calculate',
-    version: 1,
+    version: 2,
     doc: 'A new column `as` from two numbers of each row: field `a` and field `b` (or a constant `value`), joined by `op` (+, -, *, /). A margin is profit / revenue; a gap is actual - plan; a price with tax is net * 1.2. A row where either side is not a number, or the division is by zero, gets NaN (drawn as missing). Rows and the other columns stay as they are; the new column can be used by any transform after it. `as` may be `a` or `b` itself to replace that column (revenue / 1000 in thousands); any other existing column is an error.',
     params: {
-      a: { kind: 'field', required: true, doc: 'Numeric field on the left.' },
+      a: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field on the left.' },
       op: { kind: 'enum', values: OPS, required: true, doc: '+ | - | * | /.' },
-      b: { kind: 'field', doc: 'Numeric field on the right; or give `value`.' },
+      b: { kind: 'field', reads: 'number', doc: 'Numeric field on the right; or give `value`.' },
       value: { kind: 'number', doc: 'A constant on the right instead of a field.' },
       as: { kind: 'string', required: true, doc: 'Name of the new column.' },
     },

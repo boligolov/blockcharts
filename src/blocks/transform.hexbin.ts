@@ -27,15 +27,15 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'hexbin',
-    version: 1,
+    version: 2,
     requires: ['lib.columns'],
     replacesColumns: true,
     // without a fixed `aspect` it follows the plot, and it can also run without one: the scales read its first result
     viewDependent: (spec) => aspectOf(spec) === undefined,
     doc: 'Hexagonal binning, for a scatter of too many points to read: the plane is tiled with hexagons and each row of the result is one hexagon that has points in it, with how many (`count`). It writes the box of each hexagon (x0, x1, y0, y1), for a mark.rect with `shape: "hexagon"` on two linear scales with `nice: false`, x: x0, x2: x1, y: y0, y2: y1, colored by `count` on a sequential scale; and its center under the names of `x` and `y`, for the tooltip. The hexagons are binned anew for the size the chart is drawn at, and at every zoom, so they stay regular on a phone as on a wide screen; each covers the same area of the data whatever its shape, so a count, and the color legend, mean the same at every size. The scales take their domains from a first binning for a plot 1.6 times as wide as tall, so on a plot of another shape the outer hexagons may stand a little over its edge. Rows where x or y is not a number are left out.',
     params: {
-      x: { kind: 'field', required: true, doc: 'Numeric field along x.' },
-      y: { kind: 'field', required: true, doc: 'Numeric field along y.' },
+      x: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field along x.' },
+      y: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field along y.' },
       bins: {
         kind: 'number',
         default: 20,

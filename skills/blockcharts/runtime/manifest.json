@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 36054,
+    "bytes": 38113,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 25442,
+        "bytes": 27512,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 22413,
+        "bytes": 24483,
         "off": [
           "CHECKS",
           "DECODE"
@@ -234,8 +234,8 @@
     },
     "transform.aggregate": {
       "file": "blocks/transform.aggregate.js",
-      "bytes": 4870,
-      "version": 1,
+      "bytes": 5315,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.aggregate"
@@ -276,8 +276,8 @@
     },
     "transform.bin": {
       "file": "blocks/transform.bin.js",
-      "bytes": 3123,
-      "version": 4,
+      "bytes": 3138,
+      "version": 5,
       "requires": [
         "lib.ticks"
       ],
@@ -288,6 +288,7 @@
       "params": {
         "field": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field to count. Missing and non-numeric values are ignored."
         },
@@ -322,8 +323,8 @@
     },
     "transform.calculate": {
       "file": "blocks/transform.calculate.js",
-      "bytes": 1406,
-      "version": 1,
+      "bytes": 1436,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.calculate"
@@ -331,6 +332,7 @@
       "params": {
         "a": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field on the left."
         },
@@ -347,6 +349,7 @@
         },
         "b": {
           "kind": "field",
+          "reads": "number",
           "doc": "Numeric field on the right; or give `value`."
         },
         "value": {
@@ -363,8 +366,8 @@
     },
     "transform.calendar": {
       "file": "blocks/transform.calendar.js",
-      "bytes": 1758,
-      "version": 2,
+      "bytes": 1771,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.calendar"
@@ -372,6 +375,7 @@
       "params": {
         "field": {
           "kind": "field",
+          "reads": "date",
           "required": true,
           "doc": "The date of each row."
         },
@@ -393,8 +397,8 @@
     },
     "transform.contour": {
       "file": "blocks/transform.contour.js",
-      "bytes": 5501,
-      "version": 1,
+      "bytes": 5531,
+      "version": 2,
       "requires": [
         "lib.columns",
         "lib.stats"
@@ -407,11 +411,13 @@
       "params": {
         "x": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field along x."
         },
         "y": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field along y."
         },
@@ -482,8 +488,8 @@
     },
     "transform.density": {
       "file": "blocks/transform.density.js",
-      "bytes": 2643,
-      "version": 2,
+      "bytes": 2658,
+      "version": 3,
       "requires": [
         "lib.stats"
       ],
@@ -494,6 +500,7 @@
       "params": {
         "field": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field with the raw samples. Missing and non-numeric values are ignored."
         },
@@ -592,8 +599,8 @@
     },
     "transform.funnel": {
       "file": "blocks/transform.funnel.js",
-      "bytes": 1259,
-      "version": 3,
+      "bytes": 1274,
+      "version": 4,
       "requires": [
         "lib.columns"
       ],
@@ -604,6 +611,7 @@
       "params": {
         "field": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "How many reached the stage."
         },
@@ -626,8 +634,8 @@
     },
     "transform.hexbin": {
       "file": "blocks/transform.hexbin.js",
-      "bytes": 3266,
-      "version": 1,
+      "bytes": 3296,
+      "version": 2,
       "requires": [
         "lib.columns"
       ],
@@ -638,11 +646,13 @@
       "params": {
         "x": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field along x."
         },
         "y": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field along y."
         },
@@ -725,8 +735,8 @@
     },
     "transform.marimekko": {
       "file": "blocks/transform.marimekko.js",
-      "bytes": 2016,
-      "version": 2,
+      "bytes": 2031,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.marimekko"
@@ -734,6 +744,7 @@
       "params": {
         "field": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "The size of each cell (positive numbers; others are left out)."
         },
@@ -766,8 +777,8 @@
     },
     "transform.quartiles": {
       "file": "blocks/transform.quartiles.js",
-      "bytes": 2127,
-      "version": 2,
+      "bytes": 2142,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.quartiles"
@@ -775,6 +786,7 @@
       "params": {
         "field": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field to summarize (the raw sample values). Missing and non-numeric values are ignored."
         },
@@ -792,8 +804,8 @@
     },
     "transform.sankey": {
       "file": "blocks/transform.sankey.js",
-      "bytes": 3533,
-      "version": 1,
+      "bytes": 3548,
+      "version": 2,
       "requires": [
         "lib.columns"
       ],
@@ -814,6 +826,7 @@
         },
         "value": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field: the size of the flow."
         },
@@ -865,8 +878,8 @@
     },
     "transform.stack": {
       "file": "blocks/transform.stack.js",
-      "bytes": 1863,
-      "version": 3,
+      "bytes": 1878,
+      "version": 4,
       "requires": [],
       "closure": [
         "transform.stack"
@@ -874,6 +887,7 @@
       "params": {
         "field": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field to stack."
         },
@@ -909,8 +923,8 @@
     },
     "transform.treemap": {
       "file": "blocks/transform.treemap.js",
-      "bytes": 3273,
-      "version": 4,
+      "bytes": 3288,
+      "version": 5,
       "requires": [
         "lib.columns"
       ],
@@ -921,6 +935,7 @@
       "params": {
         "field": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "The size of each cell (positive numbers; others are left out)."
         },
@@ -965,8 +980,8 @@
     },
     "transform.waterfall": {
       "file": "blocks/transform.waterfall.js",
-      "bytes": 1734,
-      "version": 3,
+      "bytes": 1749,
+      "version": 4,
       "requires": [
         "lib.columns"
       ],
@@ -977,6 +992,7 @@
       "params": {
         "field": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "The change each row makes (negative for a loss)."
         },
@@ -1013,8 +1029,8 @@
     },
     "transform.window": {
       "file": "blocks/transform.window.js",
-      "bytes": 3742,
-      "version": 3,
+      "bytes": 3757,
+      "version": 4,
       "requires": [],
       "closure": [
         "transform.window"
@@ -1022,6 +1038,7 @@
       "params": {
         "field": {
           "kind": "field",
+          "reads": "number",
           "required": true,
           "doc": "Numeric field to compute from."
         },

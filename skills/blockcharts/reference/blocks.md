@@ -116,7 +116,7 @@ Version 7, 2.7 KB. It places dates. Time scale in UTC. Values: epoch millisecond
 
 ## transform.aggregate
 
-Version 1, 4.8 KB. Group-by: one row per distinct combination of the `groupby` fields, with measures computed over the rows of each group (`sum`, `mean`, `min`, `max`, `median`, `count`, `distinct`). A group-by field can be cut into calendar units, `{ "field": "date", "unit": "month" }` (year, quarter, month, week from Monday, day, hour; UTC; the group value is the ISO start of the unit). Missing values are ignored by the measures (`count` without a field counts rows). Groups come in order of first appearance, or sorted by a column with `sort`; a time unit sorts by time unless told otherwise. `limit` keeps the first N groups after sorting (top N).
+Version 2, 5.2 KB. Group-by: one row per distinct combination of the `groupby` fields, with measures computed over the rows of each group (`sum`, `mean`, `min`, `max`, `median`, `count`, `distinct`). A group-by field can be cut into calendar units, `{ "field": "date", "unit": "month" }` (year, quarter, month, week from Monday, day, hour; UTC; the group value is the ISO start of the unit). Missing values are ignored by the measures (`count` without a field counts rows). Groups come in order of first appearance, or sorted by a column with `sort`; a time unit sorts by time unless told otherwise. `limit` keeps the first N groups after sorting (top N).
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -128,7 +128,7 @@ Version 1, 4.8 KB. Group-by: one row per distinct combination of the `groupby` f
 
 ## transform.bin
 
-Version 4, 3.0 KB. Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.
+Version 5, 3.1 KB. Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.
 
 Needs: `lib.ticks`.
 
@@ -144,7 +144,7 @@ Needs: `lib.ticks`.
 
 ## transform.calculate
 
-Version 1, 1.4 KB. A new column `as` from two numbers of each row: field `a` and field `b` (or a constant `value`), joined by `op` (+, -, *, /). A margin is profit / revenue; a gap is actual - plan; a price with tax is net * 1.2. A row where either side is not a number, or the division is by zero, gets NaN (drawn as missing). Rows and the other columns stay as they are; the new column can be used by any transform after it. `as` may be `a` or `b` itself to replace that column (revenue / 1000 in thousands); any other existing column is an error.
+Version 2, 1.4 KB. A new column `as` from two numbers of each row: field `a` and field `b` (or a constant `value`), joined by `op` (+, -, *, /). A margin is profit / revenue; a gap is actual - plan; a price with tax is net * 1.2. A row where either side is not a number, or the division is by zero, gets NaN (drawn as missing). Rows and the other columns stay as they are; the new column can be used by any transform after it. `as` may be `a` or `b` itself to replace that column (revenue / 1000 in thousands); any other existing column is an error.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -156,7 +156,7 @@ Version 1, 1.4 KB. A new column `as` from two numbers of each row: field `a` and
 
 ## transform.calendar
 
-Version 2, 1.7 KB. The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week; a weekday with no rows gets one empty row, with no `week` to be drawn at, so that it keeps its place on the axis. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first.
+Version 3, 1.7 KB. The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week; a weekday with no rows gets one empty row, with no `week` to be drawn at, so that it keeps its place on the axis. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -166,7 +166,7 @@ Version 2, 1.7 KB. The columns of a calendar heatmap, one cell per row: `week` a
 
 ## transform.contour
 
-Version 1, 5.4 KB. Density contours, for a scatter of too many points to read: where the points of two measures gather, as regions nested like the rings of a map. It smooths the points into a density (a kernel density estimate in two dimensions) and draws the outline of where it is at least each of a few levels. A row of the result is a point of an outline, under the names of `x` and `y`, in order; `ring` names its outline and `level` the region it bounds, 1 the outermost; `share` is how many of the points lie inside that region (0 to 1) and `density` the level itself. Draw it with mark.polygon (`group: "level"`, `ring: "ring"`), colored by `share` or `level` on a sequential scale; outlines of holes run the other way, so a region with a hole in it is drawn with the hole. Rows where x or y is not a number are left out.
+Version 2, 5.4 KB. Density contours, for a scatter of too many points to read: where the points of two measures gather, as regions nested like the rings of a map. It smooths the points into a density (a kernel density estimate in two dimensions) and draws the outline of where it is at least each of a few levels. A row of the result is a point of an outline, under the names of `x` and `y`, in order; `ring` names its outline and `level` the region it bounds, 1 the outermost; `share` is how many of the points lie inside that region (0 to 1) and `density` the level itself. Draw it with mark.polygon (`group: "level"`, `ring: "ring"`), colored by `share` or `level` on a sequential scale; outlines of holes run the other way, so a region with a hole in it is drawn with the hole. Rows where x or y is not a number are left out.
 
 Needs: `lib.columns`, `lib.stats`.
 
@@ -195,7 +195,7 @@ Version 3, 3.4 KB. Level of detail for long lines: keeps only the rows that can 
 
 ## transform.density
 
-Version 2, 2.6 KB. How the raw values of `field` are spread, as a smooth curve (a kernel density estimate): for every group, `steps` evenly spaced rows from a little below its smallest value to a little above its largest, each with the `value` and the `density` there. Draw it with mark.violin (violin plots, ridgelines), or with mark.area / mark.line on x = value, y = density. The curve of each group encloses an area of 1 (with `counts`, its number of samples, so bigger groups are bigger). Replaces the rows: the output has the group field, value, density and `count`, the number of samples of the group.
+Version 3, 2.6 KB. How the raw values of `field` are spread, as a smooth curve (a kernel density estimate): for every group, `steps` evenly spaced rows from a little below its smallest value to a little above its largest, each with the `value` and the `density` there. Draw it with mark.violin (violin plots, ridgelines), or with mark.area / mark.line on x = value, y = density. The curve of each group encloses an area of 1 (with `counts`, its number of samples, so bigger groups are bigger). Replaces the rows: the output has the group field, value, density and `count`, the number of samples of the group.
 
 Needs: `lib.stats`.
 
@@ -231,7 +231,7 @@ Version 2, 1.5 KB. Turns a wide table (one column per series: month, online, ret
 
 ## transform.funnel
 
-Version 3, 1.2 KB. A conversion funnel: stages in row order (visits, sign-ups, trials, purchases), each drawn as a bar centered on zero so the shape narrows. Writes the bar's two ends (`<field>0` = -value/2, `<field>1` = +value/2), the share of the first stage (`rate`) and of the stage before (`stepRate`). Draw with mark.rect (x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale) and label with mark.text formatted as percent.
+Version 4, 1.2 KB. A conversion funnel: stages in row order (visits, sign-ups, trials, purchases), each drawn as a bar centered on zero so the shape narrows. Writes the bar's two ends (`<field>0` = -value/2, `<field>1` = +value/2), the share of the first stage (`rate`) and of the stage before (`stepRate`). Draw with mark.rect (x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale) and label with mark.text formatted as percent.
 
 Needs: `lib.columns`.
 
@@ -244,7 +244,7 @@ Needs: `lib.columns`.
 
 ## transform.hexbin
 
-Version 1, 3.2 KB. Hexagonal binning, for a scatter of too many points to read: the plane is tiled with hexagons and each row of the result is one hexagon that has points in it, with how many (`count`). It writes the box of each hexagon (x0, x1, y0, y1), for a mark.rect with `shape: "hexagon"` on two linear scales with `nice: false`, x: x0, x2: x1, y: y0, y2: y1, colored by `count` on a sequential scale; and its center under the names of `x` and `y`, for the tooltip. The hexagons are binned anew for the size the chart is drawn at, and at every zoom, so they stay regular on a phone as on a wide screen; each covers the same area of the data whatever its shape, so a count, and the color legend, mean the same at every size. The scales take their domains from a first binning for a plot 1.6 times as wide as tall, so on a plot of another shape the outer hexagons may stand a little over its edge. Rows where x or y is not a number are left out.
+Version 2, 3.2 KB. Hexagonal binning, for a scatter of too many points to read: the plane is tiled with hexagons and each row of the result is one hexagon that has points in it, with how many (`count`). It writes the box of each hexagon (x0, x1, y0, y1), for a mark.rect with `shape: "hexagon"` on two linear scales with `nice: false`, x: x0, x2: x1, y: y0, y2: y1, colored by `count` on a sequential scale; and its center under the names of `x` and `y`, for the tooltip. The hexagons are binned anew for the size the chart is drawn at, and at every zoom, so they stay regular on a phone as on a wide screen; each covers the same area of the data whatever its shape, so a count, and the color legend, mean the same at every size. The scales take their domains from a first binning for a plot 1.6 times as wide as tall, so on a plot of another shape the outer hexagons may stand a little over its edge. Rows where x or y is not a number are left out.
 
 Needs: `lib.columns`.
 
@@ -274,7 +274,7 @@ Version 1, 1.4 KB. Marks the rows to set apart in a new column `as`: "yes" there
 
 ## transform.marimekko
 
-Version 2, 2.0 KB. A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the tallest cell of its column, the one with room for it, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out.
+Version 3, 2.0 KB. A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the tallest cell of its column, the one with room for it, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -287,7 +287,7 @@ Version 2, 2.0 KB. A Marimekko (mosaic) chart: one column per `category`, as wid
 
 ## transform.quartiles
 
-Version 2, 2.1 KB. The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has.
+Version 3, 2.1 KB. The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -297,7 +297,7 @@ Version 2, 2.1 KB. The five-number summary of `field` (min/max here mean the Tuk
 
 ## transform.sankey
 
-Version 1, 3.5 KB. The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); and `thickness`. A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it.
+Version 2, 3.5 KB. The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); and `thickness`. A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it.
 
 Needs: `lib.columns`.
 
@@ -322,7 +322,7 @@ Version 1, 1.7 KB. Puts the rows in the order of `field` (`order` "asc" or "desc
 
 ## transform.stack
 
-Version 3, 1.8 KB. Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. `center` puts the middle of every stack on 0, so the layers flow around a center line: a streamgraph (draw it with mark.area, y = end, y2 = start, curve smooth, and no y axis, since only the thickness of a layer means anything). With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again.
+Version 4, 1.8 KB. Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. `center` puts the middle of every stack on 0, so the layers flow around a center line: a streamgraph (draw it with mark.area, y = end, y2 = start, curve smooth, and no y axis, since only the thickness of a layer means anything). With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -336,7 +336,7 @@ Version 3, 1.8 KB. Stacks the values of `field` on top of each other within ever
 
 ## transform.treemap
 
-Version 4, 3.2 KB. A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.
+Version 5, 3.2 KB. A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.
 
 Needs: `lib.columns`.
 
@@ -354,7 +354,7 @@ Needs: `lib.columns`.
 
 ## transform.waterfall
 
-Version 3, 1.7 KB. A waterfall (bridge) chart: how a starting value becomes an ending one through gains and losses. In row order, each row adds its `field` to a running total; the transform writes where each bar starts and ends (`<field>0`, `<field>1`), its kind (`step`: "increase", "decrease" or "total"), what it stands for (`amount`: the change, or the total) and its upper end (`top`, for a label above it). Rows marked by the `total` field are subtotals: their bar goes from 0 to the running total, and their own value is ignored. Draw with mark.rect (y = `<field>1`, y2 = `<field>0` on a band x), colored by `step` through a color scale.
+Version 4, 1.7 KB. A waterfall (bridge) chart: how a starting value becomes an ending one through gains and losses. In row order, each row adds its `field` to a running total; the transform writes where each bar starts and ends (`<field>0`, `<field>1`), its kind (`step`: "increase", "decrease" or "total"), what it stands for (`amount`: the change, or the total) and its upper end (`top`, for a label above it). Rows marked by the `total` field are subtotals: their bar goes from 0 to the running total, and their own value is ignored. Draw with mark.rect (y = `<field>1`, y2 = `<field>0` on a band x), colored by `step` through a color scale.
 
 Needs: `lib.columns`.
 
@@ -370,7 +370,7 @@ Needs: `lib.columns`.
 
 ## transform.window
 
-Version 3, 3.7 KB. A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%); `total` the sum of the whole group on every row of it (a line of totals over stacked bars) and `share` each row as a part of that sum (0.25 = 25%), so rows are not collapsed as by aggregate; `rank` the place of each row in its group by `field`, 1 for the largest (`order` "asc": for the smallest), ties sharing a place (1, 2, 2, 4): rank by year with group = the year, and a line per item over the years is a bump chart. Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default "<op>_<field>") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true.
+Version 4, 3.7 KB. A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%); `total` the sum of the whole group on every row of it (a line of totals over stacked bars) and `share` each row as a part of that sum (0.25 = 25%), so rows are not collapsed as by aggregate; `rank` the place of each row in its group by `field`, 1 for the largest (`order` "asc": for the smallest), ties sharing a place (1, 2, 2, 4): rank by year with group = the year, and a line per item over the years is a bump chart. Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default "<op>_<field>") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |

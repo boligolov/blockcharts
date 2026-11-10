@@ -242,15 +242,18 @@ function findUnserializable(value, path, ancestors) {
   return null;
 }
 
-/** CSV forms become plain columns; everything else is left for the rest of the pipeline. */
-function resolveDataset(name, input, baseDir) {
+/** CSV forms become plain columns; everything else is left for the rest of the pipeline. What the CSV reader warns
+ *  about (a column of numbers that a few cells keep as text) goes into `warnings`, at `data.<name>`. */
+function resolveDataset(name, input, baseDir, warnings) {
   if (!input || typeof input !== 'object' || Array.isArray(input) || (typeof input.csv !== 'string' && typeof input.csvFile !== 'string'))
     return input;
   unknownKeys(input, ['csv', 'csvFile', 'delimiter', 'nullValues', 'types'], `data "${name}"`);
   try {
     if (typeof input.csv === 'string' && typeof input.csvFile === 'string') throw new CsvError('give either "csv" or "csvFile", not both');
     const text = typeof input.csv === 'string' ? input.csv : readCsvFile(input.csvFile, baseDir);
-    return parseCsv(text, { delimiter: input.delimiter, nullValues: input.nullValues, types: input.types });
+    const parsed = parseCsv(text, { delimiter: input.delimiter, nullValues: input.nullValues, types: input.types });
+    for (const w of parsed.warnings) warnings.push({ level: 'warn', path: `data.${name}`, message: w.message });
+    return { columns: parsed.columns };
   } catch (e) {
     if (e instanceof CsvError) throw new ComposeError(`data "${name}": ${e.message}`);
     if (e && e.code === 'ENOENT') throw new ComposeError(`data "${name}": file not found`);
@@ -493,7 +496,8 @@ function compose(opts) {
   const given = options.data || {};
   if (!given || typeof given !== 'object' || Array.isArray(given)) throw new ComposeError('data must be an object of named datasets');
   const data = {};
-  for (const name of Object.keys(given)) data[name] = resolveDataset(name, given[name], options.baseDir);
+  const dataWarnings = [];
+  for (const name of Object.keys(given)) data[name] = resolveDataset(name, given[name], options.baseDir, dataWarnings);
   if (!Array.isArray(options.charts) || !options.charts.length) throw new ComposeError('charts must be a non-empty array');
   const compress = options.compress === undefined ? 'auto' : options.compress;
   if (compress !== 'auto' && compress !== true && compress !== false) throw new ComposeError('compress must be "auto", true or false');
@@ -626,7 +630,7 @@ function compose(opts) {
   }
   for (const entry of facets) if (entry.madeField) entry.panels = transformFacet(entry, BC);
   charts = panelled();
-  const diagnostics = [];
+  const diagnostics = dataWarnings.slice();
   charts.forEach(({ spec, index: i }) => {
     for (const d of plain(Array.from(BC.validate(spec))))
       diagnostics.push({ ...d, chart: i, path: `charts[${i}].${d.path}`.replace(/\.$/, '') });

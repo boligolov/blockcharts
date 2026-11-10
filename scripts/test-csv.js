@@ -109,6 +109,26 @@ test('csv: types force a column to text or number', () => {
   assert.deepStrictEqual(cols('constructor,toString\nx,1', { types: { toString: 'number' } }), { constructor: ['x'], toString: [1] });
 });
 
+test('csv: a column of numbers but for a few cells is text, and a warning names those cells', () => {
+  const r = parseCsv(
+    'm,revenue,id\nJan,1200,A1\nFeb,$1750,B2\nMar,n/a,C3\nApr,1300,D4\nMay,1250,E5\nJun,"1,5",F6\nJul,1400,G7\nAug,n/a,H8\nSep,1500,I9\nOct,1600,J10',
+  );
+  assert.deepStrictEqual(r.columns.revenue.slice(0, 3), ['1200', '$1750', 'n/a'], 'the column stays as written');
+  assert.deepStrictEqual(r.warnings.length, 1, 'only the column that is mostly numbers: names and ids are text');
+  assert.strictEqual(r.warnings[0].column, 'revenue');
+  assert.match(
+    r.warnings[0].message,
+    /^column "revenue" is read as text, because 4 of its 10 values are not plain numbers: "\$1750", "n\/a", "1,5"\. A value that means "no value" goes in "nullValues"; .*"types": \{ "revenue": "string" \}/,
+  );
+  assert.match(parseCsv('a\n1\ntwo\n3').warnings[0].message, /1 of its 3 values is not a plain number: "two"/);
+  // when the odd cells are declared missing, or the column text, there is nothing to say
+  assert.deepStrictEqual(parseCsv('a\n1\nn/a\n3', { nullValues: ['n/a'] }).warnings, []);
+  assert.deepStrictEqual(parseCsv('a\n1\nn/a\n3', { types: { a: 'string' } }).warnings, []);
+  assert.deepStrictEqual(parseCsv('code\n007\n008\n9').warnings, [], 'codes with leading zeros are not mostly numbers');
+  assert.deepStrictEqual(parseCsv('a\n1\nx\ny\n2').warnings, [], 'half and half is text');
+  assert.deepStrictEqual(parseCsv('a,b\n1,x\n2,y').warnings, []);
+});
+
 test('csv: broken input is a clear error with the line', () => {
   for (const [text, re] of [
     ['', /empty/],
@@ -243,6 +263,37 @@ test('csv in a page: every mistake is a ComposeError naming the dataset', () => 
   bad({ d: { csv: 'k,v\na,1', csvFile: 'ok.csv' } }, /either "csv" or "csvFile", not both/);
   bad({ d: { csvFile: 'ok.csv' } }, /needs to know the folder/, { baseDir: undefined });
   bad({ d: { csv: 'k,v\na,x', types: { v: 'number' } } }, /declared a number but contains "x"/);
+});
+
+test('csv in a page: a column of amounts that a few cells keep as text is a warning there, and a chart of it an error', () => {
+  const csv = 'k,v\na,1200\nb,n/a\nc,1300\nd,1250';
+  // the chart reads numbers from a column of text: the page would be empty, so it is not written
+  assert.throws(
+    () => compose({ data: { d: { csv } }, charts: [barSpec('d')] }),
+    (e) =>
+      e instanceof ComposeError &&
+      e.diagnostics.some(
+        (d) =>
+          d.level === 'warn' &&
+          d.path === 'data.d' &&
+          /column "v" is read as text, because 1 of its 4 values is not a plain number: "n\/a"/.test(d.message),
+      ) &&
+      e.diagnostics.some(
+        (d) =>
+          d.level === 'error' &&
+          d.path === 'charts[0].marks[0].y' &&
+          /reads numbers from "v", and it has none: its values are like "n\/a", "1200"/.test(d.message),
+      ),
+  );
+  // what the warning says to do is enough
+  const r = compose({ data: { d: { csv, nullValues: ['n/a'] } }, charts: [barSpec('d')] });
+  assert.deepStrictEqual(r.diagnostics, []);
+  // and a column of text the chart does not read as numbers is only the warning
+  const w = compose({ data: { d: { csv: 'k,v,code\na,1,7\nb,2,X1\nc,3,9' } }, charts: [barSpec('d')] });
+  assert.deepStrictEqual(
+    w.diagnostics.map((d) => [d.level, d.path]),
+    [['warn', 'data.d']],
+  );
 });
 
 test('csv on the command line: page.json and its CSV files together, and clear failures', () => {

@@ -30,12 +30,17 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'density',
-    version: 2,
+    version: 3,
     requires: ['lib.stats'],
     replacesColumns: true,
     doc: 'How the raw values of `field` are spread, as a smooth curve (a kernel density estimate): for every group, `steps` evenly spaced rows from a little below its smallest value to a little above its largest, each with the `value` and the `density` there. Draw it with mark.violin (violin plots, ridgelines), or with mark.area / mark.line on x = value, y = density. The curve of each group encloses an area of 1 (with `counts`, its number of samples, so bigger groups are bigger). Replaces the rows: the output has the group field, value, density and `count`, the number of samples of the group.',
     params: {
-      field: { kind: 'field', required: true, doc: 'Numeric field with the raw samples. Missing and non-numeric values are ignored.' },
+      field: {
+        kind: 'field',
+        reads: 'number',
+        required: true,
+        doc: 'Numeric field with the raw samples. Missing and non-numeric values are ignored.',
+      },
       group: {
         kind: 'field',
         doc: 'A curve per value of this field (the category of a violin or a ridge). A missing value is a group of its own. Default: one curve.',

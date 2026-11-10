@@ -910,10 +910,39 @@
     };
     const firstDynamic = transformSpecs.findIndex(viewDependent);
     const staticCount = firstDynamic < 0 ? transformSpecs.length : firstDynamic;
+    const said = (path: string, d: BC.Diagnostic | null) => {
+      if (d) (d.level === 'error' ? fail : warn)(path, d.message);
+    };
+    const own = (t: BC.Table, field: unknown) =>
+      typeof field === 'string' && Object.prototype.hasOwnProperty.call(t.columns, field) ? t.columns[field] : undefined;
+    // a transform that reads numbers (or dates) from a field that has none makes nothing of it, without a word
+    const readsChecked = new Set<number>();
+    const checkReads = (at: number, t: BC.Table) => {
+      if (readsChecked.has(at)) return; // a transform that reruns at every redraw is looked at once
+      readsChecked.add(at);
+      const ts = transformSpecs[at];
+      const params = (registry.get(`transform.${ts.type}`) as BC.TransformDef).params || {};
+      for (const key of Object.keys(params)) {
+        const reads = params[key].reads;
+        const field = ts[key];
+        if (reads && typeof field === 'string')
+          said(`transforms[${at}].${key}`, unreadable(`transform.${ts.type}`, field, own(t, field), reads));
+      }
+    };
     let table = lake.get(spec.data)!;
     transformSpecs.slice(0, staticCount).forEach((ts, i) => {
       const def = registry.get(`transform.${ts.type}`) as BC.TransformDef;
-      table = def.apply(table, ts);
+      const before = diagnostics.length;
+      checkReads(i, table);
+      try {
+        table = def.apply(table, ts);
+      } catch (e) {
+        // a transform that fails on a field it cannot read: what it could not read is the reason, at its path; any other
+        // failure is reported at the transform
+        const cause = diagnostics.slice(before).find((d) => d.level === 'error');
+        if (cause) throw Object.assign(new Error(cause.message), { path: cause.path });
+        throw Object.assign(new Error(e instanceof Error ? e.message : String(e)), { path: `transforms[${i}]` });
+      }
       if (!table) throw new Error(`transforms[${i}] returned no table`);
     });
     const baseTable = table;
@@ -960,17 +989,25 @@
       const s = scaleSpecs[name];
       const def = registry.get(`scale.${s.type}`) as BC.ScaleDef;
       const sources: BC.Column[] = [];
-      for (const m of spec.marks) {
+      const reader = `scale "${name}"`;
+      spec.marks.forEach((m, i) => {
         const md = markDef(m);
         for (const ch of Object.keys(md.channels)) {
           const ref = channelRef(m, ch, md.channels[ch]);
           if (!ref || ref.scale !== name) continue;
-          if (ref.field !== undefined) sources.push(table.columns[ref.field]);
+          if (ref.field !== undefined) {
+            sources.push(table.columns[ref.field]);
+            // a number scale given text puts nothing anywhere: "$1,750" and "1750" in quotes are not numbers
+            said(`marks[${i}].${ch}`, unreadable(reader, ref.field, own(table, ref.field), def.input));
+          }
           // a constant has to be on the scale it is a value of, unless the scale takes its domain from fields alone (a band)
           else if (!def.fieldsOnly) sources.push([ref.value] as unknown as BC.Column);
         }
+      });
+      if (typeof s.field === 'string') {
+        sources.push(table.columns[s.field]);
+        said(`scales.${name}.field`, unreadable(reader, s.field, own(table, s.field), def.input));
       }
-      if (typeof s.field === 'string') sources.push(table.columns[s.field]);
       // what the block declares goes on the scale itself: everything that reads a scale goes by it
       scales[name] = Object.defineProperties(def.create(s, { name, sources, range: resolveRange(name, s, plot), color: colorAt }), {
         output: { value: def.output },
@@ -1268,6 +1305,7 @@
         let t = baseTable;
         dynamicSpecs.forEach((ts, i) => {
           try {
+            checkReads(staticCount + i, t);
             const next = (registry.get(`transform.${ts.type}`) as BC.TransformDef).apply(t, ts, {
               plot,
               scales,
@@ -1568,7 +1606,8 @@
               : { ...current, size: [laidOut, Array.isArray(current.size) ? current.size[1] : 400] as [number, number] };
           built = build(host, effective, cleanups, carried || undefined);
         } catch (e) {
-          checks.push({ level: 'error', path: '', message: e instanceof Error ? e.message : String(e) });
+          const at = e && typeof (e as { path?: unknown }).path === 'string' ? (e as { path: string }).path : '';
+          checks.push({ level: 'error', path: at, message: e instanceof Error ? e.message : String(e) });
         }
       }
       const diagnostics = all();
@@ -1734,6 +1773,61 @@
       return typeof ms === 'number' ? ms : NaN;
     }
     return NaN;
+  }
+
+  // ───────────────────────── what a field holds ─────────────────────────
+
+  // a number written as text: what hand-typed JSON and a CSV column with a few odd cells hand a reader of numbers
+  const QUOTED_NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+  /**
+   * What a reader of numbers or dates (a scale, a transform) cannot read in a field: an error when it can read none of
+   * its values, so nothing of it is drawn; a warning when it leaves some out. Missing values (null, "", NaN) are not
+   * counted. Null when it reads it all.
+   */
+  function unreadable(reader: string, field: string, col: BC.Column | undefined, kind: BC.ScaleInput | undefined): BC.Diagnostic | null {
+    // a typed column holds numbers only; a time scale given numbers that are no dates says so itself
+    if (!col || typeof col !== 'object' || ArrayBuffer.isView(col) || (kind !== 'number' && kind !== 'date')) return null;
+    let present = 0;
+    let ok = 0;
+    const odd: unknown[] = [];
+    const quoted: unknown[] = [];
+    for (let i = 0; i < col.length; i++) {
+      const v = col[i];
+      if (v === null || v === undefined || v === '' || (typeof v === 'number' && isNaN(v))) continue;
+      present++;
+      if (kind === 'number' ? typeof v === 'number' && isFinite(v) : isFinite(time(v))) ok++;
+      else {
+        // the odd ones first: "n/a" says more than "1200" does
+        const list = typeof v === 'string' && QUOTED_NUMBER.test(v.trim()) ? quoted : odd;
+        if (list.length < 3 && list.indexOf(v) < 0) list.push(v);
+      }
+    }
+    if (ok === present) return null;
+    const what = kind === 'number' ? 'numbers' : 'dates';
+    const like = odd
+      .concat(quoted)
+      .slice(0, 3)
+      .map((v) => {
+        const s = JSON.stringify(v) || String(v);
+        return s.length > 28 ? s.slice(0, 27) + '…' : s;
+      })
+      .join(', ');
+    const how =
+      kind === 'number'
+        ? 'A number is written as a number: 1750.5, not "1750.5", "1,750.50", "1750,5" or "$1,750"'
+        : 'A date is ISO text ("2024-03-15", "2024-03-15T09:30") or epoch milliseconds';
+    return ok
+      ? {
+          level: 'warn',
+          path: '',
+          message: `${reader} reads ${what} from "${field}", and ${present - ok} of its ${present} values ${present - ok === 1 ? `is not a ${what.slice(0, -1)}, so it is` : `are not ${what}, so they are`} left out: ${like}. ${how}; where there is no value, null`,
+        }
+      : {
+          level: 'error',
+          path: '',
+          message: `${reader} reads ${what} from "${field}", and it has none: its values are like ${like}, so nothing of it is drawn. ${how}; where there is no value, null`,
+        };
   }
 
   // ───────────────────────── formatting ─────────────────────────

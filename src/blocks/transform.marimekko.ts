@@ -19,10 +19,10 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'marimekko',
-    version: 2,
+    version: 3,
     doc: 'A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the tallest cell of its column, the one with room for it, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out.',
     params: {
-      field: { kind: 'field', required: true, doc: 'The size of each cell (positive numbers; others are left out).' },
+      field: { kind: 'field', reads: 'number', required: true, doc: 'The size of each cell (positive numbers; others are left out).' },
       category: { kind: 'field', required: true, doc: 'The field that makes the columns.' },
       gap: { kind: 'number', default: 0.003, doc: 'Space between the columns, as a share of the width.' },
       as: { kind: 'list', doc: 'Names of the four corner columns. Default [x0, x1, y0, y1].' },

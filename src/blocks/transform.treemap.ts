@@ -106,11 +106,11 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'treemap',
-    version: 4,
+    version: 5,
     requires: ['lib.columns'],
     doc: 'A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.',
     params: {
-      field: { kind: 'field', required: true, doc: 'The size of each cell (positive numbers; others are left out).' },
+      field: { kind: 'field', reads: 'number', required: true, doc: 'The size of each cell (positive numbers; others are left out).' },
       group: { kind: 'field', doc: 'Field that gathers cells into blocks, one per distinct value.' },
       subgroup: { kind: 'field', doc: 'Field that gathers the cells of a block into smaller blocks: a third level. Needs `group`.' },
       name: { kind: 'field', doc: "Field with each cell's name, copied to `label` for cells that are big enough." },

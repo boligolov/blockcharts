@@ -2,6 +2,7 @@
   const OPS = ['count', 'sum', 'mean', 'min', 'max', 'median', 'distinct'];
   const UNITS = ['year', 'quarter', 'month', 'week', 'day', 'hour'];
   const NEEDS_FIELD = ['sum', 'mean', 'min', 'max', 'median', 'distinct'];
+  const NEEDS_NUMBERS = ['sum', 'mean', 'min', 'max', 'median'];
   const pad = (n: number, w = 2) => {
     let s = String(n);
     while (s.length < w) s = '0' + s;
@@ -125,7 +126,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'aggregate',
-    version: 1,
+    version: 2,
     replacesColumns: true,
     doc: 'Group-by: one row per distinct combination of the `groupby` fields, with measures computed over the rows of each group (`sum`, `mean`, `min`, `max`, `median`, `count`, `distinct`). A group-by field can be cut into calendar units, `{ "field": "date", "unit": "month" }` (year, quarter, month, week from Monday, day, hour; UTC; the group value is the ISO start of the unit). Missing values are ignored by the measures (`count` without a field counts rows). Groups come in order of first appearance, or sorted by a column with `sort`; a time unit sorts by time unless told otherwise. `limit` keeps the first N groups after sorting (top N).',
     params: {
@@ -146,6 +147,21 @@
       const names = namesOf(spec);
       for (const k of keys) if (!table.columns[k.field]) fail(`unknown field "${k.field}"`);
       for (const m of measures) if (m.field && !table.columns[m.field]) fail(`unknown field "${m.field}"`);
+      // a sum of text is 0 and a mean of it is nothing, and the chart of it is empty: say so instead
+      measures.forEach((m, i) => {
+        if (!m.field || NEEDS_NUMBERS.indexOf(m.op) < 0) return;
+        const c = table.columns[m.field];
+        let text: unknown;
+        for (let r = 0; r < table.length; r++) {
+          const v = c[r];
+          if (isNumber(v)) return;
+          if (text === undefined && v != null && v !== '' && typeof v !== 'number') text = v;
+        }
+        if (text !== undefined)
+          fail(
+            `measures[${i}]: "${m.op}" needs numbers, and "${m.field}" has none: its values are like ${JSON.stringify(text)}. A number is written as a number: 1750.5, not "1750.5", "1,750.50" or "$1,750"`,
+          );
+      });
       if (spec.sort !== undefined && (typeof spec.sort !== 'string' || names.indexOf(spec.sort) < 0))
         fail(`"sort" must be one of the output columns: ${names.join(', ')}`);
       if (spec.limit !== undefined && !(typeof spec.limit === 'number' && spec.limit >= 0 && isFinite(spec.limit)))

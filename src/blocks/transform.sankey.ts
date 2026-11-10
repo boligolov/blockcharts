@@ -105,13 +105,13 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'sankey',
-    version: 1,
+    version: 2,
     requires: ['lib.columns'],
     doc: 'The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); and `thickness`. A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it.',
     params: {
       source: { kind: 'field', required: true, doc: 'Field with the name of the node a flow leaves.' },
       target: { kind: 'field', required: true, doc: 'Field with the name of the node a flow arrives at.' },
-      value: { kind: 'field', required: true, doc: 'Numeric field: the size of the flow.' },
+      value: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field: the size of the flow.' },
       nodeGap: {
         kind: 'number',
         default: GAP,

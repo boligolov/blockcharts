@@ -18,10 +18,10 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'calendar',
-    version: 2,
+    version: 3,
     doc: 'The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week; a weekday with no rows gets one empty row, with no `week` to be drawn at, so that it keeps its place on the axis. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first.',
     params: {
-      field: { kind: 'field', required: true, doc: 'The date of each row.' },
+      field: { kind: 'field', reads: 'date', required: true, doc: 'The date of each row.' },
       weekStart: { kind: 'enum', values: ['monday', 'sunday'], default: 'monday', doc: 'The first day of a week.' },
       as: { kind: 'list', doc: 'Names of the three new columns. Default [week, weekEnd, day].' },
     },
