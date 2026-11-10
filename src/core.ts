@@ -391,6 +391,26 @@
 
   // ───────────────────────── validation ─────────────────────────
 
+  /** The keys of a chart spec (BC.ChartSpec). */
+  const SPEC_KEYS = CHECKS
+    ? [
+        'id',
+        'data',
+        'transforms',
+        'size',
+        'padding',
+        'title',
+        'scales',
+        'guides',
+        'marks',
+        'interaction',
+        'view',
+        'responsive',
+        'renderer',
+        'locale',
+      ]
+    : [];
+
   const validate = (
     CHECKS
       ? function validate(spec: BC.ChartSpec): BC.Diagnostic[] {
@@ -404,7 +424,33 @@
           /** A scale block fits a channel by what it declares, never by its name. */
           const fits = (def: BC.ScaleDef, need: BC.ScaleNeed) =>
             def.output === need.output && (!need.input || need.input.indexOf(def.input) >= 0);
-          /** "places numbers or dates", "colors categories", "sizes values". */
+          /** The known name a mistyped one was meant to be: the same but for case, or at most two letters off. */
+          const nearest = (name: string, known: readonly string[]): string | undefined => {
+            const distance = (a: string, b: string) => {
+              let row = Array.from({ length: b.length + 1 }, (_, j) => j);
+              for (let i = 1; i <= a.length; i++) {
+                const next = [i];
+                for (let j = 1; j <= b.length; j++)
+                  next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+                row = next;
+              }
+              return row[b.length];
+            };
+            let best: string | undefined;
+            let bestDistance = 3;
+            for (const k of known) {
+              const d = k.toLowerCase() === name.toLowerCase() ? 0 : distance(name, k);
+              if (d < bestDistance) [best, bestDistance] = [k, d];
+            }
+            return best;
+          };
+          const meant = (name: string, known: readonly string[]) => {
+            const near = nearest(name, known);
+            return near ? `; did you mean "${near}"?` : '';
+          };
+          // a key the spec does not have would be dropped without a word: "interactions" takes the tooltip with it
+          for (const key of Object.keys(spec)) if (SPEC_KEYS.indexOf(key) < 0) warn(key, `unknown key "${key}"${meant(key, SPEC_KEYS)}`);
+
           /** A color a spec may give: one that draws and fetches nothing. Hex, rgb()/hsl() and their kin, a name, var(--x)
            *  with such a fallback; never url(…), which an SVG fill or a style loads from the network, nor a ";" that ends a style. */
           const isColor = (v: unknown) =>
@@ -412,6 +458,7 @@
             /^\s*(?:#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\([-+\w.%,\s/]*\)|[a-z]+|var\(\s*--[\w-]+\s*(?:,\s*(?:#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|(?:rgba?|hsla?)\([-+\w.%,\s/]*\)|[a-z]+)\s*)?\))\s*$/i.test(
               v,
             );
+          /** "places numbers or dates", "colors categories", "sizes values". */
           const scaleWords = (need: BC.ScaleNeed) =>
             `${{ position: 'places', color: 'colors', size: 'sizes' }[need.output]} ${
               need.input ? need.input.map((i) => ({ number: 'numbers', date: 'dates', category: 'categories' })[i]).join(' or ') : 'values'
@@ -483,9 +530,12 @@
             const channels = def.role === 'mark' ? def.channels : {};
             for (const key of Object.keys(s)) {
               if (key === 'type' || common.indexOf(key) >= 0 || Object.prototype.hasOwnProperty.call(channels, key)) continue;
-              const p = params[key];
+              const p = Object.prototype.hasOwnProperty.call(params, key) ? params[key] : undefined;
               if (!p) {
-                warn(`${path}.${key}`, `unknown parameter "${key}" for ${name}`);
+                warn(
+                  `${path}.${key}`,
+                  `unknown parameter "${key}" for ${name}${meant(key, Object.keys(params).concat(Object.keys(channels)))}`,
+                );
                 continue;
               }
               const v = s[key];

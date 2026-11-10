@@ -1272,6 +1272,47 @@ test('compose: a report fetches nothing — its CSP refuses every request, and c
   );
 });
 
+test('compose: a misspelled or misplaced key anywhere in a page is an error that says what was meant', () => {
+  const page = { data: DATA, charts: [bars()] };
+  failsWith(() => compose({ ...page, charts: [{ spec: bars(), notes: 'x' }] }), /charts\[0\]: unknown key "notes"; did you mean "note"\?/);
+  failsWith(() => compose({ ...page, charts: [{ spec: bars(), titel: 'x' }] }), /charts\[0\]: unknown key "titel"; did you mean "title"\?/);
+  failsWith(() => compose({ ...page, layout: { colums: 2 } }), /layout: unknown key "colums"; did you mean "columns"\?/);
+  // what goes next to the spec, written inside it, would be dropped by the chart
+  for (const [key, value] of [
+    ['facet', { field: 'k' }],
+    ['span', 1],
+    ['minWidth', 500],
+    ['note', 'x'],
+    ['lang', 'de'],
+  ])
+    failsWith(
+      () => compose({ ...page, charts: [{ spec: { ...bars(), [key]: value } }] }),
+      new RegExp(`charts\\[0\\]\\.spec\\.${key}: "${key}" goes next to "spec" in the chart entry, not inside it`),
+    );
+  failsWith(
+    () => compose({ ...page, data: { cats: { csv: 'k;v\na;1', delimeter: ';' } } }),
+    /data "cats": unknown key "delimeter"; did you mean "delimiter"\?/,
+  );
+  failsWith(
+    () => compose({ ...page, data: { cats: { csv: 'k,v\na,1', nullValues: 'n/a' } } }),
+    /data "cats": "nullValues" must be a list of texts, like \["n\/a", "-"\]/,
+  );
+  failsWith(
+    () => compose({ ...page, data: { cats: { csv: 'k,zip\na,1', types: { Zip: 'string' } } } }),
+    /data "cats": "types" names "Zip", which is not a column; the header has "k", "zip"/,
+  );
+  failsWith(
+    () => compose({ ...page, charts: [{ ...bars(), marks: [{ type: 'rec', x: 'k', y: 'v' }] }] }),
+    /no such block: mark\.rec \(did you mean mark\.rect\?\)/,
+  );
+  // a key of the spec itself is the core's: a warning that names the key it looks like, and the page is written
+  const r = compose({ ...page, charts: [{ ...bars(), interactions: [{ type: 'tooltip' }] }] });
+  assert.deepStrictEqual(
+    r.diagnostics.map((d) => [d.level, d.path, d.message]),
+    [['warn', 'charts[0].interactions', 'unknown key "interactions"; did you mean "interaction"?']],
+  );
+});
+
 test('compose command line: a page.json is a page — it cannot run code, write a page with errors, or misspell a key', () => {
   const { spawnSync } = require('child_process');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bc-cli-'));
@@ -1314,6 +1355,10 @@ test('compose command line: a page.json is a page — it cannot run code, write 
   assert.match(run({ ...page, CSS: 'body{}' }).stderr, /unknown key "CSS"; did you mean "css"\?/);
   assert.match(run({ ...page, theme: 'dark' }).stderr, /unknown key "theme"\. It takes "title", "subtitle"/);
   failsWith(() => compose({ ...page, chart: [] }), /compose\(\): unknown key "chart"; did you mean "charts"\?/);
+  // raw HTML is the API's too
+  const html = run({ ...page, charts: [{ spec: bars(), noteHtml: '<img src=x onerror=alert(1)>' }] });
+  assert.strictEqual(html.status, 1);
+  assert.match(html.stderr, /charts\[0\]\.noteHtml is raw HTML, which only a program that calls compose\(\) may put on a page/);
 
   // what Windows PowerShell 5.1 writes (Set-Content / Out-File -Encoding utf8): a byte order mark first
   const bom = run(null, '﻿' + JSON.stringify(page));

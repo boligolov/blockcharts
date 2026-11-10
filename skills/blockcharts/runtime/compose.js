@@ -11,7 +11,8 @@
 //   data    { name: rows | { columns } | { csv: "text" } | { csvFile: "file.csv" } }   the data lake. CSV: the first row names the
 //           columns; numbers are recognized per column, "", NA, null... are missing values; optional delimiter, nullValues and
 //           types ({ col: "string" }). csvFile is relative to `baseDir` and must stay inside it.
-//   charts  [ spec | { spec, title?, note?, noteHtml?, span?, minWidth? } | { section, note? } ]   each chart sits in a card; span =
+//   charts  [ spec | { spec, title?, note?, noteHtml?, span?, minWidth?, lang?, facet? } | { section, note?, lang? } ]   (ENTRY_KEYS;
+//           noteHtml is raw HTML, for a program only) each chart sits in a card; span =
 //           how many grid columns it takes; minWidth = the px below which the chart keeps its width and its card scrolls sideways.
 //           { section } is a heading over the whole width that starts a group of cards
 //           { spec, facet: { field, columns?, values?, free? } } draws the chart once per value of a field of the dataset, in one
@@ -62,6 +63,11 @@ const escapeText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 /** What a report may load: nothing. Its own scripts and styles are inline; an image or a font only as a data: URL. */
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:";
+
+/** The keys of a chart entry ({ spec, ... }); the spec's own keys are the core's to check. */
+const ENTRY_KEYS = ['spec', 'title', 'note', 'noteHtml', 'span', 'minWidth', 'lang', 'facet'];
+/** Keys a page.json may not have anywhere: raw HTML, which only a program calling compose() may put on the page. */
+const ENTRY_API_KEYS = ['noteHtml'];
 
 const PAGE_KEYS = ['title', 'subtitle', 'lang', 'layout', 'css', 'defaultCss', 'compress', 'data', 'charts'];
 const API_KEYS = ['before', 'after', 'include', 'distDir', 'allowErrors', 'dryRun', 'drawTimeout', 'baseDir'];
@@ -118,6 +124,14 @@ function readPage(file) {
       `${file}: "${own}" is an option for a program that calls compose(), not a key of a page. A page has ${PAGE_KEYS.map((k) => `"${k}"`).join(', ')}`,
     );
   unknownKeys(page, PAGE_KEYS, file);
+  if (Array.isArray(page.charts))
+    page.charts.forEach((c, i) => {
+      const raw = c && typeof c === 'object' && ENTRY_API_KEYS.find((k) => c[k] !== undefined);
+      if (raw)
+        throw new ComposeError(
+          `${file}: charts[${i}].${raw} is raw HTML, which only a program that calls compose() may put on a page; use "note"`,
+        );
+    });
   return page;
 }
 
@@ -227,6 +241,7 @@ function findUnserializable(value, path, ancestors) {
 function resolveDataset(name, input, baseDir) {
   if (!input || typeof input !== 'object' || Array.isArray(input) || (typeof input.csv !== 'string' && typeof input.csvFile !== 'string'))
     return input;
+  unknownKeys(input, ['csv', 'csvFile', 'delimiter', 'nullValues', 'types'], `data "${name}"`);
   try {
     if (typeof input.csv === 'string' && typeof input.csvFile === 'string') throw new CsvError('give either "csv" or "csvFile", not both');
     const text = typeof input.csv === 'string' ? input.csv : readCsvFile(input.csvFile, baseDir);
@@ -480,6 +495,7 @@ function compose(opts) {
   const layout = options.layout;
   if (layout !== undefined && (!layout || typeof layout !== 'object' || Array.isArray(layout)))
     throw new ComposeError('layout must be an object: { "columns": 4 }');
+  if (layout) unknownKeys(layout, ['columns', 'phoneColumns'], 'layout');
   const columns = layout && layout.columns !== undefined ? layout.columns : 1;
   if (!Number.isInteger(columns) || columns < 1 || columns > 12)
     throw new ComposeError('layout.columns must be a whole number from 1 to 12');
@@ -512,6 +528,14 @@ function compose(opts) {
       return { ...c, lang: groupLang };
     }
     const entry = c && c.spec ? { ...c, index: i } : { spec: c, index: i };
+    if (c && c.spec) unknownKeys(c, ENTRY_KEYS, `charts[${i}]`);
+    // a key of the entry written inside the spec would be dropped there: say where it goes
+    const isChart = entry.spec && typeof entry.spec === 'object' && (entry.spec.data !== undefined || entry.spec.marks !== undefined);
+    const misplaced = isChart && ENTRY_KEYS.find((k) => k !== 'spec' && k !== 'title' && entry.spec[k] !== undefined);
+    if (misplaced)
+      throw new ComposeError(
+        `charts[${i}].spec.${misplaced}: "${misplaced}" goes next to "spec" in the chart entry, not inside it: { "spec": { ... }, "${misplaced}": ... }`,
+      );
     entry.lang = validLang(entry.lang, `charts[${i}].lang`) || groupLang;
     if (entry.lang && entry.spec && typeof entry.spec === 'object' && entry.spec.locale === undefined)
       entry.spec = { ...entry.spec, locale: entry.lang };
@@ -573,7 +597,12 @@ function compose(opts) {
     .sort();
   if (missing.length) {
     throw new ComposeError(
-      `no such block${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}. Available: ${Object.keys(manifest.blocks).join(', ')}`,
+      `no such block${missing.length > 1 ? 's' : ''}: ${missing
+        .map((n) => {
+          const near = nearest(n, Object.keys(manifest.blocks));
+          return near ? `${n} (did you mean ${near}?)` : n;
+        })
+        .join(', ')}. Available: ${Object.keys(manifest.blocks).join(', ')}`,
     );
   }
   const used = new Set();

@@ -198,6 +198,41 @@ test('validate: catches dangling scale, missing block, unknown field, bad params
   has('error', 'scales.z.type', /"scale.symlog" is not loaded/);
 });
 
+test('validate: a key the spec or a block does not have is a warning that names the one it looks like', () => {
+  const warns = (spec) => BC.validate(spec).map((d) => [d.level, d.path, d.message]);
+  // every key of a spec, misspelled: nothing it said would happen otherwise, without a word
+  assert.deepStrictEqual(warns({ ...dSpec(), interactions: [{ type: 'tooltip' }], guide: [], Scales: {}, colour: 'red' }), [
+    ['warn', 'interactions', 'unknown key "interactions"; did you mean "interaction"?'],
+    ['warn', 'guide', 'unknown key "guide"; did you mean "guides"?'],
+    ['warn', 'Scales', 'unknown key "Scales"; did you mean "scales"?'],
+    ['warn', 'colour', 'unknown key "colour"'],
+  ]);
+  const s = dSpec();
+  s.marks[0] = { ...s.marks[0], colour: 'month', radius: 3, constructor: 1 };
+  assert.deepStrictEqual(
+    warns(s).filter((d) => d[1].startsWith('marks[0]')),
+    [
+      ['warn', 'marks[0].colour', 'unknown parameter "colour" for mark.point; did you mean "color"?'],
+      ['warn', 'marks[0].radius', 'unknown parameter "radius" for mark.point'],
+      ['warn', 'marks[0].constructor', 'unknown parameter "constructor" for mark.point'],
+    ],
+  );
+  // and every key a spec may have is known
+  const all = {
+    ...dSpec(),
+    id: 'c',
+    transforms: [],
+    size: [400, 300],
+    padding: {},
+    title: 'T',
+    view: {},
+    responsive: true,
+    renderer: 'svg',
+    locale: 'en',
+  };
+  assert.deepStrictEqual(BC.validate(all), []);
+});
+
 test('validate: never throws on garbage', () => {
   for (const bad of [null, undefined, 5, {}, { data: 1, marks: 'x' }, { data: 'sales', marks: [null, 5, {}] }]) {
     assert.doesNotThrow(() => BC.validate(bad));

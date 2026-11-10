@@ -104,6 +104,10 @@ function parseCsv(text, options) {
   const delimiter = opts.delimiter === undefined ? detectDelimiter(text) : opts.delimiter;
   if (typeof delimiter !== 'string' || delimiter.length !== 1 || delimiter === '"' || delimiter === '\n' || delimiter === '\r')
     throw new CsvError('"delimiter" must be one character, such as "," or ";"');
+  if (opts.nullValues !== undefined && (!Array.isArray(opts.nullValues) || opts.nullValues.some((v) => typeof v !== 'string')))
+    throw new CsvError('"nullValues" must be a list of texts, like ["n/a", "-"]');
+  if (opts.types !== undefined && (!opts.types || typeof opts.types !== 'object' || Array.isArray(opts.types)))
+    throw new CsvError('"types" must be an object like { "zip": "string" }');
   const nulls = new Set(opts.nullValues === undefined ? DEFAULT_NULLS : opts.nullValues);
   const records = parseRecords(text, delimiter);
   const header = records[0].fields.map((h) => h.trim());
@@ -111,6 +115,9 @@ function parseCsv(text, options) {
     if (!h) throw new CsvError(`column ${i + 1} has no name in the header row`);
     if (header.indexOf(h) !== i) throw new CsvError(`the column name "${h}" appears twice in the header row`);
   });
+  for (const name of Object.keys(opts.types || {}))
+    if (!header.includes(name))
+      throw new CsvError(`"types" names "${name}", which is not a column; the header has ${header.map((h) => `"${h}"`).join(', ')}`);
   const raw = header.map(() => []);
   for (let r = 1; r < records.length; r++) {
     const { fields, line } = records[r];

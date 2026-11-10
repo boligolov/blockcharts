@@ -1210,6 +1210,14 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   bombs. The composer compressed whatever was worth it, so a 43 MB CSV of short text (more than 64 MB as JSON) made a
   page that refused its own data. Now "auto" leaves such a dataset as it is, and `compress: true` is an error that says
   to aggregate or decimate first.
+- **A misspelled key is never dropped without a word.** `"interactions"` for `"interaction"` took the tooltip, the filter
+  and the zoom with it, and the page was written with no diagnostic; so did `layout.colums`, a CSV `delimeter`, an entry's
+  `notes`, or a `facet` written inside the spec. Now an unknown key of the page, a chart entry, `layout` or a CSV dataset
+  is an error, and a key of the entry written inside the spec is told where it goes. An unknown key of a spec is a
+  warning, like an unknown parameter of a block (a spec of a newer version still draws in an older core). Each names
+  the key it looks like: the same but for case, or at most two letters off. `nullValues` must be a list (a text became
+  a set of its letters), `types` must name columns of the header, and `noteHtml`, raw HTML, is for a program that calls
+  `compose()`, like `before` and `after`.
 
 ## Next steps
 

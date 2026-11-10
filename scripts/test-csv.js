@@ -106,7 +106,7 @@ test('csv: types force a column to text or number', () => {
   assert.throws(() => cols('a\n1\nx', { types: { a: 'number' } }), /column "a" is declared a number but contains "x"/);
   assert.throws(() => cols('a\n1', { types: { a: 'date' } }), /types\.a must be "number" or "string"/);
   // a column named like something every object has is a column like any other: types does not find "constructor" in it
-  assert.deepStrictEqual(cols('constructor,toString\nx,1', { types: { zip: 'string' } }), { constructor: ['x'], toString: [1] });
+  assert.deepStrictEqual(cols('constructor,toString\nx,1', { types: { toString: 'number' } }), { constructor: ['x'], toString: [1] });
 });
 
 test('csv: broken input is a clear error with the line', () => {

@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.33.5"
+  version: "0.33.6"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -224,7 +224,7 @@ Each recipe is a complete `page.json` that composes as it stands.
 - On an axis, `count` asks for more or fewer labels and `anchor: "end"` keeps the last one, so a December report says December. Give the grid of that scale the same `count`, or its lines miss the labels.
 - The same category in several charts of a page: give each color scale the same `domain`. Colors go by first appearance, so a sorted chart would otherwise swap them.
 - A ratio of totals (the share of late orders) is `aggregate` of both fields, then `calculate`. Never the mean of the weekly ratios.
-- Do not invent block types or parameters. Only what is in `reference/blocks.md` exists. An unknown parameter is a warning, an unknown block is an error.
+- Do not invent block types or parameters. Only what is in `reference/blocks.md` exists. An unknown block, and an unknown key of the page, of a chart entry, of `layout` or of a CSV dataset, is an error; an unknown key of a spec or parameter of a block is a warning. Each names the one it looks like (`interactions`: did you mean `interaction`?): read every warning, since what it names is not drawn.
 - Do not put functions, `NaN` or `Infinity` in the JSON. Use `null` for missing values.
 - Keep the data in `page.json` (inline rows or CSV text) or in a CSV file next to it; never a URL.
 - For integer histograms use `"width": 1` and an `extent` so each value gets its own bin.
