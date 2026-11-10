@@ -1221,7 +1221,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     return draw({
       data: 'vio',
       size: [400, 300],
-      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      padding: 0, // one number is every side, as in CSS
       transforms: [{ type: 'density', field: 'v', group: 'g' }],
       scales: scales || { x: { type: 'band', paddingInner: 0, paddingOuter: 0 }, y: { type: 'linear' } },
       marks: [{ type: 'violin', x: 'g', y: 'value', density: 'density', ...mark }],

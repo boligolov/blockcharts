@@ -105,7 +105,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'kpi',
-    version: 7,
+    version: 8,
     doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.',
     params: {
       field: { kind: 'field', required: true, doc: 'The numeric field the figure comes from.' },
@@ -129,7 +129,7 @@
         doc: 'The change as a percentage of the comparison, or as a difference written with `format` (or `deltaFormat`).',
       },
       deltaFormat: {
-        kind: 'any',
+        kind: 'format',
         doc: 'How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { "maximumFractionDigits": 1, "suffix": " pp" }. A preset or an object of Intl options, as in `format`. With delta "percent" it gets the change as a fraction (0.12 for 12%). It writes the difference in the units of the field, so a share kept as 0..1 needs `deltaScale`.',
       },
       deltaScale: {
@@ -139,7 +139,7 @@
       },
       better: { kind: 'enum', values: ['up', 'down'], default: 'up', doc: 'Which way is good: "down" for costs, churn, response times.' },
       format: {
-        kind: 'any',
+        kind: 'format',
         doc: 'How to write the value (a preset such as "compact" or "percent", or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }).',
       },
       note: {
@@ -150,7 +150,7 @@
         kind: 'field',
         doc: 'Names the row the figure comes from, after the label: with aggregate "max" and field "month", "Best month: 2025-09". For aggregate last, first, min and max: a sum has no row of its own.',
       },
-      rowFormat: { kind: 'any', doc: 'How to write `rowField`, as in `format`: "month" for a date.' },
+      rowFormat: { kind: 'format', doc: 'How to write `rowField`, as in `format`: "month" for a date.' },
       size: { kind: 'number', default: VALUE_SIZE, doc: 'Font size of the value, px.' },
     },
     measure(spec, ctx) {

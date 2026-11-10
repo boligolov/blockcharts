@@ -140,7 +140,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 11,
+    version: 12,
     shownOnce: true,
     doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
@@ -153,7 +153,7 @@
       },
       title: { kind: 'string', doc: 'What the legend shows, on a line above it: "Region", "Revenue, $M".' },
       format: {
-        kind: 'any',
+        kind: 'format',
         doc: 'How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`.',
       },
     },

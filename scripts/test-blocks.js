@@ -768,7 +768,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
         { type: 'inert', x: 'a', y: 'b' },
         { type: 'point', x: 'a', y: 'b' },
       ],
-      interaction: [{ type: 'tooltip', fields: ['c', 'nope'] }],
+      interaction: [{ type: 'tooltip', fields: ['c'] }],
     });
     assert.deepStrictEqual(h.diagnostics, []);
     const cs = circles(svgOf(host));
@@ -4176,7 +4176,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(leftEdge(wide) > leftEdge(narrow), 'the wider labels made room for themselves');
   });
 
-  test('axis format: a bad format is a guide diagnostic, the chart still draws', () => {
+  test('axis format: a bad format is an error at its own path, found before anything is drawn', () => {
     logged.error.length = 0;
     const host = new FakeNode('div');
     const h = BC.chart(
@@ -4186,12 +4186,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
         { type: 'axis', line: 'on', ticks: true, scale: 'y', position: 'right', format: 'bogus' },
       ]),
     );
-    assert(
-      h.diagnostics.some((d) => d.path === 'guides[1]' && /invalid format/.test(d.message)),
-      JSON.stringify(h.diagnostics),
+    assert.deepStrictEqual(
+      h.diagnostics.map((d) => [d.level, d.path, d.message.replace(/ \(presets.*/, '')]),
+      [
+        [
+          'error',
+          'guides[1].format',
+          'format of guide.axis: invalid format {"style":"currency"}: Currency code is required with currency style.',
+        ],
+        ['error', 'guides[2].format', 'format of guide.axis: unknown format "bogus"'],
+      ],
     );
-    assert(h.diagnostics.some((d) => d.path === 'guides[2]' && /unknown format "bogus"/.test(d.message)));
-    assert.strictEqual(count(layer(svgOf(host), 'marks'), /<rect /g), 4, 'the marks are there');
     logged.error.length = 0;
   });
 
@@ -4256,7 +4261,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(labels.length >= 3, labels.join());
     const bad = new FakeNode('div');
     const hb = BC.chart(bad, heatSpec([{ type: 'legend', scale: 'color', format: 'bogus' }]));
-    assert(hb.diagnostics.some((d) => d.path === 'guides[2]' && /unknown format/.test(d.message)));
+    assert(hb.diagnostics.some((d) => d.level === 'error' && d.path === 'guides[2].format' && /unknown format/.test(d.message)));
     logged.error.length = 0;
   });
 
@@ -4303,7 +4308,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     );
     const bad = new FakeNode('div');
     const hb = BC.chart(bad, mk('bogus'));
-    assert(hb.diagnostics.some((d) => d.path === 'marks[0]' && /unknown format/.test(d.message)));
+    assert(hb.diagnostics.some((d) => d.level === 'error' && d.path === 'marks[0].format' && /unknown format/.test(d.message)));
     logged.error.length = 0;
 
     // text on a heatmap: dark cells get light text and light cells dark text
@@ -4347,7 +4352,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(c.length, 5, 'works with a categorical scale as well');
   });
 
-  test('tooltip formats: per-field writing, a broken one is dropped with one warning', async () => {
+  test('tooltip formats: per-field writing; a broken one, or a field that is not there, is an error at its path', async () => {
     BC.data('tipmoney', [
       { a: 1, b: 1234.5, d: '2024-03-05', s: 0.256 },
       { a: 2, b: 20, d: '2024-04-01', s: 0.5 },
@@ -4365,20 +4370,32 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     await hover(host, c.x, c.y);
     assert.deepStrictEqual(tipText(host), ['a: 1', 'b: $1,234.50', 'd: Mar 5, 2024', 's: 25.6%']);
 
-    logged.warn.length = 0;
-    const bad = new FakeNode('div');
-    BC.chart(bad, spec({ b: 'bogus', s: 'percent' }));
-    assert(logged.warn.some((w) => /format of "b" ignored: unknown format "bogus"/.test(w)));
-    await hover(bad, circles(svgOf(bad))[0].x, circles(svgOf(bad))[0].y);
+    const errors = (formats) =>
+      BC.validate(spec(formats))
+        .filter((d) => d.level === 'error')
+        .map((d) => [d.path, d.message.replace(/ \(presets.*/, '')]);
+    assert.deepStrictEqual(errors({ b: 'bogus', s: 'percent' }), [
+      ['interaction[0].formats.b', 'the format of "b": unknown format "bogus"'],
+    ]);
+    assert.deepStrictEqual(errors({ nope: 'percent' }), [['interaction[0].formats.nope', 'unknown field "nope" in dataset "tipmoney"']]);
+    for (const notAnObject of ['percent', ['b']])
+      assert.deepStrictEqual(errors(notAnObject), [
+        [
+          'interaction[0].formats',
+          'formats of interaction.tooltip must be an object of field names and formats: { "revenue": "currency" }',
+        ],
+      ]);
     assert.deepStrictEqual(
-      tipText(bad),
-      ['a: 1', 'b: 1234.5', 'd: 2024-03-05', 's: 25.6%'],
-      'the broken one falls back to the plain value, the others still apply',
+      BC.validate({ ...spec({}), interaction: [{ type: 'tooltip', fields: ['a', 'nope', 5] }] })
+        .filter((d) => d.level === 'error')
+        .map((d) => d.path),
+      ['interaction[0].fields'],
+      'a list of names, or it is refused whole',
     );
-    logged.warn.length = 0;
-    BC.chart(new FakeNode('div'), spec('percent'));
-    assert(logged.warn.some((w) => /"formats" must be an object/.test(w)));
-    logged.warn.length = 0;
+    assert.deepStrictEqual(
+      BC.validate({ ...spec({}), interaction: [{ type: 'tooltip', fields: ['a', 'nope'] }] }).map((d) => [d.path, d.message]),
+      [['interaction[0].fields[1]', 'unknown field "nope" in dataset "tipmoney"']],
+    );
   });
 
   // small helpers these tests need

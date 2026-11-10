@@ -24,13 +24,13 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 16,
+    version: 17,
     requires: ['lib.pointer'],
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.',
     params: {
-      fields: { kind: 'list', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
+      fields: { kind: 'fields', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
       formats: {
-        kind: 'any',
+        kind: 'formats',
         doc: 'How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits).',
       },
       labels: {

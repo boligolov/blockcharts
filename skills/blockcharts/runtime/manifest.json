@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 33130,
+    "bytes": 36054,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 25380,
+        "bytes": 25442,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 22351,
+        "bytes": 22413,
         "off": [
           "CHECKS",
           "DECODE"
@@ -565,15 +565,15 @@
     },
     "transform.fold": {
       "file": "blocks/transform.fold.js",
-      "bytes": 1530,
-      "version": 1,
+      "bytes": 1532,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.fold"
       ],
       "params": {
         "fields": {
-          "kind": "list",
+          "kind": "fields",
           "required": true,
           "doc": "Columns to fold into rows, in the order of the series."
         },
@@ -1086,8 +1086,8 @@
     },
     "mark.arc": {
       "file": "blocks/mark.arc.js",
-      "bytes": 4864,
-      "version": 5,
+      "bytes": 4867,
+      "version": 6,
       "requires": [],
       "closure": [
         "mark.arc"
@@ -1147,7 +1147,7 @@
           "doc": "Text outside each slice (slices under 3% get none)."
         },
         "labelFormat": {
-          "kind": "any",
+          "kind": "format",
           "doc": "How to write that text, as `format` on an axis. A share is a fraction: { \"style\": \"percent\", \"maximumFractionDigits\": 1 } writes 45.1%."
         },
         "fill": {
@@ -1463,8 +1463,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3906,
-      "version": 17,
+      "bytes": 3909,
+      "version": 18,
       "requires": [
         "lib.curve"
       ],
@@ -1515,7 +1515,7 @@
           "doc": "A label at the end of each line, in its color: the series name, its last value, or both — so a legend is rarely needed. Labels that would overlap are moved apart. Leave room on the right (padding.right, about 70–110 px)."
         },
         "format": {
-          "kind": "any",
+          "kind": "format",
           "doc": "How the end label writes the last value (a preset or Intl options, as guide.axis `format`)."
         },
         "name": {
@@ -1872,8 +1872,8 @@
     },
     "mark.sankey": {
       "file": "blocks/mark.sankey.js",
-      "bytes": 4856,
-      "version": 3,
+      "bytes": 4859,
+      "version": 4,
       "requires": [],
       "closure": [
         "mark.sankey"
@@ -1885,7 +1885,7 @@
           "doc": "Width of a node, in px."
         },
         "format": {
-          "kind": "any",
+          "kind": "format",
           "doc": "How the total of a node is written after its name. Without it, only the name."
         },
         "linkOpacity": {
@@ -1928,8 +1928,8 @@
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 4909,
-      "version": 12,
+      "bytes": 4912,
+      "version": 13,
       "requires": [],
       "closure": [
         "mark.text"
@@ -1984,7 +1984,7 @@
           "doc": "Fixed number of decimals for numeric text."
         },
         "format": {
-          "kind": "any",
+          "kind": "format",
           "doc": "How to write numbers (and dates): a preset (\"percent\", \"compact\", \"integer\", \"date\", ...) or an object of Intl options, e.g. { \"style\": \"currency\", \"currency\": \"USD\", \"maximumFractionDigits\": 0 }; also \"locale\", \"prefix\", \"suffix\". Overrides `decimals`."
         },
         "fill": {
@@ -2151,8 +2151,8 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 6760,
-      "version": 13,
+      "bytes": 6763,
+      "version": 14,
       "requires": [],
       "closure": [
         "guide.axis"
@@ -2176,7 +2176,7 @@
           "doc": "Text that names the axis (with its unit, for example \"Revenue, USD\"). Rotated on a vertical axis."
         },
         "format": {
-          "kind": "any",
+          "kind": "format",
           "doc": "How to write the tick labels: numbers and dates on a linear, log or time scale, and on a band scale categories that are dates (\"2024-04-01\" from an aggregate by quarter) or numbers; text categories stay as they are. A preset (\"percent\", \"compact\", \"integer\", \"year\", \"quarter\" (Q2 2024), \"month\", \"day\", \"date\", \"datetime\") or an object of Intl options, e.g. { \"style\": \"currency\", \"currency\": \"USD\", \"maximumFractionDigits\": 0 } or { \"month\": \"short\", \"year\": \"2-digit\" }. Also \"locale\" (default \"en-US\"), \"prefix\" and \"suffix\"."
         },
         "line": {
@@ -2232,8 +2232,8 @@
     },
     "guide.kpi": {
       "file": "blocks/guide.kpi.js",
-      "bytes": 4292,
-      "version": 7,
+      "bytes": 4301,
+      "version": 8,
       "requires": [],
       "closure": [
         "guide.kpi"
@@ -2285,7 +2285,7 @@
           "doc": "The change as a percentage of the comparison, or as a difference written with `format` (or `deltaFormat`)."
         },
         "deltaFormat": {
-          "kind": "any",
+          "kind": "format",
           "doc": "How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { \"maximumFractionDigits\": 1, \"suffix\": \" pp\" }. A preset or an object of Intl options, as in `format`. With delta \"percent\" it gets the change as a fraction (0.12 for 12%). It writes the difference in the units of the field, so a share kept as 0..1 needs `deltaScale`."
         },
         "deltaScale": {
@@ -2303,7 +2303,7 @@
           "doc": "Which way is good: \"down\" for costs, churn, response times."
         },
         "format": {
-          "kind": "any",
+          "kind": "format",
           "doc": "How to write the value (a preset such as \"compact\" or \"percent\", or an object of Intl options, e.g. { \"style\": \"currency\", \"currency\": \"USD\", \"maximumFractionDigits\": 0 })."
         },
         "note": {
@@ -2315,7 +2315,7 @@
           "doc": "Names the row the figure comes from, after the label: with aggregate \"max\" and field \"month\", \"Best month: 2025-09\". For aggregate last, first, min and max: a sum has no row of its own."
         },
         "rowFormat": {
-          "kind": "any",
+          "kind": "format",
           "doc": "How to write `rowField`, as in `format`: \"month\" for a date."
         },
         "size": {
@@ -2328,8 +2328,8 @@
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",
-      "bytes": 5321,
-      "version": 11,
+      "bytes": 5324,
+      "version": 12,
       "requires": [],
       "closure": [
         "guide.legend"
@@ -2357,7 +2357,7 @@
           "doc": "What the legend shows, on a line above it: \"Region\", \"Revenue, $M\"."
         },
         "format": {
-          "kind": "any",
+          "kind": "format",
           "doc": "How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset (\"percent\", \"compact\", ...) or an object of Intl options; see guide.axis `format`."
         }
       },
@@ -2495,8 +2495,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 8749,
-      "version": 16,
+      "bytes": 8755,
+      "version": 17,
       "requires": [
         "lib.pointer"
       ],
@@ -2506,11 +2506,11 @@
       ],
       "params": {
         "fields": {
-          "kind": "list",
+          "kind": "fields",
           "doc": "Fields to show. Default: the fields the mark reads (its channels and group)."
         },
         "formats": {
-          "kind": "any",
+          "kind": "formats",
           "doc": "How to write values, per field: { \"revenue\": { \"style\": \"currency\", \"currency\": \"USD\" }, \"share\": \"percent\", \"date\": \"date\" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits)."
         },
         "labels": {

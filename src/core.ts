@@ -450,6 +450,46 @@
           };
           // a key the spec does not have would be dropped without a word: "interactions" takes the tooltip with it
           for (const key of Object.keys(spec)) if (SPEC_KEYS.indexOf(key) < 0) warn(key, `unknown key "${key}"${meant(key, SPEC_KEYS)}`);
+          // and each key it has holds what it says: anything else fails later, far from here, or draws nothing
+          for (const key of ['transforms', 'guides', 'interaction'] as const)
+            if (spec[key] !== undefined && !Array.isArray(spec[key])) err(key, `${key} must be a list: [{ "type": ... }]`);
+          if (spec.scales !== undefined && (!spec.scales || typeof spec.scales !== 'object' || Array.isArray(spec.scales)))
+            err('scales', 'scales must map names to scales: { "x": { "type": "band" } }');
+          if (spec.padding !== undefined) {
+            if (typeof spec.padding === 'number') {
+              if (!isFinite(spec.padding) || spec.padding < 0) err('padding', 'padding must be a number of px, 0 or more, or one per side');
+            } else if (!spec.padding || typeof spec.padding !== 'object' || Array.isArray(spec.padding))
+              err('padding', 'padding must be { "top": 8, "right": 8, "bottom": 30, "left": 40 } in px, or one number for every side');
+            else
+              for (const side of Object.keys(spec.padding)) {
+                const v = (spec.padding as Record<string, unknown>)[side];
+                if ((SIDES as readonly string[]).indexOf(side) < 0) warn(`padding.${side}`, `unknown side "${side}"${meant(side, SIDES)}`);
+                else if (typeof v !== 'number' || !isFinite(v) || v < 0)
+                  err(`padding.${side}`, `padding.${side} must be a number of px, 0 or more`);
+              }
+          }
+          if (spec.title !== undefined && typeof spec.title !== 'string') err('title', 'title must be text');
+          if (spec.id !== undefined && typeof spec.id !== 'string') err('id', 'id must be text');
+          if (spec.responsive !== undefined && typeof spec.responsive !== 'boolean') err('responsive', 'responsive must be true or false');
+          if (spec.renderer !== undefined && typeof spec.renderer !== 'string')
+            err('renderer', 'renderer must be the name of one: "svg", "canvas"');
+          if (spec.locale !== undefined) {
+            let canonical = false;
+            try {
+              canonical = typeof spec.locale === 'string' && Intl.getCanonicalLocales(spec.locale).length === 1;
+            } catch (e) {
+              canonical = false;
+            }
+            if (!canonical) err('locale', `locale ${JSON.stringify(spec.locale)} is not a language tag like "en-US", "de" or "ja"`);
+          }
+          /** A format is a preset or Intl options the formatter takes: one it refuses fails here, not when it is drawn. */
+          const checkFormat = (path: string, what: string, v: unknown) => {
+            try {
+              formatter(v as BC.FormatSpec);
+            } catch (e) {
+              err(path, `${what}: ${(e as Error).message}`);
+            }
+          };
 
           /** A color a spec may give: one that draws and fetches nothing. Hex, rgb()/hsl() and their kin, a name, var(--x)
            *  with such a fallback; never url(…), which an SVG fill or a style loads from the network, nor a ";" that ends a style. */
@@ -539,6 +579,7 @@
                 continue;
               }
               const v = s[key];
+              if (v === undefined) continue; // left out, as JSON would leave it
               const bad = (want: string) => err(`${path}.${key}`, `${key} of ${name} must be ${want}`);
               switch (p.kind) {
                 case 'string':
@@ -566,6 +607,22 @@
                 case 'scale':
                   if (typeof v !== 'string' || !scales[v]) bad('the name of a declared scale');
                   break;
+                case 'format':
+                  checkFormat(`${path}.${key}`, `${key} of ${name}`, v);
+                  break;
+                case 'formats':
+                  if (!v || typeof v !== 'object' || Array.isArray(v))
+                    bad('an object of field names and formats: { "revenue": "currency" }');
+                  else
+                    for (const f of Object.keys(v)) {
+                      fieldCheck(`${path}.${key}.${f}`, f);
+                      checkFormat(`${path}.${key}.${f}`, `the format of "${f}"`, (v as Record<string, unknown>)[f]);
+                    }
+                  break;
+                case 'fields':
+                  if (!Array.isArray(v) || v.some((f) => typeof f !== 'string')) bad('a list of field names');
+                  else v.forEach((f: string, k: number) => fieldCheck(`${path}.${key}[${k}]`, f));
+                  break;
               }
             }
             for (const key of Object.keys(params)) {
@@ -584,8 +641,22 @@
             if (!spec.view || typeof spec.view !== 'object') err('view', 'view must map scale names to domains');
             else {
               for (const name of Object.keys(spec.view)) {
+                const v = spec.view[name];
+                const block = scales[name] && (registry.get(`scale.${scales[name].type}`) as BC.ScaleDef | undefined);
                 if (!scales[name]) err(`view.${name}`, `scale "${name}" is not declared in scales`);
-                else if (!Array.isArray(spec.view[name])) err(`view.${name}`, 'a view is a list (the visible domain)');
+                else if (!Array.isArray(v)) err(`view.${name}`, 'a view is a list (the visible domain)');
+                else if (block && block.input === 'category') {
+                  if (!v.length) err(`view.${name}`, 'a view of categories lists at least one of them');
+                } else if (block) {
+                  // from and to, as the scale reads them: a view it cannot read leaves the plot empty
+                  const read = (x: unknown) => (block.input === 'date' ? time(x) : typeof x === 'number' ? x : NaN);
+                  const ends = v.map(read);
+                  if (v.length !== 2 || !ends.every((e) => isFinite(e)) || ends[0] === ends[1])
+                    err(
+                      `view.${name}`,
+                      `a view of "${name}" is [from, to]: two different ${block.input === 'date' ? 'dates ("2024-03-01" or ms)' : 'numbers'}, not ${JSON.stringify(v)}`,
+                    );
+                }
               }
             }
           }
@@ -605,6 +676,8 @@
             if (!def) continue;
             checkParams(path, s, def, ['field', 'domain', 'range']);
             if (typeof s.field === 'string') checkField(`${path}.field`, s.field);
+            if (s.domain !== undefined && !Array.isArray(s.domain))
+              err(`${path}.domain`, 'domain must be a list: [min, max], or the categories in order');
             if (s.range !== undefined && s.range !== 'width' && s.range !== 'height' && !Array.isArray(s.range)) {
               err(`${path}.range`, 'range must be "width", "height" or a list');
             } else if (Array.isArray(s.range) && (def as BC.ScaleDef).output === 'color') {
@@ -618,6 +691,7 @@
             }
           }
 
+          const unplaced = new Set<string>();
           if (Array.isArray(spec.marks)) {
             spec.marks.forEach((m, i) => {
               const path = `marks[${i}]`;
@@ -653,6 +727,15 @@
                       `${path}.${ch}`,
                       `channel "${ch}" of ${name} needs a scale that ${scaleWords(cdef.accepts)}${would.length ? ` (${would.sort().join(', ')})` : ''}; "${sdef.type}" ${scaleWords({ output: block.output, input: [block.input] })}`,
                     );
+                  } else if (block && block.output === 'position' && rangeSetting(ref.scale, sdef) === undefined) {
+                    // only x and y have a range of their own; another scale of positions puts everything at one point
+                    if (!unplaced.has(ref.scale)) {
+                      unplaced.add(ref.scale);
+                      err(
+                        `scales.${ref.scale}`,
+                        `scale "${ref.scale}" places values but has no range, so nothing it places is drawn: give it "range": "width" or "height" (only x and y have one by default)`,
+                      );
+                    }
                   }
                 }
               }
@@ -845,7 +928,9 @@
 
     // 2 layout, first guess
     const size = { w: spec.size ? spec.size[0] : 640, h: spec.size ? spec.size[1] : 400 };
-    const pad = { ...DEFAULT_PADDING, ...(spec.padding || {}) };
+    // a number is every side, as in CSS: `padding: 0` is no padding (it used to be the default padding, without a word)
+    const p = spec.padding;
+    const pad = typeof p === 'number' ? { top: p, right: p, bottom: p, left: p } : { ...DEFAULT_PADDING, ...(p || {}) };
     if (spec.title) pad.top += TITLE_HEIGHT;
     let plot = insetsPlot(size, pad);
 

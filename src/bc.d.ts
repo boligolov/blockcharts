@@ -68,7 +68,8 @@ declare namespace BC {
     transforms?: TransformSpec[];
     /** Logical size; the SVG uses it as viewBox and scales to the container. Default [640, 400]. */
     size?: [number, number];
-    padding?: Partial<Insets>;
+    /** px; a number is every side. Default 16 on every side, and the guides take what they need on top of it. */
+    padding?: Partial<Insets> | number;
     title?: string;
     /** Declared once per chart, referenced by name from marks and guides. */
     scales?: Record<string, ScaleSpec>;
@@ -398,7 +399,9 @@ declare namespace BC {
 
   interface ParamDef {
     /** "color": a CSS color that loads nothing (hex, rgb()/hsl(), a name, var(--x)); never url(…). */
-    kind: 'string' | 'number' | 'boolean' | 'enum' | 'field' | 'scale' | 'list' | 'color' | 'any';
+    /** "format": a preset name or Intl options (BC.formatter); "formats": an object of field names and formats; "fields": a
+     *  list of field names, each checked against the data like a "field". */
+    kind: 'string' | 'number' | 'boolean' | 'enum' | 'field' | 'fields' | 'scale' | 'list' | 'color' | 'format' | 'formats' | 'any';
     required?: boolean;
     default?: unknown;
     /** for kind "enum" */

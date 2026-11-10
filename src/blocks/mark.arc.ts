@@ -129,7 +129,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'arc',
-    version: 5,
+    version: 6,
     enter: 'pop',
     markColor: false,
     doc: "Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock. A gauge or a progress ring is the same mark: `startAngle` -90 and `endAngle` 90 make a half circle, `total` the maximum (the rest of the arc is an empty track), `center` writes the figure in the middle.",
@@ -164,7 +164,7 @@
         doc: 'Text outside each slice (slices under 3% get none).',
       },
       labelFormat: {
-        kind: 'any',
+        kind: 'format',
         doc: 'How to write that text, as `format` on an axis. A share is a fraction: { "style": "percent", "maximumFractionDigits": 1 } writes 45.1%.',
       },
       fill: { kind: 'color', doc: 'One color for all slices, when there is no color channel.' },

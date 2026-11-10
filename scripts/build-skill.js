@@ -77,7 +77,7 @@ function renderReference(manifest) {
   out.push('| chart | `data` | name of a dataset in the page data (required) |');
   out.push('| chart | `size` | `[width, height]` of the drawing, default `[640, 400]`; the chart scales to its container |');
   out.push('| chart | `title` | text above the plot |');
-  out.push('| chart | `padding` | `{top, right, bottom, left}` in drawing units, default 16 each |');
+  out.push('| chart | `padding` | `{top, right, bottom, left}` in drawing units, default 16 each; one number is every side |');
   out.push(
     '| chart | `transforms`, `scales`, `guides`, `marks`, `interaction` | lists of blocks (`scales` is an object of named scales) |',
   );

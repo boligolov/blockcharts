@@ -61,7 +61,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'text',
-    version: 12,
+    version: 13,
     markColor: false,
     doc: 'A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped, and the same label on the same spot is written once (a total a transform repeated on each row of its quarter). To keep a label readable on a colored cell, give it `on`: the same field as the cell\'s color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.',
     params: {
@@ -83,7 +83,7 @@
       rotate: { kind: 'number', default: 0, doc: 'Degrees around the anchor point.' },
       decimals: { kind: 'number', doc: 'Fixed number of decimals for numeric text.' },
       format: {
-        kind: 'any',
+        kind: 'format',
         doc: 'How to write numbers (and dates): a preset ("percent", "compact", "integer", "date", ...) or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }; also "locale", "prefix", "suffix". Overrides `decimals`.',
       },
       fill: { kind: 'color', doc: 'Any CSS color. Default: the theme text color.' },

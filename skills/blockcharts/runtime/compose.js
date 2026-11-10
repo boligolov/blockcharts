@@ -216,9 +216,14 @@ const COMPRESS_MIN_GAIN = 0.75;
 
 const isEncoded = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.encoding === 'string';
 
+// no spec is this deep; a deeper one is a mistake (or a hostile file), and recursing into it would overflow the stack
+const MAX_SPEC_DEPTH = 100;
+
 /** Path of the first thing in a spec that JSON cannot carry (or would silently change), or null. */
 function findUnserializable(value, path, ancestors) {
   const t = typeof value;
+  if (ancestors.length >= MAX_SPEC_DEPTH && value && t === 'object')
+    return { path, why: `is nested more than ${MAX_SPEC_DEPTH} levels deep; no chart spec is` };
   if (t === 'function')
     return {
       path,

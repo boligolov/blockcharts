@@ -198,6 +198,79 @@ test('validate: catches dangling scale, missing block, unknown field, bad params
   has('error', 'scales.z.type', /"scale.symlog" is not loaded/);
 });
 
+test('validate: every key of a spec holds what it says, or it is an error at its path, not a blank chart later', () => {
+  const errors = (extra) =>
+    BC.validate({ ...dSpec(), ...extra })
+      .filter((d) => d.level === 'error')
+      .map((d) => [d.path, d.message]);
+  const cases = [
+    [{ transforms: {} }, 'transforms', /transforms must be a list/],
+    [{ guides: { type: 'axis' } }, 'guides', /guides must be a list/],
+    [{ interaction: 'tooltip' }, 'interaction', /interaction must be a list/],
+    [{ scales: [] }, 'scales', /scales must map names to scales/],
+    [{ padding: { left: '40' } }, 'padding.left', /padding\.left must be a number of px/],
+    [{ padding: { top: -5 } }, 'padding.top', /padding\.top must be a number of px/],
+    [{ padding: 'wide' }, 'padding', /padding must be/],
+    [{ padding: -1 }, 'padding', /padding must be a number of px, 0 or more/],
+    [{ title: {} }, 'title', /title must be text/],
+    [{ locale: 'en_US' }, 'locale', /locale "en_US" is not a language tag/],
+    [{ locale: 5 }, 'locale', /is not a language tag/],
+    [{ responsive: 'yes' }, 'responsive', /responsive must be true or false/],
+    [{ renderer: 5 }, 'renderer', /renderer must be the name of one/],
+    [{ id: 7 }, 'id', /id must be text/],
+    [{ view: { y: [] } }, 'view.y', /a view of "y" is \[from, to\]: two different numbers, not \[\]/],
+    [{ view: { y: ['a', 'b'] } }, 'view.y', /two different numbers/],
+    [{ view: { y: [5] } }, 'view.y', /two different numbers/],
+    [{ view: { y: [5, 5] } }, 'view.y', /two different numbers/],
+    [{ scales: { ...dSpec().scales, y: { type: 'linear', domain: 100 } } }, 'scales.y.domain', /domain must be a list/],
+  ];
+  for (const [extra, path, re] of cases) {
+    const found = errors(extra);
+    assert(
+      found.some(([p, m]) => p === path && re.test(m)),
+      `${JSON.stringify(extra)}: ${JSON.stringify(found)}`,
+    );
+  }
+  // a view the scale can read is fine: numbers, dates as text or ms, categories
+  assert.deepStrictEqual(errors({ view: { x: [2, 5] } }), []);
+  BC.data('days', [
+    { d: '2024-01-01', k: 'a', v: 1 },
+    { d: '2024-02-01', k: 'b', v: 2 },
+  ]);
+  const days = (view) =>
+    BC.validate({ data: 'days', scales: { x: { type: 'time' }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'd', y: 'v' }], view })
+      .filter((d) => d.level === 'error')
+      .map((d) => d.path);
+  assert.deepStrictEqual(days({ x: ['2024-01-05', Date.UTC(2024, 0, 20)] }), []);
+  assert.deepStrictEqual(days({ x: ['soon', 'later'] }), ['view.x']);
+  const cats = BC.validate({
+    data: 'days',
+    scales: { x: { type: 'band' }, y: { type: 'linear' } },
+    marks: [{ type: 'rect', x: 'k', y: 'v' }],
+    view: { x: [] },
+  });
+  assert.deepStrictEqual(
+    cats.map((d) => [d.path, d.message]),
+    [['view.x', 'a view of categories lists at least one of them']],
+  );
+
+  // a scale of positions other than x and y has no range of its own: without one, all it places is drawn at one point
+  const s = dSpec();
+  s.scales.v2 = { type: 'linear' };
+  s.marks.push(
+    { type: 'point', x: 'month', y: { field: 'units', scale: 'v2' } },
+    { type: 'point', x: 'month', y: { field: 'revenue', scale: 'v2' } },
+  );
+  assert.deepStrictEqual(
+    BC.validate(s).map((d) => [d.level, d.path]),
+    [['error', 'scales.v2']],
+    'said once, at the scale',
+  );
+  assert.match(BC.validate(s)[0].message, /scale "v2" places values but has no range.*give it "range": "width" or "height"/);
+  s.scales.v2.range = 'height';
+  assert.deepStrictEqual(BC.validate(s), []);
+});
+
 test('validate: a key the spec or a block does not have is a warning that names the one it looks like', () => {
   const warns = (spec) => BC.validate(spec).map((d) => [d.level, d.path, d.message]);
   // every key of a spec, misspelled: nothing it said would happen otherwise, without a word
@@ -217,7 +290,8 @@ test('validate: a key the spec or a block does not have is a warning that names 
       ['warn', 'marks[0].constructor', 'unknown parameter "constructor" for mark.point'],
     ],
   );
-  // and every key a spec may have is known
+  // and every key a spec may have is known (padding as one number for every side, too)
+  assert.deepStrictEqual(BC.validate({ ...dSpec(), padding: 0 }), []);
   const all = {
     ...dSpec(),
     id: 'c',

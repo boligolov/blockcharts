@@ -76,7 +76,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 17,
+    version: 18,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -99,7 +99,7 @@
         default: 'none',
         doc: 'A label at the end of each line, in its color: the series name, its last value, or both — so a legend is rarely needed. Labels that would overlap are moved apart. Leave room on the right (padding.right, about 70–110 px).',
       },
-      format: { kind: 'any', doc: 'How the end label writes the last value (a preset or Intl options, as guide.axis `format`).' },
+      format: { kind: 'format', doc: 'How the end label writes the last value (a preset or Intl options, as guide.axis `format`).' },
       name: { kind: 'string', doc: 'The end label of a line that is not split into series (default: the y field).' },
     },
     channels: {

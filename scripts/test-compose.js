@@ -627,6 +627,17 @@ test('compose: a function (or anything else JSON would drop or change) in a spec
   const loop = bars();
   loop.self = loop;
   failsWith(() => compose({ data: DATA, charts: [loop] }), /charts\[0\]\.self is a circular reference/);
+  // a spec nested thousands deep is said to be, not a stack overflow
+  let deep = {};
+  for (let i = 0; i < 5000; i++) deep = { a: deep };
+  failsWith(
+    () => compose({ data: DATA, charts: [{ ...bars(), title: deep }] }),
+    /charts\[0\]\.title(\.a)+ is nested more than 100 levels deep/,
+  );
+  assert.doesNotThrow(
+    () => compose({ data: DATA, charts: [{ ...bars(), notes: JSON.parse('{"a":'.repeat(20) + '1' + '}'.repeat(20)) }] }),
+    'twenty levels is not too deep',
+  );
   assert.doesNotThrow(
     () => compose({ data: DATA, charts: [{ ...bars(), title: undefined }] }),
     'undefined properties are simply dropped, as JSON does',

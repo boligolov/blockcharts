@@ -19,10 +19,10 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'fold',
-    version: 1,
+    version: 2,
     doc: "Turns a wide table (one column per series: month, online, retail) into a long one (month, key, value): every row becomes one row per field of `fields`, with the field's name in `key` and its value in `value`, so the series can be colored, stacked or grouped by `key`. The other columns are repeated on each new row; the folded columns stay too. Rows keep their order, and the fields theirs within each row.",
     params: {
-      fields: { kind: 'list', required: true, doc: 'Columns to fold into rows, in the order of the series.' },
+      fields: { kind: 'fields', required: true, doc: 'Columns to fold into rows, in the order of the series.' },
       key: { kind: 'string', default: 'key', doc: "Name of the new column with the folded field's name." },
       value: { kind: 'string', default: 'value', doc: 'Name of the new column with its value.' },
     },

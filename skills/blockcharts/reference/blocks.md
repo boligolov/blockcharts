@@ -18,7 +18,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 | chart | `data` | name of a dataset in the page data (required) |
 | chart | `size` | `[width, height]` of the drawing, default `[640, 400]`; the chart scales to its container |
 | chart | `title` | text above the plot |
-| chart | `padding` | `{top, right, bottom, left}` in drawing units, default 16 each |
+| chart | `padding` | `{top, right, bottom, left}` in drawing units, default 16 each; one number is every side |
 | chart | `transforms`, `scales`, `guides`, `marks`, `interaction` | lists of blocks (`scales` is an object of named scales) |
 | chart | `view` | starting zoom: `{"x": [from, to]}` (dates as ISO strings or milliseconds) |
 | scale | `type` | the scale block: `band`, `color`, `linear`, `log`, `sequential`, `size`, `time` |
@@ -221,11 +221,11 @@ Version 2, 2.3 KB. Keeps the rows whose `field` passes a test and drops the othe
 
 ## transform.fold
 
-Version 1, 1.5 KB. Turns a wide table (one column per series: month, online, retail) into a long one (month, key, value): every row becomes one row per field of `fields`, with the field's name in `key` and its value in `value`, so the series can be colored, stacked or grouped by `key`. The other columns are repeated on each new row; the folded columns stay too. Rows keep their order, and the fields theirs within each row.
+Version 2, 1.5 KB. Turns a wide table (one column per series: month, online, retail) into a long one (month, key, value): every row becomes one row per field of `fields`, with the field's name in `key` and its value in `value`, so the series can be colored, stacked or grouped by `key`. The other columns are repeated on each new row; the folded columns stay too. Rows keep their order, and the fields theirs within each row.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `fields` | list, **required** |  | Columns to fold into rows, in the order of the series. |
+| `fields` | fields, **required** |  | Columns to fold into rows, in the order of the series. |
 | `key` | string | `"key"` | Name of the new column with the folded field's name. |
 | `value` | string | `"value"` | Name of the new column with its value. |
 
@@ -386,7 +386,7 @@ Version 3, 3.7 KB. A value per row computed from the rows before it (and around 
 
 ## mark.arc
 
-Version 5, 4.8 KB. Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock. A gauge or a progress ring is the same mark: `startAngle` -90 and `endAngle` 90 make a half circle, `total` the maximum (the rest of the arc is an empty track), `center` writes the figure in the middle.
+Version 6, 4.8 KB. Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock. A gauge or a progress ring is the same mark: `startAngle` -90 and `endAngle` 90 make a half circle, `total` the maximum (the rest of the arc is an empty track), `center` writes the figure in the middle.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -403,7 +403,7 @@ Version 5, 4.8 KB. Pie and donut chart: one slice per row, its angle proportiona
 | `padAngle` | number | `1` | Gap between slices, in degrees. |
 | `sort` | one of `none`, `desc`, `asc` | `"none"` | Order of the slices by value; "none" keeps the data order. |
 | `label` | one of `none`, `percent`, `value` | `"none"` | Text outside each slice (slices under 3% get none). |
-| `labelFormat` | any |  | How to write that text, as `format` on an axis. A share is a fraction: { "style": "percent", "maximumFractionDigits": 1 } writes 45.1%. |
+| `labelFormat` | format |  | How to write that text, as `format` on an axis. A share is a fraction: { "style": "percent", "maximumFractionDigits": 1 } writes 45.1%. |
 | `fill` | color |  | One color for all slices, when there is no color channel. |
 | `opacity` | number | `1` |  |
 
@@ -474,7 +474,7 @@ Version 3, 2.3 KB. Open-high-low-close candles, one per row: a body from `open` 
 
 ## mark.line
 
-Version 17, 3.8 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: "step"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
+Version 18, 3.8 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: "step"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
 
 Needs: `lib.curve`.
 
@@ -493,7 +493,7 @@ Needs: `lib.curve`.
 | `opacity` | number | `1` |  |
 | `curve` | one of `linear`, `smooth`, `step` | `"linear"` | "smooth": a monotone cubic curve through the points — no peaks or dips the data does not have. "linear": straight segments. "step": each value holds until the next point, then the line jumps: prices, tariffs, stock levels, anything that changes at moments and stays. |
 | `label` | one of `none`, `name`, `value`, `both` | `"none"` | A label at the end of each line, in its color: the series name, its last value, or both — so a legend is rarely needed. Labels that would overlap are moved apart. Leave room on the right (padding.right, about 70–110 px). |
-| `format` | any |  | How the end label writes the last value (a preset or Intl options, as guide.axis `format`). |
+| `format` | format |  | How the end label writes the last value (a preset or Intl options, as guide.axis `format`). |
 | `name` | string |  | The end label of a line that is not split into series (default: the y field). |
 
 ## mark.point
@@ -583,7 +583,7 @@ Version 7, 2.1 KB. Lines at values: a target, a threshold, an average, the targe
 
 ## mark.sankey
 
-Version 3, 4.7 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
+Version 4, 4.7 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -594,7 +594,7 @@ Version 3, 4.7 KB. A Sankey diagram: one row per flow, from `source` to `target`
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `nodeWidth` | number | `12` | Width of a node, in px. |
-| `format` | any |  | How the total of a node is written after its name. Without it, only the name. |
+| `format` | format |  | How the total of a node is written after its name. Without it, only the name. |
 | `linkOpacity` | number | `0.35` | Opacity of the ribbons. |
 | `nodeLabels` | list |  | What a tooltip calls what flows into and out of a node: ["In", "Out"] by default. Translate it on a page in another language. |
 | `layout` | list |  | Names of the five columns transform.sankey writes, when its `as` renames them: [x0, x1, y0, y1, thickness]. |
@@ -602,7 +602,7 @@ Version 3, 4.7 KB. A Sankey diagram: one row per flow, from `source` to `target`
 
 ## mark.text
 
-Version 12, 4.8 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped, and the same label on the same spot is written once (a total a transform repeated on each row of its quarter). To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
+Version 13, 4.8 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped, and the same label on the same spot is written once (a total a transform repeated on each row of its quarter). To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -624,7 +624,7 @@ Version 12, 4.8 KB. A text label per row at (x, y): value labels on bars, annota
 | `dy` | number | `0` | Move down by this many px (negative moves up, e.g. -4 with baseline "auto" for a label above a bar). |
 | `rotate` | number | `0` | Degrees around the anchor point. |
 | `decimals` | number |  | Fixed number of decimals for numeric text. |
-| `format` | any |  | How to write numbers (and dates): a preset ("percent", "compact", "integer", "date", ...) or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }; also "locale", "prefix", "suffix". Overrides `decimals`. |
+| `format` | format |  | How to write numbers (and dates): a preset ("percent", "compact", "integer", "date", ...) or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }; also "locale", "prefix", "suffix". Overrides `decimals`. |
 | `fill` | color |  | Any CSS color. Default: the theme text color. |
 | `negative` | one of `same`, `flip` | `"same"` | "flip" mirrors the placement of a row whose value is below zero, so that the label of a negative bar sits past its end, not inside it: `baseline` and `dy` on a value y, `anchor` and `dx` on a value x (with a band y, as in horizontal bars). |
 | `collide` | one of `show`, `hide` | `"show"` | "hide" keeps labels off each other, for names on points: in row order, a label that would touch one already placed tries the other side of its point (mirrored `baseline` and `dy`) and is left out if that is taken too. Sort the rows to choose which labels win. |
@@ -653,14 +653,14 @@ Version 3, 2.9 KB. The shape of a distribution per category, from the rows of tr
 
 ## guide.axis
 
-Version 13, 6.6 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.
+Version 14, 6.6 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `scale` | scale, **required** |  |  |
 | `position` | one of `top`, `right`, `bottom`, `left` |  |  |
 | `title` | string |  | Text that names the axis (with its unit, for example "Revenue, USD"). Rotated on a vertical axis. |
-| `format` | any |  | How to write the tick labels: numbers and dates on a linear, log or time scale, and on a band scale categories that are dates ("2024-04-01" from an aggregate by quarter) or numbers; text categories stay as they are. A preset ("percent", "compact", "integer", "year", "quarter" (Q2 2024), "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix". |
+| `format` | format |  | How to write the tick labels: numbers and dates on a linear, log or time scale, and on a band scale categories that are dates ("2024-04-01" from an aggregate by quarter) or numbers; text categories stay as they are. A preset ("percent", "compact", "integer", "year", "quarter" (Q2 2024), "month", "day", "date", "datetime") or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } or { "month": "short", "year": "2-digit" }. Also "locale" (default "en-US"), "prefix" and "suffix". |
 | `line` | one of `auto`, `on`, `off` | `"auto"` | The axis line. "auto": drawn along a horizontal axis (the baseline bars stand on), left out on a vertical one, where grid lines do the job. |
 | `ticks` | boolean | `false` | Small tick marks at the labels. |
 | `count` | number |  | About how many labels to show: 12 for the months of a year. Labels that would not fit are still thinned. |
@@ -677,7 +677,7 @@ Version 2, 0.6 KB. Grid lines at the ticks of a positional scale (the same ticks
 
 ## guide.kpi
 
-Version 7, 4.2 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
+Version 8, 4.2 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -687,25 +687,25 @@ Version 7, 4.2 KB. A key figure as the heading of a chart: a label, the value in
 | `compare` | one of `previous`, `first`, `none` |  | What the change is measured against: the row before the last ("previous", the default with aggregate "last"), the first row ("first": change over the period), or nothing. "previous" and "first" compare single rows, so they go with aggregate "last" only; a sum or a mean is compared through `against`. |
 | `against` | field |  | Compare with another field instead, aggregated the same way (a target, the same period last year). |
 | `delta` | one of `percent`, `absolute` | `"percent"` | The change as a percentage of the comparison, or as a difference written with `format` (or `deltaFormat`). |
-| `deltaFormat` | any |  | How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { "maximumFractionDigits": 1, "suffix": " pp" }. A preset or an object of Intl options, as in `format`. With delta "percent" it gets the change as a fraction (0.12 for 12%). It writes the difference in the units of the field, so a share kept as 0..1 needs `deltaScale`. |
+| `deltaFormat` | format |  | How to write the change when it is not in the same unit as the value: a share of 66.4% that moved by 1.8 points is { "maximumFractionDigits": 1, "suffix": " pp" }. A preset or an object of Intl options, as in `format`. With delta "percent" it gets the change as a fraction (0.12 for 12%). It writes the difference in the units of the field, so a share kept as 0..1 needs `deltaScale`. |
 | `deltaScale` | number | `1` | What an absolute change is multiplied by before it is written: 100 for a share kept as 0..1 that moved by 0.093 and is to read "+9.3 pp". |
 | `better` | one of `up`, `down` | `"up"` | Which way is good: "down" for costs, churn, response times. |
-| `format` | any |  | How to write the value (a preset such as "compact" or "percent", or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }). |
+| `format` | format |  | How to write the value (a preset such as "compact" or "percent", or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }). |
 | `note` | string |  | A few words after the change ("vs last month", "vs target"), or in its place when there is no change. |
 | `rowField` | field |  | Names the row the figure comes from, after the label: with aggregate "max" and field "month", "Best month: 2025-09". For aggregate last, first, min and max: a sum has no row of its own. |
-| `rowFormat` | any |  | How to write `rowField`, as in `format`: "month" for a date. |
+| `rowFormat` | format |  | How to write `rowField`, as in `format`: "month" for a date. |
 | `size` | number | `30` | Font size of the value, px. |
 
 ## guide.legend
 
-Version 11, 5.2 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
+Version 12, 5.2 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `scale` | scale, **required** |  | A color, sequential or size scale. |
 | `position` | one of `top`, `right`, `bottom`, `left`, `auto` | `"right"` | "auto" is a row on top while the items fit on two lines, and a column on the right when long labels would need more; it is decided again when the chart changes width. |
 | `title` | string |  | What the legend shows, on a line above it: "Region", "Revenue, $M". |
-| `format` | any |  | How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`. |
+| `format` | format |  | How to write the labels of a color bar or a size key (a `sequential` or `size` scale): a preset ("percent", "compact", ...) or an object of Intl options; see guide.axis `format`. |
 
 ## interaction.animate
 
@@ -753,14 +753,14 @@ Version 5, 2.5 KB. Click an item of a categorical legend to hide or show that ca
 
 ## interaction.tooltip
 
-Version 16, 8.5 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.
+Version 17, 8.5 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.
 
 Needs: `lib.pointer`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `fields` | list |  | Fields to show. Default: the fields the mark reads (its channels and group). |
-| `formats` | any |  | How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits). |
+| `fields` | fields |  | Fields to show. Default: the fields the mark reads (its channels and group). |
+| `formats` | formats |  | How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits). |
 | `labels` | any |  | What to call the fields, per field: { "median": "Median, ms", "rev": "Revenue" }. Fields without one are shown under their own name. |
 | `content` | any |  | Name of a function registered with BC.defineFn (or, in a spec built in JS, the function itself). It gets a TooltipDatum and returns what to show: a string (text), { html }, a DOM Node, an array of those, null/false to hide the tooltip, or undefined for the default content. { html } is set with innerHTML and is not escaped — build it from trusted strings, never straight from a row value the data may contain. |
 | `heading` | field |  | The field at the head of the card. Default: the category or date the datum stands on. Give it when that is not what names the datum, as in a calendar, where x is the week and the row is a day. |

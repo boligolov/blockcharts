@@ -1218,6 +1218,19 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   the key it looks like: the same but for case, or at most two letters off. `nullValues` must be a list (a text became
   a set of its letters), `types` must name columns of the header, and `noteHtml`, raw HTML, is for a program that calls
   `compose()`, like `before` and `after`.
+- **Every key of a spec holds what it says.** `"padding": {"left": "40"}` became `"400"` by string concatenation and
+  the plot vanished; `"transforms": {}` failed as "forEach is not a function" at path ""; `"title": {}` printed
+  "[object Object]"; `"locale": "en_US"` and a view of `[]`, `[5]` or `["a", "b"]` drew nothing. Now validation checks
+  the type of each key (containers are lists, `scales` and `view` objects, `title` and `id` text, `responsive` a
+  boolean, `locale` a language tag `Intl` accepts), each view as its scale reads it (two different numbers or dates,
+  at least one category), and each scale's `domain` is a list. `padding` may be one number for every side, as in CSS:
+  `padding: 0` used to mean the default padding, without a word. A parameter that is a format (`format` of an axis, a
+  legend, a KPI, a text mark, `formats` of a tooltip) is tried by the formatter during validation, and lists of fields
+  (`fields` of a tooltip or a fold) are checked as fields, so a mistake is reported at its own path
+  (`guides[1].format`, `interaction[0].formats.b`) and not as a chart that failed while it drew. A scale of positions
+  other than x and y has no range of its own: without `range` everything it placed was drawn at one point, and now it
+  is an error at the scale. A spec nested a hundred levels deep is refused by the composer with its path, where it
+  used to overflow the stack.
 
 ## Next steps
 
