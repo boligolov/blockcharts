@@ -4788,7 +4788,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const host = new FakeNode('div');
     BC.chart(host, slopeSpec({ label: 'name' }, { padding: { right: 80 }, interaction: [{ type: 'probe2' }, { type: 'tooltip' }] }));
     const mid = (c) => probed.scales.x(c) + probed.scales.x.bandwidth / 2;
-    const labels = [...layer(svgOf(host), 'marks').matchAll(/<text x="([\d.-]+)"[^>]*>([^<]+)</g)].map((m) => ({ x: +m[1], text: m[2] }));
+    const labels = [...layer(svgOf(host), 'axes').matchAll(/<text x="([\d.-]+)"[^>]*class="bc-line-label">([^<]+)</g)].map((m) => ({
+      x: +m[1],
+      text: m[2],
+    }));
     assert.deepStrictEqual(labels.map((l) => l.text).sort(), ['A', 'B']);
     assert(
       labels.every((l) => Math.abs(l.x - (mid('After') + 8)) < 0.01),

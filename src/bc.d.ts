@@ -509,6 +509,9 @@ declare namespace BC {
      *  Line/area emit ONE PathPrim per series (single pass building one `d` string), never one primitive
      *  per point — that's what keeps large series cheap for the SVG renderer (see uPlot's single-Path2D-per-series). */
     render(spec: MarkSpec, ctx: ChartCtx, index: number): Prim[];
+    /** Primitives drawn above the marks and outside the plot's clip: labels that stand past the plot's edge (the name at
+     *  the end of a line), which a zoom would otherwise cut off. */
+    labels?(spec: MarkSpec, ctx: ChartCtx, index: number): Prim[];
     /** Hit-testing lives with the mark that knows its shapes. Return the closest datum within a mark-specific
      *  reach of (x, y), or null. Interactions (tooltip) call it on every mark and keep the smallest `dist`. */
     pick?(spec: MarkSpec, ctx: ChartCtx, index: number, x: number, y: number): Pick | null;

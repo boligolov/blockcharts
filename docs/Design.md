@@ -1313,6 +1313,10 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   still one line per field. Checked by a new suite in real Chrome, `npm run test:chrome` (`scripts/test-chrome.js`,
   also in CI): it composes pages, hovers every point at phone and desk widths, and measures where the card lands, also
   on a chart wider than the screen that scrolls in its card.
+- **Names at the line ends survive a zoom.** The end labels stand past the plot's right edge, in the padding, and were
+  drawn with the marks: a zoom clips the marks to the plot, so the moment a reader zoomed, every name was cut to
+  nothing. A mark may now give `labels()`, primitives drawn above the marks outside the clip; mark.line draws its names
+  there, at the last point in view (one above or below a y zoom is not named over the plot's edge).
 
 ## Next steps
 

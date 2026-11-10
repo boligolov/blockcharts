@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 39341,
+    "bytes": 39389,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 28372,
+        "bytes": 28419,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 25338,
+        "bytes": 25385,
         "off": [
           "CHECKS",
           "DECODE"
@@ -1480,8 +1480,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3909,
-      "version": 18,
+      "bytes": 3982,
+      "version": 19,
       "requires": [
         "lib.curve"
       ],

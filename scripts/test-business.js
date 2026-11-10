@@ -3955,6 +3955,68 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(!evil.includes('<b>x</b>'), 'a series name is text');
   });
 
+  test('mark.line label: zoomed, the labels stand past the plot unclipped, and only for an end that is in view', async () => {
+    BC.data('zoomed-ends', [
+      { t: 1, v: 10, s: 'Alpha' },
+      { t: 5, v: 20, s: 'Alpha' },
+      { t: 9, v: 30, s: 'Alpha' },
+      { t: 1, v: 12, s: 'Beta' },
+      { t: 5, v: 8, s: 'Beta' },
+      { t: 9, v: 4, s: 'Beta' },
+    ]);
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      data: 'zoomed-ends',
+      size: [640, 400],
+      padding: { top: 16, right: 100, bottom: 16, left: 16 },
+      scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'line', x: 't', y: 'v', group: 's', label: 'name' }],
+    });
+    const ends = () => {
+      const svg = svgOf(host);
+      return {
+        clipped: [...layer(svg, 'marks').matchAll(/class="bc-line-label">([^<]*)</g)].map((m) => m[1]),
+        free: [...layer(svg, 'axes').matchAll(/<text x="([\d.]+)"[^>]*class="bc-line-label">([^<]*)</g)].map((m) => ({
+          x: +m[1],
+          text: m[2],
+        })),
+      };
+    };
+    assert.deepStrictEqual(
+      ends()
+        .free.map((l) => l.text)
+        .sort(),
+      ['Alpha', 'Beta'],
+    );
+    h.setView('x', [2, 6]);
+    await flush();
+    const zoomed = ends();
+    assert.deepStrictEqual(zoomed.clipped, [], 'nothing of them in the layer the zoom clips');
+    assert.deepStrictEqual(zoomed.free.map((l) => l.text).sort(), ['Alpha', 'Beta'], 'at the last point in view');
+    assert(
+      zoomed.free.every((l) => l.x < 540),
+      'which is inside the plot: ' + zoomed.free.map((l) => l.x),
+    );
+    h.setView('x', [6, 8]);
+    await flush();
+    assert.deepStrictEqual(ends().free, [], 'between two points, none of them in view: no label over the axis');
+    h.setView('x', null);
+    h.setView('y', [0, 25]);
+    await flush();
+    const high = ends().free;
+    assert.deepStrictEqual(high.map((l) => l.text).sort(), ['Alpha', 'Beta']);
+    const [alpha, beta] = ['Alpha', 'Beta'].map((n) => high.find((l) => l.text === n));
+    assert(alpha.x < beta.x - 100, "Alpha's end is above the view: it is named at its last point in view");
+    h.setView('y', [15, 40]);
+    await flush();
+    assert.deepStrictEqual(
+      ends().free.map((l) => l.text),
+      ['Alpha'],
+      'all of Beta is below the view: it is not named',
+    );
+    h.destroy();
+  });
+
   test('interaction.animate: once per chart, the effect by the marks, nothing for reduced motion or without the API', () => {
     const calls = [];
     const proto = FakeNode.prototype;

@@ -1364,7 +1364,9 @@
       const layers: Record<BC.LayerName, BC.Prim[]> = { grid: [], marks: [], axes: [], overlay: [] };
       spec.marks.forEach((m, i) => {
         try {
-          append(layers.marks, markDef(m).render(m, ctx, i));
+          const md = markDef(m);
+          append(layers.marks, md.render(m, ctx, i));
+          if (md.labels) append(layers.axes, md.labels(m, ctx, i));
         } catch (e) {
           fail(`marks[${i}]`, e);
         }

@@ -28,7 +28,7 @@
   /** The rows of a series that have a point, per series (kept while the series is): a pointer move asks every frame. */
   const drawable = new WeakMap<number[], number[]>();
 
-  /** The end labels one line mark asks for: one per series, at its last point drawn (inside the plot when zoomed). */
+  /** The end labels one line mark asks for: one per series, at its last point in view (inside the plot, when zoomed). */
   function endsOf(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number): EndLabel[] {
     const mode = spec.label === 'name' || spec.label === 'value' || spec.label === 'both' ? spec.label : 'none';
     if (mode === 'none') return [];
@@ -43,13 +43,15 @@
           ? BC.formatter(spec.format as BC.FormatSpec | string)
           : (v: unknown) => (typeof v === 'number' ? String(+v.toPrecision(6)) : String(v))
         : null;
-    const right = ctx.plot.x + ctx.plot.w + 0.5;
+    const { x: left, y: top, w, h } = ctx.plot;
+    // points left of a view are culled from the series, so past the right edge, above and below are what is out of it
+    const seen = (i: number) => xs[i] <= left + w + 0.5 && ys[i] >= top - 0.5 && ys[i] <= top + h + 0.5;
     const out: EndLabel[] = [];
     ctx.series(spec, xs).forEach(({ key, rows }, n) => {
       const color = typeof spec.stroke === 'string' ? spec.stroke : colorCh ? colorCh.mapped[rows[0]] : ctx.color(index + n);
       if (!color) return;
       let last = -1;
-      for (const i of rows) if (isFinite(xs[i]) && isFinite(ys[i]) && xs[i] <= right) last = i;
+      for (const i of rows) if (isFinite(xs[i]) && isFinite(ys[i]) && seen(i)) last = i;
       if (last < 0) return;
       const name = grouped ? String(key) : typeof spec.name === 'string' ? spec.name : yc.field || '';
       const value = write ? write(yc.raw[last]) : '';
@@ -76,7 +78,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 18,
+    version: 19,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -151,31 +153,32 @@
           style: { fill: 'none', stroke, strokeWidth: width, strokeDash: dash, opacity, strokeLinejoin: 'round', strokeLinecap: 'round' },
         });
       });
-      if (endsOf(spec, ctx, index).length) {
-        // the labels of every labelled line of the chart are spread together, so two line marks (revenue and plan)
-        // do not write over each other; each mark then draws only its own
-        const all: EndLabel[] = [];
-        ctx.spec.marks.forEach((m, k) => {
-          if (m.type === 'line') all.push(...endsOf(m, ctx, k));
-        });
-        spread(all, ctx.plot.y, ctx.plot.y + ctx.plot.h);
-        for (const l of all) {
-          if (l.owner !== index) continue;
-          out.push({
-            type: 'text',
-            x: l.x + 8,
-            y: l.y,
-            text: l.text,
-            size: LABEL_SIZE,
-            weight: 600,
-            anchor: 'start',
-            baseline: 'middle',
-            style: { fill: l.color },
-            cls: 'bc-line-label',
-          });
-        }
-      }
       return out;
+    },
+    // past the plot's right edge, where the padding is: drawn outside the clip a zoom puts on the marks
+    labels(spec, ctx, index) {
+      if (!endsOf(spec, ctx, index).length) return [];
+      // the labels of every labelled line of the chart are spread together, so two line marks (revenue and plan)
+      // do not write over each other; each mark then draws only its own
+      const all: EndLabel[] = [];
+      ctx.spec.marks.forEach((m, k) => {
+        if (m.type === 'line') all.push(...endsOf(m, ctx, k));
+      });
+      spread(all, ctx.plot.y, ctx.plot.y + ctx.plot.h);
+      return all
+        .filter((l) => l.owner === index)
+        .map((l): BC.Prim => ({
+          type: 'text',
+          x: l.x + 8,
+          y: l.y,
+          text: l.text,
+          size: LABEL_SIZE,
+          weight: 600,
+          anchor: 'start',
+          baseline: 'middle',
+          style: { fill: l.color },
+          cls: 'bc-line-label',
+        }));
     },
     pick(spec, ctx, _index, px, py) {
       const xs = xsOf(spec, ctx);
