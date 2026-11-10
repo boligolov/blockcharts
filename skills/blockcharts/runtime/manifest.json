@@ -30,7 +30,7 @@
       "closure": [
         "lib.columns"
       ],
-      "doc": "The check of the columns a transform reads and writes, shared by transform.funnel, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it."
+      "doc": "The check of the columns a transform reads and writes, shared by transform.contour, transform.funnel, transform.hexbin, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it."
     },
     "lib.curve": {
       "file": "blocks/lib.curve.js",
@@ -51,6 +51,16 @@
         "lib.pointer"
       ],
       "doc": "The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point)` tells whether such a point is on the plot. `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it."
+    },
+    "lib.stats": {
+      "file": "blocks/lib.stats.js",
+      "bytes": 404,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "lib.stats"
+      ],
+      "doc": "Statistics shared by transform.density and transform.contour. `spread(sorted)` is the spread of sorted numbers that the width of a smoothing kernel is made from: the standard deviation, or the interquartile range / 1.34 when that is smaller, and 0 for numbers all alike. A spec never names it."
     },
     "lib.ticks": {
       "file": "blocks/lib.ticks.js",
@@ -367,6 +377,55 @@
       },
       "doc": "The columns of a calendar heatmap, one cell per row: `week` and `weekEnd` (where its week starts and ends, for `x` and `x2` of a rect on a time scale) and `day` (the name of the weekday, for `y` on a band scale). Rows are put in weekday order, so the band scale lists the days in the order of a week; a weekday with no rows gets one empty row, with no `week` to be drawn at, so that it keeps its place on the axis. Rows without a date are left out. A day that occurs twice gives two cells on one spot: aggregate first."
     },
+    "transform.contour": {
+      "file": "blocks/transform.contour.js",
+      "bytes": 5501,
+      "version": 1,
+      "requires": [
+        "lib.columns",
+        "lib.stats"
+      ],
+      "closure": [
+        "lib.columns",
+        "lib.stats",
+        "transform.contour"
+      ],
+      "params": {
+        "x": {
+          "kind": "field",
+          "required": true,
+          "doc": "Numeric field along x."
+        },
+        "y": {
+          "kind": "field",
+          "required": true,
+          "doc": "Numeric field along y."
+        },
+        "shares": {
+          "kind": "list",
+          "doc": "Regions by how many of the points they hold: [0.25, 0.5, 0.75, 0.95] draws the smallest region with a quarter of the points, then with half, and so on (each number above 0 and below 1). Without it, `levels` regions at even steps of the density."
+        },
+        "levels": {
+          "kind": "number",
+          "default": 6,
+          "doc": "How many regions, at even steps of the density up to its peak, when there are no `shares` (1 to 50)."
+        },
+        "bandwidth": {
+          "kind": "list",
+          "doc": "How smooth the density is: [along x, along y], in the units of each field, the width of the bump each point adds. Default: Scott's rule on each axis; null keeps it on one axis. Smaller shows more detail and more noise."
+        },
+        "extent": {
+          "kind": "list",
+          "doc": "Where the regions are cut, [[x low, x high], [y low, y high]], each end a number or null for none: [[0, null], [0, null]] for distances and times, which cannot be negative, so no region runs below 0. A point outside it is outside every region."
+        },
+        "grid": {
+          "kind": "number",
+          "default": 80,
+          "doc": "Cells of the grid the density is worked out on, along each axis (8 to 400). More draws smoother outlines."
+        }
+      },
+      "doc": "Density contours, for a scatter of too many points to read: where the points of two measures gather, as regions nested like the rings of a map. It smooths the points into a density (a kernel density estimate in two dimensions) and draws the outline of where it is at least each of a few levels. A row of the result is a point of an outline, under the names of `x` and `y`, in order; `ring` names its outline and `level` the region it bounds, 1 the outermost; `share` is how many of the points lie inside that region (0 to 1) and `density` the level itself. Draw it with mark.polygon (`group: \"level\"`, `ring: \"ring\"`), colored by `share` or `level` on a sequential scale; outlines of holes run the other way, so a region with a hole in it is drawn with the hole. Rows where x or y is not a number are left out."
+    },
     "transform.decimate": {
       "file": "blocks/transform.decimate.js",
       "bytes": 3496,
@@ -409,10 +468,13 @@
     },
     "transform.density": {
       "file": "blocks/transform.density.js",
-      "bytes": 2781,
-      "version": 1,
-      "requires": [],
+      "bytes": 2643,
+      "version": 2,
+      "requires": [
+        "lib.stats"
+      ],
       "closure": [
+        "lib.stats",
         "transform.density"
       ],
       "params": {
@@ -1497,6 +1559,75 @@
         }
       },
       "doc": "One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible; on a narrow screen its points shrink so they still fit. An opaque dot that rows repeat on one spot is drawn once; with `opacity` below 1 every one is drawn, so piles show."
+    },
+    "mark.polygon": {
+      "file": "blocks/mark.polygon.js",
+      "bytes": 1998,
+      "version": 1,
+      "requires": [],
+      "closure": [
+        "mark.polygon"
+      ],
+      "params": {
+        "group": {
+          "kind": "field",
+          "doc": "Rows with the same value make one shape. Default: all rows are one."
+        },
+        "ring": {
+          "kind": "field",
+          "doc": "In a shape, a run of rows with the same value is one closed outline. Default: one outline per shape."
+        },
+        "filled": {
+          "kind": "boolean",
+          "default": true,
+          "doc": "false draws only the outlines, in the color of the shape."
+        },
+        "fill": {
+          "kind": "string",
+          "doc": "Any CSS color, when there is no color channel. Default: theme color by mark index."
+        },
+        "opacity": {
+          "kind": "number",
+          "default": 1,
+          "doc": "Fill opacity."
+        },
+        "stroke": {
+          "kind": "string",
+          "doc": "Outline color of a filled shape. Default: none."
+        },
+        "strokeWidth": {
+          "kind": "number",
+          "default": 1
+        }
+      },
+      "channels": {
+        "x": {
+          "required": true,
+          "scales": [
+            "linear",
+            "log",
+            "time"
+          ],
+          "doc": "Position of each point of an outline."
+        },
+        "y": {
+          "required": true,
+          "scales": [
+            "linear",
+            "log",
+            "time"
+          ],
+          "doc": "Position of each point of an outline."
+        },
+        "color": {
+          "scales": [
+            "color",
+            "sequential"
+          ],
+          "doc": "Color of a shape, from its first row; a value the scale hides is not drawn."
+        }
+      },
+      "doc": "Closed shapes through the rows in their order: the regions of transform.contour, or any outline given point by point. `group` makes a shape of the rows with one value, drawn as one path, in the order the values first come (the last on top); `ring` splits a shape into several outlines, a run of rows each. An outline inside another that runs the other way round is a hole, as the rings of transform.contour do. With `filled: false` only the outlines are drawn (contour lines). The tooltip finds the shape the pointer is in, the top one first."
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",

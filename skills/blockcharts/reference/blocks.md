@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-54 blocks: `lib.columns`, `lib.curve`, `lib.pointer`, `lib.ticks`, `lib.view`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.hexbin`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+57 blocks: `lib.columns`, `lib.curve`, `lib.pointer`, `lib.stats`, `lib.ticks`, `lib.view`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.contour`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.hexbin`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.polygon`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -31,7 +31,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 
 ## lib.columns
 
-Version 1, 0.5 KB. The check of the columns a transform reads and writes, shared by transform.funnel, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it.
+Version 1, 0.5 KB. The check of the columns a transform reads and writes, shared by transform.contour, transform.funnel, transform.hexbin, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it.
 
 ## lib.curve
 
@@ -40,6 +40,10 @@ Version 2, 1.2 KB. The path of a line through points, shared by mark.line and ma
 ## lib.pointer
 
 Version 1, 1.4 KB. The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point)` tells whether such a point is on the plot. `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it.
+
+## lib.stats
+
+Version 1, 0.4 KB. Statistics shared by transform.density and transform.contour. `spread(sorted)` is the spread of sorted numbers that the width of a smoothing kernel is made from: the standard deviation, or the interquartile range / 1.34 when that is smaller, and 0 for numbers all alike. A spec never names it.
 
 ## lib.ticks
 
@@ -160,6 +164,22 @@ Version 2, 1.7 KB. The columns of a calendar heatmap, one cell per row: `week` a
 | `weekStart` | one of `monday`, `sunday` | `"monday"` | The first day of a week. |
 | `as` | list |  | Names of the three new columns. Default [week, weekEnd, day]. |
 
+## transform.contour
+
+Version 1, 5.4 KB. Density contours, for a scatter of too many points to read: where the points of two measures gather, as regions nested like the rings of a map. It smooths the points into a density (a kernel density estimate in two dimensions) and draws the outline of where it is at least each of a few levels. A row of the result is a point of an outline, under the names of `x` and `y`, in order; `ring` names its outline and `level` the region it bounds, 1 the outermost; `share` is how many of the points lie inside that region (0 to 1) and `density` the level itself. Draw it with mark.polygon (`group: "level"`, `ring: "ring"`), colored by `share` or `level` on a sequential scale; outlines of holes run the other way, so a region with a hole in it is drawn with the hole. Rows where x or y is not a number are left out.
+
+Needs: `lib.columns`, `lib.stats`.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `x` | field, **required** |  | Numeric field along x. |
+| `y` | field, **required** |  | Numeric field along y. |
+| `shares` | list |  | Regions by how many of the points they hold: [0.25, 0.5, 0.75, 0.95] draws the smallest region with a quarter of the points, then with half, and so on (each number above 0 and below 1). Without it, `levels` regions at even steps of the density. |
+| `levels` | number | `6` | How many regions, at even steps of the density up to its peak, when there are no `shares` (1 to 50). |
+| `bandwidth` | list |  | How smooth the density is: [along x, along y], in the units of each field, the width of the bump each point adds. Default: Scott's rule on each axis; null keeps it on one axis. Smaller shows more detail and more noise. |
+| `extent` | list |  | Where the regions are cut, [[x low, x high], [y low, y high]], each end a number or null for none: [[0, null], [0, null]] for distances and times, which cannot be negative, so no region runs below 0. A point outside it is outside every region. |
+| `grid` | number | `80` | Cells of the grid the density is worked out on, along each axis (8 to 400). More draws smoother outlines. |
+
 ## transform.decimate
 
 Version 3, 3.4 KB. Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them.
@@ -175,7 +195,9 @@ Version 3, 3.4 KB. Level of detail for long lines: keeps only the rows that can 
 
 ## transform.density
 
-Version 1, 2.7 KB. How the raw values of `field` are spread, as a smooth curve (a kernel density estimate): for every group, `steps` evenly spaced rows from a little below its smallest value to a little above its largest, each with the `value` and the `density` there. Draw it with mark.violin (violin plots, ridgelines), or with mark.area / mark.line on x = value, y = density. The curve of each group encloses an area of 1 (with `counts`, its number of samples, so bigger groups are bigger). Replaces the rows: the output has the group field, value, density and `count`, the number of samples of the group.
+Version 2, 2.6 KB. How the raw values of `field` are spread, as a smooth curve (a kernel density estimate): for every group, `steps` evenly spaced rows from a little below its smallest value to a little above its largest, each with the `value` and the `density` there. Draw it with mark.violin (violin plots, ridgelines), or with mark.area / mark.line on x = value, y = density. The curve of each group encloses an area of 1 (with `counts`, its number of samples, so bigger groups are bigger). Replaces the rows: the output has the group field, value, density and `count`, the number of samples of the group.
+
+Needs: `lib.stats`.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -480,6 +502,26 @@ Version 12, 3.9 KB. One circle per row. Channels x and y, optional color (a fiel
 | `swarm` | boolean | `false` | Spread the points of each category across its band so that none overlap, keeping each at its value: a beeswarm. Needs a band scale on one axis and a value on the other. When a category does not fit its band (on a phone, say), all points of the mark shrink as little as makes them fit (see `swarmShrink`); a point that still finds no room is laid over the others: use a taller chart, or for thousands of points a violin (transform.density). |
 | `swarmGap` | number | `1` | Space between the points of a swarm, px; it shrinks with the points. |
 | `swarmShrink` | number | `0.5` | How much smaller the points of a swarm may get when a category does not fit its band, as a share of their radius: 0.5 lets them get half as big, 0 keeps them as given (at most 0.9). |
+
+## mark.polygon
+
+Version 1, 2.0 KB. Closed shapes through the rows in their order: the regions of transform.contour, or any outline given point by point. `group` makes a shape of the rows with one value, drawn as one path, in the order the values first come (the last on top); `ring` splits a shape into several outlines, a run of rows each. An outline inside another that runs the other way round is a hole, as the rings of transform.contour do. With `filled: false` only the outlines are drawn (contour lines). The tooltip finds the shape the pointer is in, the top one first.
+
+| Channel | | Accepted scales | Notes |
+| --- | --- | --- | --- |
+| `x` | **required** | `linear`, `log`, `time` | Position of each point of an outline. |
+| `y` | **required** | `linear`, `log`, `time` | Position of each point of an outline. |
+| `color` | optional | `color`, `sequential` | Color of a shape, from its first row; a value the scale hides is not drawn. |
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `group` | field |  | Rows with the same value make one shape. Default: all rows are one. |
+| `ring` | field |  | In a shape, a run of rows with the same value is one closed outline. Default: one outline per shape. |
+| `filled` | boolean | `true` | false draws only the outlines, in the color of the shape. |
+| `fill` | string |  | Any CSS color, when there is no color channel. Default: theme color by mark index. |
+| `opacity` | number | `1` | Fill opacity. |
+| `stroke` | string |  | Outline color of a filled shape. Default: none. |
+| `strokeWidth` | number | `1` |  |
 
 ## mark.rect
 

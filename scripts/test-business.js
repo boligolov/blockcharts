@@ -1926,6 +1926,319 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(corners > 5, 'corners that belong to a neighbor were tried: ' + corners);
   });
 
+  // ───────────────────────── transform.contour, mark.polygon ─────────────────────────
+
+  /** Points on a ring of radius 10 around 0, 0, from a fixed seed: its densest region has a hole in the middle. */
+  const ringCloud = (n) => {
+    let s = 11;
+    const rnd = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+    const gauss = () => Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd());
+    return Array.from({ length: n }, () => {
+      const a = rnd() * 2 * Math.PI;
+      const r = 10 + gauss();
+      return { w: Math.cos(a) * r, h: Math.sin(a) * r };
+    });
+  };
+  /** The outlines of a contour table: per ring its level, share, density and points. */
+  const ringsOf = (t, xf = 'w', yf = 'h') => {
+    const out = new Map();
+    for (let k = 0; k < t.length; k++) {
+      const id = t.columns.ring[k];
+      if (!out.has(id)) out.set(id, { level: t.columns.level[k], share: t.columns.share[k], density: t.columns.density[k], pts: [] });
+      out.get(id).pts.push([t.columns[xf][k], t.columns[yf][k]]);
+    }
+    return [...out.values()];
+  };
+  const signedArea = (pts) =>
+    pts.reduce((a, p, i) => a + (pts[(i || pts.length) - 1][0] * p[1] - p[0] * pts[(i || pts.length) - 1][1]), 0) / 2;
+  /** Inside the outlines of one level by the nonzero rule, as mark.polygon fills them. */
+  const insideOf = (rings, x, y) => {
+    let w = 0;
+    for (const { pts } of rings)
+      for (let k = 0, m = pts.length - 1; k < pts.length; m = k++) {
+        const [x0, y0] = pts[m];
+        const [x1, y1] = pts[k];
+        const side = (x1 - x0) * (y - y0) - (x - x0) * (y1 - y0);
+        if (y0 <= y) {
+          if (y1 > y && side > 0) w++;
+        } else if (y1 <= y && side < 0) w--;
+      }
+    return w !== 0;
+  };
+
+  test('transform.contour: each region holds its share of the points, its outline is where the density is its level', () => {
+    const rows = cloud(3000);
+    const shares = [0.25, 0.5, 0.75, 0.95];
+    const t = apply('contour', rows, { x: 'w', y: 'h', shares });
+    const rings = ringsOf(t);
+    const levels = [...new Set(rings.map((r) => r.level))];
+    assert.deepStrictEqual(levels, [1, 2, 3, 4], 'the outermost first');
+    for (const level of levels) {
+      const mine = rings.filter((r) => r.level === level);
+      const share = mine[0].share;
+      assert(near(share, shares[4 - level], 1 / 3000), `level ${level} holds ${share}`);
+      // the points inside the outlines drawn: as many as `share` says, but for those on the very edge
+      const inside = rows.filter((p) => insideOf(mine, p.w, p.h)).length / rows.length;
+      assert(near(inside, share, 0.02), `level ${level}: ${inside} of the points inside, ${share} said`);
+    }
+    // on an outline the density, worked out from every point with no grid, is the level of that outline
+    const xs = rows.map((p) => p.w);
+    const ys = rows.map((p) => p.h);
+    const scott = (v) => {
+      const s = v.slice().sort((a, b) => a - b);
+      const mean = s.reduce((a, b) => a + b, 0) / s.length;
+      const sd = Math.sqrt(s.reduce((a, b) => a + (b - mean) ** 2, 0) / (s.length - 1));
+      const q = (p) =>
+        s[Math.floor(p * (s.length - 1))] +
+        (s[Math.ceil(p * (s.length - 1))] - s[Math.floor(p * (s.length - 1))]) * (p * (s.length - 1) - Math.floor(p * (s.length - 1)));
+      return Math.min(sd, (q(0.75) - q(0.25)) / 1.34) * Math.pow(s.length, -1 / 6);
+    };
+    const [bx, by] = [scott(xs), scott(ys)];
+    const density = (x, y) =>
+      rows.reduce((a, p) => a + Math.exp(-((p.w - x) ** 2) / (2 * bx * bx) - (p.h - y) ** 2 / (2 * by * by)), 0) /
+      (rows.length * 2 * Math.PI * bx * by);
+    for (const r of rings)
+      for (let k = 0; k < r.pts.length; k += 7) {
+        const d = density(...r.pts[k]);
+        assert(near(d / r.density, 1, 0.05), `level ${r.level}: ${d} on an outline of ${r.density}`);
+      }
+    // outlines run counterclockwise around a region; nested, each inside the one before
+    assert(rings.every((r) => signedArea(r.pts) > 0));
+    // the same data in another order gives the same table
+    assert.deepStrictEqual(apply('contour', rows.slice().reverse(), { x: 'w', y: 'h', shares }), t);
+    // levels: even steps of the density, up to its peak
+    const even = ringsOf(apply('contour', rows, { x: 'w', y: 'h', levels: 3 }));
+    const steps = [...new Set(even.map((r) => r.density))];
+    assert.strictEqual(steps.length, 3);
+    assert(near(steps[1] - steps[0], steps[0], 1e-12) && near(steps[2] - steps[1], steps[0], 1e-12), 'even steps');
+    assert(
+      even.every((r, i) => i === 0 || r.share <= even[i - 1].share),
+      'a higher level holds fewer points',
+    );
+  });
+
+  test('transform.contour: a region with a hole has an outline the other way round, and the hole is left empty', () => {
+    const rows = ringCloud(20000);
+    const rings = ringsOf(apply('contour', rows, { x: 'w', y: 'h', shares: [0.9] }));
+    assert.strictEqual(rings.length, 2, 'an outline and a hole');
+    const [outer, hole] = rings.slice().sort((a, b) => Math.abs(signedArea(b.pts)) - Math.abs(signedArea(a.pts)));
+    assert(signedArea(outer.pts) > 0 && signedArea(hole.pts) < 0, 'the hole runs clockwise');
+    assert(!insideOf(rings, 0, 0), 'the middle is a hole');
+    assert(insideOf(rings, 10, 0) && insideOf(rings, 0, -10), 'the ring is inside');
+    assert(!insideOf(rings, 16, 0), 'beyond it is outside');
+  });
+
+  test('transform.contour extent: no region runs past a cut, an outline that meets one runs along it, points beyond are in none', () => {
+    // distances: none below 0, most near it
+    const rows = cloud(2000).map((p) => ({ w: Math.abs(p.w - 60), h: p.h }));
+    const free = apply('contour', rows, { x: 'w', y: 'h', shares: [0.5, 0.95] });
+    assert(Math.min(...free.columns.w) < 0, 'without a cut the density runs below 0');
+    const t = apply('contour', rows, { x: 'w', y: 'h', shares: [0.5, 0.95], extent: [[0, null], null] });
+    assert(Math.min(...t.columns.w) === 0, 'along the cut, and not past it');
+    for (const r of ringsOf(t)) {
+      const inside =
+        rows.filter((p) =>
+          insideOf(
+            ringsOf(t).filter((q) => q.level === r.level),
+            p.w,
+            p.h,
+          ),
+        ).length / rows.length;
+      assert(near(inside, r.share, 0.02), `level ${r.level}: ${inside} inside, ${r.share} said`);
+    }
+    // a cut through the points: those beyond it are in no region, so a region holds fewer of them
+    const half = apply('contour', rows, {
+      x: 'w',
+      y: 'h',
+      levels: 2,
+      extent: [
+        [null, 10],
+        [null, null],
+      ],
+    });
+    const left = rows.filter((p) => p.w <= 10).length / rows.length;
+    assert(Math.max(...half.columns.w) <= 10 + 1e-9 && half.columns.share.every((s) => s <= left + 1e-12), 'beyond the cut is in none');
+  });
+
+  test('transform.contour: two dense spots on the corners of a cell are one region where its middle is above the level, two where not', () => {
+    // a bandwidth far below a cell: the density is the points themselves, on the nodes of an 8 × 8 grid over 0..7
+    const rows = [
+      ...Array.from({ length: 10 }, () => ({ x: 2, y: 2 })),
+      ...Array.from({ length: 10 }, () => ({ x: 3, y: 3 })),
+      { x: 0, y: 0 },
+      { x: 7, y: 7 },
+    ];
+    const rings = ringsOf(apply('contour', rows, { x: 'x', y: 'y', grid: 8, levels: 3, bandwidth: [0.001, 0.001] }), 'x', 'y');
+    // the middle of the cell between them is half the peak: above the lowest level (a quarter), below the top (three quarters)
+    const low = rings.filter((r) => r.level === 1);
+    const top = rings.filter((r) => r.level === 3);
+    assert.strictEqual(low.length, 1, 'one region around both');
+    assert(insideOf(low, 2, 2) && insideOf(low, 3, 3) && insideOf(low, 2.5, 2.5));
+    assert.strictEqual(top.length, 2, 'a region around each');
+    assert(insideOf(top, 2, 2) && insideOf(top, 3, 3) && !insideOf(top, 2.5, 2.5));
+  });
+
+  test('transform.contour: hostile rows and parameters', () => {
+    const t = apply(
+      'contour',
+      [
+        { x: 1, y: 2 },
+        { x: NaN, y: 1 },
+        { x: 'a', y: 1 },
+        { x: null, y: 1 },
+        { x: 3, y: Infinity },
+        { x: 2, y: 3 },
+        { x: 2, y: 2 },
+      ],
+      { x: 'x', y: 'y', levels: 2 },
+    );
+    assert(t.length > 0 && Object.values(t.columns).every((c) => c.every(Number.isFinite)), 'three points still have regions');
+    assert.deepStrictEqual(
+      BC.get('transform.contour').apply({ length: 0, columns: { x: [], y: [] } }, { type: 'contour', x: 'x', y: 'y' }),
+      {
+        length: 0,
+        columns: { level: [], share: [], density: [], ring: [], x: [], y: [] },
+      },
+    );
+    // every point on one spot: a small region around it, not a division by zero
+    const one = apply(
+      'contour',
+      Array.from({ length: 5 }, () => ({ x: 5, y: 5 })),
+      { x: 'x', y: 'y', levels: 1 },
+    );
+    assert(one.length > 2 && Object.values(one.columns).every((c) => c.every(Number.isFinite)));
+    assert(insideOf(ringsOf(one, 'x', 'y'), 5, 5));
+    const rows = cloud(500);
+    for (const [bad, message] of [
+      [{ grid: 3 }, /"grid" must be a whole number from 8 to 400/],
+      [{ grid: 1e6 }, /"grid"/],
+      [{ grid: 20.5 }, /"grid"/],
+      [{ levels: 0 }, /"levels" must be a whole number from 1 to 50/],
+      [{ levels: 'many' }, /"levels"/],
+      [{ shares: [] }, /"shares" must be a list/],
+      [{ shares: [0.5, 1] }, /"shares"/],
+      [{ shares: [0, 0.5] }, /"shares"/],
+      [{ shares: 0.5 }, /"shares"/],
+      [{ shares: ['half'] }, /"shares"/],
+      [{ bandwidth: [1] }, /"bandwidth" must be \[along x, along y\]/],
+      [{ bandwidth: [-1, 2] }, /"bandwidth"/],
+      [{ bandwidth: 2 }, /"bandwidth"/],
+      [{ bandwidth: [Infinity, 2] }, /"bandwidth"/],
+    ])
+      assert.throws(() => apply('contour', rows, { x: 'w', y: 'h', ...bad }), message, JSON.stringify(bad));
+    for (const extent of [[[0]], [0, null], [[1, 0], null], [['a', null], null], [[null, null]], [[0, NaN], null], 'none'])
+      assert.throws(
+        () => apply('contour', rows, { x: 'w', y: 'h', extent }),
+        /"extent" must be \[\[x low, x high\], \[y low, y high\]\]/,
+        JSON.stringify(extent),
+      );
+    assert.throws(() => apply('contour', rows, { x: 'w', y: 'h', extent: [[1000, null], null] }), /"extent" leaves no room for the points/);
+    assert.throws(() => apply('contour', rows, { x: 'nope', y: 'h' }), /transform.contour: unknown field "nope" in "x"/);
+    assert.throws(() => apply('contour', [{ level: 1, y: 1 }], { x: 'level', y: 'y' }), /transform.contour: .*"level"/);
+    // the data may have columns called level or share: the result is a table of its own
+    assert(
+      apply(
+        'contour',
+        rows.map((r) => ({ ...r, share: 9 })),
+        { x: 'w', y: 'h', levels: 1 },
+      ).columns.share.every((s) => s < 1),
+    );
+    // null keeps the rule on that axis; a wider bandwidth along y makes the outermost region taller
+    const tall = (by) => {
+      const r = ringsOf(apply('contour', rows, { x: 'w', y: 'h', levels: 3, bandwidth: [null, by] })).filter((q) => q.level === 1);
+      const ys = r.flatMap((q) => q.pts.map((p) => p[1]));
+      return [Math.min(...ys), Math.max(...ys)];
+    };
+    const [lo1, hi1] = tall(1);
+    const [lo6, hi6] = tall(6);
+    assert(lo6 < lo1 && hi6 > hi1, `taller with a wider bandwidth: ${[lo1, hi1]} and ${[lo6, hi6]}`);
+    const rule = ringsOf(apply('contour', rows, { x: 'w', y: 'h', levels: 3 }));
+    const ruleX = ringsOf(apply('contour', rows, { x: 'w', y: 'h', levels: 3, bandwidth: [null, null] }));
+    assert.deepStrictEqual(ruleX, rule, '[null, null] is the rule');
+    const started = Date.now();
+    const many = apply('contour', cloud(200000), { x: 'w', y: 'h', shares: [0.5, 0.9] });
+    assert(many.length > 0 && Date.now() - started < 3000, 'quick on 200,000 points: ' + (Date.now() - started) + ' ms');
+  });
+
+  test('mark.polygon: a shape per group, outlines per ring, holes left empty, and the pointer finds the top shape', async () => {
+    BC.data('ringcloud', ringCloud(20000));
+    const picked = [];
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      data: 'ringcloud',
+      size: [400, 400],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      transforms: [{ type: 'contour', x: 'w', y: 'h', shares: [0.5, 0.9] }],
+      scales: { x: { type: 'linear', domain: [-20, 20] }, y: { type: 'linear', domain: [-20, 20] }, color: { type: 'sequential' } },
+      marks: [{ type: 'polygon', x: 'w', y: 'h', group: 'level', ring: 'ring', color: 'share' }],
+      interaction: [{ type: 'tooltip', content: (d) => picked.push(d.row) && undefined }],
+    });
+    assert.deepStrictEqual(h.diagnostics, []);
+    const shapes = paths(layer(svgOf(host), 'marks'));
+    assert.strictEqual(shapes.length, 2, 'a path per level');
+    assert(
+      shapes.every((p) => (p.d.match(/M/g) || []).length === 2 && /Z$/.test(p.d)),
+      'an outline and a hole in each',
+    );
+    const box = host.children[0].getBoundingClientRect();
+    const at = async (x, y) => {
+      picked.length = 0;
+      // data -20..20 on 400 px, y up
+      await hover(host, box.left + ((x + 20) / 40) * box.width, box.top + ((20 - y) / 40) * box.height);
+      return tipOf(host).style.display === 'block' ? picked[picked.length - 1] : null;
+    };
+    const t = apply('contour', ringCloud(20000), { x: 'w', y: 'h', shares: [0.5, 0.9] });
+    const levelAt = async (x, y) => {
+      const row = await at(x, y);
+      return row === null ? null : t.columns.level[row];
+    };
+    // along a line out of the middle: the top region the point is in (the densest), nothing in the hole and beyond
+    const regions = ringsOf(t);
+    const seen = new Set();
+    for (let r = 0; r <= 16; r += 0.25) {
+      const y = r + 0.01;
+      let expected = null;
+      for (const level of [2, 1])
+        if (
+          expected === null &&
+          insideOf(
+            regions.filter((q) => q.level === level),
+            0,
+            y,
+          )
+        )
+          expected = level;
+      assert.strictEqual(await levelAt(0, y), expected, 'at 0, ' + y);
+      seen.add(expected);
+    }
+    assert.deepStrictEqual([...seen].sort(), [1, 2, null].sort(), 'the hole, both regions and the outside were tried');
+
+    // any outline given point by point; filled: false draws only the outline in the shape's color
+    BC.data('shapes', [
+      { x: 0, y: 0, k: 'a' },
+      { x: 4, y: 0, k: 'a' },
+      { x: 0, y: 4, k: 'a' },
+      { x: 5, y: 5, k: 'b' },
+      { x: NaN, y: 6, k: 'b' },
+      { x: 6, y: 5, k: 'b' },
+      { x: 9, y: 9, k: 'c' },
+      { x: 9, y: 8, k: 'c' },
+    ]);
+    const { svg, h: h2 } = draw({
+      data: 'shapes',
+      size: [200, 200],
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [{ type: 'polygon', x: 'x', y: 'y', group: 'k', filled: false, fill: '#123456', strokeWidth: 2 }],
+    });
+    assert.deepStrictEqual(h2.diagnostics, []);
+    const drawn = paths(layer(svg, 'marks'));
+    assert.strictEqual(drawn.length, 1, 'b lost a point and c has two: neither is a shape');
+    assert(
+      /fill="none"/.test(drawn[0].attrs) && /stroke="#123456"/.test(drawn[0].attrs) && /stroke-width="2"/.test(drawn[0].attrs),
+      drawn[0].attrs,
+    );
+  });
+
   // ───────────────────────── mark.sankey ────
   const flows = (rows, extra = {}) => {
     BC.data('flows', rows);

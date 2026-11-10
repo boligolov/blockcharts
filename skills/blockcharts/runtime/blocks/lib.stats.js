@@ -1,0 +1,2 @@
+"use strict";(function(){function f(n){const i=n.length;if(i<2)return 0;let e=0;for(let t=0;t<i;t++)e+=n[t];e/=i;let s=0;for(let t=0;t<i;t++)s+=(n[t]-e)*(n[t]-e);const c=Math.sqrt(s/(i-1)),r=t=>{const a=t*(i-1),o=Math.floor(a);return n[o]+(n[Math.min(i-1,o+1)]-n[o])*(a-o)},l=r(.75)-r(.25);return l>0?Math.min(c,l/1.34):c}const u={role:"lib",type:"stats",version:1,exports:{spread:f}};BC.define(u)})();
+

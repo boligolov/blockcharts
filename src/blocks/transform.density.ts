@@ -15,27 +15,23 @@
     return fail('"as" must be two different column names: [value, density]');
   }
 
-  /** Silverman's rule of thumb: 0.9 · min(sd, IQR / 1.34) · n^-1/5. Samples all alike have no spread, so a width is made
-   *  up from their size, and the curve is a narrow bump rather than a division by zero. */
+  /** From lib.stats, listed in `requires` so it is on the page. */
+  const spread = (sorted: ArrayLike<number>) =>
+    ((BC.get('lib.stats') as BC.LibDef).exports.spread as (s: ArrayLike<number>) => number)(sorted);
+
+  /** Silverman's rule of thumb: 0.9 · spread · n^-1/5. Samples all alike have no spread, so a width is made up from their
+   *  size, and the curve is a narrow bump rather than a division by zero. */
   function bandwidthOf(sorted: number[]): number {
-    const n = sorted.length;
-    const mean = sorted.reduce((a, b) => a + b, 0) / n;
-    const sd = n > 1 ? Math.sqrt(sorted.reduce((a, b) => a + (b - mean) * (b - mean), 0) / (n - 1)) : 0;
-    const at = (p: number) => {
-      const i = p * (n - 1);
-      const lo = Math.floor(i);
-      return sorted[lo] + (sorted[Math.min(n - 1, lo + 1)] - sorted[lo]) * (i - lo);
-    };
-    const iqr = at(0.75) - at(0.25);
-    const spread = iqr > 0 ? Math.min(sd, iqr / 1.34) : sd;
-    if (spread > 0) return 0.9 * spread * Math.pow(n, -0.2);
+    const s = spread(sorted);
+    if (s > 0) return 0.9 * s * Math.pow(sorted.length, -0.2);
     return Math.abs(sorted[0]) * 0.05 || 1;
   }
 
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'density',
-    version: 1,
+    version: 2,
+    requires: ['lib.stats'],
     replacesColumns: true,
     doc: 'How the raw values of `field` are spread, as a smooth curve (a kernel density estimate): for every group, `steps` evenly spaced rows from a little below its smallest value to a little above its largest, each with the `value` and the `density` there. Draw it with mark.violin (violin plots, ridgelines), or with mark.area / mark.line on x = value, y = density. The curve of each group encloses an area of 1 (with `counts`, its number of samples, so bigger groups are bigger). Replaces the rows: the output has the group field, value, density and `count`, the number of samples of the group.',
     params: {

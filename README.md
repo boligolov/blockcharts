@@ -103,7 +103,7 @@ Datasets can be rows, `{"columns": {...}}`, `{"csv": "text"}`, or `{"csvFile": "
 
 A dashboard is the same file with a grid: `"layout": {"columns": 4}` and a `span` per chart (KPI tiles `span: 1`, a trend `span: 3`); `title` and `subtitle` head the page. Every chart sits in a card; on a phone the cards stack.
 
-Ready-made pages to copy live in `skills/blockcharts/recipes/`: an executive dashboard (KPI tiles in a grid), waterfall, funnel, bullet, treemap, bar, stacked and grouped bars, dot plot, boxplot, lines with zoom, a slope chart, a moving average and running totals, scatter, a hexbin of thousands of points, bubbles, dual axis, 100% stacked area, histogram, heatmap, pie, long series, and a CSV report with aggregation and currency formatting.
+Ready-made pages to copy live in `skills/blockcharts/recipes/`: an executive dashboard (KPI tiles in a grid), waterfall, funnel, bullet, treemap, bar, stacked and grouped bars, dot plot, boxplot, lines with zoom, a slope chart, a moving average and running totals, scatter, a hexbin and density contours of thousands of points, bubbles, dual axis, 100% stacked area, histogram, heatmap, pie, long series, and a CSV report with aggregation and currency formatting.
 
 #### 2. Kits: core + blocks in one file
 
@@ -203,10 +203,10 @@ Scales are declared once and named. Marks read data through channels (`"x": "reg
 
 | Role | Blocks |
 | --- | --- |
-| lib | `columns`, `curve`, `pointer`, `ticks`, `view` (code other blocks share; a spec never names it) |
+| lib | `columns`, `curve`, `pointer`, `stats`, `ticks`, `view` (code other blocks share; a spec never names it) |
 | scale | `linear`, `log`, `time`, `band`, `color`, `sequential`, `size` |
-| transform | `stack`, `bin`, `decimate`, `aggregate`, `quartiles`, `waterfall`, `funnel`, `treemap`, `window`, `fold`, `filter`, `sort`, `calculate`, `highlight`, `calendar`, `marimekko`, `density`, `hexbin` |
-| mark | `point`, `line`, `rect`, `area`, `text`, `arc`, `boxplot`, `rule`, `sankey`, `candlestick`, `violin` |
+| transform | `stack`, `bin`, `decimate`, `aggregate`, `quartiles`, `waterfall`, `funnel`, `treemap`, `window`, `fold`, `filter`, `sort`, `calculate`, `highlight`, `calendar`, `marimekko`, `density`, `hexbin`, `contour` |
+| mark | `point`, `line`, `rect`, `area`, `text`, `arc`, `boxplot`, `rule`, `sankey`, `candlestick`, `violin`, `polygon` |
 | guide | `axis`, `grid`, `legend`, `kpi` |
 | interaction | `zoom`, `zoom-controls`, `tooltip`, `crosshair`, `legend-filter`, `brush`, `animate` |
 | renderer | `svg`, `canvas` |

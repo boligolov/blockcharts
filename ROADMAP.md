@@ -66,7 +66,7 @@ Done in skill 0.29.0: a value repeated on every row of its group is drawn once b
 so `bars-and-line` writes the total over each stack. Its tooltip shows only the fields those rows share (`Pick.rows`).
 
 - [ ] **Distributions**: done in skill 0.23.0, violins and ridgelines (`transform.density`, `mark.violin`). A beeswarm is `mark.point`
-      `swarm`. Done in skill 0.30.0, hexbin (`transform.hexbin`, `mark.rect` `shape: "hexagon"`, `scale.sequential` `exponent`). Left: density contours; a square 2D histogram (transform.bin of two fields, drawn as rect) would
+      `swarm`. Done in skill 0.30.0, hexbin (`transform.hexbin`, `mark.rect` `shape: "hexagon"`, `scale.sequential` `exponent`); in 0.31.0 density contours (`transform.contour`, `mark.polygon`). Left: contours per group (one chart holds one table, so contours cannot be drawn over their points either); a square 2D histogram (transform.bin of two fields, drawn as rect) would
       need no new mark. A violin with a box plot inside it is two tables, which one chart cannot hold.
 - Not planned: force-directed networks, chords, word clouds, 3D, Venn diagrams, polar rose and radial bars (they read like
   radar); trees, dendrograms, packed circles and icicles only if a report asks for them; a waffle chart is rect + calculate.
