@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 32128,
+    "bytes": 32400,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 25129,
+        "bytes": 25370,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 22117,
+        "bytes": 22341,
         "off": [
           "CHECKS",
           "DECODE"
@@ -24,8 +24,8 @@
   "blocks": {
     "lib.columns": {
       "file": "blocks/lib.columns.js",
-      "bytes": 538,
-      "version": 1,
+      "bytes": 640,
+      "version": 2,
       "requires": [],
       "closure": [
         "lib.columns"

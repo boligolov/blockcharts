@@ -1192,6 +1192,14 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   for /favicon.ico: whatever the checks miss, a CSS escape that spells `url` or an `<img>` an API caller adds, the
   browser does not load. All 48 recipes draw under it in Chrome, gradients (`url(#…)`) included, with no console
   error.
+- **A name every object has is not a name of the spec.** Scales were looked up in plain objects, so `"scale":
+  "constructor"` found `Object` and passed as declared: the bars were drawn by it, 1 to 3 px tall, with no diagnostic.
+  `BC.formatter("constructor")` wrote numbers instead of saying the format is unknown. Now validation looks up the
+  declared scales, and a chart its built scales and its view, in objects without a prototype, and presets by own key. A
+  column named `__proto__` became the prototype of the columns instead of one of them (lost from rows, a TypeError from
+  columns, lost while decoding binary columns): `BC.data`, the CSV reader and `lib.columns` (for a new column of a
+  transform) refuse it with what to rename. A CSV column named `constructor` no longer finds a type in `types` it was
+  not given.
 
 ## Next steps
 

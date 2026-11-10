@@ -122,7 +122,8 @@ function parseCsv(text, options) {
 
   const columns = {};
   header.forEach((name, c) => {
-    const forced = opts.types && opts.types[name];
+    if (name === '__proto__') throw new CsvError('a column cannot be named "__proto__"; rename it in the header');
+    const forced = opts.types && Object.prototype.hasOwnProperty.call(opts.types, name) ? opts.types[name] : undefined;
     if (opts.types && forced !== undefined && forced !== 'number' && forced !== 'string')
       throw new CsvError(`types.${name} must be "number" or "string"`);
     const cells = raw[c].map((v) => (nulls.has(v.trim()) || nulls.has(v) ? null : v));

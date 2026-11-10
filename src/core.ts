@@ -87,13 +87,18 @@
   function toTable(input: BC.DatasetInput): BC.Table {
     const columns: Record<string, BC.Column> = {};
     let length = 0;
+    // a column of that name would become the prototype of the columns instead of one of them
+    const named = (k: string) => {
+      if (k === '__proto__') throw new Error('BC.data: a column cannot be named "__proto__"; rename it');
+      return k;
+    };
     if (Array.isArray(input)) {
-      const keys: Record<string, true> = {};
+      const keys = new Set<string>();
       input.forEach((row, i) => {
         if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error(`BC.data: row ${i} is not an object`);
-        for (const k of Object.keys(row)) keys[k] = true;
+        for (const k of Object.keys(row)) keys.add(named(k));
       });
-      for (const k of Object.keys(keys)) columns[k] = toColumn(input.map((r) => r[k]));
+      for (const k of keys) columns[k] = toColumn(input.map((r) => r[k]));
       length = input.length;
     } else if (
       input &&
@@ -102,7 +107,7 @@
       typeof (input as { columns?: unknown }).columns === 'object'
     ) {
       const source = (input as { columns: Record<string, unknown[] | Float64Array> }).columns;
-      const names = Object.keys(source);
+      const names = Object.keys(source).map(named);
       for (const k of names)
         if (!Array.isArray(source[k]) && !(source[k] instanceof Float64Array)) throw new Error(`BC.data: column "${k}" is not an array`);
       length = names.length ? source[names[0]].length : 0;
@@ -245,7 +250,7 @@
       ? async function withBinaryColumns(json: unknown, budget: { left: number }): Promise<unknown> {
           if (!hasBinaryColumns(json)) return json;
           const source = (json as { columns: Record<string, unknown> }).columns;
-          const columns: Record<string, unknown> = {};
+          const columns: Record<string, unknown> = Object.create(null); // a "__proto__" stays a column, for BC.data to refuse
           for (const k of Object.keys(source))
             columns[k] = isBinaryColumn(source[k]) ? await decodeBinaryColumn(k, source[k] as BC.BinaryColumn, budget) : source[k];
           return { columns };
@@ -445,7 +450,8 @@
               err(path, `unknown field "${field}" in dataset "${spec.data}"`);
           };
           const checkField = (path: string, field: string) => checkFieldIn(knownColumns, path, field);
-          const scales = spec.scales || {};
+          // the declared scales, looked up by names the spec gives: "constructor" is not one of them unless it is declared
+          const scales: Record<string, BC.ScaleSpec> = Object.assign(Object.create(null), spec.scales);
 
           if (spec.size !== undefined && !(Array.isArray(spec.size) && spec.size.length === 2 && spec.size[0] > 0 && spec.size[1] > 0)) {
             err('size', 'size must be [width, height] with positive numbers');
@@ -795,14 +801,15 @@
 
     // 3 scales: the domain of each is inferred from every channel that names it
     const scaleSpecs = spec.scales || {};
-    const scales: Record<string, BC.Scale> = {};
+    // looked up by names from specs and from callers (setView): no name finds anything that was not put there
+    const scales: Record<string, BC.Scale> = Object.create(null);
     const channelCache = new Map<BC.MarkSpec, Record<string, BC.ChannelData>>();
     const tickCache = new Map<string, BC.Tick[]>();
     const rowsCache = new Map<BC.MarkSpec, { from: number; to: number }>();
     /** Series per mark, for the xs they were split by: render and every pick of the frame ask for the same ones. */
     const seriesCache = new Map<BC.MarkSpec, { xs: ArrayLike<number>; out: { key: unknown; rows: number[] }[] }>();
     const markDef = (m: BC.MarkSpec) => registry.get(`mark.${m.type}`) as BC.MarkDef;
-    const view: Record<string, unknown[]> = {};
+    const view: Record<string, unknown[]> = Object.create(null);
     const applyView = () => {
       for (const name of Object.keys(scales)) {
         scales[name].setDomain(view[name] || null);
@@ -839,7 +846,7 @@
     for (const name of Object.keys(initial)) view[name] = initial[name];
     // a zoom carried over from before an update(); a view the new spec sets itself wins
     for (const name of Object.keys(keptView || {})) {
-      if (scaleSpecs[name] && !(name in initial)) view[name] = (keptView as Record<string, unknown[]>)[name];
+      if (scales[name] && !Object.prototype.hasOwnProperty.call(initial, name)) view[name] = (keptView as Record<string, unknown[]>)[name];
     }
     applyView();
 
@@ -1660,7 +1667,7 @@
   function formatter(spec: string | BC.FormatSpec, kind?: 'number' | 'date'): (value: unknown) => string {
     let o: BC.FormatSpec;
     if (typeof spec === 'string') {
-      if (!PRESETS[spec])
+      if (!Object.prototype.hasOwnProperty.call(PRESETS, spec))
         throw new Error(`unknown format "${spec}" (presets: ${Object.keys(PRESETS).join(', ')}; or an object of Intl options)`);
       o = PRESETS[spec];
     } else if (spec && typeof spec === 'object' && !Array.isArray(spec)) {

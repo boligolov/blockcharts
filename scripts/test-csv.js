@@ -105,6 +105,8 @@ test('csv: types force a column to text or number', () => {
   assert.deepStrictEqual(cols('a\n1\n\n3', { types: { a: 'number' } }), { a: [1, 3] });
   assert.throws(() => cols('a\n1\nx', { types: { a: 'number' } }), /column "a" is declared a number but contains "x"/);
   assert.throws(() => cols('a\n1', { types: { a: 'date' } }), /types\.a must be "number" or "string"/);
+  // a column named like something every object has is a column like any other: types does not find "constructor" in it
+  assert.deepStrictEqual(cols('constructor,toString\nx,1', { types: { zip: 'string' } }), { constructor: ['x'], toString: [1] });
 });
 
 test('csv: broken input is a clear error with the line', () => {
@@ -116,6 +118,7 @@ test('csv: broken input is a clear error with the line', () => {
     ['a,b\n1,"never closed', /never closed/],
     ['a,b\n1,2\n3,4,5', /line 3 has 3 fields, the header has 2/],
     ['a,b\n1,2\n"multi\nline",4,x', /line 3 has 3 fields/],
+    ['a,__proto__\n1,2', /a column cannot be named "__proto__"; rename it in the header/],
   ])
     assert.throws(
       () => cols(text),

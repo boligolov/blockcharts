@@ -441,4 +441,74 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     assert(!/url\(/.test(svgOf(host)), 'nothing is drawn with the url');
     logged.error.length = 0;
   });
+
+  // ── names every object has ──
+
+  test('a name every object has ("constructor", "toString", "__proto__") is not taken for a scale, a format or a column', () => {
+    BC.data('names', [
+      { k: 'a', v: 1 },
+      { k: 'b', v: 2 },
+    ]);
+    const base = { data: 'names', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'rect', x: 'k', y: 'v' }] };
+    const errors = (spec) => BC.validate(spec).filter((d) => d.level === 'error');
+    const undeclared = [
+      [{ ...base, marks: [{ type: 'rect', x: 'k', y: { field: 'v', scale: 'constructor' } }] }, 'marks[0].y'],
+      [{ ...base, guides: [{ type: 'axis', scale: 'toString' }] }, 'guides[0].scale'],
+      [{ ...base, guides: [{ type: 'legend', scale: 'hasOwnProperty' }] }, 'guides[0].scale'],
+      [{ ...base, view: { constructor: [0, 1] } }, 'view.constructor'],
+      [{ ...base, transforms: [{ type: 'stack', field: 'v', follows: 'valueOf' }] }, 'transforms[0].follows'],
+    ];
+    for (const [spec, path] of undeclared) {
+      const found = errors(spec);
+      assert(
+        found.some((d) => d.path === path && /not declared|name of a declared scale/.test(d.message)),
+        JSON.stringify(found),
+      );
+    }
+    // a scale may be called so, when it is declared
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      ...base,
+      scales: { constructor: { type: 'band', range: 'width' }, y: { type: 'linear' } },
+      marks: [{ type: 'rect', x: { field: 'k', scale: 'constructor' }, y: 'v' }],
+      guides: [{ type: 'axis', scale: 'constructor' }],
+    });
+    assert.deepStrictEqual(h.diagnostics, []);
+    assert.strictEqual(count(svgOf(host), /<rect x="[\d.-]+" y="[\d.-]+" width="[\d.]+" height="[\d.]+"/g), 2, 'both bars drawn');
+    logged.warn.length = 0;
+    h.setView('toString', [0, 1]); // not a scale of this chart: said so, and nothing happens
+    assert(
+      logged.warn.some((w) => /setView: unknown scale "toString"/.test(w)),
+      JSON.stringify(logged.warn),
+    );
+    assert.deepStrictEqual(Object.keys(h.getView()).sort(), ['constructor', 'y']);
+
+    for (const name of ['constructor', 'toString', '__proto__']) assert.throws(() => BC.formatter(name), /unknown format/, name);
+
+    // a column named "__proto__" would become the prototype of the columns, so it is refused, in every form of data
+    for (const input of [JSON.parse('[{"__proto__": 1, "a": 2}]'), JSON.parse('{"columns": {"__proto__": [1], "a": [2]}}')])
+      assert.throws(() => BC.data('proto', input), /BC\.data: a column cannot be named "__proto__"; rename it/);
+    // and a column named "constructor" is a column like any other
+    BC.data('ctor', [{ constructor: 'x', v: 1 }]);
+    assert.deepStrictEqual(
+      BC.validate({
+        data: 'ctor',
+        scales: { x: { type: 'band' }, y: { type: 'linear' } },
+        marks: [{ type: 'rect', x: 'constructor', y: 'v' }],
+      }),
+      [],
+    );
+
+    // a new column of a transform: "constructor" is a name like any other, "__proto__" is refused with its parameter
+    const steps = [
+      { k: 'a', v: 1 },
+      { k: 'b', v: -2 },
+    ];
+    assert.deepStrictEqual(apply('waterfall', steps, { field: 'v', kindAs: 'constructor' }).columns.constructor, ['increase', 'decrease']);
+    assert.throws(
+      () => apply('waterfall', steps, { field: 'v', kindAs: '__proto__' }),
+      /a column cannot be named "__proto__": give "kindAs" another name/,
+    );
+    logged.error.length = 0;
+  });
 };

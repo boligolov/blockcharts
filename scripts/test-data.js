@@ -407,4 +407,15 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     assert(/larger than 64 MB/.test(host.children[0].text), host.children[0].text);
     logged.error.length = 0;
   });
+
+  test('binary columns: a column named "__proto__" is refused as in plain JSON, not lost while decoding', async () => {
+    const encoded = JSON.stringify(encodeColumns({ a: [1, 2], b: [3, 4] }, { dtypes: { a: 'float64' } }));
+    BC.data('bin-proto', JSON.parse(encoded.replace('"columns":{', '"columns":{"__proto__":[5,6],')));
+    await BC.ready();
+    const host = new FakeNode('div');
+    const h = BC.chart(host, line('bin-proto'));
+    await h.ready;
+    assert(/could not be loaded: BC\.data: a column cannot be named "__proto__"/.test(host.children[0].text), host.children[0].text);
+    logged.error.length = 0;
+  });
 };
