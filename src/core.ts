@@ -1008,6 +1008,27 @@
       seriesCache.clear();
     };
 
+    /** What a mark may know of its channels before the scales exist: the type of the scale each is on, and its column. */
+    const reachAsk = (m: BC.MarkSpec): BC.MarkReachAsk => {
+      const md = markDef(m);
+      const refOf = (ch: string) => (md.channels[ch] ? channelRef(m, ch, md.channels[ch]) : null);
+      return {
+        scale(ch) {
+          const ref = refOf(ch);
+          const s =
+            ref && ref.scale !== undefined && Object.prototype.hasOwnProperty.call(scaleSpecs, ref.scale)
+              ? scaleSpecs[ref.scale]
+              : undefined;
+          const d = s ? (registry.get(`scale.${s.type}`) as BC.ScaleDef | undefined) : undefined;
+          return s && d ? { input: d.input, even: d.even === true } : undefined;
+        },
+        column(ch) {
+          const ref = refOf(ch);
+          return ref && ref.field !== undefined ? own(table, ref.field) : undefined;
+        },
+      };
+    };
+
     for (const name of Object.keys(scaleSpecs)) {
       const s = scaleSpecs[name];
       const def = registry.get(`scale.${s.type}`) as BC.ScaleDef;
@@ -1022,6 +1043,9 @@
             sources.push(table.columns[ref.field]);
             // a number scale given text puts nothing anywhere: "$1,750" and "1750" in quotes are not numbers
             said(`marks[${i}].${ch}`, unreadable(reader, ref.field, own(table, ref.field), def.input));
+            // a mark that draws past its first and last value (a bar standing at a date) says what else the scale holds
+            const more = md.reach ? md.reach(m, ch, reachAsk(m)) : null;
+            if (more && more.length) sources.push(more as unknown as BC.Column);
           }
           // a constant has to be on the scale it is a value of, unless the scale takes its domain from fields alone (a band)
           else if (!def.fieldsOnly) sources.push([ref.value] as unknown as BC.Column);

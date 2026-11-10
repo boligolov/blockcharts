@@ -27,10 +27,11 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'linear',
-    version: 8,
+    version: 9,
     output: 'position',
     input: 'number',
     merge: 'extent',
+    even: true,
     requires: ['lib.ticks'],
     doc: 'Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.',
     params: {

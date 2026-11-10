@@ -68,7 +68,7 @@ Version 4, 0.8 KB. It colors categories. Categorical color scale: one color per 
 
 ## scale.linear
 
-Version 8, 1.6 KB. It places numbers. Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.
+Version 9, 1.6 KB. It places numbers. Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.
 
 Needs: `lib.ticks`.
 
@@ -108,7 +108,7 @@ Needs: `lib.ticks`.
 
 ## scale.time
 
-Version 8, 3.5 KB. It places dates. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (milliseconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it. So does it for years given as numbers (2019 is 2 seconds into 1970): give them as text ("2019") or dates. A domain from later to earlier runs the axis the other way.
+Version 9, 3.5 KB. It places dates. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (milliseconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it. So does it for years given as numbers (2019 is 2 seconds into 1970): give them as text ("2019") or dates. A domain from later to earlier runs the axis the other way.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -539,7 +539,7 @@ Version 3, 2.0 KB. Closed shapes through the rows in their order: the regions of
 
 ## mark.rect
 
-Version 14, 3.7 KB. Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field). `shape: "hexagon"` draws a hexagon in the box instead, for the cells of transform.hexbin.
+Version 15, 4.4 KB. Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field). `shape: "hexagon"` draws a hexagon in the box instead, for the cells of transform.hexbin.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |

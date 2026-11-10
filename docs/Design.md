@@ -1328,6 +1328,12 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   to the shelf the pointer is over (the value held) and to the risers (the value risen to), and a step area takes the
   held edges for the column the pointer is in. Under a step line with an area beneath it, the column decides on the
   riser itself, a pixel wide.
+- **Bars standing at dates keep inside the plot.** A bar on a time (or linear) axis is centred on its value, so the
+  first and last bars ran half out of the plot, over the axis and past the edge. `MarkDef.reach` now lets a mark name
+  values its scale's domain must hold; `mark.rect` without `x2` asks for half a bar past the first and last value (0.4
+  of the smallest step, or `thickness / 2` of it). It asks only on a scale that declares `even` (`ScaleDef.even`: equal
+  differences of value are equal distances, as on linear and time; half a step on a log axis is no half a bar), so it
+  names no scale type. With `x2`, on a band, on a log axis or on the amount axis nothing changes.
 
 ## Next steps
 

@@ -825,6 +825,72 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.strictEqual(draw(['Treasury', 'Defence'], [324, 320]).labels.length, 2, 'short names stay one line each');
   });
 
+  test('bars standing at dates on a time axis keep inside the plot: the scale holds half a bar past each end', () => {
+    const months = ['2024-01-01', '2024-02-01', '2024-03-01', '2024-04-01', '2024-05-01', '2024-06-01'];
+    BC.data(
+      'bars-in-time',
+      months.map((m, i) => ({ m, v: i + 1, n: i * 10, p: 2 ** i })),
+    );
+    let view;
+    const bars = (extra, marks, x = { type: 'time' }) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'bars-in-time',
+        size: [640, 400],
+        padding: { top: 16, right: 16, bottom: 16, left: 16 },
+        scales: { x, y: { type: 'linear', zero: true } },
+        marks: marks || [{ type: 'rect', x: 'm', y: 'v', ...extra }],
+      });
+      assert.deepStrictEqual(h.diagnostics, []);
+      const out = rects(layer(svgOf(host), 'marks'));
+      view = h.getView();
+      h.destroy();
+      return out;
+    };
+    const plain = bars({});
+    assert.strictEqual(plain.length, 6);
+    assert(Math.abs(plain[0].x - 16) < 0.5, 'the first bar starts at the edge of the plot: ' + plain[0].x);
+    assert(Math.abs(plain[5].x + plain[5].w - 624) < 0.5, 'the last ends at the other: ' + (plain[5].x + plain[5].w));
+    assert.deepStrictEqual(view.y, [0, 6], 'the axis of the amounts is left as it was');
+    const thin = bars({ thickness: 0.3 });
+    assert(Math.abs(thin[0].x - 16) < 0.5, 'a thinner bar, less room: ' + thin[0].x);
+    // with x2 the bars span their periods and the domain already holds them; horizontal bars over time on y as well
+    const spans = bars({}, [{ type: 'rect', x: 'm', y: 'v', x2: 'm' }]);
+    assert(Math.abs(spans[0].x - 16) < 0.01, 'x2: no room added for a bar that has its own end: ' + spans[0].x);
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'bars-in-time',
+      size: [640, 400],
+      padding: { top: 16, right: 16, bottom: 16, left: 16 },
+      scales: { x: { type: 'linear', zero: true }, y: { type: 'time' } },
+      marks: [{ type: 'rect', x: 'v', y: 'm' }],
+    });
+    const side = rects(layer(svgOf(host), 'marks'));
+    assert(Math.min(...side.map((b) => b.y)) >= 16 - 0.01 && Math.max(...side.map((b) => b.y + b.h)) <= 384 + 0.01, 'on y too');
+    // a line over the same dates moves in with the bars, so the two still meet
+    const both = new FakeNode('div');
+    BC.chart(both, {
+      data: 'bars-in-time',
+      size: [640, 400],
+      padding: { top: 16, right: 16, bottom: 16, left: 16 },
+      scales: { x: { type: 'time' }, y: { type: 'linear', zero: true } },
+      marks: [
+        { type: 'rect', x: 'm', y: 'v' },
+        { type: 'line', x: 'm', y: 'v' },
+      ],
+    });
+    const svg = layer(svgOf(both), 'marks');
+    const first = rects(svg)[0];
+    const x0 = +/<path d="M([\d.]+)/.exec(svg)[1];
+    assert(Math.abs(x0 - (first.x + first.w / 2)) < 0.01, 'the line starts at the middle of the first bar');
+    // numbers on a linear x stand the same way
+    const numeric = bars({}, [{ type: 'rect', x: 'n', y: 'v' }], { type: 'linear', nice: false });
+    assert(Math.abs(numeric[0].x - 16) < 0.5, 'numbers too: ' + numeric[0].x);
+    // a log scale is not even: half a step is no half a bar there, so its domain stays the data's
+    bars({}, [{ type: 'rect', x: 'p', y: 'v' }], { type: 'log', nice: false });
+    assert.deepStrictEqual(view.x, [1, 32], 'nothing added on a log axis');
+  });
+
   test('guide.legend: the top label of a color bar in a column keeps clear of the title', () => {
     BC.data('bar-title', [
       { k: 'a', v: 1 },

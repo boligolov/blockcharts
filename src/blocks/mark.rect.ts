@@ -44,6 +44,15 @@
     return !!ctx.channel(spec, 'y2').raw.length || across.scale.input !== 'date' || main.scale.input === 'date';
   }
 
+  /** The first and last of the values and the smallest step between two different ones, in the units of the data (the
+   *  step 0 when there is only one value). */
+  function spanOf(values: number[]): { lo: number; hi: number; step: number } {
+    const xs = values.filter((v) => isFinite(v)).sort((a, b) => a - b);
+    let step = Infinity;
+    for (let i = 1; i < xs.length; i++) if (xs[i] > xs[i - 1] && xs[i] - xs[i - 1] < step) step = xs[i] - xs[i - 1];
+    return { lo: xs[0], hi: xs[xs.length - 1], step: step === Infinity ? 0 : step };
+  }
+
   /** The smallest distance in px between two different positions; 0 when there is only one. */
   function smallestStep(mapped: ArrayLike<number>, from: number, to: number): number {
     const xs: number[] = [];
@@ -112,7 +121,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rect',
-    version: 14,
+    version: 15,
     enter: 'grow',
     doc: 'Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field). `shape: "hexagon"` draws a hexagon in the box instead, for the cells of transform.hexbin.',
     params: {
@@ -178,6 +187,31 @@
           out.push({ type: 'rect', x: hx[0], y: hy[0], w: hx[1], h: hy[1], r, style: { fill: c, opacity }, ref: { mark: index, row: i } });
       }
       return out;
+    },
+    // a bar standing at a position is as wide as most of the smallest step: half a bar past the first and the last
+    // position, which the scale's domain has to hold or the two end bars run out of the plot
+    reach(spec, channel, ask) {
+      if (channel !== 'x' && channel !== 'y') return null;
+      const other = channel === 'x' ? 'y' : 'x';
+      const main = ask.scale(channel);
+      const across = ask.scale(other);
+      const column = ask.column(channel);
+      if (!main || !across || !column || !main.even) return null;
+      if (across.input === 'category' || spec[channel + '2'] !== undefined) return null;
+      // the rule of standsAlong, read from the spec before the scales exist
+      const stands =
+        channel === 'y'
+          ? main.input === 'date' && across.input !== 'date'
+          : spec.y2 !== undefined || across.input !== 'date' || main.input === 'date';
+      if (!stands) return null;
+      const values = Array.from(column as ArrayLike<unknown>, (v) =>
+        main.input === 'date' ? BC.time(v) : typeof v === 'number' ? v : NaN,
+      );
+      const { lo, hi, step } = spanOf(values);
+      if (!step) return null;
+      const given = typeof spec.thickness === 'number' && spec.thickness > 0 ? Math.min(1, spec.thickness) : STEP_SHARE;
+      const half = (step * given) / 2;
+      return [lo - half, hi + half];
     },
     pick(spec, ctx, _index, px, py) {
       const baseline = typeof spec.baseline === 'number' ? spec.baseline : 0;

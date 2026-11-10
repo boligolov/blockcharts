@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 39389,
+    "bytes": 39810,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 28419,
+        "bytes": 28838,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 25385,
+        "bytes": 25804,
         "off": [
           "CHECKS",
           "DECODE"
@@ -120,8 +120,8 @@
     },
     "scale.linear": {
       "file": "blocks/scale.linear.js",
-      "bytes": 1603,
-      "version": 8,
+      "bytes": 1611,
+      "version": 9,
       "requires": [
         "lib.ticks"
       ],
@@ -215,8 +215,8 @@
     },
     "scale.time": {
       "file": "blocks/scale.time.js",
-      "bytes": 3593,
-      "version": 8,
+      "bytes": 3601,
+      "version": 9,
       "requires": [],
       "closure": [
         "scale.time"
@@ -1714,8 +1714,8 @@
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",
-      "bytes": 3811,
-      "version": 14,
+      "bytes": 4513,
+      "version": 15,
       "requires": [],
       "closure": [
         "mark.rect"

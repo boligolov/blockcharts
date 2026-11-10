@@ -452,6 +452,9 @@ declare namespace BC {
     /** true: a domain it infers comes from fields alone, and a constant a channel writes (a rule at one category) adds
      *  nothing to it. A band takes its categories from the data; a number scale stretches to show a constant. */
     fieldsOnly?: boolean;
+    /** true: equal differences of value are equal distances on screen (linear, time; a log scale is not). A mark that
+     *  widens a domain by a share of a step between values (half a bar) does it only on such a scale. */
+    even?: boolean;
     /** How charts that share this scale (the panels of a facet) put their domains together: "union" takes every value any
      *  of them has, in the order first seen (categories); "extent" from the least to the greatest (numbers, dates). Without
      *  it each panel keeps its own. A scale that declares a `nice` param is not rounded again: each panel already was. */
@@ -502,6 +505,14 @@ declare namespace BC {
     rows?: number[];
   }
 
+  /** What a mark can learn about its channels before the scales exist (see MarkDef.reach). */
+  interface MarkReachAsk {
+    /** What the scale a channel of the mark is on declares; undefined for a channel without a scale. */
+    scale(channel: string): { input: ScaleInput; even: boolean } | undefined;
+    /** The column a channel reads; undefined for a constant or a channel not given. */
+    column(channel: string): Column | undefined;
+  }
+
   interface MarkDef extends BlockBase {
     role: 'mark';
     channels: Readonly<Record<string, ChannelDef>>;
@@ -512,6 +523,10 @@ declare namespace BC {
     /** Primitives drawn above the marks and outside the plot's clip: labels that stand past the plot's edge (the name at
      *  the end of a line), which a zoom would otherwise cut off. */
     labels?(spec: MarkSpec, ctx: ChartCtx, index: number): Prim[];
+    /** Values the scale of `channel` has to hold besides the data, because the mark draws past its first and last value:
+     *  a bar standing at a date is half a bar wide on each side. Asked before any scale exists, from the spec and the data;
+     *  null when the mark draws within its values. */
+    reach?(spec: MarkSpec, channel: string, ask: MarkReachAsk): unknown[] | null;
     /** Hit-testing lives with the mark that knows its shapes. Return the closest datum within a mark-specific
      *  reach of (x, y), or null. Interactions (tooltip) call it on every mark and keep the smallest `dist`. */
     pick?(spec: MarkSpec, ctx: ChartCtx, index: number, x: number, y: number): Pick | null;

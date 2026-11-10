@@ -129,10 +129,11 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'time',
-    version: 8,
+    version: 9,
     output: 'position',
     input: 'date',
     merge: 'extent',
+    even: true,
     doc: 'Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (milliseconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it. So does it for years given as numbers (2019 is 2 seconds into 1970): give them as text ("2019") or dates. A domain from later to earlier runs the axis the other way.',
     params: {
       padding: { kind: 'number', default: 0, doc: 'Extra room around the data extent, as a fraction of its span.' },
