@@ -24,7 +24,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 15,
+    version: 16,
     requires: ['lib.pointer'],
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.',
     params: {
@@ -198,7 +198,8 @@
         for (const ch of ['x', 'y']) {
           try {
             const c = live.channel(mark, ch);
-            if (c.field && c.scale && (c.scale.kind === 'band' || c.scale.kind === 'time') && live.table.columns[c.field]) return c.field;
+            if (c.field && c.scale && (c.scale.input === 'category' || c.scale.input === 'date') && live.table.columns[c.field])
+              return c.field;
           } catch (e) {
             // not a channel of this mark
           }
@@ -325,7 +326,7 @@
               for (const ch of ['x', 'y']) {
                 try {
                   const c = live.channel(mark, ch);
-                  if (c.field === heading && c.scale && c.scale.kind === 'time') return true;
+                  if (c.field === heading && c.scale && c.scale.input === 'date') return true;
                 } catch (e) {
                   /* not a channel */
                 }

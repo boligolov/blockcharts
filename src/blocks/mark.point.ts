@@ -140,7 +140,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'point',
-    version: 12,
+    version: 13,
     doc: 'One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible; on a narrow screen its points shrink so they still fit. An opaque dot that rows repeat on one spot is drawn once; with `opacity` below 1 every one is drawn, so piles show.',
     params: {
       r: { kind: 'number', default: 3, doc: 'Radius in px (when there is no `size` channel).' },
@@ -163,14 +163,14 @@
       },
     },
     channels: {
-      x: { required: true, scales: ['linear', 'log', 'time', 'band'] },
-      y: { required: true, scales: ['linear', 'log', 'time', 'band'] },
+      x: { required: true, accepts: { output: 'position' } },
+      y: { required: true, accepts: { output: 'position' } },
       color: {
-        scales: ['color', 'sequential'],
+        accepts: { output: 'color' },
         doc: 'Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn.',
       },
       size: {
-        scales: ['size'],
+        accepts: { output: 'size' },
         doc: 'Radius per row from a scale.size (a bubble chart); rows without a size (missing or negative) are not drawn.',
       },
     },

@@ -27,7 +27,9 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'linear',
-    version: 6,
+    version: 7,
+    output: 'position',
+    input: 'number',
     merge: 'extent',
     requires: ['lib.ticks'],
     doc: 'Continuous numeric scale. Domain is inferred from bound channels, padded, and extended to nice tick values. An explicit `domain` is two different numbers; [high, low] runs the axis the other way.',
@@ -78,9 +80,8 @@
       let r0 = Number(ctx.range[0]);
       let r1 = Number(ctx.range[1]);
 
-      const scale = ((v: number) => r0 + ((v - d0) / (d1 - d0)) * (r1 - r0)) as unknown as BC.Scale<number, number>;
+      const scale = ((v: number) => r0 + ((v - d0) / (d1 - d0)) * (r1 - r0)) as unknown as BC.ScaleMapping<number, number>;
       Object.defineProperties(scale, {
-        kind: { value: 'linear' },
         domain: { value: () => [d0, d1] },
         baseDomain: { value: () => [b0, b1] },
         setDomain: {

@@ -11,7 +11,7 @@ const { resolveDataset, jsonForScript, escapeText } = require(path.join(repo, 's
 const { embedPages } = require(path.join(repo, 'scripts', 'site-demos.js'));
 
 /** The roles of blocks, in the order a page loads them. */
-export const { ROLES } = require(path.join(repo, 'scripts', 'build-manifest.js'));
+export const { ROLES, scaleWords, scalesFitting } = require(path.join(repo, 'scripts', 'build-manifest.js'));
 
 export { jsonForScript, embedPages };
 export const esc = escapeText;

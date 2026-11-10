@@ -204,18 +204,21 @@ test('validate: never throws on garbage', () => {
   }
 });
 
-test('validate: transitive requires and channel scale kinds', () => {
+test('validate: transitive requires, and channels take scales by what the scales declare', () => {
   BC.define({
     role: 'mark',
     type: 'needy',
     version: 1,
     requires: ['scale.symlog'],
-    channels: { x: { required: true, scales: ['symlog'] } },
+    channels: { x: { required: true, accepts: { output: 'position', input: ['date'] } } },
     render: () => [],
   });
   const d = BC.validate({ data: 'sales', scales: { x: { type: 'linear' } }, marks: [{ type: 'needy', x: 'month' }] });
   assert(d.some((x) => /mark\.needy requires scale\.symlog/.test(x.message)));
-  assert(d.some((x) => x.path === 'marks[0].x' && /does not accept a "linear" scale \(accepts: symlog\)/.test(x.message)));
+  assert(
+    d.some((x) => x.path === 'marks[0].x' && /needs a scale that places dates \(time\); "linear" places numbers/.test(x.message)),
+    JSON.stringify(d),
+  );
 });
 
 test('chart: dual-axis renders every point, no NaN', () => {

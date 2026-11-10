@@ -61,7 +61,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'candlestick',
-    version: 1,
+    version: 2,
     doc: 'Open-high-low-close candles, one per row: a body from `open` to `close`, a thin wick from `low` to `high`, in one color when the price rose and in another when it fell. `x` is a date on a time scale (candles as wide as the nearest two allow) or a category on a band scale; the four prices share the scale of `y`. A row with one of its prices missing has no candle.',
     params: {
       width: { kind: 'number', default: WIDTH, doc: 'Width of a body, as a share (0-1) of the step between candles.' },
@@ -71,11 +71,21 @@
       opacity: { kind: 'number', default: 1 },
     },
     channels: {
-      x: { required: true, scales: ['band', 'time', 'linear'] },
-      open: { required: true, scales: ['linear', 'log'], sharesScale: 'y', doc: 'Price at the start of the period.' },
-      high: { required: true, scales: ['linear', 'log'], sharesScale: 'y', doc: 'Highest price of the period.' },
-      low: { required: true, scales: ['linear', 'log'], sharesScale: 'y', doc: 'Lowest price of the period.' },
-      close: { required: true, scales: ['linear', 'log'], sharesScale: 'y', doc: 'Price at the end of the period.' },
+      x: { required: true, accepts: { output: 'position' } },
+      open: {
+        required: true,
+        accepts: { output: 'position', input: ['number'] },
+        sharesScale: 'y',
+        doc: 'Price at the start of the period.',
+      },
+      high: { required: true, accepts: { output: 'position', input: ['number'] }, sharesScale: 'y', doc: 'Highest price of the period.' },
+      low: { required: true, accepts: { output: 'position', input: ['number'] }, sharesScale: 'y', doc: 'Lowest price of the period.' },
+      close: {
+        required: true,
+        accepts: { output: 'position', input: ['number'] },
+        sharesScale: 'y',
+        doc: 'Price at the end of the period.',
+      },
     },
     render(spec, ctx, index) {
       const { candles, width } = geometry(spec, ctx);

@@ -78,7 +78,7 @@
         refit();
       };
       const zoomBy = (factor: number) => {
-        // steps are even on the screen: lib.view runs on the logarithms of the values of a log scale
+        // steps are even on the screen: lib.view runs on where the scale puts values, not on the values
         for (const name of zoomable) view().zoom(live, name, factor, maxZoom);
         refit();
       };

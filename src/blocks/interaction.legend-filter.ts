@@ -2,11 +2,13 @@
   const ATTR_SCALE = 'bc-legend-scale';
   const ATTR_INDEX = 'bc-legend-index';
   const CLASS = 'bc-legend-filter';
+  /** Only categories can be hidden one by one: the scale has to color categories. */
+  const ofCategories = (scale: BC.Scale) => scale.output === 'color' && scale.input === 'category';
 
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'legend-filter',
-    version: 4,
+    version: 5,
     outerLegend: true,
     doc: 'Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.',
     params: {
@@ -21,11 +23,11 @@
       const outer = typeof spec.legend === 'string' ? spec.legend : null;
       // by default the scale of the first guide of a categorical color scale: the legend that shows its categories
       const shown = (live.spec.guides || []).find(
-        (g) => typeof g.scale === 'string' && !!live.scales[g.scale] && live.scales[g.scale].kind === 'color',
+        (g) => typeof g.scale === 'string' && !!live.scales[g.scale] && ofCategories(live.scales[g.scale]),
       );
       const name = typeof spec.scale === 'string' ? spec.scale : shown ? (shown.scale as string) : undefined;
       const scale = name ? live.scales[name] : undefined;
-      if (!name || !scale || scale.kind !== 'color') {
+      if (!name || !scale || !ofCategories(scale)) {
         console.warn(
           '[blockcharts] interaction.legend-filter: needs a categorical color scale (set "scale", or add a legend guide for one); ignored',
         );

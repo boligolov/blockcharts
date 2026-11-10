@@ -76,7 +76,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 15,
+    version: 16,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -103,9 +103,12 @@
       name: { kind: 'string', doc: 'The end label of a line that is not split into series (default: the y field).' },
     },
     channels: {
-      x: { required: true, scales: ['linear', 'log', 'time', 'band'] },
-      y: { required: true, scales: ['linear', 'log', 'time'] },
-      color: { scales: ['color'], doc: 'One line per distinct value of the field, colored by a color scale.' },
+      x: { required: true, accepts: { output: 'position' } },
+      y: { required: true, accepts: { output: 'position', input: ['number', 'date'] } },
+      color: {
+        accepts: { output: 'color', input: ['category'] },
+        doc: 'One line per distinct value of the field, colored by a color scale.',
+      },
     },
     render(spec, ctx, index) {
       const xs = xsOf(spec, ctx);

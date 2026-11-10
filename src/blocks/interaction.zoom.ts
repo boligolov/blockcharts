@@ -63,7 +63,7 @@
       const toLogical = (ev: MouseEvent) => pointer().toLogical(live, ev);
       const inPlot = (p: { x: number; y: number }) => pointer().inPlot(live, p);
       const coord = (name: string, p: { x: number; y: number }) => (live.orientation(name) === 'horizontal' ? p.x : p.y);
-      // zoom and pan are even on the screen: lib.view runs on the logarithms of the values of a log scale
+      // zoom and pan are even on the screen: lib.view runs on where the scale puts values, not on the values
       const current = (name: string): Pair => view().current(live, name);
 
       const onWheel = (ev: WheelEvent) => {

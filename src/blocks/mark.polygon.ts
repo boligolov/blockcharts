@@ -60,7 +60,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'polygon',
-    version: 1,
+    version: 2,
     doc: 'Closed shapes through the rows in their order: the regions of transform.contour, or any outline given point by point. `group` makes a shape of the rows with one value, drawn as one path, in the order the values first come (the last on top); `ring` splits a shape into several outlines, a run of rows each. An outline inside another that runs the other way round is a hole, as the rings of transform.contour do. With `filled: false` only the outlines are drawn (contour lines). The tooltip finds the shape the pointer is in, the top one first.',
     params: {
       group: { kind: 'field', doc: 'Rows with the same value make one shape. Default: all rows are one.' },
@@ -72,9 +72,9 @@
       strokeWidth: { kind: 'number', default: 1 },
     },
     channels: {
-      x: { required: true, scales: ['linear', 'log', 'time'], doc: 'Position of each point of an outline.' },
-      y: { required: true, scales: ['linear', 'log', 'time'], doc: 'Position of each point of an outline.' },
-      color: { scales: ['color', 'sequential'], doc: 'Color of a shape, from its first row; a value the scale hides is not drawn.' },
+      x: { required: true, accepts: { output: 'position', input: ['number', 'date'] }, doc: 'Position of each point of an outline.' },
+      y: { required: true, accepts: { output: 'position', input: ['number', 'date'] }, doc: 'Position of each point of an outline.' },
+      color: { accepts: { output: 'color' }, doc: 'Color of a shape, from its first row; a value the scale hides is not drawn.' },
     },
     render(spec, ctx, index) {
       const filled = spec.filled !== false;

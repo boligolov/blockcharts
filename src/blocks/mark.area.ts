@@ -37,7 +37,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 10,
+    version: 11,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -65,10 +65,13 @@
       },
     },
     channels: {
-      x: { required: true, scales: ['linear', 'log', 'time', 'band'] },
-      y: { required: true, scales: ['linear', 'log', 'time'] },
-      y2: { scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Lower edge of the band.' },
-      color: { scales: ['color'], doc: 'One area per distinct value of the field, colored by a color scale.' },
+      x: { required: true, accepts: { output: 'position' } },
+      y: { required: true, accepts: { output: 'position', input: ['number', 'date'] } },
+      y2: { accepts: { output: 'position', input: ['number', 'date'] }, sharesScale: 'y', doc: 'Lower edge of the band.' },
+      color: {
+        accepts: { output: 'color', input: ['category'] },
+        doc: 'One area per distinct value of the field, colored by a color scale.',
+      },
     },
     render(spec, ctx, index) {
       const { xs, top, bottom } = edges(spec, ctx);

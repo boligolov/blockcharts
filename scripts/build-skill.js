@@ -10,6 +10,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { zipSync } = require('fflate');
+const { scaleWords, scalesFitting } = require('./build-manifest.js');
 
 const repo = path.join(__dirname, '..');
 const SKILL_DIR = path.join(repo, 'skills', 'blockcharts');
@@ -28,10 +29,18 @@ function paramRows(params) {
   });
 }
 
-function channelRows(channels) {
+/** The scales a channel accepts: those of the manifest that declare what it asks for, and what that is. */
+function accepted(c, manifest) {
+  if (c.unscaled) return 'none (a plain field)';
+  if (!c.accepts) return 'any';
+  const { output, input } = c.accepts;
+  return `${scalesFitting(c.accepts, manifest).map(code).join(', ')} (one that ${scaleWords(output, input)})`;
+}
+
+function channelRows(channels, manifest) {
   return Object.keys(channels).map((name) => {
     const c = channels[name];
-    const scales = c.unscaled ? 'none (a plain field)' : c.scales ? c.scales.map(code).join(', ') : 'any';
+    const scales = accepted(c, manifest);
     const extra = [
       c.sharesScale ? `uses the scale of ${code(c.sharesScale)} unless told otherwise` : '',
       c.default !== undefined ? `default ${code(JSON.stringify(c.default))}` : '',
@@ -94,7 +103,8 @@ function renderReference(manifest) {
     out.push('');
     out.push(`## ${name}`);
     out.push('');
-    out.push(`Version ${b.version}, ${(b.bytes / 1024).toFixed(1)} KB. ${b.doc || ''}`.trim());
+    const does = b.output ? `It ${scaleWords(b.output, [b.input])}. ` : '';
+    out.push(`Version ${b.version}, ${(b.bytes / 1024).toFixed(1)} KB. ${does}${b.doc || ''}`.trim());
     if (b.requires && b.requires.length) {
       out.push('');
       out.push(`Needs: ${b.requires.map(code).join(', ')}.`);
@@ -103,7 +113,7 @@ function renderReference(manifest) {
       out.push('');
       out.push('| Channel | | Accepted scales | Notes |');
       out.push('| --- | --- | --- | --- |');
-      out.push(...channelRows(b.channels));
+      out.push(...channelRows(b.channels, manifest));
     }
     if (b.params && Object.keys(b.params).length) {
       out.push('');

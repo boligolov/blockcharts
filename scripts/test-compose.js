@@ -44,7 +44,7 @@ test('manifest: closure is transitive, includes the block itself, ordered by rol
         'm',
         ", requires: ['scale.s'], channels: { x: { required: true } }, params: { p: { kind: 'number' } }, doc: 'd'",
       ),
-      'scale.s.js': block('scale', 's', ", requires: ['transform.t']"),
+      'scale.s.js': block('scale', 's', ", output: 'position', input: 'number', requires: ['transform.t']"),
       'transform.t.js': block('transform', 't'),
       'guide.g.js': block('guide', 'g'),
     }),
@@ -67,9 +67,9 @@ test('manifest: diamond dependencies are listed once', () => {
   const m = buildManifest(
     fixture({
       'mark.top.js': block('mark', 'top', ", requires: ['scale.a', 'scale.b']"),
-      'scale.a.js': block('scale', 'a', ", requires: ['scale.base']"),
-      'scale.b.js': block('scale', 'b', ", requires: ['scale.base']"),
-      'scale.base.js': block('scale', 'base'),
+      'scale.a.js': block('scale', 'a', ", output: 'position', input: 'number', requires: ['scale.base']"),
+      'scale.b.js': block('scale', 'b', ", output: 'position', input: 'number', requires: ['scale.base']"),
+      'scale.base.js': block('scale', 'base', ", output: 'position', input: 'number'"),
     }),
   );
   assert.deepStrictEqual(m.blocks['mark.top'].closure, ['scale.a', 'scale.b', 'scale.base', 'mark.top']);
@@ -78,8 +78,8 @@ test('manifest: diamond dependencies are listed once', () => {
 test('manifest: every kind of broken input is a clear error, all reported together', () => {
   assert.match(
     problems({
-      'scale.a.js': block('scale', 'a', ", requires: ['scale.b']"),
-      'scale.b.js': block('scale', 'b', ", requires: ['scale.a']"),
+      'scale.a.js': block('scale', 'a', ", output: 'position', input: 'number', requires: ['scale.b']"),
+      'scale.b.js': block('scale', 'b', ", output: 'position', input: 'number', requires: ['scale.a']"),
     }),
     /dependency cycle: scale\.a -> scale\.b -> scale\.a/,
   );
@@ -101,6 +101,25 @@ test('manifest: every kind of broken input is a clear error, all reported togeth
   assert.match(problems({ 'mark.m.js': 'while(true){}' }), /failed to run/, 'a block that never returns is cut off');
   assert.match(problems({ 'mark.m.js': block('mark', 'm') }, '// no version'), /cannot find `const VERSION/);
   assert.match(problems({}, '/* </script> */ const VERSION = "x";'), /core\.js/);
+  // what scales declare and channels accept is what blocks meet by: saying nothing, or naming scale types, is an error
+  assert.match(
+    problems({ 'scale.s.js': block('scale', 's') }),
+    /scale\.s must declare its output \(position, color, size\) and its input \(number, date, category\)/,
+  );
+  assert.match(problems({ 'scale.s.js': block('scale', 's', ", output: 'shape', input: 'number'") }), /scale\.s must declare its output/);
+  assert.match(problems({ 'scale.s.js': block('scale', 's', ", output: 'color', input: 'text'") }), /scale\.s must declare its output/);
+  assert.match(
+    problems({ 'mark.m.js': block('mark', 'm', ", channels: { x: { scales: ['linear'] } }") }),
+    /channel "x" of mark\.m names scale types; say what it accepts with accepts: \{ output, input \}/,
+  );
+  for (const bad of ["{ output: 'place' }", "{ output: 'position', input: 'number' }", "{ output: 'position', input: ['numbers'] }"])
+    assert.match(
+      problems({ 'mark.m.js': block('mark', 'm', `, channels: { x: { accepts: ${bad} } }`) }),
+      /channel "x" of mark\.m: accepts must be \{ output: one of position, color, size, input: a list of number, date, category \}/,
+      bad,
+    );
+  const scaleOk = buildManifest(fixture({ 'scale.s.js': block('scale', 's', ", output: 'color', input: 'category'") }));
+  assert.deepStrictEqual([scaleOk.blocks['scale.s'].output, scaleOk.blocks['scale.s'].input], ['color', 'category'], 'in the manifest');
   const many = problems({ 'a.js': '', 'mark.m.js': block('mark', 'm', ", requires: ['scale.ghost']") });
   assert(/2 problem\(s\)/.test(many), many);
   assert.throws(() => buildManifest(path.join(os.tmpdir(), 'bc-does-not-exist')), /run the TypeScript build first/);
@@ -760,10 +779,15 @@ test('compose: a facet reads what the blocks declare, so a scale, a legend and a
       `"use strict";(function(){const b=()=>BC.get('${base}');BC.define({role:'${role}',type:'${type}',version:1,` +
         `requires:['${base}'],doc:'test',${extra}});})();`,
     );
-  // marks name the scales they take, so this point takes any
-  like('mark', 'dot', 'mark.point', 'channels:{x:{required:true},y:{required:true},color:{}},params:{},render:(s,c,i)=>b().render(s,c,i)');
-  like('scale', 'hue', 'scale.color', "merge:'union',params:{},create:(s,c)=>b().create(s,c)");
-  like('scale', 'tall', 'scale.linear', "params:{zero:{kind:'boolean'}},create:(s,c)=>b().create(s,c)");
+  // channels take scales by what the scales declare, so the dot takes the scales of new names as a point would
+  like(
+    'mark',
+    'dot',
+    'mark.point',
+    "channels:{x:{required:true,accepts:{output:'position'}},y:{required:true,accepts:{output:'position'}},color:{accepts:{output:'color'}}},params:{},render:(s,c,i)=>b().render(s,c,i)",
+  );
+  like('scale', 'hue', 'scale.color', "output:'color',input:'category',merge:'union',params:{},create:(s,c)=>b().create(s,c)");
+  like('scale', 'tall', 'scale.linear', "output:'position',input:'number',params:{zero:{kind:'boolean'}},create:(s,c)=>b().create(s,c)");
   like('guide', 'key', 'guide.legend', 'shownOnce:true,params:{},measure:(s,c)=>b().measure(s,c),render:(s,c,o)=>b().render(s,c,o)');
   like(
     'interaction',

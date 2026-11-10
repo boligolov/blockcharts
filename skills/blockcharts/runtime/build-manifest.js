@@ -11,6 +11,10 @@ const byRoleThenName = (a, b) => ROLES.indexOf(a.split('.')[0]) - ROLES.indexOf(
 // A block is inlined into an HTML <script>; either of these would end the script or start a comment early.
 const UNSAFE_IN_SCRIPT = /<\/script|<!--/i;
 
+/** What a scale can make of a value, and what it can take (ScaleDef.output, ScaleDef.input). */
+const OUTPUTS = ['position', 'color', 'size'];
+const INPUTS = ['number', 'date', 'category'];
+
 /** Plain-JSON copy of a value that came out of a vm realm (drops functions, keeps the data). */
 const plain = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 
@@ -59,12 +63,28 @@ function buildManifest(distDir) {
     const name = `${def.role}.${def.type}`;
     if (file !== `${name}.js`) fail(`${file} defines ${name}; the file must be named ${name}.js`);
     if (blocks[name]) fail(`${name} is defined twice`);
+    // what a scale declares is what channels, guides and interactions go by, and what a channel accepts is said in it
+    if (def.role === 'scale' && !(OUTPUTS.includes(def.output) && INPUTS.includes(def.input)))
+      fail(`${name} must declare its output (${OUTPUTS.join(', ')}) and its input (${INPUTS.join(', ')})`);
+    for (const [ch, c] of Object.entries(def.channels || {})) {
+      if (c.scales !== undefined) fail(`channel "${ch}" of ${name} names scale types; say what it accepts with accepts: { output, input }`);
+      const need = c.accepts;
+      if (
+        need !== undefined &&
+        !(
+          OUTPUTS.includes(need.output) &&
+          (need.input === undefined || (Array.isArray(need.input) && need.input.every((i) => INPUTS.includes(i))))
+        )
+      )
+        fail(`channel "${ch}" of ${name}: accepts must be { output: one of ${OUTPUTS.join(', ')}, input: a list of ${INPUTS.join(', ')} }`);
+    }
     blocks[name] = {
       file: `blocks/${file}`,
       bytes: Buffer.byteLength(src),
       version: def.version,
       requires: plain(def.requires) || [],
       closure: [],
+      ...(def.role === 'scale' ? { output: def.output, input: def.input } : {}),
       params: plain(def.params),
       channels: plain(def.channels),
       doc: def.doc,
@@ -98,7 +118,23 @@ function buildManifest(distDir) {
   return { core: { file: 'core.js', bytes: Buffer.byteLength(coreSrc), version }, blocks: sorted };
 }
 
-module.exports = { buildManifest, ROLES, byRoleThenName };
+/** What a scale does, in the words of the core's messages: "places numbers or dates", "colors categories", "sizes values". */
+const scaleWords = (output, inputs) =>
+  `${{ position: 'places', color: 'colors', size: 'sizes' }[output]} ${
+    inputs ? inputs.map((i) => ({ number: 'numbers', date: 'dates', category: 'categories' })[i]).join(' or ') : 'values'
+  }`;
+
+/** The types of the manifest's scales that declare what a channel accepts, by name. */
+const scalesFitting = (accepts, manifest) =>
+  Object.keys(manifest.blocks)
+    .filter((n) => {
+      const b = manifest.blocks[n];
+      return n.startsWith('scale.') && b.output === accepts.output && (!accepts.input || accepts.input.includes(b.input));
+    })
+    .map((n) => n.slice(6))
+    .sort();
+
+module.exports = { buildManifest, ROLES, byRoleThenName, scaleWords, scalesFitting };
 
 if (require.main === module) {
   const dist = path.resolve(process.argv[2] || path.join(__dirname, '../dist'));

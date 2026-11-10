@@ -33,7 +33,7 @@
     }
     const p = live.plot;
     const scale = horizontal ? live.scales.x : live.scales.y;
-    const zero = scale && scale.kind === 'linear' ? (scale(0) as number) : NaN;
+    const zero = scale && scale.input === 'number' ? (scale(0) as number) : NaN;
     if (horizontal) return { horizontal, at: isFinite(zero) && zero >= p.x && zero <= p.x + p.w ? zero : p.x };
     return { horizontal, at: isFinite(zero) && zero >= p.y && zero <= p.y + p.h ? zero : p.y + p.h };
   }
@@ -41,7 +41,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'animate',
-    version: 2,
+    version: 3,
     doc: "Plays the chart in once, when it is first drawn: bars grow from their baseline, lines and areas are drawn from left to right, a pie opens from its center, anything else fades in. Never again on zoom, filter or update of the view, and not at all for readers who ask their system for reduced motion. Uses the browser's own animation of the SVG layer (no timer loop); on a canvas chart it fades the canvas in.",
     params: {
       effect: {

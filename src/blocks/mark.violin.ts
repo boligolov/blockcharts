@@ -89,7 +89,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'violin',
-    version: 1,
+    version: 2,
     doc: 'The shape of a distribution per category, from the rows of transform.density (one row per point of a curve): a violin, mirrored on both sides of its band, or with `side: "one"` a ridge standing on the bottom of its band and rising into the one above (a ridgeline, joy plot). Put the categories on a band scale: on x the violins stand up and the value runs along y; on y the shapes lie down and the value runs along x (the usual ridgeline). All shapes share one width scale, so a wider shape is a denser spot; `normalize: "each"` fits every shape to its band instead. Shapes further down are drawn over the ones above them.',
     params: {
       side: {
@@ -117,10 +117,10 @@
       strokeWidth: { kind: 'number', default: 1.5 },
     },
     channels: {
-      x: { required: true, scales: ['band', 'linear', 'log', 'time'], doc: 'The category (band) for violins, or the value for ridges.' },
-      y: { required: true, scales: ['band', 'linear', 'log', 'time'], doc: 'The value for violins, or the category (band) for ridges.' },
+      x: { required: true, accepts: { output: 'position' }, doc: 'The category (band) for violins, or the value for ridges.' },
+      y: { required: true, accepts: { output: 'position' }, doc: 'The value for violins, or the category (band) for ridges.' },
       density: { required: true, unscaled: true, doc: 'Numeric field with the density at each point (`density` of transform.density).' },
-      color: { scales: ['color', 'sequential'], doc: 'Fill per category, from a color scale; a category the scale hides is not drawn.' },
+      color: { accepts: { output: 'color' }, doc: 'Fill per category, from a color scale; a category the scale hides is not drawn.' },
     },
     render(spec, ctx, index) {
       const l = layout(spec, ctx, index);

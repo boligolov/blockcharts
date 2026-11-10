@@ -3742,6 +3742,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
         interaction: [{ type: 'animate' }],
       });
       assert.deepStrictEqual(hbars.call.frames[0].transform, 'scaleX(0)', 'horizontal bars grow sideways');
+      // from the 0 of any scale that places numbers, whatever its name
+      if (!BC.get('scale.level')) BC.define({ ...BC.get('scale.linear'), type: 'level', version: 1 });
+      const signed = run({
+        data: 'bullet',
+        size: [640, 400],
+        scales: { x: { type: 'band' }, y: { type: 'level', domain: [-100, 100] } },
+        marks: [{ type: 'rect', x: 'k', y: 'v' }],
+        interaction: [{ type: 'animate' }],
+      });
+      assert.strictEqual(signed.call.node.style.transformOrigin, '0px 200px', 'the 0 in the middle of the plot');
 
       calls.length = 0;
       bars.h.update(bars.h.spec);
@@ -3873,15 +3883,6 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       Array.from({ length: 30 }, (_, i) => ({ k: String(1990 + i), v: 10 + i })),
     );
     const warned = (spec, what) => BC.chart(new FakeNode('div'), spec).diagnostics.some((d) => what.test(d.message));
-    // marks name the scales their channels take, so these copies of rect and rule take any
-    for (const base of ['rect', 'rule'])
-      if (!BC.get(`mark.any${base}`)) {
-        const d = BC.get('mark.' + base);
-        const channels = {};
-        for (const k of Object.keys(d.channels)) channels[k] = { ...d.channels[k], scales: undefined };
-        BC.define({ ...d, type: 'any' + base, version: 1, channels });
-      }
-
     // bands of other names: a constant at a category that is not in the data adds it only where the scale does not say
     // its domain is from fields alone
     if (!BC.get('scale.slots')) BC.define({ ...BC.get('scale.band'), type: 'slots', version: 1 });
@@ -3891,8 +3892,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       size: [640, 400],
       scales: { x: { type }, y: { type: 'linear', zero: true } },
       marks: [
-        { type: 'anyrect', x: 'k', y: 'v' },
-        { type: 'anyrule', x: { value: 'C' } },
+        { type: 'rect', x: 'k', y: 'v' },
+        { type: 'rule', x: { value: 'C' } },
       ],
     });
     assert.deepStrictEqual(BC.chart(new FakeNode('div'), ruled('bins')).diagnostics, []);
@@ -3910,7 +3911,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
           const inner = linear.create(spec, ctx);
           const own = Object.getOwnPropertyDescriptors(inner);
           for (const k of ['length', 'name', 'prototype']) delete own[k];
-          return Object.defineProperties((v) => inner(v), { ...own, kind: { value: 'pow' } });
+          return Object.defineProperties((v) => inner(v), own);
         },
       });
     }
@@ -3919,8 +3920,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       size: [640, 400],
       scales: { x: { type: 'band' }, y: { type: 'pow', domain: [0, 100] } },
       marks: [
-        { type: 'anyrect', x: 'k', y: 'v' },
-        { type: 'anyrule', y: { value: 500 } },
+        { type: 'rect', x: 'k', y: 'v' },
+        { type: 'rule', y: { value: 500 } },
       ],
     };
     assert.strictEqual(warned(target, /constant 500 is outside scale "y"/), true, 'a constant off a positional scale of any kind');

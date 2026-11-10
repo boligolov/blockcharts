@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { kb, loadBlocks, loadRelease, loadSizes, ROLES } from '../lib/site.mjs';
+import { kb, loadBlocks, loadRelease, loadSizes, ROLES, scaleWords, scalesFitting } from '../lib/site.mjs';
 import { BLOCK_SUMMARY, CORE_USE, ROLE_TEXT } from '../lib/catalog.mjs';
 
 const manifest = loadBlocks();
@@ -19,7 +19,9 @@ const coreUse = CORE_USE;
 for (const c of sizes.core) if (!coreUse[c.name]) throw new Error(`blocks page: no text for ${c.name}`);
 const totals = sizes.blocks.reduce((t, b) => ({ source: t.source + b.source, min: t.min + b.min, gzip: t.gzip + b.gzip }), { source: 0, min: 0, gzip: 0 });
 const kind = (d) => (d.kind === 'enum' ? (d.values || []).map((v) => `"${v}"`).join(' | ') : d.kind);
-const scalesOf = (d) => (d.unscaled ? 'a plain field' : d.scales ? d.scales.join(', ') : 'any');
+// a channel accepts scales by what they declare: the ones there are, and what that is
+const scalesOf = (d) =>
+  d.unscaled ? 'a plain field' : d.accepts ? `${scalesFitting(d.accepts, manifest).join(', ')} (one that ${scaleWords(d.accepts.output, d.accepts.input)})` : 'any';
 const total = Object.keys(manifest.blocks).length;
 const k = (n) => (n / 1024).toFixed(1);
 ---
@@ -73,6 +75,7 @@ const k = (n) => (n / 1024).toFixed(1);
         return (
           <div class="block" id={name}>
             <h3>{name}</h3>
+            {b.output && <p><b>It {scaleWords(b.output, [b.input])}.</b></p>}
             <p>{b.doc}</p>
             <p class="muted">
               <span class="pill">v{b.version}</span><span class="pill">{kb(file.bytes)} ({kb(file.gzip)} gzip)</span>

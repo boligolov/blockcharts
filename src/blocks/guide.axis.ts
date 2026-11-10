@@ -40,7 +40,13 @@
    *  Dates and numbers run in order, so every few of them say enough, and sixty months are never slanted. */
   function slantOf(spec: BC.GuideSpec, ctx: BC.ChartCtx, side: Side): number {
     const scale = spec.scale ? ctx.scales[spec.scale as string] : undefined;
-    if (!scale || scale.kind !== 'band' || side === 'left' || side === 'right' || ctx.orientation(spec.scale as string) !== 'horizontal')
+    if (
+      !scale ||
+      scale.input !== 'category' ||
+      side === 'left' ||
+      side === 'right' ||
+      ctx.orientation(spec.scale as string) !== 'horizontal'
+    )
       return 0;
     const cats = scale.domain() as unknown[];
     // the plot is not final yet: the vertical axes have still to take their room out of it
@@ -93,7 +99,7 @@
   /** Ticks along a horizontal numeric or date axis are spaced by count, not by what their labels turn out to say: a format
    *  can write one label many times (years, zoomed in to months) and it can write them wider than the space between them. */
   function uncrowded(ticks: BC.Tick[], spec: BC.GuideSpec, ctx: BC.ChartCtx): BC.Tick[] {
-    if (ctx.scales[spec.scale as string].kind === 'band' || ctx.orientation(spec.scale as string) !== 'horizontal') return ticks;
+    if (ctx.scales[spec.scale as string].input === 'category' || ctx.orientation(spec.scale as string) !== 'horizontal') return ticks;
     const keep = keeper(spec);
     const unique = ticks.filter((t, i) => i === 0 || t.label !== ticks[i - 1].label);
     if (unique.length < 2) return unique;
@@ -121,7 +127,7 @@
     const name = spec.scale as string;
     const scale = ctx.scales[name];
     const wish = typeof spec.count === 'number' && spec.count >= 1 ? Math.round(spec.count) : undefined;
-    if (scale.kind !== 'band') return wish === undefined ? ctx.ticks(name) : ctx.ticks(name, wish);
+    if (scale.input !== 'category') return wish === undefined ? ctx.ticks(name) : ctx.ticks(name, wish);
     const fit = Math.max(ctx.ticks(name).length, fitWritten(spec, ctx));
     const shown = wish === undefined ? fit : Math.min(wish, fit);
     if (spec.anchor !== 'end') return ctx.ticks(name, shown);
@@ -135,11 +141,14 @@
     const scale = ctx.scales[spec.scale as string];
     const ticks = slanted.has(spec) ? ctx.ticks(spec.scale as string, (scale.domain() as unknown[]).length) : requested(spec, ctx);
     if (spec.format === undefined) return ticks;
-    const kind = ctx.scales[spec.scale as string].kind;
-    if (kind !== 'linear' && kind !== 'log' && kind !== 'time' && kind !== 'band') return ticks;
+    if (scale.output !== 'position') return ticks;
+    const { input } = scale;
     // a band's categories are written as the format says what it is (a date preset, Intl date options or a number); a
     // category that is not such a value (plain text) stays as it is
-    const write = BC.formatter(spec.format as BC.FormatSpec | string, kind === 'time' ? 'date' : kind === 'band' ? undefined : 'number');
+    const write = BC.formatter(
+      spec.format as BC.FormatSpec | string,
+      input === 'date' ? 'date' : input === 'category' ? undefined : 'number',
+    );
     return ticks.map((t) => ({ value: t.value, pos: t.pos, label: write(t.value) }));
   }
 
@@ -153,7 +162,7 @@
    *  line never: the rest stays on the second). Other labels are one line. */
   function wrapper(spec: BC.GuideSpec, ctx: BC.ChartCtx, side: Side): (label: string) => string[] {
     const scale = spec.scale ? ctx.scales[spec.scale as string] : undefined;
-    const n = scale && scale.kind === 'band' ? scale.domain().length : 0;
+    const n = scale && scale.input === 'category' ? scale.domain().length : 0;
     if (!n || side === 'left' || side === 'right') return (label) => [label];
     const room = ctx.plot.w / n - 6;
     return (label) => {
@@ -177,7 +186,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 12,
+    version: 13,
     doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few.',
     params: {
       scale: { kind: 'scale', required: true },

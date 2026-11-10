@@ -16,7 +16,9 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'color',
-    version: 3,
+    version: 4,
+    output: 'color',
+    input: 'category',
     merge: 'union',
     doc: 'Categorical color scale: one color per distinct value, in first-seen order. Colors come from `range` (a list of CSS colors) or from the theme palette (--bc-c0 …). Colors stay tied to the value when the domain is narrowed (setView, a legend filter); a value outside the visible domain gets no color, so marks do not draw it.',
     create(spec, ctx) {
@@ -32,9 +34,8 @@
         const i = index.get(v);
         if (i === undefined) return 'var(--bc-axis, #999)';
         return visible && !visible.has(v) ? '' : at(i);
-      }) as unknown as BC.Scale<unknown, string>;
+      }) as unknown as BC.ScaleMapping<unknown, string>;
       Object.defineProperties(scale, {
-        kind: { value: 'color' },
         domain: { value: () => view.slice() },
         baseDomain: { value: () => base.slice() },
         setDomain: {

@@ -171,7 +171,8 @@ For a **block** — a page's own blocks as much as the built-in ones:
 
 6. It MUST do one job of one role and be named `<role>.<type>`.
 7. It MUST declare its dependencies (`requires`), parameters and channels in its `BC.define` call, and
-   MUST NOT reach into another block other than through the core.
+   MUST NOT reach into another block other than through the core. A scale MUST declare what it makes of a value and
+   what it takes (`output`, `input`), and a channel MUST accept scales by these, never by name.
 8. Defining it again MUST leave the first definition in place.
 9. It MUST NOT load anything from the network.
 10. It SHOULD stay small: a block that grows past a few kilobytes is probably two blocks.

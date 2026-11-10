@@ -320,7 +320,7 @@ ${chartTag(targetSpec)}`,
       },
       {
         h: 'What a block can be',
-        p: 'Six roles, one contract (<code>src/bc.d.ts</code>): a <b>scale</b> maps values, a <b>transform</b> reshapes rows, a <b>mark</b> turns rows into shapes, a <b>guide</b> explains a scale, an <b>interaction</b> listens to the reader, a <b>renderer</b> draws. Marks and guides return plain shapes (path, rect, circle, text, group) with CSS-variable colors, so a block of your own follows themes and dark mode, and works on the canvas renderer too. Give it <code>requires</code> and the composer and the loader bring its dependencies along. Defining the same block twice is harmless.',
+        p: 'Six roles, one contract (<code>src/bc.d.ts</code>): a <b>scale</b> maps values, a <b>transform</b> reshapes rows, a <b>mark</b> turns rows into shapes, a <b>guide</b> explains a scale, an <b>interaction</b> listens to the reader, a <b>renderer</b> draws. Marks and guides return plain shapes (path, rect, circle, text, group) with CSS-variable colors, so a block of your own follows themes and dark mode, and works on the canvas renderer too. A scale says what it makes of a value and what it takes (<code>output: "position"</code>, <code>input: "number"</code>), and each channel of a mark accepts scales by these, never by name: a scale of your own is drawn by every mark, axis, legend and zoom that takes what it declares. Give it <code>requires</code> and the composer and the loader bring its dependencies along. Defining the same block twice is harmless.',
       },
     ],
   });

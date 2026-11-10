@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 30405,
+    "bytes": 31554,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 25051,
+        "bytes": 25129,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 22039,
+        "bytes": 22117,
         "off": [
           "CHECKS",
           "DECODE"
@@ -74,22 +74,24 @@
     },
     "lib.view": {
       "file": "blocks/lib.view.js",
-      "bytes": 805,
-      "version": 1,
+      "bytes": 857,
+      "version": 2,
       "requires": [],
       "closure": [
         "lib.view"
       ],
-      "doc": "The arithmetic of zooming a continuous scale, shared by interaction.zoom and interaction.zoom-controls. It runs on numbers that are even on the screen (the logarithms on a log scale; a domain that runs backwards is negated): `current(live, name)` is the view now, `show(live, name, d0, d1)` sets one, shifted back inside the full domain, and `zoom(live, name, factor, maxZoom, anchor)` widens or narrows it around a point. A spec never names it."
+      "doc": "The arithmetic of zooming a continuous scale, shared by interaction.zoom and interaction.zoom-controls. It runs on numbers that are even on the screen, read off the mapping of the scale itself (how far along its full domain a value is put, from 0 to 1), so a log scale or one of any other name needs no case of its own: `current(live, name)` is the view now, `show(live, name, d0, d1)` sets one, shifted back inside the full domain, and `zoom(live, name, factor, maxZoom, anchor)` widens or narrows it around a point. A spec never names it."
     },
     "scale.band": {
       "file": "blocks/scale.band.js",
-      "bytes": 1244,
-      "version": 4,
+      "bytes": 1259,
+      "version": 5,
       "requires": [],
       "closure": [
         "scale.band"
       ],
+      "output": "position",
+      "input": "category",
       "params": {
         "paddingInner": {
           "kind": "number",
@@ -106,18 +108,20 @@
     },
     "scale.color": {
       "file": "blocks/scale.color.js",
-      "bytes": 829,
-      "version": 3,
+      "bytes": 840,
+      "version": 4,
       "requires": [],
       "closure": [
         "scale.color"
       ],
+      "output": "color",
+      "input": "category",
       "doc": "Categorical color scale: one color per distinct value, in first-seen order. Colors come from `range` (a list of CSS colors) or from the theme palette (--bc-c0 …). Colors stay tied to the value when the domain is narrowed (setView, a legend filter); a value outside the visible domain gets no color, so marks do not draw it."
     },
     "scale.linear": {
       "file": "blocks/scale.linear.js",
-      "bytes": 1553,
-      "version": 6,
+      "bytes": 1564,
+      "version": 7,
       "requires": [
         "lib.ticks"
       ],
@@ -125,6 +129,8 @@
         "lib.ticks",
         "scale.linear"
       ],
+      "output": "position",
+      "input": "number",
       "params": {
         "nice": {
           "kind": "boolean",
@@ -146,12 +152,14 @@
     },
     "scale.log": {
       "file": "blocks/scale.log.js",
-      "bytes": 1879,
-      "version": 3,
+      "bytes": 1893,
+      "version": 4,
       "requires": [],
       "closure": [
         "scale.log"
       ],
+      "output": "position",
+      "input": "number",
       "params": {
         "nice": {
           "kind": "boolean",
@@ -163,8 +171,8 @@
     },
     "scale.sequential": {
       "file": "blocks/scale.sequential.js",
-      "bytes": 2065,
-      "version": 5,
+      "bytes": 2069,
+      "version": 6,
       "requires": [
         "lib.ticks"
       ],
@@ -172,6 +180,8 @@
         "lib.ticks",
         "scale.sequential"
       ],
+      "output": "color",
+      "input": "number",
       "params": {
         "exponent": {
           "kind": "number",
@@ -183,8 +193,8 @@
     },
     "scale.size": {
       "file": "blocks/scale.size.js",
-      "bytes": 1480,
-      "version": 4,
+      "bytes": 1489,
+      "version": 5,
       "requires": [
         "lib.ticks"
       ],
@@ -192,6 +202,8 @@
         "lib.ticks",
         "scale.size"
       ],
+      "output": "size",
+      "input": "number",
       "params": {
         "zero": {
           "kind": "boolean",
@@ -203,12 +215,14 @@
     },
     "scale.time": {
       "file": "blocks/scale.time.js",
-      "bytes": 2782,
-      "version": 6,
+      "bytes": 2793,
+      "version": 7,
       "requires": [],
       "closure": [
         "scale.time"
       ],
+      "output": "position",
+      "input": "date",
       "params": {
         "padding": {
           "kind": "number",
@@ -1072,8 +1086,8 @@
     },
     "mark.arc": {
       "file": "blocks/mark.arc.js",
-      "bytes": 4870,
-      "version": 3,
+      "bytes": 4865,
+      "version": 4,
       "requires": [],
       "closure": [
         "mark.arc"
@@ -1152,10 +1166,9 @@
           "doc": "Numeric field: the size of each slice."
         },
         "color": {
-          "scales": [
-            "color",
-            "sequential"
-          ],
+          "accepts": {
+            "output": "color"
+          },
           "doc": "Slice color per row from a color scale; a hidden category leaves its slice out."
         }
       },
@@ -1163,8 +1176,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2561,
-      "version": 10,
+      "bytes": 2620,
+      "version": 11,
       "requires": [
         "lib.curve"
       ],
@@ -1215,34 +1228,38 @@
       "channels": {
         "x": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time",
-            "band"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "y": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ]
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          }
         },
         "y2": {
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Lower edge of the band."
         },
         "color": {
-          "scales": [
-            "color"
-          ],
+          "accepts": {
+            "output": "color",
+            "input": [
+              "category"
+            ]
+          },
           "doc": "One area per distinct value of the field, colored by a color scale."
         }
       },
@@ -1250,8 +1267,8 @@
     },
     "mark.boxplot": {
       "file": "blocks/mark.boxplot.js",
-      "bytes": 2734,
-      "version": 2,
+      "bytes": 2824,
+      "version": 3,
       "requires": [],
       "closure": [
         "mark.boxplot"
@@ -1283,68 +1300,74 @@
       "channels": {
         "x": {
           "required": true,
-          "scales": [
-            "band",
-            "linear",
-            "log",
-            "time"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "low": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Bottom of the lower whisker."
         },
         "q1": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Bottom of the box (25th percentile)."
         },
         "median": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Line drawn across the box."
         },
         "q3": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Top of the box (75th percentile)."
         },
         "high": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Top of the upper whisker."
         },
         "color": {
-          "scales": [
-            "color",
-            "sequential"
-          ],
+          "accepts": {
+            "output": "color"
+          },
           "doc": "Box and whisker color per row, from a color scale; rows the scale gives no color are not drawn."
         }
       },
@@ -1352,8 +1375,8 @@
     },
     "mark.candlestick": {
       "file": "blocks/mark.candlestick.js",
-      "bytes": 2235,
-      "version": 1,
+      "bytes": 2317,
+      "version": 2,
       "requires": [],
       "closure": [
         "mark.candlestick"
@@ -1387,45 +1410,51 @@
       "channels": {
         "x": {
           "required": true,
-          "scales": [
-            "band",
-            "time",
-            "linear"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "open": {
           "required": true,
-          "scales": [
-            "linear",
-            "log"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Price at the start of the period."
         },
         "high": {
           "required": true,
-          "scales": [
-            "linear",
-            "log"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Highest price of the period."
         },
         "low": {
           "required": true,
-          "scales": [
-            "linear",
-            "log"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Lowest price of the period."
         },
         "close": {
           "required": true,
-          "scales": [
-            "linear",
-            "log"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Price at the end of the period."
         }
@@ -1434,8 +1463,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3869,
-      "version": 15,
+      "bytes": 3907,
+      "version": 16,
       "requires": [
         "lib.curve"
       ],
@@ -1497,25 +1526,27 @@
       "channels": {
         "x": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time",
-            "band"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "y": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ]
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          }
         },
         "color": {
-          "scales": [
-            "color"
-          ],
+          "accepts": {
+            "output": "color",
+            "input": [
+              "category"
+            ]
+          },
           "doc": "One line per distinct value of the field, colored by a color scale."
         }
       },
@@ -1523,8 +1554,8 @@
     },
     "mark.point": {
       "file": "blocks/mark.point.js",
-      "bytes": 3979,
-      "version": 12,
+      "bytes": 3962,
+      "version": 13,
       "requires": [],
       "closure": [
         "mark.point"
@@ -1567,33 +1598,26 @@
       "channels": {
         "x": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time",
-            "band"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "y": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time",
-            "band"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "color": {
-          "scales": [
-            "color",
-            "sequential"
-          ],
+          "accepts": {
+            "output": "color"
+          },
           "doc": "Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn."
         },
         "size": {
-          "scales": [
-            "size"
-          ],
+          "accepts": {
+            "output": "size"
+          },
           "doc": "Radius per row from a scale.size (a bubble chart); rows without a size (missing or negative) are not drawn."
         }
       },
@@ -1601,8 +1625,8 @@
     },
     "mark.polygon": {
       "file": "blocks/mark.polygon.js",
-      "bytes": 1998,
-      "version": 1,
+      "bytes": 2035,
+      "version": 2,
       "requires": [],
       "closure": [
         "mark.polygon"
@@ -1642,27 +1666,30 @@
       "channels": {
         "x": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "doc": "Position of each point of an outline."
         },
         "y": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "doc": "Position of each point of an outline."
         },
         "color": {
-          "scales": [
-            "color",
-            "sequential"
-          ],
+          "accepts": {
+            "output": "color"
+          },
           "doc": "Color of a shape, from its first row; a value the scale hides is not drawn."
         }
       },
@@ -1670,8 +1697,8 @@
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",
-      "bytes": 3772,
-      "version": 12,
+      "bytes": 3812,
+      "version": 13,
       "requires": [],
       "closure": [
         "mark.rect"
@@ -1718,45 +1745,42 @@
       "channels": {
         "x": {
           "required": true,
-          "scales": [
-            "band",
-            "linear",
-            "log",
-            "time"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "y": {
           "required": true,
-          "scales": [
-            "band",
-            "linear",
-            "log",
-            "time"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "x2": {
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "x",
           "doc": "Other end of the rectangle along x."
         },
         "y2": {
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Other end of the rectangle along y."
         },
         "color": {
-          "scales": [
-            "color",
-            "sequential"
-          ],
+          "accepts": {
+            "output": "color"
+          },
           "doc": "Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn."
         },
         "dodge": {
@@ -1768,8 +1792,8 @@
     },
     "mark.rule": {
       "file": "blocks/mark.rule.js",
-      "bytes": 2105,
-      "version": 5,
+      "bytes": 2179,
+      "version": 6,
       "requires": [],
       "closure": [
         "mark.rule"
@@ -1803,43 +1827,44 @@
       },
       "channels": {
         "x": {
-          "scales": [
-            "band",
-            "linear",
-            "log",
-            "time"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "y": {
-          "scales": [
-            "band",
-            "linear",
-            "log",
-            "time"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "x2": {
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "x",
           "doc": "Other end along x."
         },
         "y2": {
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "y",
           "doc": "Other end along y."
         },
         "color": {
-          "scales": [
-            "color"
-          ],
+          "accepts": {
+            "output": "color",
+            "input": [
+              "category"
+            ]
+          },
           "doc": "Line color per row, from a color scale."
         }
       },
@@ -1903,8 +1928,8 @@
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 4898,
-      "version": 10,
+      "bytes": 4910,
+      "version": 11,
       "requires": [],
       "closure": [
         "mark.text"
@@ -1993,37 +2018,35 @@
       "channels": {
         "x": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time",
-            "band"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "y": {
           "required": true,
-          "scales": [
-            "linear",
-            "log",
-            "time",
-            "band"
-          ]
+          "accepts": {
+            "output": "position"
+          }
         },
         "x2": {
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "x",
           "doc": "The other side of the box the label has to fit in (with y2: the cell it labels)."
         },
         "y2": {
-          "scales": [
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position",
+            "input": [
+              "number",
+              "date"
+            ]
+          },
           "sharesScale": "y",
           "doc": "The other side of the box the label has to fit in, vertically."
         },
@@ -2033,17 +2056,15 @@
           "doc": "Field with the text to show."
         },
         "color": {
-          "scales": [
-            "color",
-            "sequential"
-          ],
+          "accepts": {
+            "output": "color"
+          },
           "doc": "Text color per row, from a color scale."
         },
         "on": {
-          "scales": [
-            "color",
-            "sequential"
-          ],
+          "accepts": {
+            "output": "color"
+          },
           "sharesScale": "color",
           "doc": "The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. On a palette color a theme can set the text with `--bc-on-c<N>`. Rows with no such color get no text."
         }
@@ -2052,8 +2073,8 @@
     },
     "mark.violin": {
       "file": "blocks/mark.violin.js",
-      "bytes": 2988,
-      "version": 1,
+      "bytes": 2963,
+      "version": 2,
       "requires": [],
       "closure": [
         "mark.violin"
@@ -2102,22 +2123,16 @@
       "channels": {
         "x": {
           "required": true,
-          "scales": [
-            "band",
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position"
+          },
           "doc": "The category (band) for violins, or the value for ridges."
         },
         "y": {
           "required": true,
-          "scales": [
-            "band",
-            "linear",
-            "log",
-            "time"
-          ],
+          "accepts": {
+            "output": "position"
+          },
           "doc": "The value for violins, or the category (band) for ridges."
         },
         "density": {
@@ -2126,10 +2141,9 @@
           "doc": "Numeric field with the density at each point (`density` of transform.density)."
         },
         "color": {
-          "scales": [
-            "color",
-            "sequential"
-          ],
+          "accepts": {
+            "output": "color"
+          },
           "doc": "Fill per category, from a color scale; a category the scale hides is not drawn."
         }
       },
@@ -2137,8 +2151,8 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 6793,
-      "version": 12,
+      "bytes": 6760,
+      "version": 13,
       "requires": [],
       "closure": [
         "guide.axis"
@@ -2314,8 +2328,8 @@
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",
-      "bytes": 5299,
-      "version": 10,
+      "bytes": 5321,
+      "version": 11,
       "requires": [],
       "closure": [
         "guide.legend"
@@ -2351,8 +2365,8 @@
     },
     "interaction.animate": {
       "file": "blocks/interaction.animate.js",
-      "bytes": 2276,
-      "version": 2,
+      "bytes": 2277,
+      "version": 3,
       "requires": [],
       "closure": [
         "interaction.animate"
@@ -2457,8 +2471,8 @@
     },
     "interaction.legend-filter": {
       "file": "blocks/interaction.legend-filter.js",
-      "bytes": 2567,
-      "version": 4,
+      "bytes": 2590,
+      "version": 5,
       "requires": [],
       "closure": [
         "interaction.legend-filter"
@@ -2481,8 +2495,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 8742,
-      "version": 15,
+      "bytes": 8749,
+      "version": 16,
       "requires": [
         "lib.pointer"
       ],

@@ -183,7 +183,7 @@ Marks know nothing about SVG; they return primitives, and the renderer draws the
    returns `overhang`, the core takes the maximum over the guides and widens the margin only where the inset
    and the space already taken are not enough; neighbouring guides do not move.
 2. **`Scale<any, any>`.** Typing the domain per kind of scale with generics is too heavy; the core checks
-   `ChannelDef.scales` at run time.
+   `ChannelDef.accepts` against what each scale declares (`ScaleDef.output`, `ScaleDef.input`) at run time.
 3. **Scales are not inferred:** a mark that refers to an undeclared scale gets a diagnostic. Defaults would be
    friendlier for an agent — can be decided later.
 4. **Data:** the format of large columns (base64 `Float32Array`) for a future canvas was not described yet.
@@ -365,7 +365,7 @@ Decisions:
   exception from `BC.data`; during `mount` it goes to the console.
 - **`validate` does not throw** and catches: blocks that are not loaded, transitive `requires`, unknown
   parameters (a warning), parameter type/enum/required, required channels, undeclared scales, scales of the
-  wrong kind (`ChannelDef.scales`), unknown fields. With `transforms`, fields are checked per stage (see
+  wrong kind (`ChannelDef.accepts`), unknown fields. With `transforms`, fields are checked per stage (see
   "Aggregation, CSV, formatting").
 - **Errors do not break the page:** with error diagnostics the chart is not built; a red box with the list is
   drawn in `host` and `console.error` is written. A failure of one mark/guide/interaction is a diagnostic at
@@ -422,7 +422,7 @@ primitive: a legend item tells an interaction which value it stands for), `Trans
   theme palette (`--bc-c0…`); a color is bound to its value and does not shift when a legend or a zoom
   narrows the domain. An unknown value is a neutral grey. (A continuous scale for heatmaps came later:
   `scale.sequential`.)
-- **The `color` channel** of `mark.point`, `mark.rect`, `mark.line` (`scales: ["color"]`): for points and bars
+- **The `color` channel** of `mark.point`, `mark.rect`, `mark.line` (a color scale): for points and bars
   it sets each row's fill; for a line it splits the rows into series and colors each; no separate `group`
   needed then.
 - **`guide.legend`:** a swatch and a label per value of a color scale. On the right/left — a column, at the
@@ -1106,8 +1106,8 @@ The core is 0.2 KB lighter and guide.axis is 0.35 KB heavier. A test defines a b
 legend and an axis under other names, and checks that each is treated as what it declares. Putting back any of the
 four old names in the core fails it. Another test checks that the light colors of a composed page are `BC.palette`.
 
-One leak is left for later. A mark lists the scale types its channels accept by name (`scales: ['linear', ...]`), so
-a scale of a new name fits no built-in mark. The test uses copies of rect and rule that accept any scale.
+One leak was left for later: a mark listed the scale types its channels accept by name, so a scale of a new name fit no
+built-in mark. It is closed in "Scales say what they are".
 
 ## Facets read what the blocks declare
 
@@ -1136,6 +1136,38 @@ Putting back any of the three names in the composer fails the test.
 
 The skill's note on facets was out of date: a legend-filter has worked across panels, and the field could come from a
 transform, since the commit that made it so. The note now says so.
+
+## Scales say what they are
+
+The last item of the audit. A mark listed the scale types its channels took (`scales: ['linear', 'log', 'time']`), and
+guides and interactions compared `scale.kind` with names: an axis wrapped the labels of a `band`, a legend drew a bar
+for a `sequential`, the filter took only a `color`, the tooltip headed the card with a `time` or a `band`, the zoom
+had a case for `log`. A scale of a new name fit none of it. Now:
+
+- **`ScaleDef.output`** says what a scale makes of a value: `"position"`, `"color"` or `"size"`. **`ScaleDef.input`**
+  says what it takes: `"number"`, `"date"` or `"category"`. Linear and log place numbers, time places dates, band
+  places categories, color colors categories, sequential colors numbers, size sizes numbers. Both are required:
+  `BC.define` refuses a scale without them, and so does the manifest build.
+- The core puts them on the scale it creates (`scale.output`, `scale.input`). `kind` is gone, so no block can go by a
+  scale's name any more: the types say so.
+- **`ChannelDef.accepts`** replaces `scales`: `{ output: "position", input: ["number", "date"] }` for the y of a line,
+  `{ output: "color", input: ["category"] }` for its color, `{ output: "size" }` for the size of a point. The message
+  for a wrong scale says what the channel needs, which scales on the page would do, and what the given one is:
+  `needs a scale that places numbers or dates (linear, log, time); "band" places categories`. The block reference and
+  the blocks page list the accepted scales from the same declarations.
+- **The zoom** (`lib.view`) works on how far along its full domain the scale itself puts a value, from 0 to 1. That is
+  the value on a linear scale and its logarithm on a log one, so log needs no case, and a square-root scale of
+  someone else's zooms evenly too. The ends of the domain are written as its own values: through the mapping and back,
+  38% of them came out a rounding off.
+
+Two behaviors change. The x of a candlestick takes a log scale too, since it takes any scale that places values. A bar
+on a number scale of any name grows from its 0 when animated; before, only a scale named `linear` had one.
+
+A test defines a square-root scale no block knows: a line and a rule draw on it, its axis writes numbers by their
+format, and "+" halves the view in square roots. Another defines copies of the built-in scales under new names: a
+legend draws swatches, a bar or circles by what each declares, the filter takes only the one of categories, the
+tooltip heads the card with a date, bars stand along dates. Each of 21 parts fails a test when broken, and the check
+of the built site fails when the blocks page stops listing the accepted scales.
 
 ## Next steps
 

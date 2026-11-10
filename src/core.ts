@@ -35,6 +35,29 @@
       throw new Error('BC.define: a block needs a valid role and type');
     }
     const name = `${def.role}.${def.type}`;
+    if (CHECKS) {
+      // what a scale declares is all that marks, guides and interactions go by: one that declares nothing fits nothing
+      const outputs = ['position', 'color', 'size'];
+      const inputs = ['number', 'date', 'category'];
+      if (def.role === 'scale' && !(outputs.indexOf(def.output) >= 0 && inputs.indexOf(def.input) >= 0))
+        throw new Error(
+          `BC.define: ${name} must declare its output ("position", "color" or "size") and its input ("number", "date" or "category")`,
+        );
+      if (def.role === 'mark')
+        for (const ch of Object.keys(def.channels || {})) {
+          const need = def.channels[ch].accepts;
+          if (
+            need &&
+            !(
+              outputs.indexOf(need.output) >= 0 &&
+              (need.input === undefined || (Array.isArray(need.input) && need.input.every((i) => inputs.indexOf(i) >= 0)))
+            )
+          )
+            throw new Error(
+              `BC.define: channel "${ch}" of ${name} accepts { output: "position", "color" or "size", input: a list of "number", "date", "category" }`,
+            );
+        }
+    }
     const prev = registry.get(name);
     if (prev) {
       if (prev.version !== def.version) {
@@ -373,6 +396,14 @@
             err('', 'the spec must be an object');
             return out;
           }
+          /** A scale block fits a channel by what it declares, never by its name. */
+          const fits = (def: BC.ScaleDef, need: BC.ScaleNeed) =>
+            def.output === need.output && (!need.input || need.input.indexOf(def.input) >= 0);
+          /** "places numbers or dates", "colors categories", "sizes values". */
+          const scaleWords = (need: BC.ScaleNeed) =>
+            `${{ position: 'places', color: 'colors', size: 'sizes' }[need.output]} ${
+              need.input ? need.input.map((i) => ({ number: 'numbers', date: 'dates', category: 'categories' })[i]).join(' or ') : 'values'
+            }`;
 
           const table = typeof spec.data === 'string' && !pending.has(spec.data) ? lake.get(spec.data) : undefined;
           const problem = dataProblem(spec);
@@ -536,11 +567,17 @@
                   if (ref.scale !== undefined) err(`${path}.${ch}`, `channel "${ch}" of ${name} is read as it is and does not use a scale`);
                 } else if (ref.scale !== undefined) {
                   const sdef = scales[ref.scale];
+                  const block = sdef && (registry.get(`scale.${sdef.type}`) as BC.ScaleDef | undefined);
                   if (!sdef) err(`${path}.${ch}`, `scale "${ref.scale}" is not declared in scales`);
-                  else if (cdef.scales && cdef.scales.indexOf(sdef.type) < 0) {
+                  else if (block && cdef.accepts && !fits(block, cdef.accepts)) {
+                    // the scales on the page that would do, by what they declare
+                    const would: string[] = [];
+                    registry.forEach((d, n) => {
+                      if (d.role === 'scale' && fits(d, cdef.accepts as BC.ScaleNeed)) would.push(n.slice(6));
+                    });
                     err(
                       `${path}.${ch}`,
-                      `channel "${ch}" of ${name} does not accept a "${sdef.type}" scale (accepts: ${cdef.scales.join(', ')})`,
+                      `channel "${ch}" of ${name} needs a scale that ${scaleWords(cdef.accepts)}${would.length ? ` (${would.sort().join(', ')})` : ''}; "${sdef.type}" ${scaleWords({ output: block.output, input: [block.input] })}`,
                     );
                   }
                 }
@@ -774,7 +811,11 @@
         }
       }
       if (typeof s.field === 'string') sources.push(table.columns[s.field]);
-      scales[name] = def.create(s, { name, sources, range: resolveRange(name, s, plot), color: colorAt });
+      // what the block declares goes on the scale itself: everything that reads a scale goes by it
+      scales[name] = Object.defineProperties(def.create(s, { name, sources, range: resolveRange(name, s, plot), color: colorAt }), {
+        output: { value: def.output },
+        input: { value: def.input },
+      }) as BC.Scale;
     }
     const initial = spec.view || {};
     for (const name of Object.keys(initial)) view[name] = initial[name];
@@ -931,7 +972,7 @@
             : Math.max(2, Math.round(o === 'vertical' ? plot.h / 40 : o === 'horizontal' ? plot.w / 80 : 6));
         // categories are named, not sampled: show every label that fits, as the guides that write them measure it, and
         // thin them only when they do not
-        if (approxCount === undefined && scale.kind === 'band' && o) {
+        if (approxCount === undefined && scale.input === 'category' && o) {
           for (const g of spec.guides || []) {
             const gd = g.scale === name ? (registry.get(`guide.${g.type}`) as BC.GuideDef | undefined) : undefined;
             if (gd && gd.fits)

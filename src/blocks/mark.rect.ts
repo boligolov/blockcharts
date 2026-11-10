@@ -1,6 +1,4 @@
 (function () {
-  const KINDS = ['band', 'linear', 'log', 'time'];
-
   interface Dodge {
     col: BC.Column;
     order: Map<unknown, number>;
@@ -42,8 +40,8 @@
     const across = ctx.channel(spec, other);
     if (!main.scale || !across.scale || main.scale.bandwidth !== undefined || across.scale.bandwidth !== undefined) return false;
     if (ctx.channel(spec, name + '2').raw.length) return false;
-    if (name === 'y') return main.scale.kind === 'time' && across.scale.kind !== 'time';
-    return !!ctx.channel(spec, 'y2').raw.length || across.scale.kind !== 'time' || main.scale.kind === 'time';
+    if (name === 'y') return main.scale.input === 'date' && across.scale.input !== 'date';
+    return !!ctx.channel(spec, 'y2').raw.length || across.scale.input !== 'date' || main.scale.input === 'date';
   }
 
   /** The smallest distance in px between two different positions; 0 when there is only one. */
@@ -114,7 +112,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rect',
-    version: 12,
+    version: 13,
     enter: 'grow',
     doc: 'Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field). `shape: "hexagon"` draws a hexagon in the box instead, for the cells of transform.hexbin.',
     params: {
@@ -144,12 +142,12 @@
       },
     },
     channels: {
-      x: { required: true, scales: KINDS },
-      y: { required: true, scales: KINDS },
-      x2: { scales: ['linear', 'log', 'time'], sharesScale: 'x', doc: 'Other end of the rectangle along x.' },
-      y2: { scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Other end of the rectangle along y.' },
+      x: { required: true, accepts: { output: 'position' } },
+      y: { required: true, accepts: { output: 'position' } },
+      x2: { accepts: { output: 'position', input: ['number', 'date'] }, sharesScale: 'x', doc: 'Other end of the rectangle along x.' },
+      y2: { accepts: { output: 'position', input: ['number', 'date'] }, sharesScale: 'y', doc: 'Other end of the rectangle along y.' },
       color: {
-        scales: ['color', 'sequential'],
+        accepts: { output: 'color' },
         doc: 'Fill color per row, from a color scale; rows the scale gives no color (a hidden category, a missing number) are not drawn.',
       },
       dodge: {

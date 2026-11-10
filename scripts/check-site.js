@@ -7,6 +7,7 @@ const path = require('path');
 const vm = require('vm');
 
 const { SITE } = require('./site-prebuild.js');
+const { scalesFitting } = require('./build-manifest.js');
 
 const repo = path.join(__dirname, '..');
 const unescapeHtml = (s) =>
@@ -95,6 +96,33 @@ async function checkSite(siteDir, options) {
     if (h1 !== 1) problems.push(`${rel}: ${h1} h1 headings`);
     for (const m of text.matchAll(/<img\b[^>]*>/g)) if (!/\balt="/.test(m[0])) problems.push(`${rel}: an image without alt`);
   };
+
+  // the blocks page says, for each channel, which scales it accepts: they are worked out from what the scales declare (the
+  // manifest of the build the page is made from), so a page that lost them (and reads "any") would say every scale fits
+  const manifestFile = path.join(repo, 'dist', 'manifest.json');
+  const blocksPage = path.join(root, 'blocks', 'index.html');
+  if (!textOf.has(blocksPage)) problems.push('blocks/index.html is missing');
+  else if (!fs.existsSync(manifestFile)) problems.push(`${manifestFile} is missing, so the blocks page cannot be checked`);
+  else {
+    const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+    const page = unescapeHtml(textOf.get(blocksPage));
+    let checked = 0;
+    for (const [name, b] of Object.entries(manifest.blocks))
+      for (const [ch, c] of Object.entries(b.channels || {})) {
+        if (!c.accepts) continue;
+        checked++;
+        const list = scalesFitting(c.accepts, manifest).join(', ');
+        const row = new RegExp(
+          `<td><code>${ch}</code></td><td>(?:<b>required</b>|optional)</td><td>${list.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\(one that`,
+        );
+        const start = page.indexOf(`<div class="block" id="${name}"`);
+        const next = page.indexOf('<div class="block"', start + 1);
+        const section = start < 0 ? '' : page.slice(start, next < 0 ? undefined : next);
+        if (!list || !row.test(section))
+          problems.push(`blocks/index.html: channel "${ch}" of ${name} does not list the scales it accepts (${list || 'none fit'})`);
+      }
+    if (!checked) problems.push('blocks/index.html: no channel in the manifest says which scales it accepts');
+  }
 
   const kitFile = path.join(root, 'release', 'kits', 'full.js');
   const kit = fs.existsSync(kitFile) ? fs.readFileSync(kitFile, 'utf8') : null;

@@ -18,10 +18,13 @@
     index: number;
   }
 
+  /** A swatch per category for a scale that colors categories; a color bar for one that colors numbers or dates. */
+  const swatches = (scale: BC.Scale) => scale.output === 'color' && scale.input === 'category';
+
   function scaleOf(spec: BC.GuideSpec, ctx: BC.ChartCtx): BC.Scale {
     const scale = spec.scale ? ctx.scales[spec.scale] : undefined;
-    if (!scale || (scale.kind !== 'color' && scale.kind !== 'sequential' && scale.kind !== 'size'))
-      throw new Error('guide.legend needs a color, sequential or size scale');
+    if (!scale || !(scale.output === 'color' || (scale.output === 'size' && scale.input === 'number')))
+      throw new Error('guide.legend needs a scale of colors, or of sizes for numbers');
     return scale;
   }
 
@@ -97,7 +100,7 @@
   /** `auto`: a row on top while it takes one or two lines, a column on the right when its labels are too long for that, and
    *  a row again when they are too long for a column too (a phone). */
   function autoSide(scale: BC.Scale, ctx: BC.ChartCtx): Side {
-    if (scale.kind !== 'color') return 'right';
+    if (!swatches(scale)) return 'right';
     const items = itemsOf(scale, ctx);
     if (linesOf(items, rowRoom(ctx, 'top')).length <= 2) return 'top';
     const width = SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD;
@@ -137,7 +140,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 10,
+    version: 11,
     shownOnce: true,
     doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
@@ -161,7 +164,7 @@
       const head = headOf(spec);
       const title = titleWidth(spec, ctx);
       const out: Partial<BC.Insets> = {};
-      if (scale.kind === 'size') {
+      if (scale.output === 'size') {
         const sizes = sizesOf(scale, spec, ctx);
         const rMax = sizes.reduce((m, s) => Math.max(m, s.r), 0);
         out[side] = !sizes.length
@@ -171,7 +174,7 @@
             : sizeLines(sizes, rowRoom(ctx, side)).reduce((sum, l) => sum + l.h, 0) + PAD + head;
         return out;
       }
-      if (scale.kind === 'sequential') {
+      if (!swatches(scale)) {
         const labels = barTicks(scale, spec);
         const widest = labels.reduce((m, t) => Math.max(m, ctx.measure(t.label, FONT).w), 0);
         out[side] = column ? Math.max(BAR + GAP + widest, title) + 2 * PAD : BAR + ctx.measure('0', FONT).h + 2 * PAD + head;
@@ -208,7 +211,7 @@
           });
       };
 
-      if (scale.kind === 'size') {
+      if (scale.output === 'size') {
         const sizes = sizesOf(scale, spec, ctx);
         const rMax = sizes.reduce((m, s) => Math.max(m, s.r), 0);
         const circle = (cx: number, cy: number, s: Sized, labelX: number) => {
@@ -258,7 +261,7 @@
         return { axes: prims };
       }
 
-      if (scale.kind === 'sequential') {
+      if (!swatches(scale)) {
         const [d0, d1] = scale.domain() as number[];
         const length = barLength(column, ctx);
         const ticks = barTicks(scale, spec);

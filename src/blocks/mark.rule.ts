@@ -1,5 +1,4 @@
 (function () {
-  const KINDS = ['band', 'linear', 'log', 'time'];
   const r2 = (v: number) => Math.round(v * 100) / 100;
 
   /** The segment a row draws, in px, or null. A channel on a band scale spans (a share of) the band; a continuous channel
@@ -49,7 +48,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rule',
-    version: 5,
+    version: 6,
     doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it.',
     params: {
       stroke: { kind: 'string', doc: 'Any CSS color. Default: the theme text color.' },
@@ -60,11 +59,11 @@
       label: { kind: 'string', doc: 'Text at the end of the line ("Target 50K").' },
     },
     channels: {
-      x: { scales: KINDS },
-      y: { scales: KINDS },
-      x2: { scales: ['linear', 'log', 'time'], sharesScale: 'x', doc: 'Other end along x.' },
-      y2: { scales: ['linear', 'log', 'time'], sharesScale: 'y', doc: 'Other end along y.' },
-      color: { scales: ['color'], doc: 'Line color per row, from a color scale.' },
+      x: { accepts: { output: 'position' } },
+      y: { accepts: { output: 'position' } },
+      x2: { accepts: { output: 'position', input: ['number', 'date'] }, sharesScale: 'x', doc: 'Other end along x.' },
+      y2: { accepts: { output: 'position', input: ['number', 'date'] }, sharesScale: 'y', doc: 'Other end along y.' },
+      color: { accepts: { output: 'color', input: ['category'] }, doc: 'Line color per row, from a color scale.' },
     },
     render(spec, ctx, index) {
       if (spec.x === undefined && spec.y === undefined) return [];

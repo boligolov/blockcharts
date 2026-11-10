@@ -16,7 +16,9 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'band',
-    version: 4,
+    version: 5,
+    output: 'position',
+    input: 'category',
     merge: 'union',
     fieldsOnly: true,
     doc: "Categorical scale: one band per distinct value, in first-seen order. Maps a value to the band's lower edge; `bandwidth` is the band width. Bands always run in increasing pixel order (left to right, top to bottom), also on a vertical axis, so horizontal bars list their categories from the top. Zoom = a window of categories.",
@@ -52,10 +54,9 @@
       const scale = ((v: unknown) => {
         const i = index.get(v);
         return i === undefined ? NaN : edge(i);
-      }) as unknown as BC.Scale<unknown, number>;
+      }) as unknown as BC.ScaleMapping<unknown, number>;
 
       Object.defineProperties(scale, {
-        kind: { value: 'band' },
         bandwidth: { get: () => bw },
         domain: { value: () => view.slice() },
         baseDomain: { value: () => base.slice() },

@@ -296,7 +296,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       marks: [{ type: 'line', x: 'v', y: 'k' }],
     });
     assert(
-      d.some((x) => x.path === 'marks[0].y' && /does not accept a "band" scale/.test(x.message)),
+      d.some(
+        (x) =>
+          x.path === 'marks[0].y' &&
+          /channel "y" of mark.line needs a scale that places numbers or dates \(linear, log, time\); "band" places categories/.test(
+            x.message,
+          ),
+      ),
       JSON.stringify(d),
     );
     const v = BC.validate({ ...barSpec(), view: { nope: [1, 2], y: 5 } });
@@ -509,7 +515,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const host = new FakeNode('div');
     const h = BC.chart(host, ptSpec([{ type: 'legend', scale: 'x' }]));
     assert(
-      h.diagnostics.some((d) => d.path === 'guides[2]' && /needs a color, sequential or size scale/.test(d.message)),
+      h.diagnostics.some((d) => d.path === 'guides[2]' && /guide.legend needs a scale of colors, or of sizes for numbers/.test(d.message)),
       JSON.stringify(h.diagnostics),
     );
     assert.strictEqual(count(svgOf(host), /<circle /g), 6);
@@ -519,7 +525,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('validate: color channels only accept color scales', () => {
     const d = BC.validate({ ...ptSpec([]), scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'linear' } } });
     assert(
-      d.some((x) => x.path === 'marks[0].color' && /does not accept a "linear" scale \(accepts: color, sequential\)/.test(x.message)),
+      d.some(
+        (x) =>
+          x.path === 'marks[0].color' && /needs a scale that colors values \(color, sequential\); "linear" places numbers/.test(x.message),
+      ),
       JSON.stringify(d),
     );
     assert(BC.validate(ptSpec([{ type: 'legend', scale: 'nope' }])).some((x) => x.path === 'guides[2].scale'));
@@ -741,7 +750,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       role: 'mark',
       type: 'inert',
       version: 1,
-      channels: { x: { required: true, scales: ['linear'] }, y: { required: true, scales: ['linear'] } },
+      channels: {
+        x: { required: true, accepts: { output: 'position', input: ['number'] } },
+        y: { required: true, accepts: { output: 'position', input: ['number'] } },
+      },
       render: () => [],
     });
     BC.data('holes', [
@@ -1584,7 +1596,6 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       ['#440154', '#21908d', '#fde725'],
       'first stop, middle stop, last stop of the default (viridis)',
     );
-    assert.strictEqual(s.kind, 'sequential');
     assert.deepStrictEqual(s.domain(), [0, 10]);
     assert.strictEqual(s.range().length, 5);
 
@@ -2793,6 +2804,235 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     await flush();
     [v0, v1] = h.getView().x;
     assert(Math.abs(v0 - b0) < 1e-6 && Math.abs(v1 - b1) < 1e-6, '"-" undoes "+" back to the full domain');
+  });
+
+  // ── scales of names no block knows ──
+  const near = (a, b, eps) => Math.abs(a - b) <= eps;
+  /** A number scale no block has heard of: square roots, as someone else's block might be. */
+  const defineSqrt = () => {
+    if (BC.get('scale.sqrt')) return;
+    BC.define({
+      role: 'scale',
+      type: 'sqrt',
+      version: 1,
+      output: 'position',
+      input: 'number',
+      create(spec, ctx) {
+        const b = Array.isArray(spec.domain) ? spec.domain.map(Number) : [0, 10000];
+        let d = b.slice();
+        let r = ctx.range.map(Number);
+        const at = (v) => r[0] + ((Math.sqrt(v) - Math.sqrt(d[0])) / (Math.sqrt(d[1]) - Math.sqrt(d[0]))) * (r[1] - r[0]);
+        return Object.defineProperties((v) => (typeof v === 'number' && v >= 0 ? at(v) : NaN), {
+          domain: { value: () => d.slice() },
+          baseDomain: { value: () => b.slice() },
+          setDomain: { value: (x) => (d = x ? x.map(Number) : b.slice()) },
+          range: { value: () => r.slice() },
+          setRange: { value: (x) => (r = x.map(Number)) },
+          invert: { value: (px) => (Math.sqrt(d[0]) + ((px - r[0]) / (r[1] - r[0])) * (Math.sqrt(d[1]) - Math.sqrt(d[0]))) ** 2 },
+          ticks: {
+            value: () => [0, 2500, 10000].filter((v) => v >= d[0] && v <= d[1]).map((v) => ({ value: v, pos: at(v), label: String(v) })),
+          },
+        });
+      },
+    });
+  };
+
+  test('a scale of a name no block knows is taken for what it declares: marks draw on it, an axis formats it, zoom steps evenly on it', async () => {
+    defineSqrt();
+    BC.data(
+      'roots',
+      Array.from({ length: 11 }, (_, i) => ({ i, v: i * i * 100 })),
+    );
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      data: 'roots',
+      size: [640, 400],
+      scales: { x: { type: 'linear' }, y: { type: 'sqrt' } },
+      marks: [
+        { type: 'line', x: 'i', y: 'v' },
+        { type: 'rule', y: { value: 2500 } },
+      ],
+      guides: [{ type: 'axis', scale: 'y', format: 'integer' }],
+      interaction: [{ type: 'probe2' }, { type: 'zoom-controls', scales: ['y'] }],
+    });
+    assert.deepStrictEqual(h.diagnostics, [], 'the line and the rule take a scale that places numbers');
+    assert.deepStrictEqual(
+      [probed.scales.y.output, probed.scales.y.input],
+      ['position', 'number'],
+      'what the block declares is on the scale',
+    );
+    const ys = probed.channel(probed.spec.marks[0], 'y').mapped;
+    for (let k = 2; k < 11; k++)
+      assert(near(ys[k] - ys[k - 1], ys[1] - ys[0], 1e-9), 'squares on a scale of square roots: a straight line');
+    const svg = svgOf(host);
+    assert(/>2,500</.test(svg) && />10,000</.test(svg) && !/>2500</.test(svg), 'the axis writes its numbers by the format of numbers');
+    // "+" halves the view around its middle on the screen: in square roots, not in values
+    clickBtn(controlsOf(host).children[2]);
+    await flush();
+    const [v0, v1] = h.getView().y;
+    assert(near(Math.sqrt(v0) + Math.sqrt(v1), 100, 1e-6), `the middle on the screen stays where it was: [${v0}, ${v1}]`);
+    assert(near(Math.sqrt(v1) - Math.sqrt(v0), 50, 1e-6), `half of the height: [${v0}, ${v1}]`);
+    for (let i = 0; i < 4; i++) clickBtn(controlsOf(host).children[1]);
+    await flush();
+    assert.deepStrictEqual(h.getView().y, [0, 10000], 'zoomed out past the whole domain: all of it, to its own ends');
+  });
+
+  test('copies of the built-in scales under names no block knows are shown, filtered and read the same', async () => {
+    for (const [base, type] of [
+      ['color', 'palette'],
+      ['sequential', 'heat'],
+      ['size', 'radius'],
+      ['time', 'when'],
+      ['band', 'shelf'],
+    ])
+      if (!BC.get(`scale.${type}`)) BC.define({ ...BC.get(`scale.${base}`), type, version: 1 });
+    BC.data('shop', [
+      { d: '2024-01-01', k: 'A', v: 10 },
+      { d: '2024-02-01', k: 'B', v: 30 },
+      { d: '2024-03-01', k: 'A', v: 20 },
+      { d: '2024-04-01', k: 'C', v: 40 },
+    ]);
+    const chart = (scales, marks, guides, interaction) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, { data: 'shop', size: [640, 400], scales, marks, guides: guides || [], interaction: interaction || [] });
+      return { host, h, svg: svgOf(host) };
+    };
+    logged.warn.length = 0;
+    const lines = chart(
+      { x: { type: 'when' }, y: { type: 'linear' }, color: { type: 'palette' } },
+      [{ type: 'point', x: 'd', y: 'v', color: 'k' }],
+      [{ type: 'legend', scale: 'color' }],
+      [{ type: 'legend-filter' }, { type: 'tooltip' }],
+    );
+    assert.deepStrictEqual(lines.h.diagnostics, []);
+    assert.strictEqual(count(lines.svg, /class="bc-legend-item"/g), 3, 'categories: a swatch each');
+    assert.deepStrictEqual(logged.warn, [], 'the filter takes a scale that colors categories');
+    click(lines.host, 1);
+    await flush();
+    assert.deepStrictEqual(lines.h.getView().color, ['A', 'C'], 'and hides one');
+    const [dot] = circles(svgOf(lines.host));
+    await hover(lines.host, dot.x, dot.y);
+    assert.strictEqual(tipText(lines.host)[0], 'd: Jan 1, 2024', 'a scale of dates heads the tooltip with a date');
+
+    const heat = chart(
+      { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'heat' } },
+      [{ type: 'point', x: 'v', y: 'v', color: 'v' }],
+      [{ type: 'legend', scale: 'color' }],
+      [{ type: 'legend-filter', scale: 'color' }],
+    );
+    assert.deepStrictEqual(heat.h.diagnostics, []);
+    assert(count(heat.svg, /class="bc-legend-bar"/g) > 1 && !/bc-legend-item/.test(heat.svg), 'numbers: a color bar');
+    assert(
+      logged.warn.some((w) => /legend-filter: needs a categorical color scale/.test(w)),
+      'the filter leaves alone a scale that colors numbers',
+    );
+
+    const sized = chart(
+      { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'radius' } },
+      [{ type: 'point', x: 'v', y: 'v', size: 'v' }],
+      [{ type: 'legend', scale: 'size' }],
+    );
+    assert.deepStrictEqual(sized.h.diagnostics, []);
+    assert(/class="bc-legend-size"/.test(sized.svg), 'sizes: circles');
+
+    // bars stand along the scale of dates, whatever its name
+    const bars = chart({ x: { type: 'when' }, y: { type: 'linear', zero: true } }, [{ type: 'rect', x: 'd', y: 'v' }]);
+    assert.deepStrictEqual(bars.h.diagnostics, []);
+    const rects = [...bars.svg.matchAll(/<rect x="[-\d.]+" y="[-\d.]+" width="([\d.]+)" height="([\d.]+)"[^>]*data-bc-mark/g)].map((m) => [
+      +m[1],
+      +m[2],
+    ]);
+    assert.strictEqual(rects.length, 4);
+    assert(new Set(rects.map((r) => r[0])).size === 1 && rects[3][1] > rects[0][1], 'upright bars of one width: ' + JSON.stringify(rects));
+
+    // categories on an axis of another name: as many as fit, slanted when they do not
+    const many = Array.from({ length: 24 }, (_, i) => ({ k: 'A category ' + i, v: i }));
+    BC.data('many', many);
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'many',
+      size: [480, 300],
+      scales: { x: { type: 'shelf' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'rect', x: 'k', y: 'v' }],
+      guides: [{ type: 'axis', scale: 'x' }],
+    });
+    assert(/rotate\(/.test(svgOf(host)), 'long categories go at an angle');
+    logged.warn.length = 0;
+  });
+
+  test('lib.view: a view pushed against an end of the domain ends exactly there, not a rounding off it', () => {
+    const { show } = BC.get('lib.view').exports;
+    for (const [type, domain, view] of [
+      ['linear', [0.1, 0.7], [0.1309278350515464, 0.6770992366412213]],
+      ['log', [3, 7000], [3.5, 5000]],
+    ]) {
+      const scale = BC.get(`scale.${type}`).create({ type, domain }, { name: 'x', sources: [], range: [37.5, 611.25] });
+      scale.setDomain(view);
+      let set;
+      const live = { scales: { x: scale }, getView: () => ({ x: scale.domain() }), setView: (_n, v) => (set = v) };
+      show(live, 'x', 0.5, 1.2);
+      assert.strictEqual(set[1], domain[1], `${type}: the last end: ${set}`);
+      show(live, 'x', -0.3, 0.4);
+      assert.strictEqual(set[0], domain[0], `${type}: the first end: ${set}`);
+      show(live, 'x', -1, 2);
+      assert.strictEqual(set, null, `${type}: wider than the domain is no view`);
+    }
+    // a scale with no length on the screen (a plot squeezed to nothing) has nothing to measure by: nothing moves
+    const flat = BC.get('scale.linear').create({ type: 'linear', domain: [0, 10] }, { name: 'x', sources: [], range: [50, 50] });
+    let set = 'untouched';
+    const live = { scales: { x: flat }, getView: () => ({ x: flat.domain() }), setView: (_n, v) => (set = v) };
+    const view = BC.get('lib.view').exports;
+    view.show(live, 'x', 0.2, 0.4);
+    view.zoom(live, 'x', 0.5, 10);
+    assert.strictEqual(set, 'untouched');
+    assert.deepStrictEqual(view.current(live, 'x'), [0, 1]);
+  });
+
+  test('a channel refuses a scale by what the scale declares, and names the scales that would do', () => {
+    defineSqrt();
+    const d = (scales, marks) => BC.validate({ data: 'roots', scales, marks });
+    const y = d({ x: { type: 'linear' }, y: { type: 'shelf' } }, [{ type: 'line', x: 'i', y: 'v' }]);
+    assert(
+      y.some(
+        (x) =>
+          x.path === 'marks[0].y' &&
+          /channel "y" of mark.line needs a scale that places numbers or dates \(linear, log, sqrt, time, when\); "shelf" places categories/.test(
+            x.message,
+          ),
+      ),
+      JSON.stringify(y),
+    );
+    const color = d({ x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'heat' } }, [
+      { type: 'line', x: 'i', y: 'v', color: 'v' },
+    ]);
+    assert(
+      color.some((x) =>
+        /channel "color" of mark.line needs a scale that colors categories \(color, palette\); "heat" colors numbers/.test(x.message),
+      ),
+      JSON.stringify(color),
+    );
+    const size = d({ x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'sqrt' } }, [
+      { type: 'point', x: 'i', y: 'v', size: 'v' },
+    ]);
+    assert(
+      size.some((x) => /needs a scale that sizes values \(radius, size\); "sqrt" places numbers/.test(x.message)),
+      JSON.stringify(size),
+    );
+  });
+
+  test('BC.define: a scale has to say what it makes of a value and what it takes, and a channel what it accepts', () => {
+    const base = { role: 'scale', version: 1, create: () => () => 0 };
+    assert.throws(
+      () => BC.define({ ...base, type: 'mute' }),
+      /BC.define: scale.mute must declare its output \("position", "color" or "size"\) and its input/,
+    );
+    assert.throws(() => BC.define({ ...base, type: 'mute', output: 'shape', input: 'number' }), /scale.mute must declare/);
+    assert.throws(() => BC.define({ ...base, type: 'mute', output: 'color', input: 'text' }), /scale.mute must declare/);
+    assert.strictEqual(BC.get('scale.mute'), undefined, 'and it is not registered');
+    const mark = (accepts) => ({ role: 'mark', type: 'picky', version: 1, channels: { x: { accepts } }, render: () => [] });
+    for (const bad of [{ output: 'place' }, { output: 'position', input: 'number' }, { output: 'position', input: ['numbers'] }])
+      assert.throws(() => BC.define(mark(bad)), /BC.define: channel "x" of mark.picky accepts/, JSON.stringify(bad));
+    assert.strictEqual(BC.get('mark.picky'), undefined);
   });
 
   test('zoom-controls: a chart with only a band scale gets "100%" and no "-"/"+", and it clears a brush selection', async () => {
@@ -4358,7 +4598,10 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('bubble: validation of the size channel, and the tooltip picks the small bubble on top of a big one', async () => {
     const wrong = BC.validate({ ...bubbleSpec(), scales: { x: { type: 'linear' }, y: { type: 'linear' }, size: { type: 'linear' } } });
     assert(
-      wrong.some((d) => d.path === 'marks[0].size' && /does not accept a "linear" scale/.test(d.message)),
+      wrong.some(
+        (d) =>
+          d.path === 'marks[0].size' && /needs a scale that sizes values \([^)]*\bsize\b[^)]*\); "linear" places numbers/.test(d.message),
+      ),
       JSON.stringify(wrong),
     );
     const badRange = BC.chart(
@@ -5005,7 +5248,6 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
   test('scale.log: equal ratios are equal steps; the domain from positive values, nice to powers of ten; ticks and labels', () => {
     const s = logOf([Float64Array.of(3, 0, -5, NaN, 4200)]);
     assert.deepStrictEqual(s.domain(), [1, 10000], 'zero, negatives and NaN do not count; nice to powers of ten');
-    assert.strictEqual(s.kind, 'log');
     assert.strictEqual(s(1), 0);
     assert.strictEqual(s(100), 150);
     assert.strictEqual(s(10000), 300);

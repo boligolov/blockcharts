@@ -32,14 +32,6 @@ skill, which cost 44% more tokens and gave heavier pages. Still to do:
       KPI note is too wide after a change with a suffix; a KPI tile scales as a picture on a phone; `transform.filter` cannot
       keep only rows with no value; a table of rows.
 
-## Block audit
-
-Audited on 2026-11-01. Scales, transforms and renderers are clean; these are the leaks, in the order to fix them:
-
-- [ ] **Marks name the scale types they accept** (`scales: ['linear', 'log', 'time', 'band']` on a channel), so a scale
-      block of a new name fits no built-in mark. A scale could declare what it is (positional, a number, categories) and a
-      channel accept that.
-
 ## Business blocks
 
 Done: KPI tiles (guide.kpi), waterfall, funnel, treemap, target lines and bullet charts (mark.rule, bar

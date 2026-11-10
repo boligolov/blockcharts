@@ -166,10 +166,29 @@ declare namespace BC {
     label: string;
   }
 
-  /** A callable data → range mapping. `any` because the domain is per-kind. */
-  interface Scale<D = any, R = any> {
+  /** What a scale makes of a value: a place along the plot, a color, or the size of a circle. */
+  type ScaleOutput = 'position' | 'color' | 'size';
+  /** What a scale takes: numbers, dates, or categories (each distinct value a place or a color of its own). */
+  type ScaleInput = 'number' | 'date' | 'category';
+
+  /** The scales a channel can be drawn through, by what they declare (ScaleDef.output and ScaleDef.input), never by name:
+   *  a scale block of a new name fits every mark whose channels take what it declares. */
+  interface ScaleNeed {
+    output: ScaleOutput;
+    /** The inputs it takes; omitted = any. */
+    input?: readonly ScaleInput[];
+  }
+
+  /** A scale on a chart: the mapping its block makes, with what the block declares (ScaleDef.output, ScaleDef.input),
+   *  set by the core when it creates it. Marks, guides and interactions read these, never the scale's name. */
+  interface Scale<D = any, R = any> extends ScaleMapping<D, R> {
+    readonly output: ScaleOutput;
+    readonly input: ScaleInput;
+  }
+
+  /** A callable data → range mapping, as a scale block makes it. `any` because the domain is per-kind. */
+  interface ScaleMapping<D = any, R = any> {
     (value: D): R;
-    readonly kind: string;
     /** Current (view) domain — what ticks and mapping use. Equals baseDomain() until zoomed. */
     domain(): D[];
     /** Domain inferred from data / spec, before any view is applied. */
@@ -388,8 +407,8 @@ declare namespace BC {
 
   interface ChannelDef {
     required?: boolean;
-    /** Scale kinds accepted, e.g. ['linear','time']. Omitted = any. */
-    scales?: readonly string[];
+    /** The scales it can be drawn through, by what they declare. Omitted = any. */
+    accepts?: ScaleNeed;
     /** Channel whose scale this one uses by default (e.g. `y2` of a rect shares the scale of `y`), instead of a scale
      *  named like itself. An explicit { field, scale } still wins. */
     sharesScale?: string;
@@ -414,7 +433,12 @@ declare namespace BC {
 
   interface ScaleDef extends BlockBase {
     role: 'scale';
-    create(spec: ScaleSpec, ctx: ScaleCtx): Scale;
+    /** What it makes of a value and what it takes: the channels that accept it, the guides that show it and the
+     *  interactions that work on it go by these. */
+    output: ScaleOutput;
+    input: ScaleInput;
+    /** The mapping; the core adds `output` and `input` from the declaration. */
+    create(spec: ScaleSpec, ctx: ScaleCtx): ScaleMapping;
     /** true: a domain it infers comes from fields alone, and a constant a channel writes (a rule at one category) adds
      *  nothing to it. A band takes its categories from the data; a number scale stretches to show a constant. */
     fieldsOnly?: boolean;
