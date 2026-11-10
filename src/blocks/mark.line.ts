@@ -78,7 +78,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 19,
+    version: 20,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -186,6 +186,8 @@
       const colorCh = spec.color !== undefined ? ctx.channel(spec, 'color') : null;
       // a crosshair follows the pointer at any height, so the value it points at has to as well
       const reach = ctx.alongX ? Infinity : REACH;
+      // zoomed, a series keeps a point past each edge so its line runs on: the reader cannot see it, so it is not picked
+      const seen = (i: number) => xs[i] >= ctx.plot.x - 0.5 && xs[i] <= ctx.plot.x + ctx.plot.w + 0.5;
       let best: BC.Pick | null = null;
       for (const { rows } of ctx.series(spec, xs)) {
         if (colorCh && !colorCh.mapped[rows[0]]) continue;
@@ -208,8 +210,10 @@
         const lineY = ys[a] + (ys[b] - ys[a]) * t;
         const dist = Math.abs(py - lineY);
         if (dist > reach || (best && dist >= best.dist)) continue;
-        const near = Math.abs(px - xs[a]) <= Math.abs(px - xs[b]);
+        let near = Math.abs(px - xs[a]) <= Math.abs(px - xs[b]);
+        if (!seen(near ? a : b)) near = !near;
         const row = near ? a : b;
+        if (!seen(row)) continue;
         best = { row, x: xs[row], y: ys[row], dist };
         // a vertex that several rows put on one spot (a total repeated on each row of its quarter) stands for all of them
         let k0 = near ? lo : Math.min(lo + 1, pts.length - 1);

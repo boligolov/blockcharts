@@ -37,7 +37,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 12,
+    version: 13,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -138,7 +138,11 @@
         const yTop = top[a] + (top[b] - top[a]) * t;
         const yBottom = bottom(a) + (bottom(b) - bottom(a)) * t;
         if (py < Math.min(yTop, yBottom) - 1 || py > Math.max(yTop, yBottom) + 1) continue;
-        const row = Math.abs(px - xs[a]) <= Math.abs(px - xs[b]) ? a : b;
+        // zoomed, a series keeps a point past each edge so its area runs on: the reader cannot see it, so it is not picked
+        const seen = (i: number) => xs[i] >= ctx.plot.x - 0.5 && xs[i] <= ctx.plot.x + ctx.plot.w + 0.5;
+        const nearer = Math.abs(px - xs[a]) <= Math.abs(px - xs[b]) ? a : b;
+        const row = seen(nearer) ? nearer : nearer === a ? b : a;
+        if (!seen(row)) continue;
         // overlapping areas: the one drawn last is on top
         best = { row, x: xs[row], y: top[row], dist: 0 };
       }

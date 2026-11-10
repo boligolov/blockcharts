@@ -3527,6 +3527,56 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.strictEqual(tipOf(line).style.display, 'none', 'over the labels, nothing');
   });
 
+  test('zoomed, the tooltip and the crosshair snap only to points in view, never to the one kept past the edge', async () => {
+    BC.data(
+      'culled',
+      [0, 10, 20, 30, 40].map((t) => ({ t, v: t / 10 + 1 })),
+    );
+    const chart = (type, interaction) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'culled',
+        size: [640, 400],
+        padding: { top: 16, right: 16, bottom: 16, left: 16 },
+        scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true } },
+        marks: [{ type, x: 't', y: 'v' }],
+        interaction,
+      });
+      return { host, h };
+    };
+    // x from 12 to 28 on 608 px: t = 13 is 16 + 608/16 = 54 px; t = 20 is in the middle, 10 and 30 are kept just past the edges
+    const at = (t) => 16 + ((t - 12) / 16) * 608;
+    for (const type of ['line', 'area']) {
+      const { host, h } = chart(type, [{ type: 'tooltip' }]);
+      h.setView('x', [12, 28]);
+      await flush();
+      const yAt = (t) => 400 - 16 - ((t / 10 + 1) / 5) * 368;
+      await hover(host, at(13), type === 'area' ? 380 : yAt(13));
+      assert.deepStrictEqual(
+        partOf(tipOf(host), 'bc-tooltip-lines').children.map((c) => c.text),
+        ['t', '20', 'v', '3'],
+        `${type}: nearer to t = 10, which is out of view, it shows t = 20`,
+      );
+      h.setView('x', [12, 18]);
+      await flush();
+      await hover(host, at(13), type === 'area' ? 380 : yAt(13));
+      assert.strictEqual(tipOf(host).style.display, 'none', `${type}: no point in view, nothing to show`);
+      h.destroy();
+    }
+    const { host, h } = chart('line', [{ type: 'crosshair' }]);
+    h.setView('x', [12, 28]);
+    await flush();
+    await hover(host, at(13), 200);
+    const line = host.children.find((c) => c.attrs.class === 'bc-crosshair');
+    assert.strictEqual(line.style.display, 'block');
+    assert(Math.abs(parseFloat(line.style.left) - at(20)) < 0.5, 'the crosshair stands at t = 20: ' + line.style.left);
+    h.setView('x', [12, 18]);
+    await flush();
+    await hover(host, at(13), 200);
+    assert.strictEqual(line.style.display, 'none', 'no point in view: no line');
+    h.destroy();
+  });
+
   test('a chart speaks its own language on hover, after another chart drew, and the page keeps its own', async () => {
     BC.data('flows', [
       { s: 'A', t: 'B', v: 1000500 },

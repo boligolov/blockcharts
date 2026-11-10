@@ -20,7 +20,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'crosshair',
-    version: 5,
+    version: 6,
     requires: ['lib.pointer'],
     alongX: true,
     doc: 'A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. On a touch screen it follows a tap and the sliding finger, and stays until the reader touches somewhere else. Works with or without the tooltip.',
@@ -93,9 +93,11 @@
             continue; // a mark without an x on a scale has no position to snap to
           }
           const { from, to } = live.rows(mark);
+          const { x: left, w } = live.plot;
           for (let i = from; i < to; i++) {
             const px = xs[i] + half;
-            if (!isFinite(px)) continue;
+            // zoomed, the rows drawn reach a point past each edge: not one the line can stand on
+            if (!isFinite(px) || px < left - 0.5 || px > left + w + 0.5) continue;
             const d = Math.abs(px - x);
             if (!best || d < best.d) best = { x: px, y: ys && isFinite(ys[i]) ? ys[i] : y, d };
           }

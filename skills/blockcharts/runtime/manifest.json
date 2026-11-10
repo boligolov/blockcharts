@@ -1193,8 +1193,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2619,
-      "version": 12,
+      "bytes": 2697,
+      "version": 13,
       "requires": [
         "lib.curve"
       ],
@@ -1480,8 +1480,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3982,
-      "version": 19,
+      "bytes": 4072,
+      "version": 20,
       "requires": [
         "lib.curve"
       ],
@@ -2458,8 +2458,8 @@
     },
     "interaction.crosshair": {
       "file": "blocks/interaction.crosshair.js",
-      "bytes": 2087,
-      "version": 5,
+      "bytes": 2122,
+      "version": 6,
       "requires": [
         "lib.pointer"
       ],

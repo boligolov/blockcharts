@@ -1317,6 +1317,11 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   drawn with the marks: a zoom clips the marks to the plot, so the moment a reader zoomed, every name was cut to
   nothing. A mark may now give `labels()`, primitives drawn above the marks outside the clip; mark.line draws its names
   there, at the last point in view (one above or below a y zoom is not named over the plot's edge).
+- **Zoomed, the tooltip and the crosshair stay on points in view.** A zoomed series keeps one point past each edge so
+  its line runs on to the edge; the line and area picks took the nearer of the two points around the pointer, and the
+  crosshair the nearest of all, so near an edge they showed a datum the reader could not see, with its marker and line
+  outside the plot. Now a point out of view gives way to its neighbour in view, and between two points that are both
+  out of view (a window narrower than the spacing) there is nothing to show.
 
 ## Next steps
 
