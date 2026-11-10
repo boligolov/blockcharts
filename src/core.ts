@@ -1779,12 +1779,17 @@
   // exports write) is not ECMAScript's format at all, and browsers disagree about it; it is read like the "T".
   const DATE_TIME = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2}(?:[.,]\d+)?)?)\s*(Z|[+-]\d{2}(?::?\d{2})?)?$/i;
 
+  // A year, a month or a day, which ECMAScript reads as UTC. Anything else ("3/1/2024", "Mar 1, 2024", "2024-3-1") the
+  // engine reads as the reader's local time, if at all, and "3/1" is March or January depending on who wrote it: not a
+  // date here, so the chart says which values it could not read instead of drawing them on other days in other zones.
+  const ISO_DATE = /^(?:\d{4}|[+-]\d{6})(?:-\d{2}(?:-\d{2})?)?$/;
+
   function time(v: unknown): number {
     if (typeof v === 'number') return Math.abs(v) <= MAX_MS ? v : NaN;
     if (typeof v === 'string') {
       const s = v.trim();
       const m = DATE_TIME.exec(s);
-      if (!m) return Date.parse(s);
+      if (!m) return ISO_DATE.test(s) ? Date.parse(s) : NaN;
       const zone =
         m[3] === undefined ? 'Z' : m[3].length === 3 ? m[3] + ':00' : m[3].length === 5 ? m[3].slice(0, 3) + ':' + m[3].slice(3) : m[3];
       return Date.parse(`${m[1]}T${m[2].replace(',', '.')}${zone.toUpperCase()}`);

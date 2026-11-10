@@ -1261,6 +1261,11 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   numbers (2019 … 2023) are milliseconds into 1970 to a time scale: it says so and how to give years. The years 0 to
   99 were ticked as 1900 to 1999 (`Date.UTC` reads two digits so). And values that differ only by rounding
   (`0.1 + 0.2` and `0.3`) were two ends 5.6e-17 apart, with a thousand ticks: they are one value now.
+- **A date is ISO, or it is not a date.** `BC.time` handed what was not ISO to `Date.parse`, which reads "3/1/2024",
+  "Mar 1, 2024" or "2024-3-1" as the reader's local time: the same report put the points on other days in Tokyo and
+  in New York, and "3/1" is March to one writer and January to another. Now a year, a month, a day (`"2024"`,
+  `"2024-03"`, `"2024-03-01"`) and the date-times the core already read as UTC are dates, and nothing else is: the
+  chart names the values it could not read, and how to write them.
 
 ## Next steps
 

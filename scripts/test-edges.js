@@ -38,6 +38,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
       assert.strictEqual(BC.time('2024-03-01T12:00+03'), utc);
       assert.strictEqual(BC.time('2024-03-01T12:00+0300'), utc);
       assert.strictEqual(BC.time('2024-03-01'), Date.UTC(2024, 2, 1));
+      assert.strictEqual(BC.time('2024-03'), Date.UTC(2024, 2, 1), 'a month');
+      assert.strictEqual(BC.time(' 2024 '), Date.UTC(2024, 0, 1), 'a year, as text');
+      assert.strictEqual(BC.time('+002024-03-01'), Date.UTC(2024, 2, 1), 'an extended year');
+      // what the engine would read in local time, if at all, and "3/1" as March or January by who wrote it: no date
+      for (const local of [
+        '3/1/2024',
+        'Mar 1, 2024',
+        '1 March 2024',
+        '2024-3-1',
+        '2024/03/01',
+        'March 2024',
+        'Fri Mar 01 2024',
+        '20240301',
+      ])
+        assert(Number.isNaN(BC.time(local)), local);
       assert.strictEqual(BC.time(new Date(utc)), utc);
       assert.strictEqual(BC.time(utc), utc);
       for (const bad of ['', 'soon', '2024-13-45T99:99', null, undefined, {}, true, 1e20, NaN, Infinity])
