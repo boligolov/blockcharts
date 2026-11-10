@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.31.0"
+  version: "0.32.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -140,7 +140,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Marimekko**: `transform.marimekko` with `field` = the size and `category` = the columns. Draw `x0, x1, y1, y0` with `mark.rect` on two linear scales with the domain [0, 1] and `"nice": false`; both axes are shares of the whole, so format them as `"percent"`. It also writes `share` (of the column) for the tooltip and `label` for a `mark.text`. See `recipes/marimekko.json`.
 
-**Sankey**: `mark.sankey` with one row per flow, `"source"`, `"target"` and `"value"`. It needs no scales and no axes, and names its nodes itself; `"format"` adds each node's total. With a tooltip, a ribbon shows its row and a node shows what flows in and out; on a page in another language give `"nodeLabels": ["유입", "유출"]`. Flows have to run one way, so a loop is an error. A name is one node wherever it occurs: if two stages share a name, write them differently. See `recipes/sankey.json`.
+**Sankey**: one row per flow, with `transform.sankey` in `transforms` and `mark.sankey` in `marks`, both with the same `"source"`, `"target"` and `"value"`. The transform lays the flows out (`"nodeGap"` is the space between nodes, a share of the height); the mark draws them. It needs no scales and no axes, and names its nodes itself; `"format"` adds each node's total. With a tooltip, a ribbon shows its row and a node shows what flows in and out; on a page in another language give `"nodeLabels": ["유입", "유출"]`. Flows have to run one way, so a loop is an error. A name is one node wherever it occurs: if two stages share a name, write them differently. See `recipes/sankey.json`.
 
 **Treemap**: `transform.treemap` (`field` = size, `group` = block, `name` = label, `aspect` = plot width / height) writes x0, x1, y0, y1 in 0..1 and `label`. Draw a `rect` (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with `domain: [0, 1]`, no axes, colored by the group; a `text` of `label` at (x0, y1) with `x2` = x1, `y2` = y0 (so a label that does not fit its cell shrinks or is left out) and `on` set to the color field. See `recipes/treemap.json`.
 

@@ -2246,6 +2246,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       data: 'flows',
       size: [600, 400],
       padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      transforms: [{ type: 'sankey', source: 's', target: 't', value: 'v' }],
       marks: [{ type: 'sankey', source: 's', target: 't', value: 'v', ...extra }],
     });
   };
@@ -2283,12 +2284,12 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
   });
 
   test('mark.sankey: crossings are sorted out where they can be', () => {
-    // two chains that the row order interleaves
+    // two chains that the row order interleaves: in the order the names first come, A1 above A2 flows to B2 below B1
     const { svg } = flows([
+      { s: 'B1', t: 'C2', v: 10 },
+      { s: 'B2', t: 'C1', v: 10 },
       { s: 'A1', t: 'B2', v: 10 },
       { s: 'A2', t: 'B1', v: 10 },
-      { s: 'B2', t: 'C1', v: 10 },
-      { s: 'B1', t: 'C2', v: 10 },
     ]);
     const d = paths(marks(svg)).map((p) => p.d.match(/^M[\d.]+ ([\d.]+)C.* ([\d.]+) ([\d.]+)L/));
     const firstLevel = d.map((m) => [+m[1], +m[3]]);
@@ -2331,6 +2332,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
         data: 'flows',
         size: [width, 300],
         padding: { top: 0, right: 0, bottom: 0, left: 0 },
+        transforms: [{ type: 'sankey', source: 's', target: 't', value: 'v' }],
         marks: [{ type: 'sankey', source: 's', target: 't', value: 'v', format: 'integer' }],
       }).svg;
     const short = texts(marks(narrow(300)));
@@ -2345,22 +2347,130 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(texts(marks(narrow(1400))).includes('A rather long name of a stage in the middle 10'), 'whole where there is room');
   });
 
-  test('mark.sankey: a loop is an error that names it, not a hang', () => {
+  /** A chart's context for mark.sankey alone, on the rows transform.sankey has laid out. */
+  const sankeyCtx = (rows, color = () => '#000') => {
+    const t = apply('sankey', rows, { source: 's', target: 't', value: 'v' });
+    return {
+      table: t,
+      channel: (_s, n) => ({ raw: t.columns[{ source: 's', target: 't', value: 'v' }[n]] }),
+      rows: () => ({ from: 0, to: rows.length }),
+      plot: { x: 0, y: 0, w: 600, h: 400 },
+      color,
+      measure: () => ({ w: 0, h: 0 }),
+    };
+  };
+
+  test('transform.sankey: a loop is an error that names it, not a hang', () => {
+    const loop = [
+      { s: 'A', t: 'B', v: 1 },
+      { s: 'B', t: 'A', v: 1 },
+      { s: 'C', t: 'A', v: 1 },
+    ];
     assert.throws(
-      () =>
-        BC.get('mark.sankey').render(
-          { type: 'sankey', source: 's', target: 't', value: 'v' },
-          {
-            channel: (_s, n) => ({ raw: { source: ['A', 'B', 'C'], target: ['B', 'A', 'A'], value: [1, 1, 1] }[n] }),
-            rows: () => ({ from: 0, to: 3 }),
-            plot: { x: 0, y: 0, w: 100, h: 100 },
-            color: () => '#000',
-            measure: () => ({ w: 0, h: 0 }),
-          },
-          0,
-        ),
-      /loop through "A", "B"/,
+      () => apply('sankey', loop, { source: 's', target: 't', value: 'v' }),
+      /transform.sankey: the flows go round in a loop through "A", "B"; a Sankey needs them to run one way/,
     );
+  });
+
+  test('transform.sankey: where each flow runs, in shares of the plot, one height per unit of value', () => {
+    const rows = [
+      { s: 'A', t: 'B', v: 30 },
+      { s: 'A', t: 'C', v: 10 },
+      { s: 'B', t: 'D', v: 30 },
+      { s: 'C', t: 'D', v: 10 },
+      { s: 'A', t: 'A', v: 5 },
+      { s: 'A', t: 'B', v: -1 },
+      { s: null, t: 'B', v: 3 },
+    ];
+    const t = apply('sankey', rows, { source: 's', target: 't', value: 'v' });
+    const c = t.columns;
+    assert.strictEqual(t.length, rows.length, 'every row is kept');
+    assert.deepStrictEqual(
+      c.s,
+      rows.map((r) => r.s),
+    );
+    assert.deepStrictEqual(c.x0.slice(0, 4), [0, 0, 0.5, 0.5], 'three columns: 0, a half and 1');
+    assert.deepStrictEqual(c.x1.slice(0, 4), [0.5, 0.5, 1, 1]);
+    for (const k of [4, 5, 6])
+      for (const n of ['x0', 'x1', 'y0', 'y1', 'thickness']) assert(Number.isNaN(c[n][k]), 'a row with no flow has no place: ' + k);
+    const unit = c.thickness[0] / 30;
+    for (let k = 0; k < 4; k++) assert(near(c.thickness[k], rows[k].v * unit, 1e-12), 'the same height for a value everywhere');
+    // B and C share the middle column with the default gap between them, so the middle is the fullest
+    assert(near(40 * unit + 0.03, 1, 1e-12), 'the fullest column fills the height: ' + 40 * unit);
+    assert(near(Math.abs(c.y1[0] - c.y1[1]) - (c.y1[0] < c.y1[1] ? c.thickness[0] : c.thickness[1]), 0.03, 1e-12), 'the gap');
+    // A's two ribbons leave it one under the other, and D's arrive so
+    assert(near(Math.abs(c.y0[0] - c.y0[1]), c.y0[0] < c.y0[1] ? c.thickness[0] : c.thickness[1], 1e-12));
+    assert(near(Math.abs(c.y1[2] - c.y1[3]), c.y1[2] < c.y1[3] ? c.thickness[2] : c.thickness[3], 1e-12));
+    for (let k = 0; k < 4; k++)
+      for (const n of ['y0', 'y1']) assert(c[n][k] >= -1e-12 && c[n][k] + c.thickness[k] <= 1 + 1e-12, 'inside the plot');
+    const one = apply('sankey', [{ s: 'A', t: 'B', v: 2 }], { source: 's', target: 't', value: 'v' }).columns;
+    assert.deepStrictEqual([one.x0[0], one.x1[0], one.y0[0], one.y1[0], one.thickness[0]], [0, 1, 0, 0, 1], 'one flow fills it');
+    const none = apply('sankey', [{ s: 'A', t: 'B', v: 0 }], { source: 's', target: 't', value: 'v' });
+    assert(Number.isNaN(none.columns.x0[0]), 'nothing to lay out is not an error');
+    const touching = apply(
+      'sankey',
+      [
+        { s: 'A', t: 'B', v: 1 },
+        { s: 'A', t: 'C', v: 1 },
+      ],
+      { source: 's', target: 't', value: 'v', nodeGap: 0 },
+    ).columns;
+    assert(near(Math.abs(touching.y1[1] - touching.y1[0]), 0.5, 1e-12), 'with no gap the nodes of a column touch');
+  });
+
+  test('transform.sankey: renamed columns, and the mark told where they are', () => {
+    const rows = [
+      { s: 'A', t: 'B', v: 3 },
+      { s: 'B', t: 'C', v: 2 },
+    ];
+    const as = ['a0', 'a1', 'b0', 'b1', 'th'];
+    const plain = apply('sankey', rows, { source: 's', target: 't', value: 'v' }).columns;
+    const named = apply('sankey', rows, { source: 's', target: 't', value: 'v', as }).columns;
+    assert.deepStrictEqual(named.th, plain.thickness);
+    assert(!('x0' in named));
+    BC.data('flows', rows);
+    const chart = (layout) =>
+      draw({
+        data: 'flows',
+        size: [600, 400],
+        transforms: [{ type: 'sankey', source: 's', target: 't', value: 'v', as }],
+        marks: [{ type: 'sankey', source: 's', target: 't', value: 'v', ...(layout && { layout }) }],
+      });
+    const told = chart(as);
+    assert.deepStrictEqual(told.h.diagnostics, []);
+    assert.strictEqual(nodeRects(told.svg).length, 3);
+    const untold = chart(undefined);
+    assert(
+      untold.h.diagnostics.some((d) =>
+        /mark.sankey: there is no column "x0" with the layout of the flows: put a sankey transform before it/.test(d.message),
+      ),
+      JSON.stringify(untold.h.diagnostics),
+    );
+    assert(
+      chart(['a0', 'a1']).h.diagnostics.some((d) => /mark.sankey: "layout" must be five column names/.test(d.message)),
+      'a short layout is an error',
+    );
+    const bare = draw({ data: 'flows', marks: [{ type: 'sankey', source: 's', target: 't', value: 'v' }] });
+    assert(
+      bare.h.diagnostics.some((d) => /put a sankey transform before it/.test(d.message)),
+      'a mark with no transform says what to add: ' + JSON.stringify(bare.h.diagnostics),
+    );
+  });
+
+  test('transform.sankey: hostile parameters', () => {
+    const rows = [{ s: 'A', t: 'B', v: 1 }];
+    for (const [bad, message] of [
+      [{ nodeGap: -0.1 }, /transform.sankey: "nodeGap" must be a share of the height/],
+      [{ nodeGap: 1 }, /"nodeGap"/],
+      [{ nodeGap: 'wide' }, /"nodeGap"/],
+      [{ nodeGap: NaN }, /"nodeGap"/],
+      [{ as: ['a', 'b'] }, /transform.sankey: "as" must be five column names/],
+      [{ as: ['a', 'b', 'c', 'd', ''] }, /"as"/],
+      [{ as: 'x0' }, /"as"/],
+    ])
+      assert.throws(() => apply('sankey', rows, { source: 's', target: 't', value: 'v', ...bad }), message, JSON.stringify(bad));
+    assert.throws(() => apply('sankey', rows, { source: 'nope', target: 't', value: 'v' }), /transform.sankey/);
+    assert.throws(() => apply('sankey', [{ s: 'A', t: 'B', v: 1, y0: 3 }], { source: 's', target: 't', value: 'v' }), /"y0"/);
   });
 
   test('mark.sankey: a node answers with what flows through it, in its own words', () => {
@@ -2369,13 +2479,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       { s: 'B', t: 'M', v: 300 },
       { s: 'M', t: 'Z', v: 1000 },
     ];
-    const ctx = {
-      channel: (_s, n) => ({ raw: { source: rows.map((r) => r.s), target: rows.map((r) => r.t), value: rows.map((r) => r.v) }[n] }),
-      rows: () => ({ from: 0, to: 3 }),
-      plot: { x: 0, y: 0, w: 600, h: 400 },
-      color: () => '#123',
-      measure: () => ({ w: 0, h: 0 }),
-    };
+    const ctx = sankeyCtx(rows, () => '#123');
     const mark = BC.get('mark.sankey');
     const spec = { type: 'sankey', source: 's', target: 't', value: 'v', format: 'integer' };
     const nodes = mark.render(spec, ctx, 0).filter((p) => p.type === 'rect');
@@ -2402,14 +2506,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       { s: 'A', t: 'Y', v: 30 },
       { s: 'B', t: 'X', v: 10 },
     ];
-    BC.data('flows', rows);
-    const ctx = {
-      channel: (_s, n) => ({ raw: { source: rows.map((r) => r.s), target: rows.map((r) => r.t), value: rows.map((r) => r.v) }[n] }),
-      rows: () => ({ from: 0, to: 3 }),
-      plot: { x: 0, y: 0, w: 600, h: 400 },
-      color: () => '#000',
-      measure: () => ({ w: 0, h: 0 }),
-    };
+    const ctx = sankeyCtx(rows);
     const spec = { type: 'sankey', source: 's', target: 't', value: 'v' };
     const prims = BC.get('mark.sankey')
       .render(spec, ctx, 0)
@@ -3197,6 +3294,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       data: 'flows',
       size: [600, 400],
       padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      transforms: [{ type: 'sankey', source: 's', target: 't', value: 'v' }],
       marks: [{ type: 'sankey', source: 's', target: 't', value: 'v', nodeLabels: ['<in>', 'Out'] }],
       interaction: [{ type: 'tooltip', content: (d) => asked.push(d) && undefined }],
     });

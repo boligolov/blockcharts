@@ -1,17 +1,15 @@
 (function () {
   const TEXT = 'var(--bc-text, #444)';
   const NODE_WIDTH = 12;
-  const MAX_GAP = 12;
   const LABEL_GAP = 6;
   const LABEL_SIZE = 12;
-  /** Passes of ordering each column by where its neighbours are: enough for the crossings to settle. */
-  const ORDER_PASSES = 8;
+  const LAYOUT = ['x0', 'x1', 'y0', 'y1', 'thickness'];
   const r2 = (v: number) => Math.round(v * 100) / 100;
 
   interface Node {
     name: string;
+    /** Which node it is in the order the flows name them: its color. */
     order: number;
-    layer: number;
     value: number;
     x: number;
     y: number;
@@ -37,152 +35,82 @@
 
   const present = (v: unknown) => v !== null && v !== undefined && v !== '';
 
-  /** Gathers the flows into nodes and links. Rows with no flow are left out, and so is a flow from a node to itself, which
-   *  has no direction to draw in. */
-  function collect(spec: BC.MarkSpec, ctx: BC.ChartCtx): Geometry {
-    const sources = ctx.channel(spec, 'source').raw;
-    const targets = ctx.channel(spec, 'target').raw;
-    const values = ctx.channel(spec, 'value').raw;
-    const { from, to } = ctx.rows(spec);
-    const byName = new Map<string, Node>();
-    const node = (name: string) => {
-      let n = byName.get(name);
-      if (!n) {
-        n = { name, order: byName.size, layer: 0, value: 0, x: 0, y: 0, h: 0, color: '', ins: [], outs: [] };
-        byName.set(name, n);
-      }
-      return n;
-    };
-    const links: Link[] = [];
-    for (let row = from; row < to; row++) {
-      const v = values[row];
-      if (typeof v !== 'number' || !isFinite(v) || v <= 0 || !present(sources[row]) || !present(targets[row])) continue;
-      const a = node(String(sources[row]));
-      const b = node(String(targets[row]));
-      if (a === b) continue;
-      const link = { row, from: a, to: b, value: v, thick: 0, y0: 0, y1: 0 };
-      links.push(link);
-      a.outs.push(link);
-      b.ins.push(link);
-    }
-    return { nodes: Array.from(byName.values()), links };
-  }
-
-  /** Every node goes one column past the furthest node that flows into it, and a node nothing leaves goes to the last
-   *  column. Flows run one way, so a loop has no layout; the error says which nodes are in it. */
-  function assignLayers(nodes: Node[]): number {
-    const waiting = new Map<Node, number>(nodes.map((n) => [n, n.ins.length]));
-    const ready = nodes.filter((n) => !n.ins.length);
-    let done = 0;
-    while (done < ready.length) {
-      const n = ready[done++];
-      for (const l of n.outs) {
-        l.to.layer = Math.max(l.to.layer, n.layer + 1);
-        const left = (waiting.get(l.to) as number) - 1;
-        waiting.set(l.to, left);
-        if (!left) ready.push(l.to);
-      }
-    }
-    if (done < nodes.length) {
-      const stuck = nodes.filter((n) => (waiting.get(n) as number) > 0).map((n) => `"${n.name}"`);
-      throw new Error(
-        `mark.sankey: the flows go round in a loop through ${stuck.slice(0, 6).join(', ')}; a Sankey needs them to run one way`,
-      );
-    }
-    const last = nodes.reduce((m, n) => Math.max(m, n.layer), 0);
-    for (const n of nodes) if (!n.outs.length) n.layer = last;
-    return last;
-  }
-
-  /** The value-weighted middle of the other ends of some links, or NaN when there are none. */
-  function middle(links: Link[], end: (l: Link) => Node, rank: Map<Node, number>): number {
-    let sum = 0;
-    let weight = 0;
-    for (const l of links) {
-      sum += (rank.get(end(l)) as number) * l.value;
-      weight += l.value;
-    }
-    return weight ? sum / weight : NaN;
-  }
-
-  /** Orders the columns to cross less: each is sorted by where its neighbours are, sweeping right and then left. */
-  function orderColumns(columns: Node[][]): void {
-    const rank = new Map<Node, number>();
-    const remember = (col: Node[]) => col.forEach((n, i) => rank.set(n, i / Math.max(1, col.length - 1)));
-    const sort = (col: Node[], score: (n: Node) => number) => {
-      const place = new Map(col.map((n) => [n, score(n)] as [Node, number]));
-      const start = new Map(col.map((n, i) => [n, i] as [Node, number]));
-      const at = (n: Node) => {
-        const s = place.get(n) as number;
-        return isNaN(s) ? (rank.get(n) as number) : s; // with nothing to go by a node stays where it is
-      };
-      col.sort((a, b) => at(a) - at(b) || (start.get(a) as number) - (start.get(b) as number));
-      remember(col);
-    };
-    columns.forEach(remember);
-    for (let pass = 0; pass < ORDER_PASSES; pass++) {
-      const right = pass % 2 === 0;
-      const sweep = right ? columns.slice(1) : columns.slice(0, -1).reverse();
-      for (const col of sweep) sort(col, (n) => (right ? middle(n.ins, (l) => l.from, rank) : middle(n.outs, (l) => l.to, rank)));
-    }
-  }
-
   const widthOf = (spec: BC.MarkSpec, ctx: BC.ChartCtx) =>
     typeof spec.nodeWidth === 'number' && spec.nodeWidth > 0 ? Math.min(spec.nodeWidth, ctx.plot.w / 4) : NODE_WIDTH;
 
-  /** Nodes and ribbons in px, shared by render and pick so that what is drawn is what is hit. */
+  /** Nodes and ribbons in px, from the layout the rows carry in shares of the plot; shared by render and pick so that
+   *  what is drawn is what is hit. A node is as tall as the more of what flows in and out, its top where its first
+   *  ribbon starts. */
   function geometry(spec: BC.MarkSpec, ctx: BC.ChartCtx): Geometry | null {
-    const g = collect(spec, ctx);
-    if (!g.links.length) return null;
-    const last = assignLayers(g.nodes);
-    const columns: Node[][] = Array.from({ length: last + 1 }, () => []);
-    for (const n of g.nodes) {
-      n.value = Math.max(
-        n.ins.reduce((a, l) => a + l.value, 0),
-        n.outs.reduce((a, l) => a + l.value, 0),
-      );
-      n.color = ctx.color(n.order);
-      columns[n.layer].push(n);
-    }
-    orderColumns(columns);
-
+    const given = spec.layout;
+    if (given !== undefined && !(Array.isArray(given) && given.length === 5 && given.every((n) => typeof n === 'string' && n)))
+      throw new Error('mark.sankey: "layout" must be five column names: [x0, x1, y0, y1, thickness]');
+    const names = given === undefined ? LAYOUT : (given as string[]);
+    const layout = names.map((n) => ctx.table.columns[n]);
+    const missing = names.find((_, k) => !layout[k]);
+    if (missing !== undefined)
+      throw new Error(`mark.sankey: there is no column "${missing}" with the layout of the flows: put a sankey transform before it`);
+    const [lx0, lx1, ly0, ly1, lth] = layout;
+    const sources = ctx.channel(spec, 'source').raw;
+    const targets = ctx.channel(spec, 'target').raw;
+    const values = ctx.channel(spec, 'value').raw;
     const { x, y, w, h } = ctx.plot;
     const width = widthOf(spec, ctx);
-    const wanted = typeof spec.nodeGap === 'number' && spec.nodeGap >= 0 ? spec.nodeGap : MAX_GAP;
-    const tallest = columns.reduce((m, c) => Math.max(m, c.length), 1);
-    // gaps never take more than half of the height, however many nodes there are
-    const gap = Math.min(wanted, (h * 0.5) / Math.max(1, tallest - 1));
-    // one scale for all the columns, set by the fullest: a value is the same height everywhere
-    let k = Infinity;
-    for (const col of columns) {
-      const sum = col.reduce((a, n) => a + n.value, 0);
-      k = Math.min(k, (h - gap * (col.length - 1)) / sum);
+    const { from, to } = ctx.rows(spec);
+    const byName = new Map<string, Node & { top: number; inH: number; outH: number; inV: number; outV: number }>();
+    const links: Link[] = [];
+    const num = (v: unknown) => (typeof v === 'number' && isFinite(v) ? v : NaN);
+    for (let row = from; row < to; row++) {
+      const v = values[row];
+      const [a0, a1, t0, t1, th] = [num(lx0[row]), num(lx1[row]), num(ly0[row]), num(ly1[row]), num(lth[row])];
+      if (typeof v !== 'number' || !(v > 0) || !present(sources[row]) || !present(targets[row])) continue;
+      if (!(isFinite(a0) && isFinite(a1) && isFinite(t0) && isFinite(t1) && th >= 0)) continue;
+      const node = (name: string, share: number) => {
+        let n = byName.get(name);
+        if (!n) {
+          n = {
+            name,
+            order: byName.size,
+            value: 0,
+            x: x + share * (w - width),
+            y: 0,
+            h: 0,
+            color: '',
+            ins: [],
+            outs: [],
+            top: Infinity,
+            inH: 0,
+            outH: 0,
+            inV: 0,
+            outV: 0,
+          };
+          byName.set(name, n);
+        }
+        return n;
+      };
+      const a = node(String(sources[row]), a0);
+      const b = node(String(targets[row]), a1);
+      if (a === b) continue;
+      const link: Link = { row, from: a, to: b, value: v, thick: th * h, y0: y + (t0 + th / 2) * h, y1: y + (t1 + th / 2) * h };
+      links.push(link);
+      a.outs.push(link);
+      b.ins.push(link);
+      a.top = Math.min(a.top, t0);
+      b.top = Math.min(b.top, t1);
+      a.outH += th;
+      b.inH += th;
+      a.outV += v;
+      b.inV += v;
     }
-    columns.forEach((col, c) => {
-      const used = col.reduce((a, n) => a + n.value * k, 0) + gap * (col.length - 1);
-      let top = y + (h - used) / 2;
-      for (const n of col) {
-        n.x = x + (last ? (c / last) * (w - width) : 0);
-        n.y = top;
-        n.h = n.value * k;
-        top += n.h + gap;
-      }
-    });
-    for (const l of g.links) l.thick = l.value * k;
-    // the ribbons of a node stack in the order of the other ends, so they do not cross at the node
-    for (const n of g.nodes) {
-      let at = n.y;
-      for (const l of n.outs.slice().sort((a, b) => a.to.y - b.to.y || a.row - b.row)) {
-        l.y0 = at + l.thick / 2;
-        at += l.thick;
-      }
-      at = n.y;
-      for (const l of n.ins.slice().sort((a, b) => a.from.y - b.from.y || a.row - b.row)) {
-        l.y1 = at + l.thick / 2;
-        at += l.thick;
-      }
+    if (!links.length) return null;
+    const nodes = Array.from(byName.values());
+    for (const n of nodes) {
+      n.y = y + n.top * h;
+      n.h = Math.max(n.inH, n.outH) * h;
+      n.value = Math.max(n.inV, n.outV);
+      n.color = ctx.color(n.order);
     }
-    return g;
+    return { nodes, links };
   }
 
   /** The ends of a ribbon: it leaves the right edge of a node and arrives at the left edge of another. */
@@ -237,16 +165,19 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'sankey',
-    version: 2,
-    doc: 'A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).',
+    version: 3,
+    doc: 'A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).',
     params: {
       nodeWidth: { kind: 'number', default: NODE_WIDTH, doc: 'Width of a node, in px.' },
-      nodeGap: { kind: 'number', default: MAX_GAP, doc: 'Space between the nodes of a column, in px; it shrinks when a column is full.' },
       format: { kind: 'any', doc: 'How the total of a node is written after its name. Without it, only the name.' },
       linkOpacity: { kind: 'number', default: 0.35, doc: 'Opacity of the ribbons.' },
       nodeLabels: {
         kind: 'list',
         doc: 'What a tooltip calls what flows into and out of a node: ["In", "Out"] by default. Translate it on a page in another language.',
+      },
+      layout: {
+        kind: 'list',
+        doc: 'Names of the five columns transform.sankey writes, when its `as` renames them: [x0, x1, y0, y1, thickness].',
       },
       labelMin: { kind: 'number', default: 11, doc: 'Nodes shorter than this many px get no label, so that labels do not overlap.' },
     },

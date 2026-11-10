@@ -205,7 +205,7 @@ Scales are declared once and named. Marks read data through channels (`"x": "reg
 | --- | --- |
 | lib | `columns`, `curve`, `pointer`, `stats`, `ticks`, `view` (code other blocks share; a spec never names it) |
 | scale | `linear`, `log`, `time`, `band`, `color`, `sequential`, `size` |
-| transform | `stack`, `bin`, `decimate`, `aggregate`, `quartiles`, `waterfall`, `funnel`, `treemap`, `window`, `fold`, `filter`, `sort`, `calculate`, `highlight`, `calendar`, `marimekko`, `density`, `hexbin`, `contour` |
+| transform | `stack`, `bin`, `decimate`, `aggregate`, `quartiles`, `waterfall`, `funnel`, `treemap`, `window`, `fold`, `filter`, `sort`, `calculate`, `highlight`, `calendar`, `marimekko`, `density`, `hexbin`, `contour`, `sankey` |
 | mark | `point`, `line`, `rect`, `area`, `text`, `arc`, `boxplot`, `rule`, `sankey`, `candlestick`, `violin`, `polygon` |
 | guide | `axis`, `grid`, `legend`, `kpi` |
 | interaction | `zoom`, `zoom-controls`, `tooltip`, `crosshair`, `legend-filter`, `brush`, `animate` |

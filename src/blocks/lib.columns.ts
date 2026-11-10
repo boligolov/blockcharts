@@ -23,7 +23,7 @@
     role: 'lib',
     type: 'columns',
     version: 1,
-    doc: "The check of the columns a transform reads and writes, shared by transform.contour, transform.funnel, transform.hexbin, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it.",
+    doc: "The check of the columns a transform reads and writes, shared by transform.contour, transform.funnel, transform.hexbin, transform.sankey, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it.",
     exports: { check },
   };
 

@@ -30,7 +30,7 @@
       "closure": [
         "lib.columns"
       ],
-      "doc": "The check of the columns a transform reads and writes, shared by transform.contour, transform.funnel, transform.hexbin, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it."
+      "doc": "The check of the columns a transform reads and writes, shared by transform.contour, transform.funnel, transform.hexbin, transform.sankey, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it."
     },
     "lib.curve": {
       "file": "blocks/lib.curve.js",
@@ -775,6 +775,45 @@
         }
       },
       "doc": "The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has."
+    },
+    "transform.sankey": {
+      "file": "blocks/transform.sankey.js",
+      "bytes": 3533,
+      "version": 1,
+      "requires": [
+        "lib.columns"
+      ],
+      "closure": [
+        "lib.columns",
+        "transform.sankey"
+      ],
+      "params": {
+        "source": {
+          "kind": "field",
+          "required": true,
+          "doc": "Field with the name of the node a flow leaves."
+        },
+        "target": {
+          "kind": "field",
+          "required": true,
+          "doc": "Field with the name of the node a flow arrives at."
+        },
+        "value": {
+          "kind": "field",
+          "required": true,
+          "doc": "Numeric field: the size of the flow."
+        },
+        "nodeGap": {
+          "kind": "number",
+          "default": 0.03,
+          "doc": "Space between the nodes of a column, as a share of the height of the plot; it shrinks when a column is full, so the gaps take at most half of it."
+        },
+        "as": {
+          "kind": "list",
+          "doc": "Names of the five new columns: [x0, x1, y0, y1, thickness]."
+        }
+      },
+      "doc": "The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); and `thickness`. A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it."
     },
     "transform.sort": {
       "file": "blocks/transform.sort.js",
@@ -1808,8 +1847,8 @@
     },
     "mark.sankey": {
       "file": "blocks/mark.sankey.js",
-      "bytes": 5996,
-      "version": 2,
+      "bytes": 4856,
+      "version": 3,
       "requires": [],
       "closure": [
         "mark.sankey"
@@ -1819,11 +1858,6 @@
           "kind": "number",
           "default": 12,
           "doc": "Width of a node, in px."
-        },
-        "nodeGap": {
-          "kind": "number",
-          "default": 12,
-          "doc": "Space between the nodes of a column, in px; it shrinks when a column is full."
         },
         "format": {
           "kind": "any",
@@ -1837,6 +1871,10 @@
         "nodeLabels": {
           "kind": "list",
           "doc": "What a tooltip calls what flows into and out of a node: [\"In\", \"Out\"] by default. Translate it on a page in another language."
+        },
+        "layout": {
+          "kind": "list",
+          "doc": "Names of the five columns transform.sankey writes, when its `as` renames them: [x0, x1, y0, y1, thickness]."
         },
         "labelMin": {
           "kind": "number",
@@ -1861,7 +1899,7 @@
           "doc": "Numeric field: the size of the flow."
         }
       },
-      "doc": "A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a \"Direct\" channel and a \"Direct\" segment would be one node)."
+      "doc": "A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a \"Direct\" channel and a \"Direct\" segment would be one node)."
     },
     "mark.text": {
       "file": "blocks/mark.text.js",

@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-57 blocks: `lib.columns`, `lib.curve`, `lib.pointer`, `lib.stats`, `lib.ticks`, `lib.view`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.contour`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.hexbin`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.polygon`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+58 blocks: `lib.columns`, `lib.curve`, `lib.pointer`, `lib.stats`, `lib.ticks`, `lib.view`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.contour`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.hexbin`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sankey`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.polygon`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -31,7 +31,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 
 ## lib.columns
 
-Version 1, 0.5 KB. The check of the columns a transform reads and writes, shared by transform.contour, transform.funnel, transform.hexbin, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it.
+Version 1, 0.5 KB. The check of the columns a transform reads and writes, shared by transform.contour, transform.funnel, transform.hexbin, transform.sankey, transform.treemap and transform.waterfall. `check(block, table, reads, writes, keep)` throws when a field it reads is not in the data, or when a column it writes would replace one of the data's own (other than those in `keep`) or another new one, naming the parameter to change. A spec never names it.
 
 ## lib.curve
 
@@ -294,6 +294,20 @@ Version 2, 2.1 KB. The five-number summary of `field` (min/max here mean the Tuk
 | `field` | field, **required** |  | Numeric field to summarize (the raw sample values). Missing and non-numeric values are ignored. |
 | `group` | field |  | A separate summary per value of this field (the boxplot's category axis). A missing value is a group of its own, like transform.aggregate. Default: one summary. |
 | `outliers` | boolean | `true` | true: whiskers stop at 1.5x IQR, points further out become their own "value" row. false: whiskers stretch to the true min/max, no outlier rows. |
+
+## transform.sankey
+
+Version 1, 3.5 KB. The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); and `thickness`. A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it.
+
+Needs: `lib.columns`.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `source` | field, **required** |  | Field with the name of the node a flow leaves. |
+| `target` | field, **required** |  | Field with the name of the node a flow arrives at. |
+| `value` | field, **required** |  | Numeric field: the size of the flow. |
+| `nodeGap` | number | `0.03` | Space between the nodes of a column, as a share of the height of the plot; it shrinks when a column is full, so the gaps take at most half of it. |
+| `as` | list |  | Names of the five new columns: [x0, x1, y0, y1, thickness]. |
 
 ## transform.sort
 
@@ -569,7 +583,7 @@ Version 5, 2.1 KB. Lines at values: a target, a threshold, an average, the targe
 
 ## mark.sankey
 
-Version 2, 5.9 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it. Needs no scales and no axes; every node is named on the chart, and has a color of the palette. Rows with no positive value are left out, and so is a flow from a node to itself. Flows have to run one way: a loop is an error. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
+Version 3, 4.7 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -580,10 +594,10 @@ Version 2, 5.9 KB. A Sankey diagram: one row per flow, from `source` to `target`
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `nodeWidth` | number | `12` | Width of a node, in px. |
-| `nodeGap` | number | `12` | Space between the nodes of a column, in px; it shrinks when a column is full. |
 | `format` | any |  | How the total of a node is written after its name. Without it, only the name. |
 | `linkOpacity` | number | `0.35` | Opacity of the ribbons. |
 | `nodeLabels` | list |  | What a tooltip calls what flows into and out of a node: ["In", "Out"] by default. Translate it on a page in another language. |
+| `layout` | list |  | Names of the five columns transform.sankey writes, when its `as` renames them: [x0, x1, y0, y1, thickness]. |
 | `labelMin` | number | `11` | Nodes shorter than this many px get no label, so that labels do not overlap. |
 
 ## mark.text

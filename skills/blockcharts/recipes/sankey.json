@@ -22,11 +22,12 @@
   "charts": [
     {
       "title": "From crude oil to the customer, million barrels",
-      "note": "mark.sankey takes one row per flow. The columns come from the flows, so it needs no scales and no axes, and every node is named on the chart.",
+      "note": "One row per flow. transform.sankey lays the flows out: the columns come from the flows, so it needs no scales and no axes. mark.sankey draws them, and every node is named on the chart.",
       "spec": {
         "data": "flows",
         "size": [720, 400],
         "padding": { "top": 8, "right": 8, "bottom": 8, "left": 8 },
+        "transforms": [{ "type": "sankey", "source": "from", "target": "to", "value": "volume" }],
         "marks": [{ "type": "sankey", "source": "from", "target": "to", "value": "volume", "format": "integer" }],
         "interaction": [{ "type": "tooltip", "fields": ["from", "to", "volume"], "labels": { "from": "From", "to": "To", "volume": "Million barrels" } }]
       }
