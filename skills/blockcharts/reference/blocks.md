@@ -39,7 +39,7 @@ Version 2, 1.2 KB. The path of a line through points, shared by mark.line and ma
 
 ## lib.pointer
 
-Version 1, 1.4 KB. The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point)` tells whether such a point is on the plot. `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it.
+Version 2, 1.4 KB. The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point, margin)` tells whether such a point is on the plot (or within `margin` of it). `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it.
 
 ## lib.stats
 
@@ -753,7 +753,7 @@ Version 5, 2.5 KB. Click an item of a categorical legend to hide or show that ca
 
 ## interaction.tooltip
 
-Version 18, 8.5 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.
+Version 19, 8.5 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.
 
 Needs: `lib.pointer`.
 

@@ -44,13 +44,13 @@
     },
     "lib.pointer": {
       "file": "blocks/lib.pointer.js",
-      "bytes": 1408,
-      "version": 1,
+      "bytes": 1420,
+      "version": 2,
       "requires": [],
       "closure": [
         "lib.pointer"
       ],
-      "doc": "The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point)` tells whether such a point is on the plot. `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it."
+      "doc": "The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point, margin)` tells whether such a point is on the plot (or within `margin` of it). `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it."
     },
     "lib.stats": {
       "file": "blocks/lib.stats.js",
@@ -2512,8 +2512,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 8747,
-      "version": 18,
+      "bytes": 8750,
+      "version": 19,
       "requires": [
         "lib.pointer"
       ],

@@ -1,5 +1,7 @@
 (function () {
   const OFFSET = 12;
+  /** How far past the plot the pointer still looks for a datum: the radius of a dot, and the slack its pick allows. */
+  const EDGE = 12;
   const MAX_TEXT = 80;
 
   function format(v: unknown): string {
@@ -11,7 +13,7 @@
 
   type Pointer = {
     toLogical(live: BC.LiveCtx, ev: MouseEvent): { x: number; y: number };
-    inPlot(live: BC.LiveCtx, p: { x: number; y: number }): boolean;
+    inPlot(live: BC.LiveCtx, p: { x: number; y: number }, margin?: number): boolean;
   };
   /** From lib.pointer, listed in `requires` so it is on the page. */
   const pointer = () => (BC.get('lib.pointer') as BC.LibDef).exports as Pointer;
@@ -24,7 +26,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 18,
+    version: 19,
     requires: ['lib.pointer'],
     doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.',
     params: {
@@ -256,7 +258,8 @@
 
       function show(ev: PointerEvent): void {
         const p = pointer().toLogical(live, ev);
-        if (!pointer().inPlot(live, p)) return hide();
+        // a dot on the edge of the plot sticks out of it: the reader pointing at that half of it means it too
+        if (!pointer().inPlot(live, p, EDGE)) return hide();
 
         let best: { pick: BC.Pick; mark: BC.MarkSpec; def: BC.MarkDef; index: number } | null = null;
         live.spec.marks.forEach((mark, i) => {

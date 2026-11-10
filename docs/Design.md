@@ -1300,6 +1300,12 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   take at most 30% of the chart's width; a longer one breaks at a space onto a second line when its band is tall
   enough for two (between characters in Chinese or Japanese), the rest is cut with an ellipsis, and the whole name is
   the label's title on hover. A single word longer than the room is cut, not put on a line of its own past it.
+- **A dot on the edge of the plot shows its card.** The tooltip looked for a datum only while the pointer was on the
+  plot, edges included, but a dot at the end of a domain sits on the edge with half of it outside: that half showed
+  nothing, and on a page that scales the chart up (a card wider than the chart's size, as on a desk) the pointer on
+  its center mapped a hair outside, so the first and the last dot of a scatter never had a card. The tooltip now looks
+  12 px past the plot (a dot's radius and the slack of its pick); every pick is bounded, so over the axis labels it
+  still shows nothing. Found while hovering in real Chrome at 1100 px.
 
 ## Next steps
 

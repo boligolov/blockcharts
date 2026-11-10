@@ -3475,6 +3475,58 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.strictEqual(partOf(host, 'bc-tooltip-highlight').style.display, 'block', 'the node lights up');
   });
 
+  test('interaction.tooltip: a dot on the edge of the plot shows its card, also from the half of it outside the plot', async () => {
+    BC.data('edge-dots', [
+      { x: 1, y: 3 },
+      { x: 5, y: 7 },
+      { x: 9, y: 4 },
+    ]);
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'edge-dots',
+      size: [640, 400],
+      padding: { top: 16, right: 16, bottom: 16, left: 16 },
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [{ type: 'point', x: 'x', y: 'y', r: 6 }],
+      interaction: [{ type: 'tooltip' }],
+    });
+    const lines = () =>
+      tipOf(host).style.display === 'block' ? partOf(tipOf(host), 'bc-tooltip-lines').children.map((c) => c.text) : null;
+    const dots = [...layer(svgOf(host), 'marks').matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)"/g)].map((m) => [+m[1], +m[2]]);
+    assert.deepStrictEqual(
+      dots.map((d) => d[0]),
+      [16, 320, 624],
+      'the first and the last dot are on the edges of the plot',
+    );
+    await hover(host, dots[0][0] - 4, dots[0][1]);
+    assert.deepStrictEqual(lines(), ['x', '1', 'y', '3'], 'the left half of the first dot, outside the plot');
+    await hover(host, dots[2][0] + 4, dots[2][1]);
+    assert.deepStrictEqual(lines(), ['x', '9', 'y', '4'], 'the right half of the last one');
+    await hover(host, dots[0][0] - 1e-9, dots[0][1]);
+    assert.deepStrictEqual(lines(), ['x', '1', 'y', '3'], 'its center, as a scaled page rounds it');
+    await hover(host, 2, 200);
+    assert.strictEqual(tipOf(host).style.display, 'none', 'well outside the plot, nothing');
+    // a line finds its nearest point however far the pointer is: over the axis labels it shows nothing
+    const line = new FakeNode('div');
+    BC.chart(line, {
+      data: 'edge-dots',
+      size: [640, 400],
+      padding: { top: 16, right: 16, bottom: 16, left: 60 },
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      marks: [{ type: 'line', x: 'x', y: 'y' }],
+      interaction: [{ type: 'tooltip' }],
+    });
+    const [x0, y0] = /d="M([\d.]+) ([\d.]+)/
+      .exec(layer(svgOf(line), 'marks'))
+      .slice(1)
+      .map(Number);
+    assert.strictEqual(x0, 60);
+    await hover(line, x0 - 4, y0);
+    assert.strictEqual(tipOf(line).style.display, 'block', 'just off the edge, the first point');
+    await hover(line, 20, y0);
+    assert.strictEqual(tipOf(line).style.display, 'none', 'over the labels, nothing');
+  });
+
   test('a chart speaks its own language on hover, after another chart drew, and the page keeps its own', async () => {
     BC.data('flows', [
       { s: 'A', t: 'B', v: 1000500 },

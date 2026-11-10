@@ -8,10 +8,10 @@
     return { x: ((ev.clientX - r.left) * live.size.w) / r.width, y: ((ev.clientY - r.top) * live.size.h) / r.height };
   }
 
-  /** Whether a point in the chart's own units is on the plot, its edges included. */
-  function inPlot(live: BC.LiveCtx, p: Point): boolean {
+  /** Whether a point in the chart's own units is on the plot, its edges included, or within `margin` of it. */
+  function inPlot(live: BC.LiveCtx, p: Point, margin = 0): boolean {
     const b = live.plot;
-    return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
+    return p.x >= b.x - margin && p.x <= b.x + b.w + margin && p.y >= b.y - margin && p.y <= b.y + b.h + margin;
   }
 
   function nextFrame(fn: () => void): void {
@@ -90,8 +90,8 @@
   const def: BC.LibDef = {
     role: 'lib',
     type: 'pointer',
-    version: 1,
-    doc: 'The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point)` tells whether such a point is on the plot. `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it.',
+    version: 2,
+    doc: 'The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point, margin)` tells whether such a point is on the plot (or within `margin` of it). `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it.',
     exports: { toLogical, inPlot, follow },
   };
 
