@@ -1,0 +1,5 @@
+# Built by `npm run skill` / `npm run build` from src/: never read, search or edit by hand.
+/skills/blockcharts/runtime/
+/dist/
+/release/
+/site/dist/
