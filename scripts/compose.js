@@ -3,6 +3,7 @@
 //   2. the manifest turns them into the union of closures;
 //   3. exactly those blocks are loaded and every spec is validated against the real data before anything is written;
 //   4. core + blocks + data + specs are inlined in a fixed order, so the same input gives byte-identical output.
+// A report loads nothing: its Content-Security-Policy refuses every request, whatever in the page would make one.
 //
 // compose({ data, charts, title?, subtitle?, layout?, css?, before?, after?, include?, distDir?, allowErrors? }) -> { html, blocks, bytes, diagnostics, unusedData, compressed, core }
 //   core is the file of the core the page carries: a lean one without BC.validate / BC.needs (the composer has run them),
@@ -23,7 +24,7 @@
 //           on a narrow screen every card takes the full width
 //   before / after  raw trusted HTML placed before the charts / after the scripts (page chrome, custom scripts)
 //   include extra block names to inline for hand-written scripts (`after`) that call BC.chart themselves
-//   css     extra stylesheet text, placed after the default one
+//   css     extra stylesheet text, placed after the default one; it cannot fetch (url() other than data:, @import)
 //   defaultCss  false = do not include the default stylesheet (typography, light/dark colors for the chart theme variables)
 //   dryRun  true (default): every chart is built once in a sandbox with a fake DOM before anything is written, so problems that
 //           only show up when a chart is drawn (a bad color, a failing transform) stop the page like a spec error, and
@@ -58,6 +59,9 @@ class ComposeError extends Error {
 }
 
 const escapeText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/** What a report may load: nothing. Its own scripts and styles are inline; an image or a font only as a data: URL. */
+const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:";
 
 const PAGE_KEYS = ['title', 'subtitle', 'lang', 'layout', 'css', 'defaultCss', 'compress', 'data', 'charts'];
 const API_KEYS = ['before', 'after', 'include', 'distDir', 'allowErrors', 'dryRun', 'drawTimeout', 'baseDir'];
@@ -472,6 +476,13 @@ function compose(opts) {
     throw new ComposeError('layout.columns must be a whole number from 1 to 12');
   const phoneColumns = layout && layout.phoneColumns !== undefined ? layout.phoneColumns : 1;
   if (phoneColumns !== 1 && phoneColumns !== 2) throw new ComposeError('layout.phoneColumns must be 1 or 2');
+  if (options.css !== undefined && typeof options.css !== 'string') throw new ComposeError('css must be the text of a stylesheet');
+  // the page would refuse it anyway (CSP); saying so here tells the author why the font or the picture is not there
+  const fetching = typeof options.css === 'string' && options.css.match(/@import\b|\burl\(\s*(?!['"]?\s*data:)[^)]{0,60}/i);
+  if (fetching)
+    throw new ComposeError(
+      `css: a report loads nothing from the network, so its css cannot fetch "${fetching[0]}"; put a font or a picture in as a data: URL`,
+    );
   const ids = new Map();
   const validLang = (v, where) => {
     if (v !== undefined && (typeof v !== 'string' || !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(v)))
@@ -760,6 +771,9 @@ function compose(opts) {
   const html = [
     '<!doctype html>',
     `<html lang="${pageLang || 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`,
+    // a report loads nothing: the browser refuses every request, whatever in it asks for one, and it has an icon of its own
+    // so the browser does not ask the server for /favicon.ico
+    `<meta http-equiv="Content-Security-Policy" content="${CSP}"><link rel="icon" href="data:,">`,
     `<title>${escapeText(options.title || 'Charts')}</title>`,
     styleTag([options.defaultCss === false ? '' : defaultCss(Array.from(BC.palette)), options.css ? String(options.css) : '']),
     '</head><body>',

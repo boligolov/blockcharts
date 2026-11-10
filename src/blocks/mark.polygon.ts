@@ -60,15 +60,15 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'polygon',
-    version: 2,
+    version: 3,
     doc: 'Closed shapes through the rows in their order: the regions of transform.contour, or any outline given point by point. `group` makes a shape of the rows with one value, drawn as one path, in the order the values first come (the last on top); `ring` splits a shape into several outlines, a run of rows each. An outline inside another that runs the other way round is a hole, as the rings of transform.contour do. With `filled: false` only the outlines are drawn (contour lines). The tooltip finds the shape the pointer is in, the top one first.',
     params: {
       group: { kind: 'field', doc: 'Rows with the same value make one shape. Default: all rows are one.' },
       ring: { kind: 'field', doc: 'In a shape, a run of rows with the same value is one closed outline. Default: one outline per shape.' },
       filled: { kind: 'boolean', default: true, doc: 'false draws only the outlines, in the color of the shape.' },
-      fill: { kind: 'string', doc: 'Any CSS color, when there is no color channel. Default: theme color by mark index.' },
+      fill: { kind: 'color', doc: 'Any CSS color, when there is no color channel. Default: theme color by mark index.' },
       opacity: { kind: 'number', default: 1, doc: 'Fill opacity.' },
-      stroke: { kind: 'string', doc: 'Outline color of a filled shape. Default: none.' },
+      stroke: { kind: 'color', doc: 'Outline color of a filled shape. Default: none.' },
       strokeWidth: { kind: 'number', default: 1 },
     },
     channels: {

@@ -1,7 +1,7 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 31554,
+    "bytes": 32128,
     "version": "0.1.0",
     "variants": {
       "composed": {
@@ -1086,8 +1086,8 @@
     },
     "mark.arc": {
       "file": "blocks/mark.arc.js",
-      "bytes": 4865,
-      "version": 4,
+      "bytes": 4864,
+      "version": 5,
       "requires": [],
       "closure": [
         "mark.arc"
@@ -1151,7 +1151,7 @@
           "doc": "How to write that text, as `format` on an axis. A share is a fraction: { \"style\": \"percent\", \"maximumFractionDigits\": 1 } writes 45.1%."
         },
         "fill": {
-          "kind": "string",
+          "kind": "color",
           "doc": "One color for all slices, when there is no color channel."
         },
         "opacity": {
@@ -1176,8 +1176,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2620,
-      "version": 11,
+      "bytes": 2619,
+      "version": 12,
       "requires": [
         "lib.curve"
       ],
@@ -1196,7 +1196,7 @@
           "doc": "Field whose distinct values become separate areas."
         },
         "fill": {
-          "kind": "string",
+          "kind": "color",
           "doc": "Any CSS color. Default: theme color by series index."
         },
         "opacity": {
@@ -1267,8 +1267,8 @@
     },
     "mark.boxplot": {
       "file": "blocks/mark.boxplot.js",
-      "bytes": 2824,
-      "version": 3,
+      "bytes": 2823,
+      "version": 4,
       "requires": [],
       "closure": [
         "mark.boxplot"
@@ -1280,7 +1280,7 @@
           "doc": "Box width: a fraction (0-1) of the category band, or, off a band scale, a fixed number of px."
         },
         "fill": {
-          "kind": "string",
+          "kind": "color",
           "doc": "Box fill. Default: theme color by mark index (or the `color` channel)."
         },
         "fillOpacity": {
@@ -1375,8 +1375,8 @@
     },
     "mark.candlestick": {
       "file": "blocks/mark.candlestick.js",
-      "bytes": 2317,
-      "version": 2,
+      "bytes": 2315,
+      "version": 3,
       "requires": [],
       "closure": [
         "mark.candlestick"
@@ -1388,12 +1388,12 @@
           "doc": "Width of a body, as a share (0-1) of the step between candles."
         },
         "up": {
-          "kind": "string",
+          "kind": "color",
           "default": "var(--bc-good, #12a150)",
           "doc": "Color of a candle whose close is not below its open."
         },
         "down": {
-          "kind": "string",
+          "kind": "color",
           "default": "var(--bc-bad, #e5484d)",
           "doc": "Color of a candle whose close is below its open."
         },
@@ -1463,8 +1463,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 3907,
-      "version": 16,
+      "bytes": 3906,
+      "version": 17,
       "requires": [
         "lib.curve"
       ],
@@ -1478,7 +1478,7 @@
           "doc": "Field whose distinct values become separate lines (long-format data)."
         },
         "stroke": {
-          "kind": "string",
+          "kind": "color",
           "doc": "Any CSS color. Default: theme color by line index."
         },
         "strokeWidth": {
@@ -1554,8 +1554,8 @@
     },
     "mark.point": {
       "file": "blocks/mark.point.js",
-      "bytes": 3962,
-      "version": 13,
+      "bytes": 3961,
+      "version": 14,
       "requires": [],
       "closure": [
         "mark.point"
@@ -1567,7 +1567,7 @@
           "doc": "Radius in px (when there is no `size` channel)."
         },
         "fill": {
-          "kind": "string",
+          "kind": "color",
           "doc": "Any CSS color. Default: theme color by mark index."
         },
         "opacity": {
@@ -1625,8 +1625,8 @@
     },
     "mark.polygon": {
       "file": "blocks/mark.polygon.js",
-      "bytes": 2035,
-      "version": 2,
+      "bytes": 2033,
+      "version": 3,
       "requires": [],
       "closure": [
         "mark.polygon"
@@ -1646,7 +1646,7 @@
           "doc": "false draws only the outlines, in the color of the shape."
         },
         "fill": {
-          "kind": "string",
+          "kind": "color",
           "doc": "Any CSS color, when there is no color channel. Default: theme color by mark index."
         },
         "opacity": {
@@ -1655,7 +1655,7 @@
           "doc": "Fill opacity."
         },
         "stroke": {
-          "kind": "string",
+          "kind": "color",
           "doc": "Outline color of a filled shape. Default: none."
         },
         "strokeWidth": {
@@ -1697,8 +1697,8 @@
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",
-      "bytes": 3812,
-      "version": 13,
+      "bytes": 3811,
+      "version": 14,
       "requires": [],
       "closure": [
         "mark.rect"
@@ -1710,7 +1710,7 @@
           "doc": "Where bars start on a continuous axis without a second channel. Keep it inside the scale domain (scale `zero: true` for 0)."
         },
         "fill": {
-          "kind": "string",
+          "kind": "color",
           "doc": "Any CSS color. Default: theme color by mark index."
         },
         "opacity": {
@@ -1792,15 +1792,15 @@
     },
     "mark.rule": {
       "file": "blocks/mark.rule.js",
-      "bytes": 2179,
-      "version": 6,
+      "bytes": 2178,
+      "version": 7,
       "requires": [],
       "closure": [
         "mark.rule"
       ],
       "params": {
         "stroke": {
-          "kind": "string",
+          "kind": "color",
           "doc": "Any CSS color. Default: the theme text color."
         },
         "strokeWidth": {
@@ -1928,8 +1928,8 @@
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 4910,
-      "version": 11,
+      "bytes": 4909,
+      "version": 12,
       "requires": [],
       "closure": [
         "mark.text"
@@ -1988,7 +1988,7 @@
           "doc": "How to write numbers (and dates): a preset (\"percent\", \"compact\", \"integer\", \"date\", ...) or an object of Intl options, e.g. { \"style\": \"currency\", \"currency\": \"USD\", \"maximumFractionDigits\": 0 }; also \"locale\", \"prefix\", \"suffix\". Overrides `decimals`."
         },
         "fill": {
-          "kind": "string",
+          "kind": "color",
           "doc": "Any CSS color. Default: the theme text color."
         },
         "negative": {
@@ -2073,8 +2073,8 @@
     },
     "mark.violin": {
       "file": "blocks/mark.violin.js",
-      "bytes": 2963,
-      "version": 2,
+      "bytes": 2962,
+      "version": 3,
       "requires": [],
       "closure": [
         "mark.violin"
@@ -2103,7 +2103,7 @@
           "doc": "\"all\": one width scale for every shape, so they compare. \"each\": every shape as tall as its band, to read shapes rather than sizes."
         },
         "fill": {
-          "kind": "string",
+          "kind": "color",
           "doc": "Any CSS color, when there is no color channel. Default: the first theme color."
         },
         "opacity": {

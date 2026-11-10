@@ -168,8 +168,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
   });
 
   test('fade: a color cannot smuggle CSS into the gradient, and a var() color is kept for theming', () => {
-    const { svg } = draw(monthly({ marks: [{ type: 'area', x: 'm', y: 'rev', fade: true, fill: 'red;background:url(x)}<b>' }] }));
-    assert(/stop-color:redbackground:url\(x\)b;stop-opacity/.test(svg), 'semicolons, braces and angle brackets are dropped from the color');
+    const smuggled = monthly({ marks: [{ type: 'area', x: 'm', y: 'rev', fade: true, fill: 'red;background:url(x)}<b>' }] });
+    assert.deepStrictEqual(
+      BC.validate(smuggled)
+        .filter((d) => d.level === 'error')
+        .map((d) => d.path),
+      ['marks[0].fill'],
+      'it is not a color, so the spec is refused before anything is drawn',
+    );
+    const { svg } = draw(smuggled);
+    assert(!/url\(x\)/.test(svg), 'nothing reaches the gradient');
     const themed = draw(monthly({ marks: [{ type: 'area', x: 'm', y: 'rev', fade: true }] }));
     assert(/stop-color:var\(--bc-c0, #[0-9a-f]+\);/.test(themed.svg), 'the theme variable reaches the gradient');
   });

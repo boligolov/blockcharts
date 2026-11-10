@@ -76,14 +76,14 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 16,
+    version: 17,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
     doc: 'A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: "step"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.',
     params: {
       group: { kind: 'field', doc: 'Field whose distinct values become separate lines (long-format data).' },
-      stroke: { kind: 'string', doc: 'Any CSS color. Default: theme color by line index.' },
+      stroke: { kind: 'color', doc: 'Any CSS color. Default: theme color by line index.' },
       strokeWidth: { kind: 'number', default: 2 },
       dash: { kind: 'list', doc: 'Dash pattern, e.g. [4, 3].' },
       opacity: { kind: 'number', default: 1 },

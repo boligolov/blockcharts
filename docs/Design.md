@@ -1182,6 +1182,16 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   are for a program that calls `compose()`. Any other key is an error that names the key it looks like (`subtitel`: did
   you mean `subtitle`?), in `compose()` too. A byte order mark at the start of page.json, which Windows PowerShell 5.1
   writes, is dropped instead of failing as invalid JSON.
+- **A report fetches nothing, and the browser enforces it.** A color was any string: `url(http://…)` as a fill, or
+  `red;background-image:url(…)` in the range of a facet's legend, which is written into a style attribute, made the page
+  request it. Now a parameter of kind `color` (the fill and stroke of every mark, the candles of a candlestick) and every
+  item of the range of a scale that declares `output: "color"` must be a color that loads nothing: hex, `rgb()`/`hsl()`
+  and their kin, a name, `var(--x)` with such a fallback. The composer refuses css with `@import` or a `url()` that is
+  not `data:`. And every report carries a Content-Security-Policy that refuses any request (`default-src 'none'`;
+  inline scripts and styles; images and fonts only as `data:`), with an icon of its own so the browser does not ask
+  for /favicon.ico: whatever the checks miss, a CSS escape that spells `url` or an `<img>` an API caller adds, the
+  browser does not load. All 48 recipes draw under it in Chrome, gradients (`url(#…)`) included, with no console
+  error.
 
 ## Next steps
 

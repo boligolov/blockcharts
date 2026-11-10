@@ -1221,6 +1221,42 @@ test('compose: a chart that never finishes drawing in the trial run is a spec er
   assert(Date.now() - started < 10000, 'it gives up instead of waiting forever');
 });
 
+test('compose: a report fetches nothing — its CSP refuses every request, and css or a color that would fetch is an error', () => {
+  const html = compose({ data: DATA, charts: [bars()] }).html;
+  const head = html.slice(0, html.indexOf('</head>'));
+  assert.match(
+    head,
+    /<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:">/,
+  );
+  assert(head.indexOf('Content-Security-Policy') < head.indexOf('<style'), 'the policy comes before anything it governs');
+  assert.match(head, /<link rel="icon" href="data:,">/, 'no request for /favicon.ico either');
+
+  for (const css of [
+    '@import "theme.css";',
+    'body { background: url(http://127.0.0.1:9/bg.png) }',
+    "h1 { background: URL( 'https://x.test/a.svg' ) }",
+  ])
+    failsWith(() => compose({ data: DATA, charts: [bars()], css }), /css: a report loads nothing from the network/);
+  assert(compose({ data: DATA, charts: [bars()], css: 'h1 { background: url("data:image/svg+xml,%3Csvg%3E") }' }).html);
+  failsWith(() => compose({ data: DATA, charts: [bars()], css: { body: 1 } }), /css must be the text of a stylesheet/);
+
+  // the swatches of a facet's legend are written into a style attribute: their colors are checked like any range
+  const facet = (range) => ({
+    spec: {
+      data: 'cats',
+      size: [300, 180],
+      scales: { x: { type: 'band' }, y: { type: 'linear' }, color: { type: 'color', range } },
+      marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
+      guides: [{ type: 'legend', scale: 'color' }],
+    },
+    facet: { field: 'k' },
+  });
+  failsWith(
+    () => compose({ data: DATA, charts: [facet(['red;background-image:url(http://127.0.0.1:9/leak)'])] }),
+    /charts\[0\]\.scales\.color\.range\[0\]: .* is not a color/,
+  );
+});
+
 test('compose command line: a page.json is a page — it cannot run code, write a page with errors, or misspell a key', () => {
   const { spawnSync } = require('child_process');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bc-cli-'));

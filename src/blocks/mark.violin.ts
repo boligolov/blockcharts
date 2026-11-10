@@ -89,7 +89,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'violin',
-    version: 2,
+    version: 3,
     doc: 'The shape of a distribution per category, from the rows of transform.density (one row per point of a curve): a violin, mirrored on both sides of its band, or with `side: "one"` a ridge standing on the bottom of its band and rising into the one above (a ridgeline, joy plot). Put the categories on a band scale: on x the violins stand up and the value runs along y; on y the shapes lie down and the value runs along x (the usual ridgeline). All shapes share one width scale, so a wider shape is a denser spot; `normalize: "each"` fits every shape to its band instead. Shapes further down are drawn over the ones above them.',
     params: {
       side: {
@@ -108,7 +108,7 @@
         default: 'all',
         doc: '"all": one width scale for every shape, so they compare. "each": every shape as tall as its band, to read shapes rather than sizes.',
       },
-      fill: { kind: 'string', doc: 'Any CSS color, when there is no color channel. Default: the first theme color.' },
+      fill: { kind: 'color', doc: 'Any CSS color, when there is no color channel. Default: the first theme color.' },
       opacity: { kind: 'number', default: 0.85, doc: 'Fill opacity.' },
       stroke: {
         kind: 'string',

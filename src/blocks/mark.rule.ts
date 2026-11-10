@@ -48,10 +48,10 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rule',
-    version: 6,
+    version: 7,
     doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it.',
     params: {
-      stroke: { kind: 'string', doc: 'Any CSS color. Default: the theme text color.' },
+      stroke: { kind: 'color', doc: 'Any CSS color. Default: the theme text color.' },
       strokeWidth: { kind: 'number', default: 2 },
       dash: { kind: 'list', doc: 'Dash pattern, e.g. [4, 3].' },
       opacity: { kind: 'number', default: 1 },

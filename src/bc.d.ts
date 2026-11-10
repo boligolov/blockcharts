@@ -397,7 +397,8 @@ declare namespace BC {
   type BlockName = `${Role}.${string}`;
 
   interface ParamDef {
-    kind: 'string' | 'number' | 'boolean' | 'enum' | 'field' | 'scale' | 'list' | 'any';
+    /** "color": a CSS color that loads nothing (hex, rgb()/hsl(), a name, var(--x)); never url(…). */
+    kind: 'string' | 'number' | 'boolean' | 'enum' | 'field' | 'scale' | 'list' | 'color' | 'any';
     required?: boolean;
     default?: unknown;
     /** for kind "enum" */

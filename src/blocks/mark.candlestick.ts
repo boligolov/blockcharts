@@ -61,12 +61,12 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'candlestick',
-    version: 2,
+    version: 3,
     doc: 'Open-high-low-close candles, one per row: a body from `open` to `close`, a thin wick from `low` to `high`, in one color when the price rose and in another when it fell. `x` is a date on a time scale (candles as wide as the nearest two allow) or a category on a band scale; the four prices share the scale of `y`. A row with one of its prices missing has no candle.',
     params: {
       width: { kind: 'number', default: WIDTH, doc: 'Width of a body, as a share (0-1) of the step between candles.' },
-      up: { kind: 'string', default: UP, doc: 'Color of a candle whose close is not below its open.' },
-      down: { kind: 'string', default: DOWN, doc: 'Color of a candle whose close is below its open.' },
+      up: { kind: 'color', default: UP, doc: 'Color of a candle whose close is not below its open.' },
+      down: { kind: 'color', default: DOWN, doc: 'Color of a candle whose close is below its open.' },
       strokeWidth: { kind: 'number', default: 1, doc: 'Width of the wick.' },
       opacity: { kind: 'number', default: 1 },
     },

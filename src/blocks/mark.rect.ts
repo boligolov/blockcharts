@@ -112,7 +112,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rect',
-    version: 13,
+    version: 14,
     enter: 'grow',
     doc: 'Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field). `shape: "hexagon"` draws a hexagon in the box instead, for the cells of transform.hexbin.',
     params: {
@@ -121,7 +121,7 @@
         default: 0,
         doc: 'Where bars start on a continuous axis without a second channel. Keep it inside the scale domain (scale `zero: true` for 0).',
       },
-      fill: { kind: 'string', doc: 'Any CSS color. Default: theme color by mark index.' },
+      fill: { kind: 'color', doc: 'Any CSS color. Default: theme color by mark index.' },
       opacity: { kind: 'number', default: 1 },
       radius: { kind: 'number', default: 0, doc: 'Corner radius in px.' },
       shape: {

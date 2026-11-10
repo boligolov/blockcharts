@@ -362,4 +362,83 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     );
     logged.error.length = 0;
   });
+
+  // ── what a spec may not fetch ──
+
+  test('a color in a spec is a color: url(…) in a fill, a stroke or a range is an error, so a report never fetches anything', () => {
+    BC.data('paint', [
+      { k: 'a', v: 1, o: 1, h: 2, l: 0, c: 2 },
+      { k: 'b', v: 2, o: 2, h: 3, l: 1, c: 1 },
+    ]);
+    const chart = (extra) => ({
+      data: 'paint',
+      scales: { x: { type: 'band' }, y: { type: 'linear' }, color: { type: 'color' } },
+      marks: [{ type: 'rect', x: 'k', y: 'v' }],
+      ...extra,
+    });
+    const errors = (spec) => BC.validate(spec).filter((d) => d.level === 'error');
+    const good = [
+      '#4e79a7',
+      '#abc',
+      '#4e79a7cc',
+      'rgb(78 121 167 / 50%)',
+      'rgba(1, 2, 3, .5)',
+      'hsl(200deg 50% 50%)',
+      'oklch(70% 0.1 250)',
+      'steelblue',
+      'transparent',
+      'currentColor',
+      'var(--bc-c0)',
+      'var(--brand, #fff)',
+    ];
+    const bad = [
+      'url(http://127.0.0.1:9/leak)',
+      'url(#gradient)',
+      'red;background-image:url(http://127.0.0.1:9/leak)',
+      'var(--x, url(http://127.0.0.1:9/leak))',
+      'rgb(1 2 url(x))',
+      'expression(alert(1))',
+      '#12345',
+      '',
+      5,
+    ];
+    for (const c of good) {
+      assert.deepStrictEqual(errors(chart({ marks: [{ type: 'rect', x: 'k', y: 'v', fill: c }] })), [], c);
+      assert.deepStrictEqual(errors(chart({ scales: { ...chart().scales, color: { type: 'color', range: [c] } } })), [], c);
+    }
+    for (const c of bad) {
+      const fill = errors(chart({ marks: [{ type: 'rect', x: 'k', y: 'v', fill: c }] }));
+      assert.strictEqual(fill.length, 1, String(c));
+      assert.strictEqual(fill[0].path, 'marks[0].fill');
+      assert.match(fill[0].message, /fill of mark\.rect must be a color/);
+      const range = errors(chart({ scales: { ...chart().scales, color: { type: 'color', range: ['#4e79a7', c] } } }));
+      assert.strictEqual(range.length, 1, String(c));
+      assert.strictEqual(range[0].path, 'scales.color.range[1]');
+      assert.match(range[0].message, /is not a color/);
+    }
+    // every mark parameter that paints is checked: the stroke of a line, the candles of a candlestick
+    const leak = 'url(http://127.0.0.1:9/leak)';
+    const lines = errors(
+      chart({ scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 'k', y: 'v', stroke: leak }] }),
+    );
+    assert.deepStrictEqual(
+      lines.map((d) => d.path),
+      ['marks[0].stroke'],
+    );
+    const candles = errors(
+      chart({
+        scales: { x: { type: 'band' }, y: { type: 'linear' } },
+        marks: [{ type: 'candlestick', x: 'k', open: 'o', high: 'h', low: 'l', close: 'c', up: leak, down: leak }],
+      }),
+    );
+    assert.deepStrictEqual(candles.map((d) => d.path).sort(), ['marks[0].down', 'marks[0].up']);
+    // a scale of positions has no colors to check: its range is pixels
+    assert.deepStrictEqual(errors(chart({ scales: { ...chart().scales, y: { type: 'linear', range: [200, 0] } } })), []);
+    // and a chart with a bad color is not drawn with it
+    const host = new FakeNode('div');
+    const h = BC.chart(host, chart({ marks: [{ type: 'rect', x: 'k', y: 'v', fill: leak }] }));
+    assert(h.diagnostics.some((d) => d.path === 'marks[0].fill'));
+    assert(!/url\(/.test(svgOf(host)), 'nothing is drawn with the url');
+    logged.error.length = 0;
+  });
 };

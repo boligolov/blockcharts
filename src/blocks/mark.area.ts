@@ -37,7 +37,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 11,
+    version: 12,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -45,7 +45,7 @@
     params: {
       baseline: { kind: 'number', default: 0, doc: 'Where the area starts when there is no y2. Keep it inside the scale domain.' },
       group: { kind: 'field', doc: 'Field whose distinct values become separate areas.' },
-      fill: { kind: 'string', doc: 'Any CSS color. Default: theme color by series index.' },
+      fill: { kind: 'color', doc: 'Any CSS color. Default: theme color by series index.' },
       opacity: { kind: 'number', default: 0.85, doc: 'Fill opacity (0.45 by default with `fade`).' },
       toBottom: {
         kind: 'boolean',

@@ -400,6 +400,13 @@
           const fits = (def: BC.ScaleDef, need: BC.ScaleNeed) =>
             def.output === need.output && (!need.input || need.input.indexOf(def.input) >= 0);
           /** "places numbers or dates", "colors categories", "sizes values". */
+          /** A color a spec may give: one that draws and fetches nothing. Hex, rgb()/hsl() and their kin, a name, var(--x)
+           *  with such a fallback; never url(…), which an SVG fill or a style loads from the network, nor a ";" that ends a style. */
+          const isColor = (v: unknown) =>
+            typeof v === 'string' &&
+            /^\s*(?:#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\([-+\w.%,\s/]*\)|[a-z]+|var\(\s*--[\w-]+\s*(?:,\s*(?:#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|(?:rgba?|hsla?)\([-+\w.%,\s/]*\)|[a-z]+)\s*)?\))\s*$/i.test(
+              v,
+            );
           const scaleWords = (need: BC.ScaleNeed) =>
             `${{ position: 'places', color: 'colors', size: 'sizes' }[need.output]} ${
               need.input ? need.input.map((i) => ({ number: 'numbers', date: 'dates', category: 'categories' })[i]).join(' or ') : 'values'
@@ -490,6 +497,9 @@
                 case 'list':
                   if (!Array.isArray(v)) bad('a list');
                   break;
+                case 'color':
+                  if (!isColor(v)) bad('a color: "#4e79a7", "rgb(78 121 167)", "steelblue" or "var(--bc-c0)"');
+                  break;
                 case 'enum':
                   if (typeof v !== 'string' || !p.values || p.values.indexOf(v) < 0) bad(`one of: ${(p.values || []).join(', ')}`);
                   break;
@@ -541,6 +551,14 @@
             if (typeof s.field === 'string') checkField(`${path}.field`, s.field);
             if (s.range !== undefined && s.range !== 'width' && s.range !== 'height' && !Array.isArray(s.range)) {
               err(`${path}.range`, 'range must be "width", "height" or a list');
+            } else if (Array.isArray(s.range) && (def as BC.ScaleDef).output === 'color') {
+              s.range.forEach((c: unknown, k: number) => {
+                if (!isColor(c))
+                  err(
+                    `${path}.range[${k}]`,
+                    `${JSON.stringify(c)} is not a color: "#4e79a7", "rgb(78 121 167)", "steelblue" or "var(--bc-c0)"`,
+                  );
+              });
             }
           }
 

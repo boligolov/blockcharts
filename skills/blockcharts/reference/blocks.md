@@ -386,7 +386,7 @@ Version 3, 3.7 KB. A value per row computed from the rows before it (and around 
 
 ## mark.arc
 
-Version 4, 4.8 KB. Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock. A gauge or a progress ring is the same mark: `startAngle` -90 and `endAngle` 90 make a half circle, `total` the maximum (the rest of the arc is an empty track), `center` writes the figure in the middle.
+Version 5, 4.8 KB. Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock. A gauge or a progress ring is the same mark: `startAngle` -90 and `endAngle` 90 make a half circle, `total` the maximum (the rest of the arc is an empty track), `center` writes the figure in the middle.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -404,12 +404,12 @@ Version 4, 4.8 KB. Pie and donut chart: one slice per row, its angle proportiona
 | `sort` | one of `none`, `desc`, `asc` | `"none"` | Order of the slices by value; "none" keeps the data order. |
 | `label` | one of `none`, `percent`, `value` | `"none"` | Text outside each slice (slices under 3% get none). |
 | `labelFormat` | any |  | How to write that text, as `format` on an axis. A share is a fraction: { "style": "percent", "maximumFractionDigits": 1 } writes 45.1%. |
-| `fill` | string |  | One color for all slices, when there is no color channel. |
+| `fill` | color |  | One color for all slices, when there is no color channel. |
 | `opacity` | number | `1` |  |
 
 ## mark.area
 
-Version 11, 2.6 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve` matches a smooth or a step line. x also takes a band scale, as on mark.line.
+Version 12, 2.6 KB. A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve` matches a smooth or a step line. x also takes a band scale, as on mark.line.
 
 Needs: `lib.curve`.
 
@@ -424,7 +424,7 @@ Needs: `lib.curve`.
 | --- | --- | --- | --- |
 | `baseline` | number | `0` | Where the area starts when there is no y2. Keep it inside the scale domain. |
 | `group` | field |  | Field whose distinct values become separate areas. |
-| `fill` | string |  | Any CSS color. Default: theme color by series index. |
+| `fill` | color |  | Any CSS color. Default: theme color by series index. |
 | `opacity` | number | `0.85` | Fill opacity (0.45 by default with `fade`). |
 | `toBottom` | boolean | `false` | Fill down to the bottom edge of the plot instead of to `baseline`: the area under a line whose axis does not start at 0 (a sparkline, a KPI trend). |
 | `fade` | boolean | `false` | The fill fades from the color at the top of the plot to transparent at the bottom, and the area has no outline: the soft area under a line. |
@@ -432,7 +432,7 @@ Needs: `lib.curve`.
 
 ## mark.boxplot
 
-Version 3, 2.8 KB. A box (q1 to q3), a line across it at the median, and whiskers out to low/high — the usual shape for transform.quartiles' output. `x` is the category (a band scale, one box per category) or a plain position on a continuous one; the five value channels share the scale of `y` by default. Outliers are not drawn by this mark: transform.quartiles reports them as their own rows (only `value` set, the others NaN), meant for a plain mark.point layered on top reading the same `x` and `value`.
+Version 4, 2.8 KB. A box (q1 to q3), a line across it at the median, and whiskers out to low/high — the usual shape for transform.quartiles' output. `x` is the category (a band scale, one box per category) or a plain position on a continuous one; the five value channels share the scale of `y` by default. Outliers are not drawn by this mark: transform.quartiles reports them as their own rows (only `value` set, the others NaN), meant for a plain mark.point layered on top reading the same `x` and `value`.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -447,14 +447,14 @@ Version 3, 2.8 KB. A box (q1 to q3), a line across it at the median, and whisker
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `width` | number | `0.6` | Box width: a fraction (0-1) of the category band, or, off a band scale, a fixed number of px. |
-| `fill` | string |  | Box fill. Default: theme color by mark index (or the `color` channel). |
+| `fill` | color |  | Box fill. Default: theme color by mark index (or the `color` channel). |
 | `fillOpacity` | number | `0.85` |  |
 | `strokeWidth` | number | `1.5` | Width of the box outline and the whiskers. |
 | `opacity` | number | `1` |  |
 
 ## mark.candlestick
 
-Version 2, 2.3 KB. Open-high-low-close candles, one per row: a body from `open` to `close`, a thin wick from `low` to `high`, in one color when the price rose and in another when it fell. `x` is a date on a time scale (candles as wide as the nearest two allow) or a category on a band scale; the four prices share the scale of `y`. A row with one of its prices missing has no candle.
+Version 3, 2.3 KB. Open-high-low-close candles, one per row: a body from `open` to `close`, a thin wick from `low` to `high`, in one color when the price rose and in another when it fell. `x` is a date on a time scale (candles as wide as the nearest two allow) or a category on a band scale; the four prices share the scale of `y`. A row with one of its prices missing has no candle.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -467,14 +467,14 @@ Version 2, 2.3 KB. Open-high-low-close candles, one per row: a body from `open` 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `width` | number | `0.7` | Width of a body, as a share (0-1) of the step between candles. |
-| `up` | string | `"var(--bc-good, #12a150)"` | Color of a candle whose close is not below its open. |
-| `down` | string | `"var(--bc-bad, #e5484d)"` | Color of a candle whose close is below its open. |
+| `up` | color | `"var(--bc-good, #12a150)"` | Color of a candle whose close is not below its open. |
+| `down` | color | `"var(--bc-bad, #e5484d)"` | Color of a candle whose close is below its open. |
 | `strokeWidth` | number | `1` | Width of the wick. |
 | `opacity` | number | `1` |  |
 
 ## mark.line
 
-Version 16, 3.8 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: "step"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
+Version 17, 3.8 KB. A line per series: one path however many points. Rows are joined in x order (unsorted data is sorted); missing values break the line. `group` splits the rows into one line per distinct value; a `color` channel does the same and colors each line from its color scale. `curve: "smooth"` draws a smooth curve that still passes through every point and never overshoots between two of them; `curve: "step"` holds each value until the next point (a price, a tariff). x also takes a band scale: the points sit in the middle of their categories, joined in the order of the band scale domain — a slope chart (two categories, before and after) or a line over named periods.
 
 Needs: `lib.curve`.
 
@@ -487,7 +487,7 @@ Needs: `lib.curve`.
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `group` | field |  | Field whose distinct values become separate lines (long-format data). |
-| `stroke` | string |  | Any CSS color. Default: theme color by line index. |
+| `stroke` | color |  | Any CSS color. Default: theme color by line index. |
 | `strokeWidth` | number | `2` |  |
 | `dash` | list |  | Dash pattern, e.g. [4, 3]. |
 | `opacity` | number | `1` |  |
@@ -498,7 +498,7 @@ Needs: `lib.curve`.
 
 ## mark.point
 
-Version 13, 3.9 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible; on a narrow screen its points shrink so they still fit. An opaque dot that rows repeat on one spot is drawn once; with `opacity` below 1 every one is drawn, so piles show.
+Version 14, 3.9 KB. One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible; on a narrow screen its points shrink so they still fit. An opaque dot that rows repeat on one spot is drawn once; with `opacity` below 1 every one is drawn, so piles show.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -510,7 +510,7 @@ Version 13, 3.9 KB. One circle per row. Channels x and y, optional color (a fiel
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `r` | number | `3` | Radius in px (when there is no `size` channel). |
-| `fill` | string |  | Any CSS color. Default: theme color by mark index. |
+| `fill` | color |  | Any CSS color. Default: theme color by mark index. |
 | `opacity` | number | `1` | Bubbles overlap: 0.7 lets the ones behind show through. |
 | `stroke` | string |  | Outline color; bubbles read better with the card color as one ("var(--bc-tooltip-bg, #fff)", which follows the dark theme). |
 | `swarm` | boolean | `false` | Spread the points of each category across its band so that none overlap, keeping each at its value: a beeswarm. Needs a band scale on one axis and a value on the other. When a category does not fit its band (on a phone, say), all points of the mark shrink as little as makes them fit (see `swarmShrink`); a point that still finds no room is laid over the others: use a taller chart, or for thousands of points a violin (transform.density). |
@@ -519,7 +519,7 @@ Version 13, 3.9 KB. One circle per row. Channels x and y, optional color (a fiel
 
 ## mark.polygon
 
-Version 2, 2.0 KB. Closed shapes through the rows in their order: the regions of transform.contour, or any outline given point by point. `group` makes a shape of the rows with one value, drawn as one path, in the order the values first come (the last on top); `ring` splits a shape into several outlines, a run of rows each. An outline inside another that runs the other way round is a hole, as the rings of transform.contour do. With `filled: false` only the outlines are drawn (contour lines). The tooltip finds the shape the pointer is in, the top one first.
+Version 3, 2.0 KB. Closed shapes through the rows in their order: the regions of transform.contour, or any outline given point by point. `group` makes a shape of the rows with one value, drawn as one path, in the order the values first come (the last on top); `ring` splits a shape into several outlines, a run of rows each. An outline inside another that runs the other way round is a hole, as the rings of transform.contour do. With `filled: false` only the outlines are drawn (contour lines). The tooltip finds the shape the pointer is in, the top one first.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -532,14 +532,14 @@ Version 2, 2.0 KB. Closed shapes through the rows in their order: the regions of
 | `group` | field |  | Rows with the same value make one shape. Default: all rows are one. |
 | `ring` | field |  | In a shape, a run of rows with the same value is one closed outline. Default: one outline per shape. |
 | `filled` | boolean | `true` | false draws only the outlines, in the color of the shape. |
-| `fill` | string |  | Any CSS color, when there is no color channel. Default: theme color by mark index. |
+| `fill` | color |  | Any CSS color, when there is no color channel. Default: theme color by mark index. |
 | `opacity` | number | `1` | Fill opacity. |
-| `stroke` | string |  | Outline color of a filled shape. Default: none. |
+| `stroke` | color |  | Outline color of a filled shape. Default: none. |
 | `strokeWidth` | number | `1` |  |
 
 ## mark.rect
 
-Version 13, 3.7 KB. Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field). `shape: "hexagon"` draws a hexagon in the box instead, for the cells of transform.hexbin.
+Version 14, 3.7 KB. Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field). `shape: "hexagon"` draws a hexagon in the box instead, for the cells of transform.hexbin.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -553,7 +553,7 @@ Version 13, 3.7 KB. Rectangles. On a band scale a channel spans the band; on a c
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `baseline` | number | `0` | Where bars start on a continuous axis without a second channel. Keep it inside the scale domain (scale `zero: true` for 0). |
-| `fill` | string |  | Any CSS color. Default: theme color by mark index. |
+| `fill` | color |  | Any CSS color. Default: theme color by mark index. |
 | `opacity` | number | `1` |  |
 | `radius` | number | `0` | Corner radius in px. |
 | `shape` | one of `rect`, `hexagon` | `"rect"` | "hexagon": a hexagon pointy at the top in the box the rectangle would fill, its corners on the middle of the top and bottom edges and a quarter of the way down the sides. The boxes transform.hexbin writes tile with it. |
@@ -562,7 +562,7 @@ Version 13, 3.7 KB. Rectangles. On a band scale a channel spans the band; on a c
 
 ## mark.rule
 
-Version 6, 2.1 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it.
+Version 7, 2.1 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -574,7 +574,7 @@ Version 6, 2.1 KB. Lines at values: a target, a threshold, an average, the targe
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `stroke` | string |  | Any CSS color. Default: the theme text color. |
+| `stroke` | color |  | Any CSS color. Default: the theme text color. |
 | `strokeWidth` | number | `2` |  |
 | `dash` | list |  | Dash pattern, e.g. [4, 3]. |
 | `opacity` | number | `1` |  |
@@ -602,7 +602,7 @@ Version 3, 4.7 KB. A Sankey diagram: one row per flow, from `source` to `target`
 
 ## mark.text
 
-Version 11, 4.8 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped, and the same label on the same spot is written once (a total a transform repeated on each row of its quarter). To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
+Version 12, 4.8 KB. A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped, and the same label on the same spot is written once (a total a transform repeated on each row of its quarter). To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -625,14 +625,14 @@ Version 11, 4.8 KB. A text label per row at (x, y): value labels on bars, annota
 | `rotate` | number | `0` | Degrees around the anchor point. |
 | `decimals` | number |  | Fixed number of decimals for numeric text. |
 | `format` | any |  | How to write numbers (and dates): a preset ("percent", "compact", "integer", "date", ...) or an object of Intl options, e.g. { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }; also "locale", "prefix", "suffix". Overrides `decimals`. |
-| `fill` | string |  | Any CSS color. Default: the theme text color. |
+| `fill` | color |  | Any CSS color. Default: the theme text color. |
 | `negative` | one of `same`, `flip` | `"same"` | "flip" mirrors the placement of a row whose value is below zero, so that the label of a negative bar sits past its end, not inside it: `baseline` and `dy` on a value y, `anchor` and `dx` on a value x (with a band y, as in horizontal bars). |
 | `collide` | one of `show`, `hide` | `"show"` | "hide" keeps labels off each other, for names on points: in row order, a label that would touch one already placed tries the other side of its point (mirrored `baseline` and `dy`) and is left out if that is taken too. Sort the rows to choose which labels win. |
 | `minSize` | number | `8` | The smallest font size a label that does not fit may shrink to; a label that would need less is not drawn. Set it to `size` to never shrink. |
 
 ## mark.violin
 
-Version 2, 2.9 KB. The shape of a distribution per category, from the rows of transform.density (one row per point of a curve): a violin, mirrored on both sides of its band, or with `side: "one"` a ridge standing on the bottom of its band and rising into the one above (a ridgeline, joy plot). Put the categories on a band scale: on x the violins stand up and the value runs along y; on y the shapes lie down and the value runs along x (the usual ridgeline). All shapes share one width scale, so a wider shape is a denser spot; `normalize: "each"` fits every shape to its band instead. Shapes further down are drawn over the ones above them.
+Version 3, 2.9 KB. The shape of a distribution per category, from the rows of transform.density (one row per point of a curve): a violin, mirrored on both sides of its band, or with `side: "one"` a ridge standing on the bottom of its band and rising into the one above (a ridgeline, joy plot). Put the categories on a band scale: on x the violins stand up and the value runs along y; on y the shapes lie down and the value runs along x (the usual ridgeline). All shapes share one width scale, so a wider shape is a denser spot; `normalize: "each"` fits every shape to its band instead. Shapes further down are drawn over the ones above them.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -646,7 +646,7 @@ Version 2, 2.9 KB. The shape of a distribution per category, from the rows of tr
 | `side` | one of `both`, `one` | `"both"` | "both": a violin, the curve mirrored around the middle of the band. "one": a ridge on one side, rising from the bottom of the band (on a band y) or from its left (on a band x). |
 | `extent` | number |  | How much of the band the widest point fills: default 0.9 for a violin, 1.6 for a ridge (above 1 a ridge rises into the band above it, as ridgelines do). |
 | `normalize` | one of `all`, `each` | `"all"` | "all": one width scale for every shape, so they compare. "each": every shape as tall as its band, to read shapes rather than sizes. |
-| `fill` | string |  | Any CSS color, when there is no color channel. Default: the first theme color. |
+| `fill` | color |  | Any CSS color, when there is no color channel. Default: the first theme color. |
 | `opacity` | number | `0.85` | Fill opacity. |
 | `stroke` | string |  | Outline color. Default: none for a violin; the card color for a ridge, so a ridge in front stands apart from the one behind it. |
 | `strokeWidth` | number | `1.5` |  |
