@@ -36,6 +36,11 @@
 //
 // Specs must be plain JSON: a function in one (a tooltip `content`, say) would be silently dropped by JSON.stringify, so it is
 // refused; register it in a script (`after`) with BC.defineFn(name, fn) and put the name in the spec.
+//
+// The command line reads a page: title, subtitle, lang, layout, css, defaultCss, compress, data and charts (PAGE_KEYS). The
+// rest is for a program that calls compose(): it says where the code comes from (distDir), puts raw HTML and scripts on the
+// page (before, after, include) or writes a page that has errors (allowErrors), so a page.json someone sent cannot run code
+// on the machine that composes it, nor get past the checks. Any other key is an error, with the key it looks like.
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -53,6 +58,64 @@ class ComposeError extends Error {
 }
 
 const escapeText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const PAGE_KEYS = ['title', 'subtitle', 'lang', 'layout', 'css', 'defaultCss', 'compress', 'data', 'charts'];
+const API_KEYS = ['before', 'after', 'include', 'distDir', 'allowErrors', 'dryRun', 'drawTimeout', 'baseDir'];
+
+/** The known name a mistyped one was meant to be: the same but for case, or at most two letters off. */
+function nearest(name, known) {
+  const distance = (a, b) => {
+    let row = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      const next = [i];
+      for (let j = 1; j <= b.length; j++) next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      row = next;
+    }
+    return row[b.length];
+  };
+  let best;
+  let bestDistance = 3;
+  for (const k of known) {
+    const d = k.toLowerCase() === String(name).toLowerCase() ? 0 : distance(String(name), k);
+    if (d < bestDistance) [best, bestDistance] = [k, d];
+  }
+  return best;
+}
+
+/** An error for the first key of `obj` that is not one of `known`, saying which one it looks like. */
+function unknownKeys(obj, known, where) {
+  const stray = Object.keys(obj).find((k) => !known.includes(k));
+  if (stray === undefined) return;
+  const near = nearest(stray, known);
+  throw new ComposeError(
+    `${where}: unknown key "${stray}"${near ? `; did you mean "${near}"?` : `. It takes ${known.map((k) => `"${k}"`).join(', ')}`}`,
+  );
+}
+
+/** Reads a page.json as the command line does: a byte order mark (Windows editors and PowerShell write one) is dropped. */
+function readPage(file) {
+  let text;
+  try {
+    text = fs.readFileSync(file, 'utf8');
+  } catch (e) {
+    throw new ComposeError(`${file}: ${e.code === 'ENOENT' ? 'file not found' : e.message}`);
+  }
+  let page;
+  try {
+    page = JSON.parse(text.replace(/^﻿/, ''));
+  } catch (e) {
+    throw new ComposeError(`${file} is not valid JSON: ${e.message}`);
+  }
+  if (!page || typeof page !== 'object' || Array.isArray(page))
+    throw new ComposeError(`${file} must hold one object: { "title": ..., "data": { ... }, "charts": [ ... ] }`);
+  const own = Object.keys(page).find((k) => API_KEYS.includes(k));
+  if (own !== undefined)
+    throw new ComposeError(
+      `${file}: "${own}" is an option for a program that calls compose(), not a key of a page. A page has ${PAGE_KEYS.map((k) => `"${k}"`).join(', ')}`,
+    );
+  unknownKeys(page, PAGE_KEYS, file);
+  return page;
+}
 
 /** JSON that is safe inside <script type="application/json">: nothing in the data can close the tag or open a comment. */
 const jsonForScript = (v) =>
@@ -379,6 +442,7 @@ function transformFacet(entry, BC) {
 
 function compose(opts) {
   const options = opts || {};
+  unknownKeys(options, PAGE_KEYS.concat(API_KEYS), 'compose()');
   // next to manifest.json (a packaged skill) or in the repo's dist folder
   const distDir = path.resolve(
     options.distDir ||
@@ -727,7 +791,7 @@ function compose(opts) {
   return { html, blocks: blockNames, bytes, diagnostics, unusedData, compressed, core, entries: shown };
 }
 
-module.exports = { compose, ComposeError, jsonForScript, escapeText, resolveDataset, DARK_PALETTE, paletteVars };
+module.exports = { compose, readPage, nearest, ComposeError, jsonForScript, escapeText, resolveDataset, DARK_PALETTE, paletteVars };
 
 // CLI: node scripts/compose.js page.json out.html
 //   page.json = { "title": "...", "data": { ... }, "charts": [ ... ] }
@@ -738,7 +802,7 @@ if (require.main === module) {
     process.exit(2);
   }
   try {
-    const page = JSON.parse(fs.readFileSync(input, 'utf8'));
+    const page = readPage(input);
     const r = compose({ ...page, baseDir: path.dirname(path.resolve(input)) });
     fs.writeFileSync(output, r.html);
     console.log(`${output}: ${(r.html.length / 1024).toFixed(1)} KB, ${r.blocks.length} blocks (${r.blocks.join(', ')})`);

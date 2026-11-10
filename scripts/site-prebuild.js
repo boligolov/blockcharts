@@ -10,7 +10,7 @@ const os = require('os');
 const path = require('path');
 const vm = require('vm');
 const { buildRelease } = require('./build-dist.js');
-const { compose, DARK_PALETTE, paletteVars } = require('./compose.js');
+const { compose, readPage, DARK_PALETTE, paletteVars } = require('./compose.js');
 const { checkSkill, packSkill } = require('./build-skill.js');
 
 const repo = path.join(__dirname, '..');
@@ -67,7 +67,7 @@ function prebuild() {
       .filter((n) => n.endsWith('.json'))
       .sort()) {
       const name = f.replace(/\.json$/, '');
-      const r = compose({ ...JSON.parse(fs.readFileSync(path.join(recipesDir, f), 'utf8')), baseDir: recipesDir });
+      const r = compose({ ...readPage(path.join(recipesDir, f)), baseDir: recipesDir });
       if (r.diagnostics.length) throw new Error(`recipe ${name} has diagnostics: ${JSON.stringify(r.diagnostics)}`);
       fs.writeFileSync(path.join(reportsDir, `${name}.report.html`), forDownload(r.html, name));
       sizes[name] = r.bytes;

@@ -1221,6 +1221,59 @@ test('compose: a chart that never finishes drawing in the trial run is a spec er
   assert(Date.now() - started < 10000, 'it gives up instead of waiting forever');
 });
 
+test('compose command line: a page.json is a page — it cannot run code, write a page with errors, or misspell a key', () => {
+  const { spawnSync } = require('child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bc-cli-'));
+  const run = (page, raw) => {
+    const file = path.join(dir, 'page.json');
+    fs.writeFileSync(file, raw !== undefined ? raw : JSON.stringify(page));
+    fs.rmSync(path.join(dir, 'out.html'), { force: true });
+    const r = spawnSync(process.execPath, [path.join(__dirname, 'compose.js'), file, path.join(dir, 'out.html')], { encoding: 'utf8' });
+    return { ...r, written: fs.existsSync(path.join(dir, 'out.html')) };
+  };
+  const page = { title: 'CLI', data: DATA, charts: [bars()] };
+
+  // a folder of "code" next to the page: the composer would run its core.js in a vm, which is no sandbox
+  const lib = path.join(dir, 'lib');
+  fs.mkdirSync(lib);
+  const proof = path.join(dir, 'ran.txt');
+  fs.writeFileSync(
+    path.join(lib, 'core.js'),
+    `this.constructor.constructor('return process')().mainModule.require('fs').writeFileSync(${JSON.stringify(proof)}, 'ran');`,
+  );
+  fs.writeFileSync(path.join(lib, 'manifest.json'), JSON.stringify({ core: { file: 'core.js' }, blocks: {} }));
+  const code = run({ ...page, distDir: lib });
+  assert.strictEqual(code.status, 1);
+  assert.match(code.stderr, /"distDir" is an option for a program that calls compose\(\), not a key of a page/);
+  assert(!fs.existsSync(proof), 'the code next to the page did not run');
+  assert(!code.written);
+
+  for (const key of ['allowErrors', 'after', 'before', 'include', 'dryRun', 'drawTimeout', 'baseDir']) {
+    const r = run({ ...page, [key]: true });
+    assert.strictEqual(r.status, 1, key);
+    assert.match(r.stderr, new RegExp(`"${key}" is an option for a program`), key);
+  }
+  // so a chart with an error still stops the page
+  const broken = run({ ...page, charts: [{ ...bars(), marks: [{ type: 'rect', x: 'k', y: 'ghost' }] }], allowErrors: true });
+  assert(!broken.written);
+
+  const typo = run({ ...page, subtitel: 'Q3' });
+  assert.strictEqual(typo.status, 1);
+  assert.match(typo.stderr, /page\.json: unknown key "subtitel"; did you mean "subtitle"\?/);
+  assert.match(run({ ...page, CSS: 'body{}' }).stderr, /unknown key "CSS"; did you mean "css"\?/);
+  assert.match(run({ ...page, theme: 'dark' }).stderr, /unknown key "theme"\. It takes "title", "subtitle"/);
+  failsWith(() => compose({ ...page, chart: [] }), /compose\(\): unknown key "chart"; did you mean "charts"\?/);
+
+  // what Windows PowerShell 5.1 writes (Set-Content / Out-File -Encoding utf8): a byte order mark first
+  const bom = run(null, '﻿' + JSON.stringify(page));
+  assert.strictEqual(bom.status, 0, bom.stderr);
+  assert(bom.written);
+  const bad = run(null, '{ "title": "x", }');
+  assert.strictEqual(bad.status, 1);
+  assert.match(bad.stderr, /page\.json is not valid JSON/);
+  assert.match(run(null, '[1, 2]').stderr, /must hold one object/);
+});
+
 (async () => {
   for (const [name, fn] of queue) {
     try {

@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.33.0"
+  version: "0.33.1"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -42,7 +42,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 - `lang`: the language of the page (`"ko"`, `"ja"`, `"zh-CN"`). It sets `<html lang>`, the font for that language and the language of numbers and dates, presets included, so a page in one language needs no `locale` anywhere. Always set it on a page that is not in English: without it Japanese is drawn in a Chinese font. A `{"section": ..., "lang": "ja"}` lasts until the next section, a chart entry can take its own, and a format's own `locale` wins.
 - `title` and `subtitle`: the page heading and one line under it (the period, the scope, the unit: "FY2025 · all regions · USD").
 - `layout`: `{"columns": 4}` (any number from 1 to 12) turns the page into a dashboard grid; `"phoneColumns": 2` keeps the `span: 1` tiles side by side on a phone, where every other card takes the whole width; each chart takes `span` columns (default: the whole row). Put KPI tiles first, `span: 1` each, then the charts (`span: 2` or `3`). On a phone every card takes the full width. Size a chart for its card: about 280 px wide per column. A chart that cannot be read narrow (a heatmap with a number in every cell) takes `"minWidth": 560` next to `spec`: below that width it stays wide and its card scrolls sideways.
-- Optional: `css` (extra stylesheet text), `compress` (`"auto"` by default: big datasets are stored gzipped when that saves more than the decoder it adds, which you do not have to think about).
+- Optional: `css` (extra stylesheet text), `compress` (`"auto"` by default: big datasets are stored gzipped when that saves more than the decoder it adds, which you do not have to think about). Any other key stops the composer and names the one it looks like (`subtitel`: did you mean `subtitle`?).
 
 ## Chart spec
 

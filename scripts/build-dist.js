@@ -143,7 +143,7 @@ if (require.main === module) {
       } else outDir = path.resolve(args[i]);
     }
     const distDir = path.join(repo, 'dist');
-    const { compose } = require('./compose.js');
+    const { compose, readPage } = require('./compose.js');
     const pageKits = pages.map((spec) => {
       const eq = spec.lastIndexOf('=');
       const file = path.resolve(eq > 0 ? spec.slice(0, eq) : spec);
@@ -155,7 +155,7 @@ if (require.main === module) {
               .replace(/\.json$/i, '')
               .toLowerCase()
               .replace(/[^a-z0-9-]+/g, '-');
-      const page = JSON.parse(fs.readFileSync(file, 'utf8'));
+      const page = readPage(file);
       return { name, blocks: compose({ ...page, baseDir: path.dirname(file), distDir }).blocks };
     });
     const kits = JSON.parse(fs.readFileSync(path.join(repo, 'kits.json'), 'utf8'));

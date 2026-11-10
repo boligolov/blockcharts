@@ -1169,6 +1169,20 @@ legend draws swatches, a bar or circles by what each declares, the filter takes 
 tooltip heads the card with a date, bars stand along dates. Each of 21 parts fails a test when broken, and the check
 of the built site fails when the blocks page stops listing the accepted scales.
 
+## The production review
+
+Before the first release, seven reviewers who had not seen the code before went through it: the core, the blocks that
+compute, the blocks that draw, the composer and the tooling, the skill, every recipe in Chrome, the site. They found no
+blocker and about seventy problems, each with a repro. The fixes, in the order they were made:
+
+- **A page.json is a page.** The command line passed every key of page.json to `compose()`, so `"distDir": "lib"` ran a
+  `lib/core.js` next to the page on the machine that composed it (a vm is no sandbox), and `"allowErrors": true` wrote a
+  page with errors. Now it takes the keys of a page (`PAGE_KEYS`: title, subtitle, lang, layout, css, defaultCss,
+  compress, data, charts); `distDir`, `allowErrors`, `before`, `after`, `include`, `dryRun`, `drawTimeout` and `baseDir`
+  are for a program that calls `compose()`. Any other key is an error that names the key it looks like (`subtitel`: did
+  you mean `subtitle`?), in `compose()` too. A byte order mark at the start of page.json, which Windows PowerShell 5.1
+  writes, is dropped instead of failing as invalid JSON.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,
