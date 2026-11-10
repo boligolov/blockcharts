@@ -1242,6 +1242,14 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   `transforms[i]`, no longer at the chart. The CSV reader warns about a column that is mostly numbers but text because
   of a few cells, names them and says what to do: `nullValues` for "no value", plain numbers for amounts, `types` for
   a column that is text.
+- **A CSV file is read as it is, or not at all.** A file was read as UTF-8 whatever it was: what Excel writes for "CSV
+  (Comma delimited)", Windows-1252, became text with "�" in place of every accent, and UTF-16 column names with a NUL
+  between every two letters. Now UTF-8 (with or without a byte order mark) and UTF-16 with a byte order mark are
+  read, and anything else is an error with the line it fails on, as Windows-1252 shows it, and how to save the file;
+  an .xlsx renamed to .csv is told so. Whole numbers past 2^53 (ids of 19 digits) turned into one another as numbers:
+  such a column stays text, with a warning, and `"1e400"`, which is Infinity and null in JSON, is not a number. A
+  page.json at the root of a drive could read no file, since "inside the folder" was a prefix test against `C:\` plus a separator;
+  it is `path.relative` now.
 
 ## Next steps
 

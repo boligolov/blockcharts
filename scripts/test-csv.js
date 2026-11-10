@@ -4,7 +4,7 @@ const os = require('os');
 const path = require('path');
 const assert = require('assert');
 const { spawnSync } = require('child_process');
-const { parseCsv, readCsvFile, CsvError } = require('./csv.js');
+const { parseCsv, readCsvFile, within, CsvError } = require('./csv.js');
 const { compose, ComposeError } = require('./compose.js');
 
 let passed = 0;
@@ -146,6 +146,75 @@ test('csv: broken input is a clear error with the line', () => {
       JSON.stringify(text),
     );
   assert.throws(() => parseCsv(5), /must be text/);
+});
+
+test('csv: whole numbers too large to keep exactly stay text, with a warning; Infinity is not a number', () => {
+  const r = parseCsv('id,v\n12345678901234567890,1\n12345678901234567891,2');
+  assert.deepStrictEqual(r.columns.id, ['12345678901234567890', '12345678901234567891'], 'two ids, not one number twice');
+  assert.deepStrictEqual(r.columns.v, [1, 2]);
+  assert.deepStrictEqual(r.warnings.length, 1);
+  assert.match(r.warnings[0].message, /^column "id" is read as text: 12345678901234567890 is a whole number too large to keep exactly/);
+  assert.deepStrictEqual(
+    parseCsv('id\n9007199254740991\n-9007199254740991').columns.id,
+    [9007199254740991, -9007199254740991],
+    'the largest exact ones are numbers',
+  );
+  assert.deepStrictEqual(
+    parseCsv('x\n12345678901234567890.5\n1').columns.x,
+    [12345678901234567890.5, 1],
+    'a fraction is a measure, rounded as any',
+  );
+  assert.deepStrictEqual(parseCsv('id\n12345678901234567890', { types: { id: 'string' } }).warnings, [], 'declared text: nothing to say');
+  assert.deepStrictEqual(
+    parseCsv('id\n12345678901234567890', { types: { id: 'number' } }).columns.id,
+    [12345678901234567890],
+    'declared numbers',
+  );
+  assert.deepStrictEqual(parseCsv('x\n1e400\n2').columns.x, ['1e400', '2'], 'Infinity would be null in JSON');
+  assert.throws(() => parseCsv('x\n1e400', { types: { x: 'number' } }), /declared a number but contains "1e400"/);
+});
+
+test('csv file: UTF-8, or UTF-16 with a byte order mark; anything else is an error that says how to save it', () => {
+  const dir = tmp();
+  const put = (name, bytes) => fs.writeFileSync(path.join(dir, name), bytes);
+  const text = 'name,v\nCafé,1\nNaïve,2\n';
+  put('utf8.csv', Buffer.from(text, 'utf8'));
+  put('bom.csv', Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(text, 'utf8')]));
+  put('le.csv', Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')]));
+  put('be.csv', Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(text, 'utf16le').swap16()]));
+  for (const f of ['utf8.csv', 'bom.csv', 'le.csv', 'be.csv'])
+    assert.deepStrictEqual(parseCsv(readCsvFile(f, dir)).columns, { name: ['Café', 'Naïve'], v: [1, 2] }, f);
+  // what Excel writes for "CSV (Comma delimited)": Windows-1252
+  put('excel.csv', Buffer.from('name,v\r\nTea,3\r\nCaf\xe9,1\r\n', 'latin1'));
+  assert.throws(
+    () => readCsvFile('excel.csv', dir),
+    (e) =>
+      e instanceof CsvError &&
+      /^excel\.csv is not UTF-8 \(line 3: "Café,1"\): it was saved in an older encoding, such as Windows-1252.*Save it as "CSV UTF-8 \(Comma delimited\)"/.test(
+        e.message,
+      ),
+  );
+  put('nobom16.csv', Buffer.from(text, 'utf16le'));
+  assert.throws(() => readCsvFile('nobom16.csv', dir), /nobom16\.csv looks like UTF-16 without a byte order mark/);
+  put('book.csv', Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x06, 0x00]));
+  assert.throws(() => readCsvFile('book.csv', dir), /book\.csv is an Excel workbook \(or another zip file\), not a CSV/);
+});
+
+test('csv file: "inside the folder" holds for a folder at the root of a drive', () => {
+  const dir = tmp();
+  const root = path.parse(dir).root; // C:\ or /
+  assert(within(root, path.join(root, 'data', 'sales.csv')), 'a file under the root is inside it');
+  assert(within(dir, path.join(dir, 'sales.csv')) && within(dir, dir));
+  assert(!within(dir, path.join(dir, '..', 'other', 'sales.csv')));
+  assert(!within(dir, dir + 'x'), 'a folder whose name starts the same is not inside');
+  assert(!within(dir, path.dirname(dir)), 'nor is the folder above');
+  if (process.platform === 'win32') assert(!within('C:\\data', 'D:\\data\\x.csv'), 'nor another drive');
+  assert(within(dir, path.join(dir, '..data.csv')), 'a name that starts with two dots is inside');
+  // a page.json at the root of a drive reads the files under it (it used to be told they were outside)
+  fs.writeFileSync(path.join(dir, 'a.csv'), 'k,v\nx,1\n');
+  const real = fs.realpathSync(dir);
+  const top = path.parse(real).root;
+  assert.strictEqual(readCsvFile(path.relative(top, path.join(real, 'a.csv')), top), 'k,v\nx,1\n');
 });
 
 test('csv: a hundred thousand rows parse quickly', () => {
