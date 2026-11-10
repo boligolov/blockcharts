@@ -258,6 +258,41 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     }
   });
 
+  test('scale.log: values at the ends of what a number holds give a finite domain and ticks, never a loop without end', () => {
+    // run in a child with a time limit: the bug this guards against never returns
+    const { spawnSync } = require('child_process');
+    const dist = require('path').join(__dirname, '../dist');
+    const script = `
+      require(${JSON.stringify(dist + '/core.js')});
+      for (const f of ['lib.ticks', 'scale.log']) require(${JSON.stringify(dist + '/blocks/')} + f + '.js');
+      const out = [];
+      const log = (spec, sources) => BC.get('scale.log').create({ type: 'log', ...spec }, { name: 'x', sources, range: [0, 100], color: () => '#000' });
+      for (const sources of [[[Number.MAX_VALUE]], [[5e-324]], [[1, 1.7e308]], [[5e-324, 1]], [[5e-324, Number.MAX_VALUE]], [[1e-320, 1e-319]]]) {
+        const s = log({}, sources);
+        out.push({ domain: s.domain(), ticks: s.ticks(6).map((t) => t.value), pos: s.ticks(6).map((t) => t.pos) });
+        s.setDomain([1, Infinity]);
+        out.push({ zoomed: s.domain(), ticks: s.ticks(6).length });
+      }
+      const explicit = log({ domain: [5e-324, Number.MAX_VALUE] }, [[1]]);
+      out.push({ domain: explicit.domain(), ticks: explicit.ticks(6).map((t) => t.value) });
+      console.log(JSON.stringify(out));
+    `;
+    const r = spawnSync(process.execPath, ['-e', script], { encoding: 'utf8', timeout: 5000 });
+    assert.strictEqual(r.error, undefined, 'it finished within 5 s');
+    assert.strictEqual(r.status, 0, r.stderr);
+    for (const c of JSON.parse(r.stdout)) {
+      for (const d of [c.domain, c.zoomed].filter(Boolean))
+        assert(
+          d.every((v) => v > 0 && isFinite(v)),
+          'a domain of positive finite numbers: ' + JSON.stringify(c),
+        );
+      if (Array.isArray(c.ticks)) {
+        assert(c.ticks.length >= 1 && c.ticks.length <= 20, JSON.stringify(c));
+        assert(c.ticks.every((v) => v > 0 && isFinite(v)) && (c.pos || []).every(isFinite), JSON.stringify(c));
+      } else assert(c.ticks >= 1 && c.ticks <= 20, JSON.stringify(c));
+    }
+  });
+
   test('scale.sequential and scale.size: a reversed or empty domain gives ticks, not a crash or a thousand of them', () => {
     const ctx = (sources) => ({ name: 'c', sources, range: [], color: () => '#000' });
     const seq = BC.get('scale.sequential').create({ type: 'sequential', domain: [10, 0] }, ctx([]));

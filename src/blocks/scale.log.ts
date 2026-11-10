@@ -42,7 +42,7 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'log',
-    version: 4,
+    version: 5,
     output: 'position',
     input: 'number',
     merge: 'extent',
@@ -60,14 +60,19 @@
       } else {
         const e = extent(ctx.sources);
         [b0, b1] = e || [1, 10];
+        // a widened or rounded end can be past what a number holds (1e309 is Infinity, 1e-324 is 0): then the data's own
+        // end stays, or the ticks below would count powers of ten without end
+        const held = (v: number) => v > 0 && isFinite(v);
         if (b0 === b1) {
-          b0 /= 10;
-          b1 *= 10;
+          if (held(b0 / 10)) b0 /= 10;
+          if (held(b1 * 10)) b1 *= 10;
         }
         if (spec.nice !== false) {
           const few = lg(b1) - lg(b0) < FEW_DECADES;
-          b0 = few ? round125(b0, false) : Math.pow(10, Math.floor(lg(b0) + 1e-9));
-          b1 = few ? round125(b1, true) : Math.pow(10, Math.ceil(lg(b1) - 1e-9));
+          const n0 = few ? round125(b0, false) : Math.pow(10, Math.floor(lg(b0) + 1e-9));
+          const n1 = few ? round125(b1, true) : Math.pow(10, Math.ceil(lg(b1) - 1e-9));
+          if (held(n0)) b0 = n0;
+          if (held(n1)) b1 = n1;
         }
       }
       let d0 = b0;
@@ -84,8 +89,8 @@
         baseDomain: { value: () => [b0, b1] },
         setDomain: {
           value: (d: number[] | null) => {
-            d0 = d && d[0] > 0 ? d[0] : b0;
-            d1 = d && d[1] > 0 ? d[1] : b1;
+            d0 = d && d[0] > 0 && isFinite(d[0]) ? d[0] : b0;
+            d1 = d && d[1] > 0 && isFinite(d[1]) ? d[1] : b1;
           },
         },
         range: { value: () => [r0, r1] },
@@ -112,7 +117,7 @@
               if ((p - p0) % every) continue;
               for (const m of steps) {
                 const value = +(m * Math.pow(10, p)).toPrecision(12);
-                if (value < lo * (1 - 1e-9) || value > hi * (1 + 1e-9)) continue;
+                if (!isFinite(value) || value < lo * (1 - 1e-9) || value > hi * (1 + 1e-9)) continue;
                 out.push({ value, pos: scale(value), label: label(value) });
               }
             }

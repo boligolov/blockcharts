@@ -152,8 +152,8 @@
     },
     "scale.log": {
       "file": "blocks/scale.log.js",
-      "bytes": 1893,
-      "version": 4,
+      "bytes": 2014,
+      "version": 5,
       "requires": [],
       "closure": [
         "scale.log"

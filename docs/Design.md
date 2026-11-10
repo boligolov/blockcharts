@@ -1200,6 +1200,12 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   columns, lost while decoding binary columns): `BC.data`, the CSV reader and `lib.columns` (for a new column of a
   transform) refuse it with what to rename. A CSV column named `constructor` no longer finds a type in `types` it was
   not given.
+- **A log scale ends.** Its domain is rounded out to powers of ten, and a value near `Number.MAX_VALUE` (a common stand-in
+  for "infinite") rounded to `1e309`, which is `Infinity`; one near `5e-324` rounded to `0`. The ticks then counted
+  powers of ten without end: the tab froze, and the composer stopped only at its time limit with "a block is stuck".
+  Now a widened or rounded end that a number cannot hold leaves the data's own end, a zoom to a non-finite end is the
+  full domain, and a tick past what a number holds is not one. A test runs the extremes in a child process with a time
+  limit, since the bug it guards against never returns.
 
 ## Next steps
 
