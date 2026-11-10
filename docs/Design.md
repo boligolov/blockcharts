@@ -1206,6 +1206,10 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   Now a widened or rounded end that a number cannot hold leaves the data's own end, a zoom to a non-finite end is the
   full domain, and a tick past what a number holds is not one. A test runs the extremes in a child process with a time
   limit, since the bug it guards against never returns.
+- **The composer writes no data the page cannot read.** A page unpacks at most 64 MB of compressed data, against gzip
+  bombs. The composer compressed whatever was worth it, so a 43 MB CSV of short text (more than 64 MB as JSON) made a
+  page that refused its own data. Now "auto" leaves such a dataset as it is, and `compress: true` is an error that says
+  to aggregate or decimate first.
 
 ## Next steps
 

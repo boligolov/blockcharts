@@ -348,10 +348,19 @@ function needsDecoding(v) {
   );
 }
 
-function encodeDataset(input, mode) {
+function encodeDataset(name, input, mode) {
   if (isEncoded(input) || hasBinaryColumns(input) || mode === false) return { value: input, encoded: false };
   const json = JSON.stringify(input);
   if (mode !== true && json.length < COMPRESS_MIN_CHARS) return { value: input, encoded: false };
+  // the page unpacks no more than this, so compressed it could not be read at all: "auto" leaves it as it is
+  const bytes = Buffer.byteLength(json, 'utf8');
+  if (bytes > MAX_DECODED_BYTES) {
+    if (mode === true)
+      throw new ComposeError(
+        `data "${name}" is ${(bytes / 1024 / 1024).toFixed(0)} MB as JSON, and a page unpacks no more than ${MAX_DECODED_BYTES / 1024 / 1024} MB of compressed data: aggregate or decimate it first, or compose with compress "auto" to store it as it is`,
+      );
+    return { value: input, encoded: false };
+  }
   const b64 = zlib.gzipSync(Buffer.from(json, 'utf8'), { level: 9 }).toString('base64');
   if (mode !== true && b64.length > json.length * COMPRESS_MIN_GAIN) return { value: input, encoded: false };
   return { value: { encoding: 'gzip+base64', data: b64 }, encoded: true };
@@ -716,7 +725,7 @@ function compose(opts) {
   // a page's own script can read any dataset, so with `after` they all stay
   const carried = Object.keys(data).filter((n) => usedDatasets.has(n) || options.after);
   for (const name of carried) {
-    const r = encodeDataset(data[name], compress);
+    const r = encodeDataset(name, data[name], compress);
     stored[name] = r.value;
     if (r.encoded) {
       compressed.push(name);

@@ -447,6 +447,21 @@ test('compose: big datasets are stored as base64(gzip), small ones stay readable
   failsWith(() => compose({ data: DATA, charts: [bars()], compress: 'yes' }), /compress must be/);
 });
 
+test('compose: data larger than a page unpacks is never compressed: "auto" stores it as it is, true is an error', () => {
+  // 1,200 rows of 61,000 characters: 70 MB of JSON, past the 64 MB a page unpacks (and gzip makes it tiny)
+  const long = 'x'.repeat(61000);
+  const huge = Array.from({ length: 1200 }, (_, i) => ({ k: 'k' + (i % 7), v: i, note: long }));
+  const spec = { ...bars(), data: 'huge' };
+  const r = compose({ data: { huge }, charts: [spec] });
+  assert.deepStrictEqual(r.compressed, [], 'auto: left as it is, so the page can read it');
+  assert.strictEqual(r.core, 'core.composed-plain.js');
+  assert(r.html.length > 64 * 1024 * 1024);
+  failsWith(
+    () => compose({ data: { huge }, charts: [spec], compress: true }),
+    /data "huge" is 70 MB as JSON, and a page unpacks no more than 64 MB of compressed data/,
+  );
+});
+
 test('compose: "auto" leaves data that does not compress well alone', () => {
   let seed = 1;
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
