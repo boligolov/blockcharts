@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 38674,
+    "bytes": 38757,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 27695,
+        "bytes": 27781,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 24666,
+        "bytes": 24747,
         "off": [
           "CHECKS",
           "DECODE"
@@ -1889,8 +1889,8 @@
     },
     "mark.sankey": {
       "file": "blocks/mark.sankey.js",
-      "bytes": 4859,
-      "version": 4,
+      "bytes": 4851,
+      "version": 5,
       "requires": [],
       "closure": [
         "mark.sankey"
@@ -2512,8 +2512,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 8755,
-      "version": 17,
+      "bytes": 8747,
+      "version": 18,
       "requires": [
         "lib.pointer"
       ],

@@ -2365,6 +2365,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       plot: { x: 0, y: 0, w: 600, h: 400 },
       color,
       measure: () => ({ w: 0, h: 0 }),
+      format: (f, kind) => BC.formatter(f, kind),
     };
   };
 
@@ -3320,6 +3321,57 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     );
     assert.strictEqual(asked.length, 0);
     assert.strictEqual(partOf(host, 'bc-tooltip-highlight').style.display, 'block', 'the node lights up');
+  });
+
+  test('a chart speaks its own language on hover, after another chart drew, and the page keeps its own', async () => {
+    BC.data('flows', [
+      { s: 'A', t: 'B', v: 1000500 },
+      { s: 'B', t: 'C', v: 1000500 },
+    ]);
+    const spec = (locale) => ({
+      data: 'flows',
+      locale,
+      size: [600, 400],
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      transforms: [{ type: 'sankey', source: 's', target: 't', value: 'v' }],
+      marks: [{ type: 'sankey', source: 's', target: 't', value: 'v', format: 'integer', nodeLabels: ['In', 'Out'] }],
+      interaction: [{ type: 'tooltip' }],
+    });
+    const german = new FakeNode('div');
+    BC.chart(german, spec('de-DE'));
+    BC.chart(new FakeNode('div'), spec('en-US'));
+    const middle = rects(layer(svgOf(german), 'marks')).find((n) => n.x > 100 && n.x < 400);
+    const box = german.children[0].getBoundingClientRect();
+    await hover(german, box.left + ((middle.x + 6) * box.width) / 600, box.top + ((middle.y + 20) * box.height) / 400);
+    assert.deepStrictEqual(
+      partOf(tipOf(german), 'bc-tooltip-lines').children.map((c) => c.text),
+      ['In', '1.000.500', 'Out', '1.000.500'],
+    );
+    assert.strictEqual(BC.formatter('integer')(1000500), '1,000,500', 'a formatter made outside a chart writes the default');
+  });
+
+  test("the tooltip writes in its chart's language, its formats and its dates", async () => {
+    const host = new FakeNode('div');
+    const handle = BC.chart(
+      host,
+      monthly({
+        locale: 'de-DE',
+        interaction: [{ type: 'tooltip', fields: ['m', 'rev'], formats: { rev: { minimumFractionDigits: 1 } } }],
+      }),
+    );
+    const d = paths(layer(svgOf(host), 'marks'))[0].d;
+    const [x, y] = /L([\d.]+) ([\d.]+)/.exec(d).slice(1).map(Number);
+    await hover(host, x, y);
+    const tip = tipOf(host);
+    const heading = tip.children.find((c) => c.attrs.class === 'bc-tooltip-heading');
+    assert.strictEqual(heading.children[heading.children.length - 1].text, '01.02.2024');
+    assert.deepStrictEqual(
+      partOf(tip, 'bc-tooltip-lines').children.map((c) => c.text),
+      ['rev', '130,0'],
+    );
+    handle.setView('x', ['2024-01-15', '2024-03-15']);
+    await flush();
+    assert.strictEqual(BC.formatter('integer')(1000500), '1,000,500', 'a chart drawn again leaves the page its own language');
   });
 
   test('a value repeated on every row of its group is drawn once, and its tooltip says only what the rows share', async () => {

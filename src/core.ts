@@ -868,8 +868,11 @@
 
   /** Stages 1-4 run once (table, transforms, scales, layout — frozen afterwards); `draw` is stages 5-7 and reruns on every view change. */
   function build(host: HTMLElement, spec: BC.ChartSpec, cleanups: (() => void)[], keptView?: Record<string, unknown[]>): Built {
+    // the language of the chart, for BC.formatter while the chart is built and drawn; after that, and in a page's own script,
+    // BC.formatter writes the default. What a block writes outside drawing (an interaction, a card on hover) uses ctx.format.
+    const language = typeof spec.locale === 'string' && spec.locale ? spec.locale : undefined;
     const speak = () => {
-      chartLocale = typeof spec.locale === 'string' && spec.locale ? spec.locale : undefined;
+      chartLocale = language;
     };
     speak();
     const diagnostics: BC.Diagnostic[] = [];
@@ -1161,6 +1164,7 @@
 
     const ctx: BC.ChartCtx = {
       spec,
+      format: (f, kind) => formatter(f, kind, language),
       get table() {
         return table;
       },
@@ -1382,6 +1386,7 @@
           clip: name === 'marks' && zoomed ? { ...plot } : undefined,
         })),
       };
+      hush();
     }
 
     draw();
@@ -1627,6 +1632,7 @@
               : { ...current, size: [laidOut, Array.isArray(current.size) ? current.size[1] : 400] as [number, number] };
           built = build(host, effective, cleanups, carried || undefined);
         } catch (e) {
+          hush();
           const at = e && typeof (e as { path?: unknown }).path === 'string' ? (e as { path: string }).path : '';
           checks.push({ level: 'error', path: at, message: e instanceof Error ? e.message : String(e) });
         }
@@ -1888,8 +1894,11 @@
     datetime: { kind: 'date', dateStyle: 'medium', timeStyle: 'short' },
   };
   const formatters = new Map<string, (value: unknown) => string>();
-  /** What the chart being built or drawn asks for. Set at the start of both; a tooltip makes its formatters while attached. */
+  /** What the chart being built or drawn asks for, while it is; undefined (the default) the rest of the time. */
   let chartLocale: string | undefined;
+  const hush = () => {
+    chartLocale = undefined;
+  };
   const NUMBER_OPTIONS = [
     'style',
     'currency',
@@ -1919,7 +1928,7 @@
     ja: (q, y) => `${y}年第${q}四半期`,
   };
 
-  function formatter(spec: string | BC.FormatSpec, kind?: 'number' | 'date'): (value: unknown) => string {
+  function formatter(spec: string | BC.FormatSpec, kind?: 'number' | 'date', chart?: string): (value: unknown) => string {
     let o: BC.FormatSpec;
     if (typeof spec === 'string') {
       if (!Object.prototype.hasOwnProperty.call(PRESETS, spec))
@@ -1932,7 +1941,7 @@
     }
     // Intl has no quarters: the preset writes the year with Intl and puts "Q1".."Q4" before it
     const quarter = o === PRESETS.quarter;
-    const language = (typeof o.locale === 'string' && o.locale) || chartLocale || DEFAULT_LOCALE;
+    const language = (typeof o.locale === 'string' && o.locale) || chart || chartLocale || DEFAULT_LOCALE;
     const key = (kind || '') + '|' + language + '|' + (quarter ? 'quarter' : JSON.stringify(o));
     const known = formatters.get(key);
     if (known) return known;
@@ -2004,7 +2013,7 @@
       fns.set(name, fn);
     },
     getFn: (name) => fns.get(name),
-    formatter,
+    formatter: (spec, kind) => formatter(spec, kind),
     time,
     // without CHECKS they are not there at all: a page script that calls them fails loudly instead of being told "no problems"
     needs,

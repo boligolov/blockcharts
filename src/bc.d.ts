@@ -319,6 +319,9 @@ declare namespace BC {
 
   interface ChartCtx {
     readonly spec: ChartSpec;
+    /** BC.formatter in the language of the chart (its `locale`), also when called later, from an event: a card on hover
+     *  is written like the labels. BC.formatter itself has the chart's language only while the chart is built and drawn. */
+    format(spec: string | FormatSpec, kind?: 'number' | 'date'): (value: unknown) => string;
     readonly table: Table;
     /** The table before the transforms that depend on the view (transform.decimate and what follows it): every row,
      *  whatever the zoom. A figure about the data as a whole (a KPI) reads this; marks draw `table`. */

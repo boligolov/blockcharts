@@ -583,7 +583,7 @@ Version 7, 2.1 KB. Lines at values: a target, a threshold, an average, the targe
 
 ## mark.sankey
 
-Version 4, 4.7 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
+Version 5, 4.7 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -753,7 +753,7 @@ Version 5, 2.5 KB. Click an item of a categorical legend to hide or show that ca
 
 ## interaction.tooltip
 
-Version 17, 8.5 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.
+Version 18, 8.5 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.
 
 Needs: `lib.pointer`.
 

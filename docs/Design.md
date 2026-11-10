@@ -1274,6 +1274,12 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   field by its own key (`"constructor"` is no column), and decimate checks its fields also when it runs without a view.
   Bin edges were rounded to 12 significant digits, so edges 0.0002 apart at 1e9 were all "1000000000": far from zero an
   edge keeps the digits that tell it from its neighbour.
+- **A chart speaks its own language, also on hover.** The chart's `locale` was set for `BC.formatter` when the chart
+  was built and never taken back: a page's own `BC.formatter("integer")` after a German chart wrote "1.000.500", and a
+  sankey card on hover wrote in the language of whichever chart drew last. Now the language holds only while the chart
+  is built and drawn; what a block writes outside drawing (the tooltip's formats and dates, the sankey card) it writes
+  with `ctx.format`, which always speaks the chart's language. The tooltip had made its formatters after the drawing,
+  so they already wrote the default: a German chart's card said "Feb 1, 2024".
 
 ## Next steps
 

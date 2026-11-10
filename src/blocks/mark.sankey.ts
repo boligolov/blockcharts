@@ -165,7 +165,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'sankey',
-    version: 4,
+    version: 5,
     doc: 'A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).',
     params: {
       nodeWidth: { kind: 'number', default: NODE_WIDTH, doc: 'Width of a node, in px.' },
@@ -192,7 +192,7 @@
       const width = widthOf(spec, ctx);
       const opacity = typeof spec.linkOpacity === 'number' ? spec.linkOpacity : 0.35;
       const labelMin = typeof spec.labelMin === 'number' ? spec.labelMin : 11;
-      const write = spec.format !== undefined ? BC.formatter(spec.format as BC.FormatSpec | string) : null;
+      const write = spec.format !== undefined ? ctx.format(spec.format as BC.FormatSpec | string) : null;
       const out: BC.Prim[] = [];
       // the thick ribbons go first, so that a thin one is not lost under them and can be hovered
       for (const l of g.links.slice().sort((a, b) => b.thick - a.thick || a.row - b.row))
@@ -245,7 +245,7 @@
         const name = (k: number, d: string) => (typeof names[k] === 'string' ? (names[k] as string) : d);
         const write =
           spec.format !== undefined
-            ? BC.formatter(spec.format as BC.FormatSpec | string)
+            ? ctx.format(spec.format as BC.FormatSpec | string)
             : (v: unknown) => String(+(v as number).toPrecision(6));
         const sum = (links: Link[]) => links.reduce((a, l) => a + l.value, 0);
         const lines: [string, string][] = [];
