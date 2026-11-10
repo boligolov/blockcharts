@@ -1809,8 +1809,8 @@
     },
     "mark.rule": {
       "file": "blocks/mark.rule.js",
-      "bytes": 2178,
-      "version": 7,
+      "bytes": 2515,
+      "version": 8,
       "requires": [],
       "closure": [
         "mark.rule"
@@ -2656,8 +2656,8 @@
     },
     "renderer.canvas": {
       "file": "blocks/renderer.canvas.js",
-      "bytes": 6076,
-      "version": 2,
+      "bytes": 6279,
+      "version": 3,
       "requires": [],
       "closure": [
         "renderer.canvas"
@@ -2666,8 +2666,8 @@
     },
     "renderer.svg": {
       "file": "blocks/renderer.svg.js",
-      "bytes": 3260,
-      "version": 4,
+      "bytes": 3317,
+      "version": 5,
       "requires": [],
       "closure": [
         "renderer.svg"

@@ -6,12 +6,15 @@
   const TAU = Math.PI * 2;
 
   type Box = [number, number, number, number];
-  type Inherited = Pick<BC.Style, 'fill' | 'stroke' | 'strokeWidth' | 'strokeDash' | 'fillOpacity' | 'strokeLinejoin' | 'strokeLinecap'>;
+  type Inherited = Pick<
+    BC.Style,
+    'fill' | 'stroke' | 'strokeWidth' | 'strokeDash' | 'fillOpacity' | 'strokeLinejoin' | 'strokeLinecap' | 'paintOrder'
+  >;
 
   const def: BC.RendererDef = {
     role: 'renderer',
     type: 'canvas',
-    version: 2,
+    version: 3,
     doc: 'Draws a display list on one <canvas>, scaled to its container and sharp on high-density screens. Meant for charts with tens of thousands of marks (a big scatter plot), where an SVG element per mark gets slow: about 5 times faster to redraw at 50,000 points. A single long line is one path either way, so it gains little; decimate it instead. It reads the same CSS variables as the SVG renderer (themes, dark mode) and follows changes of the color scheme, but a canvas has no elements: CSS classes and native tooltips on marks do not exist here. Zoom, brush, tooltip and legend filter work as usual, and so do fading fills.',
     render(list, host) {
       const doc = host.ownerDocument || document;
@@ -114,6 +117,7 @@
           fillOpacity: s.fillOpacity !== undefined ? s.fillOpacity : inh.fillOpacity,
           strokeLinejoin: s.strokeLinejoin !== undefined ? s.strokeLinejoin : inh.strokeLinejoin,
           strokeLinecap: s.strokeLinecap !== undefined ? s.strokeLinecap : inh.strokeLinecap,
+          paintOrder: s.paintOrder !== undefined ? s.paintOrder : inh.paintOrder,
         };
         const a = alpha * (s.opacity === undefined ? 1 : s.opacity);
         if (p.type === 'g') {
@@ -136,19 +140,26 @@
         ctx.setLineDash(own.strokeDash || []);
         ctx.lineJoin = own.strokeLinejoin || 'miter';
         ctx.lineCap = own.strokeLinecap || 'butt';
+        // the fill, then the stroke over it; "stroke" in paintOrder the other way round (a halo under a text)
+        const under = own.paintOrder === 'stroke';
         const paint = (path?: Path2D) => {
-          if (fill) {
+          const filling = () => {
+            if (!fill) return;
             ctx.globalAlpha = a * (own.fillOpacity === undefined ? 1 : own.fillOpacity);
             ctx.fillStyle = s.fade ? fadeOf(fill) : fill;
             if (path) ctx.fill(path);
             else ctx.fill();
-          }
-          if (stroke) {
+          };
+          const stroking = () => {
+            if (!stroke) return;
             ctx.globalAlpha = a;
             ctx.strokeStyle = stroke;
             if (path) ctx.stroke(path);
             else ctx.stroke();
-          }
+          };
+          if (under) stroking();
+          filling();
+          if (!under) stroking();
         };
 
         switch (p.type) {
@@ -173,16 +184,16 @@
             ctx.save();
             ctx.translate(p.x, p.y);
             if (p.rotate) ctx.rotate((p.rotate * Math.PI) / 180);
-            if (fill) {
-              ctx.globalAlpha = a * (own.fillOpacity === undefined ? 1 : own.fillOpacity);
-              ctx.fillStyle = fill;
-              ctx.fillText(p.text, 0, 0);
-            }
-            if (stroke) {
-              ctx.globalAlpha = a;
-              ctx.strokeStyle = stroke;
-              ctx.strokeText(p.text, 0, 0);
-            }
+            for (const step of under ? ['stroke', 'fill'] : ['fill', 'stroke'])
+              if (step === 'fill' && fill) {
+                ctx.globalAlpha = a * (own.fillOpacity === undefined ? 1 : own.fillOpacity);
+                ctx.fillStyle = fill;
+                ctx.fillText(p.text, 0, 0);
+              } else if (step === 'stroke' && stroke) {
+                ctx.globalAlpha = a;
+                ctx.strokeStyle = stroke;
+                ctx.strokeText(p.text, 0, 0);
+              }
             ctx.restore();
             break;
         }

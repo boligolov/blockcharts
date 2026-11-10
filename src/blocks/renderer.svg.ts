@@ -59,6 +59,7 @@
     if (!s.fade) num(node, 'fill-opacity', s.fillOpacity);
     if (s.strokeLinejoin) node.setAttribute('stroke-linejoin', s.strokeLinejoin);
     if (s.strokeLinecap) node.setAttribute('stroke-linecap', s.strokeLinecap);
+    if (s.paintOrder) node.setAttribute('paint-order', s.paintOrder);
   }
 
   function clipped(node: Element, clip: BC.Rect, defs: Element): void {
@@ -132,7 +133,7 @@
   const def: BC.RendererDef = {
     role: 'renderer',
     type: 'svg',
-    version: 4,
+    version: 5,
     doc: 'Draws a display list as one <svg> scaled to its container via viewBox. Paths have no implicit fill: marks set `fill: "none"` for strokes. A style with `fade` gets a vertical gradient over the plot, from the fill color to transparent.',
     render(list, host) {
       const svg = el('svg');

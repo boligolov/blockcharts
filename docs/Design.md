@@ -1334,6 +1334,11 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   of the smallest step, or `thickness / 2` of it). It asks only on a scale that declares `even` (`ScaleDef.even`: equal
   differences of value are equal distances, as on linear and time; half a step on a log axis is no half a bar), so it
   names no scale type. With `x2`, on a band, on a log axis or on the amount axis nothing changes.
+- **A target's label reads over the bars.** The label of a `mark.rule` stood at the right end of the line, among the
+  marks: a target crossed by the last bar had its name written on the bar, or covered by it when the rule came first.
+  The label is now drawn by the rule's `labels()` above every mark, in a halo of the card color
+  (`--bc-tooltip-bg`), and only while the end of its line is in view, so a zoom does not leave it on the edge. The halo
+  is a new style field, `paintOrder: "stroke"` (the stroke under the fill), which both renderers follow.
 
 ## Next steps
 

@@ -233,6 +233,9 @@ declare namespace BC {
     fillOpacity?: number;
     strokeLinejoin?: 'round' | 'miter' | 'bevel';
     strokeLinecap?: 'round' | 'butt' | 'square';
+    /** "stroke": the stroke is painted under the fill. A text stroked in the card color this way has a halo, and stays
+     *  readable where it crosses a mark. */
+    paintOrder?: 'stroke';
     /** The fill fades out downwards: full `fillOpacity` at the top of the plot, transparent at its bottom (a vertical
      *  gradient over the plot rectangle, the same for every shape, so areas stacked on one chart fade alike). */
     fade?: boolean;

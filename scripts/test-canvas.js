@@ -346,6 +346,20 @@ test(
             { type: 'text', x: 1, y: 2, text: 'Mid', size: 10, anchor: 'middle', baseline: 'middle', style: { fill: '#333333' } },
             { type: 'text', x: 1, y: 2, text: 'plain' },
             { type: 'text', x: 1, y: 2, text: 'outlined', style: { fill: 'none', stroke: '#777777' } },
+            {
+              type: 'text',
+              x: 1,
+              y: 2,
+              text: 'haloed',
+              style: { fill: '#111111', stroke: '#fefefe', strokeWidth: 3, paintOrder: 'stroke' },
+            },
+            { type: 'text', x: 1, y: 2, text: 'over', style: { fill: '#111111', stroke: '#fefefe' } },
+            { type: 'path', d: 'M1 1L2 2Z', style: { fill: '#121212', stroke: '#343434', paintOrder: 'stroke' } },
+            {
+              type: 'g',
+              style: { paintOrder: 'stroke' },
+              children: [{ type: 'text', x: 1, y: 2, text: 'inner', style: { fill: '#111111', stroke: '#fefefe' } }],
+            },
           ],
         },
       ],
@@ -414,6 +428,13 @@ test(
     assert.strictEqual(plainText.fillStyle, '#000');
     assert(at('strokeText').some((c) => c.args[0] === 'outlined' && c.strokeStyle === '#777777'));
     assert(!at('fillText').some((c) => c.args[0] === 'outlined'));
+    // paintOrder "stroke": the stroke under the fill (a halo); without it the stroke goes over
+    const order = (op, first) => f.findIndex((c) => c.op === op && c.args[0] === first);
+    assert(order('strokeText', 'haloed') >= 0 && order('strokeText', 'haloed') < order('fillText', 'haloed'), 'a halo is under its text');
+    assert.strictEqual(f[order('strokeText', 'haloed')].lineWidth, 3);
+    assert(order('fillText', 'over') >= 0 && order('fillText', 'over') < order('strokeText', 'over'), 'a stroke is over its text');
+    assert(order('stroke', 'M1 1L2 2Z') >= 0 && order('stroke', 'M1 1L2 2Z') < order('fill', 'M1 1L2 2Z'), 'and under a shape');
+    assert(order('strokeText', 'inner') >= 0 && order('strokeText', 'inner') < order('fillText', 'inner'), 'from its group, as in SVG');
 
     // update repaints the same canvas; destroy removes it
     const n = ops(ctx.calls, 'clearRect').length;
@@ -585,7 +606,7 @@ test('canvas: the spec names it, BC.needs lists it, and the composer and validat
   assert.deepStrictEqual(arr(w.BC.validate(bars())), []);
   assert(arr(w.BC.validate(bars({ renderer: 'webgl' }))).some((d) => /renderer\.webgl/.test(d.message) || /webgl/.test(d.message)));
   const def = w.BC.get('renderer.canvas');
-  assert.strictEqual(def.version, 2);
+  assert.strictEqual(def.version, 3);
   assert(/canvas/i.test(def.doc));
 });
 

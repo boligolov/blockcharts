@@ -2867,6 +2867,59 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(near(m[1], plotBottom - (plotBottom - plotTop) * 0.75, 0.05), 'at 150 of 0..200: ' + m[1]);
   });
 
+  test('mark.rule: the label is drawn over the bars in a halo, whatever the order of the marks, and leaves with its line', async () => {
+    BC.data('rule-over', [
+      { k: 'a', v: 3, t: 1 },
+      { k: 'b', v: 4, t: 2 },
+      { k: 'c', v: 9, t: 3 },
+    ]);
+    const chart = (marks, x = { type: 'band' }) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'rule-over',
+        size: [640, 400],
+        padding: { top: 16, right: 16, bottom: 16, left: 16 },
+        scales: { x, y: { type: 'linear', domain: [0, 10] } },
+        marks,
+      });
+      assert.deepStrictEqual(h.diagnostics, []);
+      return { host, h };
+    };
+    const label = (svg) => /<text([^>]*)>Target<\/text>/.exec(svg);
+    const attr = (attrs, name) => +new RegExp(` ${name}="([-0-9.]+)"`).exec(attrs)[1];
+    const bars = { type: 'rect', x: 'k', y: 'v' };
+    const target = { type: 'rule', y: { value: 5 }, label: 'Target' };
+    for (const marks of [
+      [bars, target],
+      [target, bars],
+    ]) {
+      const { host, h } = chart(marks);
+      const svg = svgOf(host);
+      assert(!label(layer(svg, 'marks')), 'not among the marks, where a bar drawn after it covers it');
+      const m = label(layer(svg, 'axes'));
+      assert(m, 'over every mark');
+      assert(/ paint-order="stroke"/.test(m[1]) && / stroke="var\(--bc-tooltip-bg, #fff\)"/.test(m[1]), 'in a halo of the card color');
+      // 5 on 0..10 is the middle of the plot (y 200); the label stands above it at the right end
+      assert(near(attr(m[1], 'x'), 624) && near(attr(m[1], 'y'), 195), m[1]);
+      // zoomed so the line is out of view: its label is not left behind on the edge
+      h.setView('y', [6, 10]);
+      await flush();
+      assert(!label(svgOf(host)), 'a line out of view has no label');
+      h.setView('y', [0, 6]);
+      await flush();
+      assert(label(layer(svgOf(host), 'axes')), 'back in view, back again');
+      h.destroy();
+    }
+    // a vertical line has its label at the top, and only while it is in view too
+    const { host, h } = chart([{ type: 'rule', x: { value: 2 }, label: 'Target' }], { type: 'linear', domain: [0, 4] });
+    const m = label(layer(svgOf(host), 'axes'));
+    assert(m && near(attr(m[1], 'x'), 16 + 304 + 5) && near(attr(m[1], 'y'), 16), m && m[1]);
+    h.setView('x', [2.5, 4]);
+    await flush();
+    assert(!label(svgOf(host)), 'zoomed past it');
+    h.destroy();
+  });
+
   test('mark.rule on a band: a tick across each bar (bullet chart); nothing to draw is nothing drawn', () => {
     BC.data('bullet', [
       { k: 'A', v: 70, t: 80 },
