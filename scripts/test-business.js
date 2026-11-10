@@ -799,9 +799,84 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       return out;
     };
     assert(place(['a', 'b'], 640).y < 40, 'short labels: a row on top');
-    const long = Array.from({ length: 30 }, (_, i) => `A rather long category name ${i}`);
+    const long = Array.from({ length: 20 }, (_, i) => `A rather long category name ${i}`);
     assert(place(long, 1400).x > 900, 'long labels on a wide chart: a column on the right');
     assert(place(long, 400).y < 60, 'a phone has no room for that column');
+    const many = Array.from({ length: 30 }, (_, i) => `A rather long category name ${i}`);
+    assert(place(many, 1400).y < 60, 'thirty of them would run past the bottom: a row');
+  });
+
+  test('guide.legend: a column never leaves the plot a sliver or runs off the chart; a label too long for a row is cut', () => {
+    const draw = (labels, size, position, title) => {
+      BC.data(
+        'squeeze',
+        labels.map((k, i) => ({ k, v: i + 1 })),
+      );
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'squeeze',
+        size,
+        scales: { x: { type: 'band' }, y: { type: 'linear' }, color: { type: 'color' } },
+        guides: [
+          { type: 'axis', scale: 'y' },
+          { type: 'legend', scale: 'color', position, ...(title ? { title } : {}) },
+        ],
+        marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
+      });
+      assert.deepStrictEqual(h.diagnostics, []);
+      const svg = svgOf(host);
+      const bars = rects(layer(svg, 'marks'));
+      const items = [...svg.matchAll(/<g [^>]*class="bc-legend-item"[^>]*>([\s\S]*?)<\/g>/g)].map((m) => ({
+        y: +/<rect [^>]*y="([\d.]+)"/.exec(m[1])[1],
+        label: /<text[^>]*>([^<]*)<\/text>/.exec(m[1])[1],
+        title: (/<title>([^<]*)<\/title>/.exec(m[1]) || [])[1],
+      }));
+      h.destroy();
+      return { right: Math.max(...bars.map((b) => b.x + b.w)), left: Math.min(...bars.map((b) => b.x)), items, svg };
+    };
+    // a phone: three short names as a column would take a quarter of 324 px
+    const phone = draw(['Hardware', 'Software', 'Services'], [324, 320], 'right');
+    assert(
+      phone.items.every((it) => it.y < 40),
+      'a row on top: ' + JSON.stringify(phone.items),
+    );
+    assert(phone.right - phone.left > 324 * 0.7, 'the plot keeps the width: ' + (phone.right - phone.left));
+    const desk = draw(['Hardware', 'Software', 'Services'], [640, 320], 'right');
+    assert(
+      desk.items.every((it, i) => i === 0 || it.y > desk.items[i - 1].y),
+      'on a desk it is still a column',
+    );
+    assert(
+      draw(['Hardware', 'Software', 'Services'], [324, 320], 'left').items.every((it) => it.y < 40),
+      'left too',
+    );
+    const titled = draw(['a', 'b'], [324, 320], 'right', 'Deliveries inside the region');
+    assert(
+      titled.items.every((it) => it.y < 60),
+      'a long title makes the column too wide as well',
+    );
+    // thirty categories in a column 300 px tall: thirteen would be below the chart
+    const many = draw(
+      Array.from({ length: 30 }, (_, i) => `C${i}`),
+      [900, 300],
+      'right',
+    );
+    assert(
+      many.items.every((it) => it.y + 10 <= 300),
+      'every item is on the chart',
+    );
+    // one name longer than the whole row: cut with an ellipsis, the whole name in its title
+    const name = 'Department of Infrastructure, Transport, Regional Development and Communications';
+    const cut = draw([name, 'Other'], [324, 320], 'top');
+    const first = cut.items[0];
+    assert(first.label.endsWith('…') && first.label.length < name.length, first.label);
+    assert.strictEqual(first.title, name);
+    assert.strictEqual(cut.items[1].title, undefined, 'a label that fits has no title');
+    assert(first.label.length * 11 * 0.62 + 16 <= 324, 'the cut label fits the row');
+    const heading = /<text [^>]*class="bc-legend-title"[^>]*>([^<]*)<\/text>/.exec(draw(['a', 'b'], [324, 320], 'top', name).svg)[1];
+    assert(heading.endsWith('…') && heading.length * 11 * 0.62 <= 324, 'so is a title: ' + heading);
+    const surrogate = draw(['\u{1F600}'.repeat(80), 'b'], [324, 320], 'top');
+    assert(!/[\uD800-\uDBFF]…/.test(surrogate.items[0].label), 'never half a character');
   });
 
   const drawn = (rows, spec) => {

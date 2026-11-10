@@ -3095,7 +3095,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     );
     assert.deepStrictEqual(chart('bottom-right', 'top', 330).xs, free.xs, 'buttons on the other edge change nothing');
     assert.strictEqual(inFirstRow(chart('bottom-right', 'bottom', 330)), inFirstRow(right), 'at the bottom the same');
-    const left = chart('top-right', 'left', 330);
+    const left = chart('top-right', 'left', 600);
     assert.strictEqual(left.rows, 6, 'a column legend is left alone');
   });
 

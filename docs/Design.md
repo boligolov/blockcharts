@@ -1285,6 +1285,13 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   state) was lost without a word. Now it is kept and used once, when the chart is built, over the spec's own `view`
   (`null` takes that back), as setView does after; an `update()` before then keeps it for a scale of the same type,
   an unknown scale is said at once, and `getView()` meanwhile returns the views set so far.
+- **A legend never leaves the plot a sliver.** A legend on the right is a column as wide as its longest label or title,
+  whatever the width of the chart: on a 390 px phone it took a quarter to two thirds of it (the contours plot kept 28%,
+  the bubble chart 37%), and with long names the plot was a pixel wide. Thirty categories in a column 300 px tall ran
+  thirteen of them off the bottom. Now a column that would take more than a fifth of the chart's width, or more than its
+  height, is a row on top, which wraps; a label or title too long for a row is cut with an ellipsis (whole characters,
+  never half an emoji) and keeps its whole text as a title for hover. On a desk nothing moved except one column whose
+  title made it wider than a fifth (the contours, now a row above the plot).
 
 ## Next steps
 

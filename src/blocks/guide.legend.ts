@@ -12,6 +12,7 @@
   type Side = 'top' | 'right' | 'bottom' | 'left';
   interface Item {
     label: string;
+    full: string;
     color: string;
     w: number;
     hidden: boolean;
@@ -72,14 +73,30 @@
     return lines;
   }
 
-  /** Every category of the scale, also the ones a filter has hidden, so they can be switched back on. */
-  function itemsOf(scale: BC.Scale, ctx: BC.ChartCtx): Item[] {
+  /** Every category of the scale, also the ones a filter has hidden, so they can be switched back on. A label wider than
+   *  `room` (a row on a phone) is cut short with an ellipsis; `full` keeps it for the item's title. */
+  function itemsOf(scale: BC.Scale, ctx: BC.ChartCtx, room = Infinity): Item[] {
     const visible = new Set(scale.domain());
     const colors = scale.range();
     return scale.baseDomain().map((v, index) => {
-      const label = String(v);
-      return { label, color: colors[index], w: ctx.measure(label, FONT).w, hidden: !visible.has(v), index };
+      const full = String(v);
+      const label = fit(full, room - SWATCH - GAP, ctx);
+      return { label, full, color: colors[index], w: ctx.measure(label, FONT).w, hidden: !visible.has(v), index };
     });
+  }
+
+  /** The text cut to at most `room` wide, ending in an ellipsis when it had to be cut; whole characters only. */
+  function fit(text: string, room: number, ctx: BC.ChartCtx): string {
+    if (!(room < Infinity) || ctx.measure(text, FONT).w <= room) return text;
+    const chars = Array.from(text);
+    let lo = 0;
+    let hi = chars.length;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (ctx.measure(chars.slice(0, mid).join('') + '…', FONT).w <= room) lo = mid;
+      else hi = mid - 1;
+    }
+    return chars.slice(0, lo).join('').trimEnd() + '…';
   }
 
   /** Labels of a color bar, written the way `format` says. */
@@ -95,19 +112,45 @@
   const headOf = (spec: BC.GuideSpec) => (titleOf(spec) ? ROW : 0);
   /** A column has to be as wide as its title. */
   const titleWidth = (spec: BC.GuideSpec, ctx: BC.ChartCtx) => (titleOf(spec) ? ctx.measure(titleOf(spec), FONT).w : 0);
-  /** The widest a column may get with `auto`: past this it would squeeze the plot more than a third line of a row does. */
-  const AUTO_COLUMN = 0.4;
-  /** `auto`: a row on top while it takes one or two lines, a column on the right when its labels are too long for that, and
-   *  a row again when they are too long for a column too (a phone). */
+  /** The most of the chart's width a column may take: past a fifth it squeezes the plot (a phone, long labels). */
+  const COLUMN_SHARE = 0.2;
+  /** `auto`: a row on top while it takes one or two lines, else a column on the right. */
   function autoSide(scale: BC.Scale, ctx: BC.ChartCtx): Side {
     if (!swatches(scale)) return 'right';
-    const items = itemsOf(scale, ctx);
-    if (linesOf(items, rowRoom(ctx, 'top')).length <= 2) return 'top';
-    const width = SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0) + 2 * PAD;
-    return width <= ctx.size.w * AUTO_COLUMN ? 'right' : 'top';
+    const room = rowRoom(ctx, 'top');
+    return linesOf(itemsOf(scale, ctx, room), room).length <= 2 ? 'top' : 'right';
   }
-  const sideOf = (spec: BC.GuideSpec, scale: BC.Scale, ctx: BC.ChartCtx): Side =>
-    (spec.position as string) === 'auto' ? autoSide(scale, ctx) : spec.position || 'right';
+  /** Width and height of the legend as a column. */
+  function columnBox(spec: BC.GuideSpec, scale: BC.Scale, ctx: BC.ChartCtx): { w: number; h: number } {
+    const title = titleWidth(spec, ctx);
+    const head = headOf(spec);
+    if (scale.output === 'size') {
+      const sizes = sizesOf(scale, spec, ctx);
+      const rMax = sizes.reduce((m, s) => Math.max(m, s.r), 0);
+      return {
+        w: Math.max(2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0), title) + 2 * PAD,
+        h: 4 + head + sizes.reduce((sum, s) => sum + Math.max(2 * s.r, ROW) + 4, 0),
+      };
+    }
+    if (!swatches(scale)) {
+      // the bar is as long as the plot lets it be, so only its width counts
+      const widest = barTicks(scale, spec).reduce((m, t) => Math.max(m, ctx.measure(t.label, FONT).w), 0);
+      return { w: Math.max(BAR + GAP + widest, title) + 2 * PAD, h: 0 };
+    }
+    const items = itemsOf(scale, ctx);
+    return {
+      w: Math.max(SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0), title) + 2 * PAD,
+      h: 4 + head + items.length * ROW + 4,
+    };
+  }
+  /** Where the legend goes. A column wider than a fifth of the chart, or taller than the chart, is a row on top instead: it
+   *  would leave the plot a sliver on a phone, or run past the bottom with many categories. */
+  function sideOf(spec: BC.GuideSpec, scale: BC.Scale, ctx: BC.ChartCtx): Side {
+    const asked: Side = (spec.position as string) === 'auto' ? autoSide(scale, ctx) : spec.position || 'right';
+    if (!isColumn(asked)) return asked;
+    const box = columnBox(spec, scale, ctx);
+    return box.w <= ctx.size.w * COLUMN_SHARE && box.h <= ctx.size.h ? asked : 'top';
+  }
   const isColumn = (side: Side) => side === 'left' || side === 'right';
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -140,9 +183,9 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 12,
+    version: 13,
     shownOnce: true,
-    doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
+    doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. A column that would take more than a fifth of the width of the chart (a phone, long labels) or more than its height (many categories) is drawn as a row on top instead; a label too long for a row is cut with an ellipsis and shown whole on hover. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
       scale: { kind: 'scale', required: true, doc: 'A color, sequential or size scale.' },
       position: {
@@ -162,30 +205,23 @@
       const side = sideOf(spec, scale, ctx);
       const column = isColumn(side);
       const head = headOf(spec);
-      const title = titleWidth(spec, ctx);
       const out: Partial<BC.Insets> = {};
       if (scale.output === 'size') {
         const sizes = sizesOf(scale, spec, ctx);
-        const rMax = sizes.reduce((m, s) => Math.max(m, s.r), 0);
         out[side] = !sizes.length
           ? 0
           : column
-            ? Math.max(2 * rMax + GAP + sizes.reduce((m, s) => Math.max(m, s.w), 0), title) + 2 * PAD
+            ? columnBox(spec, scale, ctx).w
             : sizeLines(sizes, rowRoom(ctx, side)).reduce((sum, l) => sum + l.h, 0) + PAD + head;
         return out;
       }
       if (!swatches(scale)) {
-        const labels = barTicks(scale, spec);
-        const widest = labels.reduce((m, t) => Math.max(m, ctx.measure(t.label, FONT).w), 0);
-        out[side] = column ? Math.max(BAR + GAP + widest, title) + 2 * PAD : BAR + ctx.measure('0', FONT).h + 2 * PAD + head;
+        out[side] = column ? columnBox(spec, scale, ctx).w : BAR + ctx.measure('0', FONT).h + 2 * PAD + head;
         return out;
       }
-      const items = itemsOf(scale, ctx);
-      out[side] = !items.length
-        ? 0
-        : column
-          ? Math.max(SWATCH + GAP + items.reduce((m, it) => Math.max(m, it.w), 0), title) + 2 * PAD
-          : linesOf(items, rowRoom(ctx, side)).length * ROW + PAD + head;
+      const room = rowRoom(ctx, side);
+      const items = itemsOf(scale, ctx, column ? Infinity : room);
+      out[side] = !items.length ? 0 : column ? columnBox(spec, scale, ctx).w : linesOf(items, room).length * ROW + PAD + head;
       return out;
     },
     render(spec, ctx, offset) {
@@ -195,14 +231,16 @@
       const { x, y, w, h } = ctx.plot;
       const prims: BC.Prim[] = [];
       const head = headOf(spec);
-      const title = titleWidth(spec, ctx);
+      // on a row the title is cut to the row, as the labels are
+      const titleText = column ? titleOf(spec) : fit(titleOf(spec), rowRoom(ctx, side), ctx);
+      const title = titleText ? ctx.measure(titleText, FONT).w : 0;
       const writeTitle = (px: number, py: number) => {
         if (head)
           prims.push({
             type: 'text',
             x: px,
             y: py + ROW / 2,
-            text: titleOf(spec),
+            text: titleText,
             size: FONT,
             weight: 600,
             baseline: 'middle',
@@ -311,13 +349,14 @@
         return { axes: prims };
       }
 
-      const items = itemsOf(scale, ctx);
+      const items = itemsOf(scale, ctx, column ? Infinity : rowRoom(ctx, side));
       const put = (px: number, py: number, it: Item) => {
         prims.push({
           type: 'g',
           cls: 'bc-legend-item',
           data: { 'bc-legend-scale': String(spec.scale), 'bc-legend-index': String(it.index) },
           style: it.hidden ? { opacity: HIDDEN_OPACITY } : undefined,
+          title: it.label !== it.full ? it.full : undefined,
           children: [
             {
               type: 'rect',
