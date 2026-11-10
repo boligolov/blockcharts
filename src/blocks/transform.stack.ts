@@ -11,7 +11,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'stack',
-    version: 4,
+    version: 5,
     viewDependent: (spec) => typeof spec.follows === 'string',
     doc: "Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. `center` puts the middle of every stack on 0, so the layers flow around a center line: a streamgraph (draw it with mark.area, y = end, y2 = start, curve smooth, and no y axis, since only the thickness of a layer means anything). With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again.",
     params: {
@@ -34,13 +34,22 @@
     apply(table, spec, ctx) {
       const field = spec.field as string;
       const by = spec.by as string;
-      const values = table.columns[field];
-      const keys = table.columns[by];
-      if (!values) throw new Error(`transform.stack: unknown field "${field}"`);
-      if (!keys) throw new Error(`transform.stack: unknown field "${by}"`);
-      const groups = typeof spec.group === 'string' ? table.columns[spec.group] : undefined;
-      if (typeof spec.group === 'string' && !groups) throw new Error(`transform.stack: unknown field "${spec.group}"`);
+      const values = Object.prototype.hasOwnProperty.call(table.columns, field) ? table.columns[field] : undefined;
+      const keys = Object.prototype.hasOwnProperty.call(table.columns, by) ? table.columns[by] : undefined;
+      if (!values) throw new Error(`transform.stack: unknown field "${field}" in "field"`);
+      if (!keys) throw new Error(`transform.stack: unknown field "${by}" in "by"`);
+      const groups =
+        typeof spec.group === 'string'
+          ? Object.prototype.hasOwnProperty.call(table.columns, spec.group)
+            ? table.columns[spec.group]
+            : undefined
+          : undefined;
+      if (typeof spec.group === 'string' && !groups) throw new Error(`transform.stack: unknown field "${spec.group}" in "group"`);
       const [as0, as1] = outputNames(spec);
+      // a column of the data written over changes what every other mark reads from it
+      for (const name of [as0, as1])
+        if (Object.prototype.hasOwnProperty.call(table.columns, name))
+          throw new Error(`transform.stack: "${name}" is already a column of the data: give the new one another name with "as"`);
       const n = table.length;
       if (typeof spec.follows === 'string' && !groups) throw new Error('transform.stack: "follows" needs "group"');
       // before the scales exist (their domains are read from this table), everything is shown

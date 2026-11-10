@@ -19,7 +19,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'bin',
-    version: 5,
+    version: 6,
     requires: ['lib.ticks'],
     replacesColumns: true,
     doc: 'Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.',
@@ -42,11 +42,11 @@
     },
     apply(table, spec) {
       const field = spec.field as string;
-      const values = table.columns[field];
-      if (!values) throw new Error(`transform.bin: unknown field "${field}"`);
+      const values = Object.prototype.hasOwnProperty.call(table.columns, field) ? table.columns[field] : undefined;
+      if (!values) throw new Error(`transform.bin: unknown field "${field}" in "field"`);
       const groupField = typeof spec.group === 'string' ? spec.group : undefined;
       const groups = groupField ? table.columns[groupField] : undefined;
-      if (groupField && !groups) throw new Error(`transform.bin: unknown field "${groupField}"`);
+      if (groupField && !groups) throw new Error(`transform.bin: unknown field "${groupField}" in "group"`);
       const [as0, as1, asN] = outputNames(spec);
       const log = spec.log === true;
       /** The position of a value on the axis the bins are even on; NaN has no place on it. */
@@ -142,12 +142,20 @@
       const c1 = new Float64Array(rows);
       const cn = new Float64Array(rows);
       const cg: unknown[] = new Array(groups ? rows : 0);
+      // Multiplication (not accumulation) and 12 significant digits keep 0.1-wide edges from drifting (0.30000000000000004).
+      // Far from 0, 12 digits are coarser than the step: edges 0.0002 apart at 1e9 were all "1000000000". There an edge
+      // keeps the digits that tell it from its neighbour, and three more.
+      const stepDigits = Math.floor(Math.log10(step));
+      const edge = (b: number) => {
+        const e = first + b * step;
+        const digits = Math.floor(Math.log10(Math.max(Math.abs(e), step))) - stepDigits + 4;
+        return +back(e).toPrecision(Math.min(17, Math.max(12, digits)));
+      };
       for (let b = 0; b < count; b++) {
         for (let k = 0; k < keys.length; k++) {
           const r = b * keys.length + k;
-          // multiplication (not accumulation) keeps 0.1-wide edges from drifting
-          c0[r] = +back(first + b * step).toPrecision(12);
-          c1[r] = +back(first + (b + 1) * step).toPrecision(12);
+          c0[r] = edge(b);
+          c1[r] = edge(b + 1);
           cn[r] = counts[r];
           if (groups) cg[r] = keys[k];
         }

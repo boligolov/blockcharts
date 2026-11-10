@@ -15,7 +15,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'calculate',
-    version: 2,
+    version: 3,
     doc: 'A new column `as` from two numbers of each row: field `a` and field `b` (or a constant `value`), joined by `op` (+, -, *, /). A margin is profit / revenue; a gap is actual - plan; a price with tax is net * 1.2. A row where either side is not a number, or the division is by zero, gets NaN (drawn as missing). Rows and the other columns stay as they are; the new column can be used by any transform after it. `as` may be `a` or `b` itself to replace that column (revenue / 1000 in thousands); any other existing column is an error.',
     params: {
       a: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field on the left.' },
@@ -29,11 +29,11 @@
       const as = nameOf(spec);
       const has = (f: unknown) => typeof f === 'string' && Object.prototype.hasOwnProperty.call(table.columns, f);
       if (typeof spec.a !== 'string' || !spec.a) fail('"a" must be the name of a numeric field');
-      if (!has(spec.a)) fail(`unknown field "${spec.a}"`);
+      if (!has(spec.a)) fail(`unknown field "${spec.a}" in "a"`);
       if (typeof spec.op !== 'string' || OPS.indexOf(spec.op) < 0) fail(`"op" must be one of: ${OPS.join(' ')}`);
       if ((spec.b === undefined) === (spec.value === undefined))
         fail('give either "b" (a field) or "value" (a number), not both or neither');
-      if (spec.b !== undefined && !has(spec.b)) fail(`unknown field "${spec.b}"`);
+      if (spec.b !== undefined && !has(spec.b)) fail(`unknown field "${spec.b}" in "b"`);
       if (spec.value !== undefined && !(typeof spec.value === 'number' && isFinite(spec.value))) fail('"value" must be a finite number');
       if (has(as) && as !== spec.a && as !== spec.b) fail(`"${as}" is already a column: name the new one differently`);
 

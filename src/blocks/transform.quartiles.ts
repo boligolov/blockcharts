@@ -14,7 +14,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'quartiles',
-    version: 3,
+    version: 4,
     replacesColumns: true,
     doc: 'The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has.',
     params: {
@@ -41,10 +41,10 @@
     apply(table, spec) {
       const field = spec.field as string;
       const values = table.columns[field];
-      if (!values) throw new Error(`transform.quartiles: unknown field "${field}"`);
+      if (!values) throw new Error(`transform.quartiles: unknown field "${field}" in "field"`);
       const groupField = typeof spec.group === 'string' ? spec.group : undefined;
       const groupCol = groupField ? table.columns[groupField] : undefined;
-      if (groupField && !groupCol) throw new Error(`transform.quartiles: unknown field "${groupField}"`);
+      if (groupField && !groupCol) throw new Error(`transform.quartiles: unknown field "${groupField}" in "group"`);
       const useOutliers = spec.outliers !== false;
 
       // samples per group, in first-appearance order of the group (a missing group value is its own group)

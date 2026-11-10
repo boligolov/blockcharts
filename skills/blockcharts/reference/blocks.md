@@ -116,7 +116,7 @@ Version 8, 3.5 KB. It places dates. Time scale in UTC. Values: epoch millisecond
 
 ## transform.aggregate
 
-Version 2, 5.2 KB. Group-by: one row per distinct combination of the `groupby` fields, with measures computed over the rows of each group (`sum`, `mean`, `min`, `max`, `median`, `count`, `distinct`). A group-by field can be cut into calendar units, `{ "field": "date", "unit": "month" }` (year, quarter, month, week from Monday, day, hour; UTC; the group value is the ISO start of the unit). Missing values are ignored by the measures (`count` without a field counts rows). Groups come in order of first appearance, or sorted by a column with `sort`; a time unit sorts by time unless told otherwise. `limit` keeps the first N groups after sorting (top N).
+Version 3, 5.3 KB. Group-by: one row per distinct combination of the `groupby` fields, with measures computed over the rows of each group (`sum`, `mean`, `min`, `max`, `median`, `count`, `distinct`). A group-by field can be cut into calendar units, `{ "field": "date", "unit": "month" }` (year, quarter, month, week from Monday, day, hour; UTC; the group value is the ISO start of the unit). Missing values are ignored by the measures (`count` without a field counts rows). Groups come in order of first appearance, or sorted by a column with `sort`; a time unit sorts by time unless told otherwise. `limit` keeps the first N groups after sorting (top N).
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -128,7 +128,7 @@ Version 2, 5.2 KB. Group-by: one row per distinct combination of the `groupby` f
 
 ## transform.bin
 
-Version 5, 3.1 KB. Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.
+Version 6, 3.3 KB. Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.
 
 Needs: `lib.ticks`.
 
@@ -144,7 +144,7 @@ Needs: `lib.ticks`.
 
 ## transform.calculate
 
-Version 2, 1.4 KB. A new column `as` from two numbers of each row: field `a` and field `b` (or a constant `value`), joined by `op` (+, -, *, /). A margin is profit / revenue; a gap is actual - plan; a price with tax is net * 1.2. A row where either side is not a number, or the division is by zero, gets NaN (drawn as missing). Rows and the other columns stay as they are; the new column can be used by any transform after it. `as` may be `a` or `b` itself to replace that column (revenue / 1000 in thousands); any other existing column is an error.
+Version 3, 1.4 KB. A new column `as` from two numbers of each row: field `a` and field `b` (or a constant `value`), joined by `op` (+, -, *, /). A margin is profit / revenue; a gap is actual - plan; a price with tax is net * 1.2. A row where either side is not a number, or the division is by zero, gets NaN (drawn as missing). Rows and the other columns stay as they are; the new column can be used by any transform after it. `as` may be `a` or `b` itself to replace that column (revenue / 1000 in thousands); any other existing column is an error.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -182,7 +182,7 @@ Needs: `lib.columns`, `lib.stats`.
 
 ## transform.decimate
 
-Version 3, 3.4 KB. Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them.
+Version 4, 3.5 KB. Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -195,7 +195,7 @@ Version 3, 3.4 KB. Level of detail for long lines: keeps only the rows that can 
 
 ## transform.density
 
-Version 3, 2.6 KB. How the raw values of `field` are spread, as a smooth curve (a kernel density estimate): for every group, `steps` evenly spaced rows from a little below its smallest value to a little above its largest, each with the `value` and the `density` there. Draw it with mark.violin (violin plots, ridgelines), or with mark.area / mark.line on x = value, y = density. The curve of each group encloses an area of 1 (with `counts`, its number of samples, so bigger groups are bigger). Replaces the rows: the output has the group field, value, density and `count`, the number of samples of the group.
+Version 4, 2.9 KB. How the raw values of `field` are spread, as a smooth curve (a kernel density estimate): for every group, `steps` evenly spaced rows from a little below its smallest value to a little above its largest, each with the `value` and the `density` there. Draw it with mark.violin (violin plots, ridgelines), or with mark.area / mark.line on x = value, y = density. The curve of each group encloses an area of 1 (with `counts`, its number of samples, so bigger groups are bigger). Replaces the rows: the output has the group field, value, density and `count`, the number of samples of the group.
 
 Needs: `lib.stats`.
 
@@ -211,7 +211,7 @@ Needs: `lib.stats`.
 
 ## transform.filter
 
-Version 2, 2.3 KB. Keeps the rows whose `field` passes a test and drops the others: `==`, `!=`, `<`, `<=`, `>`, `>=` against `value` (a number, a string, or a date as "2024-03-01"), `in` / `notIn` a list of values, `valid` (the field has a value). Numbers compare with numbers, dates with dates (a Date or an ISO date string), text with text; a missing value never passes. Several filters in a row all apply. Rows keep their order; columns stay as they are.
+Version 3, 2.3 KB. Keeps the rows whose `field` passes a test and drops the others: `==`, `!=`, `<`, `<=`, `>`, `>=` against `value` (a number, a string, or a date as "2024-03-01"), `in` / `notIn` a list of values, `valid` (the field has a value). Numbers compare with numbers, dates with dates (a Date or an ISO date string), text with text; a missing value never passes. Several filters in a row all apply. Rows keep their order; columns stay as they are.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -221,7 +221,7 @@ Version 2, 2.3 KB. Keeps the rows whose `field` passes a test and drops the othe
 
 ## transform.fold
 
-Version 2, 1.5 KB. Turns a wide table (one column per series: month, online, retail) into a long one (month, key, value): every row becomes one row per field of `fields`, with the field's name in `key` and its value in `value`, so the series can be colored, stacked or grouped by `key`. The other columns are repeated on each new row; the folded columns stay too. Rows keep their order, and the fields theirs within each row.
+Version 3, 1.5 KB. Turns a wide table (one column per series: month, online, retail) into a long one (month, key, value): every row becomes one row per field of `fields`, with the field's name in `key` and its value in `value`, so the series can be colored, stacked or grouped by `key`. The other columns are repeated on each new row; the folded columns stay too. Rows keep their order, and the fields theirs within each row.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -261,7 +261,7 @@ Needs: `lib.columns`.
 
 ## transform.highlight
 
-Version 1, 1.4 KB. Marks the rows to set apart in a new column `as`: "yes" there and "no" elsewhere (or your own words, `yes` and `no`). Choose them by `pick` (the max or min of `field`, its first or last usable row; ties are all marked) or by `value` (the rows of `field` equal to it). Give the column to a color channel with a scale of two colors, and the best month stands out from the bars around it.
+Version 2, 1.4 KB. Marks the rows to set apart in a new column `as`: "yes" there and "no" elsewhere (or your own words, `yes` and `no`). Choose them by `pick` (the max or min of `field`, its first or last usable row; ties are all marked) or by `value` (the rows of `field` equal to it). Give the column to a color channel with a scale of two colors, and the best month stands out from the bars around it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -287,7 +287,7 @@ Version 3, 2.0 KB. A Marimekko (mosaic) chart: one column per `category`, as wid
 
 ## transform.quartiles
 
-Version 3, 2.1 KB. The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has.
+Version 4, 2.1 KB. The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -311,7 +311,7 @@ Needs: `lib.columns`.
 
 ## transform.sort
 
-Version 1, 1.7 KB. Puts the rows in the order of `field` (`order` "asc" or "desc"), and with `limit` keeps only the first N: the top 10 products is `field` revenue, `order` "desc", `limit` 10. With `group` the order and the limit apply within each group (the top 3 per region), and the groups follow each other in order of first appearance. A band scale lists its categories in row order, so this also orders the bars. Missing values go last either way; numbers come before text when a field mixes them; ties keep data order. Columns stay as they are.
+Version 2, 1.7 KB. Puts the rows in the order of `field` (`order` "asc" or "desc"), and with `limit` keeps only the first N: the top 10 products is `field` revenue, `order` "desc", `limit` 10. With `group` the order and the limit apply within each group (the top 3 per region), and the groups follow each other in order of first appearance. A band scale lists its categories in row order, so this also orders the bars. Missing values go last either way; numbers come before text when a field mixes them; ties keep data order. Columns stay as they are.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -322,7 +322,7 @@ Version 1, 1.7 KB. Puts the rows in the order of `field` (`order` "asc" or "desc
 
 ## transform.stack
 
-Version 4, 1.8 KB. Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. `center` puts the middle of every stack on 0, so the layers flow around a center line: a streamgraph (draw it with mark.area, y = end, y2 = start, curve smooth, and no y axis, since only the thickness of a layer means anything). With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again.
+Version 5, 2.2 KB. Stacks the values of `field` on top of each other within every value of `by` (the category axis). Adds two columns, the start and the end of each row's segment (`as`, default `<field>0` and `<field>1`). Series are stacked in order of first appearance of `group`; negatives stack downward from 0 separately from positives; missing values contribute nothing and get NaN. Use the columns as y2 and y of a rect or area. `center` puts the middle of every stack on 0, so the layers flow around a center line: a streamgraph (draw it with mark.area, y = end, y2 = start, curve smooth, and no y axis, since only the thickness of a layer means anything). With `follows` the stack is rebuilt when a legend filter hides a series, so the rest close up and a 100% stack adds up to 100% again.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -370,7 +370,7 @@ Needs: `lib.columns`.
 
 ## transform.window
 
-Version 4, 3.7 KB. A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%); `total` the sum of the whole group on every row of it (a line of totals over stacked bars) and `share` each row as a part of that sum (0.25 = 25%), so rows are not collapsed as by aggregate; `rank` the place of each row in its group by `field`, 1 for the largest (`order` "asc": for the smallest), ties sharing a place (1, 2, 2, 4): rank by year with group = the year, and a line per item over the years is a bump chart. Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default "<op>_<field>") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true.
+Version 5, 4.0 KB. A value per row computed from the rows before it (and around it) in the same series: `cumsum` a running total; `sum`, `mean`, `min`, `max` over a moving window of `size` rows (a 7-day moving average is `mean` with size 7 on daily rows); `diff` and `pctChange` the change from the previous row (pctChange is a fraction: 0.1 = +10%); `total` the sum of the whole group on every row of it (a line of totals over stacked bars) and `share` each row as a part of that sum (0.25 = 25%), so rows are not collapsed as by aggregate; `rank` the place of each row in its group by `field`, 1 for the largest (`order` "asc": for the smallest), ties sharing a place (1, 2, 2, 4): rank by year with group = the year, and a line per item over the years is a bump chart. Rows are taken in the order of `sort` (a date or number field; data order without it), separately for every value of `group`. Adds one column (`as`, default "<op>_<field>") and keeps every row in place. Missing values are skipped by the running total and the window and get NaN themselves; a window that does not have `size` rows yet (the start of a series) is NaN unless `partial` is true.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |

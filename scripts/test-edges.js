@@ -447,6 +447,84 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
 
   // ── transforms that write columns ──
 
+  test('every transform names the parameter of a field it cannot find, and a name every object has is not a field', () => {
+    const rows = [
+      { k: 'a', v: 1, t: 1, g: 'x' },
+      { k: 'b', v: 2, t: 2, g: 'y' },
+    ];
+    for (const [type, spec, param] of [
+      ['aggregate', { groupby: ['k', 'nope'] }, 'groupby[1]'],
+      ['aggregate', { measures: [{ op: 'count' }, { op: 'sum', field: 'nope' }] }, 'measures[1].field'],
+      ['bin', { field: 'nope' }, 'field'],
+      ['bin', { field: 'v', group: 'nope' }, 'group'],
+      ['calculate', { a: 'nope', op: '+', value: 1, as: 'w' }, 'a'],
+      ['calculate', { a: 'v', op: '+', b: 'nope', as: 'w' }, 'b'],
+      ['decimate', { x: 't', y: 'nope' }, 'y'],
+      ['density', { field: 'nope' }, 'field'],
+      ['density', { field: 'v', group: 'nope' }, 'group'],
+      ['filter', { field: 'nope', value: 1 }, 'field'],
+      ['fold', { fields: ['v', 'nope'] }, 'fields'],
+      ['highlight', { field: 'nope', value: 1 }, 'field'],
+      ['quartiles', { field: 'v', group: 'nope' }, 'group'],
+      ['sort', { field: 'v', group: 'nope' }, 'group'],
+      ['stack', { field: 'v', by: 'nope' }, 'by'],
+      ['window', { field: 'v', op: 'cumsum', sort: 'nope' }, 'sort'],
+    ])
+      assert.throws(
+        () => apply(type, rows, spec),
+        new RegExp(`^Error: transform\\.${type}: unknown field "nope" in "${param.replace(/[[\]]/g, '\\$&')}"`),
+        type,
+      );
+    for (const [type, spec] of [
+      ['bin', { field: 'constructor' }],
+      ['density', { field: 'toString' }],
+      ['stack', { field: 'v', by: 'constructor' }],
+      ['window', { field: 'v', op: 'cumsum', group: 'hasOwnProperty' }],
+    ])
+      assert.throws(() => apply(type, rows, spec), /unknown field "(constructor|toString|hasOwnProperty)"/, type);
+  });
+
+  test('window, stack and density do not write over a column of the data, or over one another', () => {
+    const rows = [
+      { k: 'a', v: 1, v0: 5, g: 'x' },
+      { k: 'b', v: 2, v0: 6, g: 'y' },
+    ];
+    assert.throws(
+      () => apply('window', rows, { field: 'v', op: 'cumsum', as: 'v' }),
+      /^Error: transform\.window: "v" is already a column of the data: give the new one another name with "as"/,
+    );
+    assert.throws(() => apply('window', rows, { field: 'v0', op: 'cumsum', as: 'k' }), /"k" is already a column/);
+    assert.doesNotThrow(() => apply('window', rows, { field: 'v', op: 'cumsum' }), 'the default name, cumsum_v, is new');
+    assert.throws(
+      () => apply('stack', rows, { field: 'v', by: 'k' }),
+      /^Error: transform\.stack: "v0" is already a column of the data: give the new one another name with "as"/,
+    );
+    assert.doesNotThrow(() => apply('stack', rows, { field: 'v', by: 'k', as: ['lo', 'hi'] }));
+    // density replaces the rows: only its own columns may not be one another
+    assert.throws(
+      () => apply('density', rows, { field: 'v', as: ['x', 'count'] }),
+      /"count" is the column of the number of samples: give "as\[1\]" another name/,
+    );
+    assert.throws(
+      () => apply('density', rows, { field: 'v', group: 'g', as: ['g', 'd'] }),
+      /"g" is the group: give "as\[0\]" another name/,
+    );
+    assert.doesNotThrow(() => apply('density', rows, { field: 'v', as: ['v', 'k'] }), 'the old columns are gone: their names are free');
+  });
+
+  test('transform.bin: edges far from 0 stay apart, and 0.1-wide edges do not drift', () => {
+    const v = Array.from({ length: 50 }, (_, i) => ({ v: 1e9 + i * 0.0002 }));
+    const far = apply('bin', v, { bins: 5, field: 'v' });
+    const edges = Array.from(far.columns.bin0);
+    assert.strictEqual(new Set(edges).size, edges.length, 'five different edges: ' + edges.join(', '));
+    edges.slice(1).forEach((e, i) => assert(Math.abs(e - edges[i] - 0.002) < 1e-6, `${edges[i]} to ${e}`));
+    const near = apply('bin', [{ v: 0.1 }, { v: 0.2 }, { v: 0.7 }], { field: 'v', width: 0.1 });
+    assert.deepStrictEqual(Array.from(near.columns.bin0), [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]);
+    assert.deepStrictEqual(Array.from(near.columns.bin1), [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]);
+    const given = apply('bin', [{ v: 0.15 }, { v: 0.3 }], { field: 'v', width: 0.1, extent: [0.123456789, 0.4] });
+    assert.deepStrictEqual(Array.from(given.columns.bin0), [0.123456789, 0.223456789, 0.323456789], 'an extent keeps its digits');
+  });
+
   test('transform.waterfall, funnel, treemap: a field that is not in the data is an error that names it', () => {
     const rows = [
       { k: 'a', v: 1, g: 'x' },

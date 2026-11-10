@@ -68,7 +68,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'filter',
-    version: 2,
+    version: 3,
     doc: 'Keeps the rows whose `field` passes a test and drops the others: `==`, `!=`, `<`, `<=`, `>`, `>=` against `value` (a number, a string, or a date as "2024-03-01"), `in` / `notIn` a list of values, `valid` (the field has a value). Numbers compare with numbers, dates with dates (a Date or an ISO date string), text with text; a missing value never passes. Several filters in a row all apply. Rows keep their order; columns stay as they are.',
     params: {
       field: { kind: 'field', required: true, doc: 'Field to test.' },
@@ -78,7 +78,7 @@
     outputs: () => [],
     apply(table, spec) {
       if (typeof spec.field !== 'string' || !spec.field) fail('"field" must be the name of a field');
-      if (!Object.prototype.hasOwnProperty.call(table.columns, spec.field)) fail(`unknown field "${spec.field}"`);
+      if (!Object.prototype.hasOwnProperty.call(table.columns, spec.field)) fail(`unknown field "${spec.field}" in "field"`);
       const pass = testOf(spec);
       const col = table.columns[spec.field];
       const rows: number[] = [];

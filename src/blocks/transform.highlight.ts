@@ -11,7 +11,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'highlight',
-    version: 1,
+    version: 2,
     doc: 'Marks the rows to set apart in a new column `as`: "yes" there and "no" elsewhere (or your own words, `yes` and `no`). Choose them by `pick` (the max or min of `field`, its first or last usable row; ties are all marked) or by `value` (the rows of `field` equal to it). Give the column to a color channel with a scale of two colors, and the best month stands out from the bars around it.',
     params: {
       field: { kind: 'field', required: true, doc: 'The field the rows are chosen by.' },
@@ -30,7 +30,7 @@
       const as = nameOf(spec);
       const has = (f: unknown) => typeof f === 'string' && Object.prototype.hasOwnProperty.call(table.columns, f);
       if (typeof spec.field !== 'string' || !spec.field) fail('"field" must be the name of a field');
-      if (!has(spec.field)) fail(`unknown field "${spec.field}"`);
+      if (!has(spec.field)) fail(`unknown field "${spec.field}" in "field"`);
       if ((spec.pick === undefined) === (spec.value === undefined)) fail('give either "pick" or "value", not both or neither');
       if (spec.pick !== undefined && PICKS.indexOf(spec.pick as string) < 0) fail(`"pick" must be one of: ${PICKS.join(' ')}`);
       if (has(as)) fail(`"${as}" is already a column: name the new one with "as"`);

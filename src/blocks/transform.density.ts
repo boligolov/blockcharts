@@ -30,7 +30,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'density',
-    version: 3,
+    version: 4,
     requires: ['lib.stats'],
     replacesColumns: true,
     doc: 'How the raw values of `field` are spread, as a smooth curve (a kernel density estimate): for every group, `steps` evenly spaced rows from a little below its smallest value to a little above its largest, each with the `value` and the `density` there. Draw it with mark.violin (violin plots, ridgelines), or with mark.area / mark.line on x = value, y = density. The curve of each group encloses an area of 1 (with `counts`, its number of samples, so bigger groups are bigger). Replaces the rows: the output has the group field, value, density and `count`, the number of samples of the group.',
@@ -67,12 +67,24 @@
     },
     apply(table, spec) {
       if (typeof spec.field !== 'string' || !spec.field) fail('"field" must be the name of a numeric field');
-      const values = table.columns[spec.field];
-      if (!values) fail(`unknown field "${spec.field}"`);
+      const values = Object.prototype.hasOwnProperty.call(table.columns, spec.field) ? table.columns[spec.field] : undefined;
+      if (!values) fail(`unknown field "${spec.field}" in "field"`);
       const groupField = typeof spec.group === 'string' ? spec.group : undefined;
-      const groupCol = groupField ? table.columns[groupField] : undefined;
-      if (groupField && !groupCol) fail(`unknown field "${groupField}"`);
+      const groupCol = groupField
+        ? Object.prototype.hasOwnProperty.call(table.columns, groupField)
+          ? table.columns[groupField]
+          : undefined
+        : undefined;
+      if (groupField && !groupCol) fail(`unknown field "${groupField}" in "group"`);
       const [asValue, asDensity] = namesOf(spec);
+      // it replaces the rows, so the new columns only must not be one another (as: ["x", "count"] lost the density)
+      for (const [name, param] of [
+        [asValue, 'as[0]'],
+        [asDensity, 'as[1]'],
+      ] as const) {
+        if (name === 'count') fail(`"count" is the column of the number of samples: give "${param}" another name`);
+        if (name === groupField) fail(`"${name}" is the group: give "${param}" another name`);
+      }
       const steps = spec.steps === undefined ? STEPS : (spec.steps as number);
       if (!(typeof steps === 'number' && Math.floor(steps) === steps && steps >= 2 && steps <= MAX_STEPS))
         fail(`"steps" must be a whole number from 2 to ${MAX_STEPS}`);

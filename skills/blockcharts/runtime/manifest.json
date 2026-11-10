@@ -234,8 +234,8 @@
     },
     "transform.aggregate": {
       "file": "blocks/transform.aggregate.js",
-      "bytes": 5315,
-      "version": 2,
+      "bytes": 5440,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.aggregate"
@@ -276,8 +276,8 @@
     },
     "transform.bin": {
       "file": "blocks/transform.bin.js",
-      "bytes": 3138,
-      "version": 5,
+      "bytes": 3329,
+      "version": 6,
       "requires": [
         "lib.ticks"
       ],
@@ -323,8 +323,8 @@
     },
     "transform.calculate": {
       "file": "blocks/transform.calculate.js",
-      "bytes": 1436,
-      "version": 2,
+      "bytes": 1450,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.calculate"
@@ -448,8 +448,8 @@
     },
     "transform.decimate": {
       "file": "blocks/transform.decimate.js",
-      "bytes": 3496,
-      "version": 3,
+      "bytes": 3572,
+      "version": 4,
       "requires": [],
       "closure": [
         "transform.decimate"
@@ -488,8 +488,8 @@
     },
     "transform.density": {
       "file": "blocks/transform.density.js",
-      "bytes": 2658,
-      "version": 3,
+      "bytes": 2991,
+      "version": 4,
       "requires": [
         "lib.stats"
       ],
@@ -535,8 +535,8 @@
     },
     "transform.filter": {
       "file": "blocks/transform.filter.js",
-      "bytes": 2361,
-      "version": 2,
+      "bytes": 2372,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.filter"
@@ -572,8 +572,8 @@
     },
     "transform.fold": {
       "file": "blocks/transform.fold.js",
-      "bytes": 1532,
-      "version": 2,
+      "bytes": 1544,
+      "version": 3,
       "requires": [],
       "closure": [
         "transform.fold"
@@ -689,8 +689,8 @@
     },
     "transform.highlight": {
       "file": "blocks/transform.highlight.js",
-      "bytes": 1432,
-      "version": 1,
+      "bytes": 1443,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.highlight"
@@ -777,8 +777,8 @@
     },
     "transform.quartiles": {
       "file": "blocks/transform.quartiles.js",
-      "bytes": 2142,
-      "version": 3,
+      "bytes": 2164,
+      "version": 4,
       "requires": [],
       "closure": [
         "transform.quartiles"
@@ -844,8 +844,8 @@
     },
     "transform.sort": {
       "file": "blocks/transform.sort.js",
-      "bytes": 1750,
-      "version": 1,
+      "bytes": 1772,
+      "version": 2,
       "requires": [],
       "closure": [
         "transform.sort"
@@ -878,8 +878,8 @@
     },
     "transform.stack": {
       "file": "blocks/transform.stack.js",
-      "bytes": 1878,
-      "version": 4,
+      "bytes": 2274,
+      "version": 5,
       "requires": [],
       "closure": [
         "transform.stack"
@@ -1029,8 +1029,8 @@
     },
     "transform.window": {
       "file": "blocks/transform.window.js",
-      "bytes": 3757,
-      "version": 4,
+      "bytes": 4101,
+      "version": 5,
       "requires": [],
       "closure": [
         "transform.window"

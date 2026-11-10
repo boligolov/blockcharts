@@ -126,7 +126,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'aggregate',
-    version: 2,
+    version: 3,
     replacesColumns: true,
     doc: 'Group-by: one row per distinct combination of the `groupby` fields, with measures computed over the rows of each group (`sum`, `mean`, `min`, `max`, `median`, `count`, `distinct`). A group-by field can be cut into calendar units, `{ "field": "date", "unit": "month" }` (year, quarter, month, week from Monday, day, hour; UTC; the group value is the ISO start of the unit). Missing values are ignored by the measures (`count` without a field counts rows). Groups come in order of first appearance, or sorted by a column with `sort`; a time unit sorts by time unless told otherwise. `limit` keeps the first N groups after sorting (top N).',
     params: {
@@ -145,8 +145,13 @@
       const keys = keysOf(spec);
       const measures = measuresOf(spec);
       const names = namesOf(spec);
-      for (const k of keys) if (!table.columns[k.field]) fail(`unknown field "${k.field}"`);
-      for (const m of measures) if (m.field && !table.columns[m.field]) fail(`unknown field "${m.field}"`);
+      keys.forEach((k, i) => {
+        if (!Object.prototype.hasOwnProperty.call(table.columns, k.field)) fail(`unknown field "${k.field}" in "groupby[${i}]"`);
+      });
+      measures.forEach((m, i) => {
+        if (m.field && !Object.prototype.hasOwnProperty.call(table.columns, m.field))
+          fail(`unknown field "${m.field}" in "measures[${i}].field"`);
+      });
       // a sum of text is 0 and a mean of it is nothing, and the chart of it is empty: say so instead
       measures.forEach((m, i) => {
         if (!m.field || NEEDS_NUMBERS.indexOf(m.op) < 0) return;

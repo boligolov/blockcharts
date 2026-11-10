@@ -19,7 +19,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'sort',
-    version: 1,
+    version: 2,
     doc: 'Puts the rows in the order of `field` (`order` "asc" or "desc"), and with `limit` keeps only the first N: the top 10 products is `field` revenue, `order` "desc", `limit` 10. With `group` the order and the limit apply within each group (the top 3 per region), and the groups follow each other in order of first appearance. A band scale lists its categories in row order, so this also orders the bars. Missing values go last either way; numbers come before text when a field mixes them; ties keep data order. Columns stay as they are.',
     params: {
       field: { kind: 'field', required: true, doc: 'Field to sort by.' },
@@ -31,8 +31,9 @@
     apply(table, spec) {
       if (typeof spec.field !== 'string' || !spec.field) fail('"field" must be the name of a field');
       const has = (f: string) => Object.prototype.hasOwnProperty.call(table.columns, f);
-      if (!has(spec.field)) fail(`unknown field "${spec.field}"`);
-      if (spec.group !== undefined && (typeof spec.group !== 'string' || !has(spec.group))) fail(`unknown field "${spec.group}"`);
+      if (!has(spec.field)) fail(`unknown field "${spec.field}" in "field"`);
+      if (spec.group !== undefined && (typeof spec.group !== 'string' || !has(spec.group)))
+        fail(`unknown field "${spec.group}" in "group"`);
       if (spec.order !== undefined && spec.order !== 'asc' && spec.order !== 'desc') fail('"order" must be "asc" or "desc"');
       if (spec.limit !== undefined && !(typeof spec.limit === 'number' && spec.limit >= 0 && Math.floor(spec.limit) === spec.limit))
         fail('"limit" must be a whole number of rows, at least 0');

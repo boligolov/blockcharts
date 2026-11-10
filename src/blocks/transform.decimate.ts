@@ -103,7 +103,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'decimate',
-    version: 3,
+    version: 4,
     viewDependent: true,
     doc: 'Level of detail for long lines: keeps only the rows that can change how a line looks. Redone at every zoom. Inside the visible window it splits x into pixel columns and keeps the first, last, lowest and highest row of each, so the envelope of the data is exact; outside the window (beyond a small margin) it drops the rows. Windows that hold few rows are left whole. Needs data sorted by x (per `group`); anything else is passed through unchanged. Put it after transforms that create the rows and before the line mark reads them.',
     params: {
@@ -116,16 +116,18 @@
     },
     outputs: () => [],
     apply(table, spec, view) {
-      if (!view) return table;
+      const own = (f: string) => (Object.prototype.hasOwnProperty.call(table.columns, f) ? table.columns[f] : undefined);
       const xField = spec.x as string;
       const yField = spec.y as string;
-      const xs = table.columns[xField];
-      const ys = table.columns[yField];
-      if (!xs) throw new Error(`transform.decimate: unknown field "${xField}"`);
-      if (!ys) throw new Error(`transform.decimate: unknown field "${yField}"`);
+      const xs = own(xField);
+      const ys = own(yField);
+      // the fields are checked also before there is a view, when it runs once to give the scales their domains
+      if (!xs) throw new Error(`transform.decimate: unknown field "${xField}" in "x"`);
+      if (!ys) throw new Error(`transform.decimate: unknown field "${yField}" in "y"`);
       const groupField = typeof spec.group === 'string' ? spec.group : undefined;
-      const groups = groupField ? table.columns[groupField] : undefined;
-      if (groupField && !groups) throw new Error(`transform.decimate: unknown field "${groupField}"`);
+      const groups = groupField ? own(groupField) : undefined;
+      if (groupField && !groups) throw new Error(`transform.decimate: unknown field "${groupField}" in "group"`);
+      if (!view) return table;
       const scaleName = typeof spec.scale === 'string' ? spec.scale : 'x';
       const scale = view.scales[scaleName];
       if (!scale) throw new Error(`transform.decimate: there is no scale named "${scaleName}"`);

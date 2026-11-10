@@ -1266,6 +1266,14 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   in New York, and "3/1" is March to one writer and January to another. Now a year, a month, a day (`"2024"`,
   `"2024-03"`, `"2024-03-01"`) and the date-times the core already read as UTC are dates, and nothing else is: the
   chart names the values it could not read, and how to write them.
+- **A transform says which parameter, and writes over nothing.** Window, stack and density wrote their columns over
+  the data's own without a word: `"as": "v"` on a window replaced the column every other mark read, a stack of `v`
+  over a column already named `v0`, and a density with `"as": ["x", "count"]` lost its density to the count. Now they
+  refuse, as the transforms on `lib.columns` already did, and name the parameter to change. Every transform that
+  cannot find a field names the parameter it was given in (`unknown field "nope" in "measures[1].field"`), finds a
+  field by its own key (`"constructor"` is no column), and decimate checks its fields also when it runs without a view.
+  Bin edges were rounded to 12 significant digits, so edges 0.0002 apart at 1e9 were all "1000000000": far from zero an
+  edge keeps the digits that tell it from its neighbour.
 
 ## Next steps
 
