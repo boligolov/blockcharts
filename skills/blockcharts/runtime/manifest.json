@@ -2345,8 +2345,8 @@
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",
-      "bytes": 5965,
-      "version": 13,
+      "bytes": 5976,
+      "version": 14,
       "requires": [],
       "closure": [
         "guide.legend"

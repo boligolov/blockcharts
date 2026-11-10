@@ -183,7 +183,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 13,
+    version: 14,
     shownOnce: true,
     doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. A column that would take more than a fifth of the width of the chart (a phone, long labels) or more than its height (many categories) is drawn as a row on top instead; a label too long for a row is cut with an ellipsis and shown whole on hover. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
@@ -309,7 +309,8 @@
         const start =
           side === 'top' ? y - offset.top - (BAR + ctx.measure('0', FONT).h + 2 * PAD + head) + PAD : y + h + offset.bottom + PAD;
         const top = start + head;
-        const barTop = y + 4 + head;
+        // a label sits on the middle of its value: the top one needs half a line under the title
+        const barTop = y + 4 + head + (head ? FONT / 2 : 0);
         if (column) writeTitle(left, y + 4);
         else writeTitle(rowStart(ctx, side, x, title), start);
         const slice = (length / STEPS) * 1.05; // a hair of overlap hides seams between slices

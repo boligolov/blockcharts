@@ -1292,6 +1292,9 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   height, is a row on top, which wraps; a label or title too long for a row is cut with an ellipsis (whole characters,
   never half an emoji) and keeps its whole text as a title for hover. On a desk nothing moved except one column whose
   title made it wider than a fifth (the contours, now a row above the plot).
+- **The top label of a color bar keeps clear of the title.** A label sits on the middle of its value, so the top one of
+  a column bar stood half a line above the bar, over the title ("Level" on "8" in the contour lines). The bar starts
+  half a line lower when there is a title.
 
 ## Next steps
 

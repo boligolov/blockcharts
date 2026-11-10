@@ -775,6 +775,33 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     }
   });
 
+  test('guide.legend: the top label of a color bar in a column keeps clear of the title', () => {
+    BC.data('bar-title', [
+      { k: 'a', v: 1 },
+      { k: 'b', v: 8 },
+    ]);
+    const host = new FakeNode('div');
+    const h = BC.chart(host, {
+      data: 'bar-title',
+      size: [640, 400],
+      scales: { x: { type: 'band' }, y: { type: 'linear' }, color: { type: 'sequential' } },
+      guides: [{ type: 'legend', scale: 'color', position: 'right', title: 'Level' }],
+      marks: [{ type: 'rect', x: 'k', y: 'v', color: 'v' }],
+    });
+    assert.deepStrictEqual(h.diagnostics, []);
+    const svg = svgOf(host);
+    const title = +/<text [^>]*y="([\d.]+)"[^>]*class="bc-legend-title"/.exec(svg)[1];
+    const bar = [...svg.matchAll(/<rect [^>]*y="([\d.]+)"[^>]*class="bc-legend-bar"/g)].map((m) => +m[1]);
+    const labels = [
+      ...layer(svg, 'axes').matchAll(/<text x="[\d.]+" y="([\d.]+)" font-size="11" dominant-baseline="middle"[^>]*>[^<]*<\/text>/g),
+    ]
+      .map((m) => +m[1])
+      .filter((y) => y > title);
+    const top = Math.min(...labels);
+    assert(top - 11 / 2 >= title + 11 / 2, `the top label (${top}) is under the title (${title})`);
+    assert(Math.abs(top - Math.min(...bar)) < 0.5, 'and level with the top of the bar');
+  });
+
   test('guide.legend: auto is a row, a column for long labels, and a row again when a column would not fit', () => {
     const place = (labels, width) => {
       BC.data(
