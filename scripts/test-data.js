@@ -46,6 +46,46 @@ module.exports = function ({ test, FakeNode, svgOf, count, logged, flush }) {
     assert.deepStrictEqual(BC.validate(spec('slow')), []);
   });
 
+  test('encoded data: a view set while the chart waits is the view it is built with', async () => {
+    const zoomed = { ...spec('slow-view'), view: { y: [0, 4] } };
+    BC.data('slow-view', enc(rows(6), 'gzip+base64'));
+    const host = new FakeNode('div');
+    const h = BC.chart(host, zoomed);
+    h.setView('x', [2, 4]);
+    h.setView('y', null);
+    const before = logged.warn.length;
+    h.setView('nope', [0, 1]);
+    const warned = logged.warn.slice(before);
+    assert(
+      warned.some((w) => /setView: unknown scale "nope"/.test(w)),
+      'an unknown scale is said at once: ' + warned,
+    );
+    assert.deepStrictEqual(h.getView(), { x: [2, 4] }, 'what was asked for, while it waits');
+    await h.ready;
+    assert.deepStrictEqual(h.getView(), { x: [2, 4], y: [0, 10] }, 'the y of the spec was taken back, the x kept');
+    const asSpec = new FakeNode('div');
+    BC.chart(asSpec, { ...spec('slow-view'), view: { x: [2, 4] } });
+    const bare = (h) => svgOf(h).replace(/bc-clip-\d+/g, 'clip');
+    assert.strictEqual(bare(host), bare(asSpec), 'drawn as a spec with that view is');
+    assert.deepStrictEqual(h.spec, zoomed, 'the spec stays as it was given');
+    h.setView('x', [1, 5]);
+    await flush();
+    h.update(zoomed);
+    assert.deepStrictEqual(h.getView(), { x: [1, 5], y: [0, 4] }, 'what was asked is used once: a later zoom is not undone');
+
+    // an update before the data comes keeps what was asked for a scale of the same type, as it keeps a zoom
+    BC.data('slow-view2', enc(rows(6), 'gzip+base64'));
+    const later = BC.chart(new FakeNode('div'), spec('slow-view2'));
+    later.setView('x', [1, 2]);
+    const banded = { ...spec('slow-view2'), scales: { x: { type: 'band' }, y: { type: 'linear' } } };
+    later.update(banded);
+    later.setView('y', [0, 2]);
+    assert.deepStrictEqual(later.getView(), { y: [0, 2] }, 'x is now another type of scale: its view is dropped');
+    await later.ready;
+    const whole = BC.chart(new FakeNode('div'), banded).getView().x;
+    assert.deepStrictEqual(later.getView(), { x: whole, y: [0, 2] });
+  });
+
   test('encoded data: UTF-8 survives, and so does base64 wrapped over several lines', async () => {
     BC.data(
       'utf',

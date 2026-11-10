@@ -867,7 +867,13 @@
   }
 
   /** Stages 1-4 run once (table, transforms, scales, layout — frozen afterwards); `draw` is stages 5-7 and reruns on every view change. */
-  function build(host: HTMLElement, spec: BC.ChartSpec, cleanups: (() => void)[], keptView?: Record<string, unknown[]>): Built {
+  function build(
+    host: HTMLElement,
+    spec: BC.ChartSpec,
+    cleanups: (() => void)[],
+    keptView?: Record<string, unknown[]>,
+    asked?: Record<string, unknown[] | null>,
+  ): Built {
     // the language of the chart, for BC.formatter while the chart is built and drawn; after that, and in a page's own script,
     // BC.formatter writes the default. What a block writes outside drawing (an interaction, a card on hover) uses ctx.format.
     const language = typeof spec.locale === 'string' && spec.locale ? spec.locale : undefined;
@@ -1043,6 +1049,13 @@
     // a zoom carried over from before an update(); a view the new spec sets itself wins
     for (const name of Object.keys(keptView || {})) {
       if (scales[name] && !Object.prototype.hasOwnProperty.call(initial, name)) view[name] = (keptView as Record<string, unknown[]>)[name];
+    }
+    // what the page asked for with setView while the chart waited for its data: it wins over the spec, as setView does
+    for (const name of Object.keys(asked || {})) {
+      const domain = (asked as Record<string, unknown[] | null>)[name];
+      if (!scales[name]) continue;
+      if (domain) view[name] = domain;
+      else delete view[name];
     }
     applyView();
 
@@ -1580,6 +1593,8 @@
     let epoch = 0;
     let destroyed = false;
     let keptView: Record<string, unknown[]> | null = null;
+    // setView calls made before there is a chart to take them (its data still decoding), for the build
+    let asked: Record<string, unknown[] | null> = {};
     let settle!: () => void;
     const firstBuild = new Promise<void>((resolve) => {
       settle = resolve;
@@ -1622,7 +1637,9 @@
       }
       checks = CHECKS ? validate(current) : leanChecks(current);
       const carried = keptView;
+      const wanted = asked;
       keptView = null;
+      asked = {};
       if (!checks.some((d) => d.level === 'error')) {
         try {
           laidOut = widthFor(current);
@@ -1630,7 +1647,7 @@
             laidOut === null
               ? current
               : { ...current, size: [laidOut, Array.isArray(current.size) ? current.size[1] : 400] as [number, number] };
-          built = build(host, effective, cleanups, carried || undefined);
+          built = build(host, effective, cleanups, carried || undefined, wanted);
         } catch (e) {
           hush();
           const at = e && typeof (e as { path?: unknown }).path === 'string' ? (e as { path: string }).path : '';
@@ -1699,15 +1716,38 @@
             if (before[name] && after[name] && before[name].type === after[name].type) kept[name] = previous[name];
           }
         }
+        // so is what was asked for before the data came: for a scale of the same type, unless the view starts again
+        for (const name of Object.keys(asked)) {
+          const before = (current && current.scales) || {};
+          const after = (next && next.scales) || {};
+          if ((options && options.resetView) || !before[name] || !after[name] || before[name].type !== after[name].type) delete asked[name];
+        }
         current = next;
         keptView = kept;
         run();
       },
       setView(scale, domain) {
-        if (built) built.setView(scale, domain);
+        if (destroyed) return;
+        if (built) return built.setView(scale, domain);
+        // no chart yet: kept for the build, said at once when the spec has no such scale
+        if (!(current && current.scales && Object.prototype.hasOwnProperty.call(current.scales, scale))) {
+          console.warn(`[blockcharts] setView: unknown scale "${scale}"`);
+          return;
+        }
+        asked[scale] = domain;
       },
       getView() {
-        return built ? built.getView() : {};
+        if (built) return built.getView();
+        // no chart yet: the view it will be built with, as build puts it together
+        const out: Record<string, unknown[]> = { ...((current && current.view) || {}) };
+        for (const name of Object.keys(keptView || {}))
+          if (!Object.prototype.hasOwnProperty.call(out, name)) out[name] = (keptView as Record<string, unknown[]>)[name];
+        for (const name of Object.keys(asked)) {
+          const domain = asked[name];
+          if (domain) out[name] = domain;
+          else delete out[name];
+        }
+        return out;
       },
       destroy() {
         destroyed = true;

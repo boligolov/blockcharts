@@ -618,8 +618,10 @@ declare namespace BC {
     /** Rebuild with a new spec. The current zoom is kept for every scale that still exists with the same type
      *  (except where the new spec sets its own `view`); `resetView: true` starts from the spec instead. */
     update(spec: ChartSpec, options?: { resetView?: boolean }): void;
-    /** External control of the visible domain, same mechanism the zoom interaction uses. */
+    /** External control of the visible domain, same mechanism the zoom interaction uses. Called while the dataset
+     *  is still decoding, it is kept and the chart is built with it, over the spec's own `view`. */
     setView(scale: string, domain: unknown[] | null): void;
+    /** The visible domain of every scale; while the dataset is still decoding, only the views set so far. */
     getView(): Record<string, unknown[]>;
     destroy(): void;
   }

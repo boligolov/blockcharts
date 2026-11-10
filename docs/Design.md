@@ -1280,6 +1280,11 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   is built and drawn; what a block writes outside drawing (the tooltip's formats and dates, the sankey card) it writes
   with `ctx.format`, which always speaks the chart's language. The tooltip had made its formatters after the drawing,
   so they already wrote the default: a German chart's card said "Feb 1, 2024".
+- **A view set before the data comes is the view the chart is built with.** `handle.setView` on a chart whose
+  dataset was still decoding did nothing: there was no chart to take it, and the page's zoom (from a link, a saved
+  state) was lost without a word. Now it is kept and used once, when the chart is built, over the spec's own `view`
+  (`null` takes that back), as setView does after; an `update()` before then keeps it for a scale of the same type,
+  an unknown scale is said at once, and `getView()` meanwhile returns the views set so far.
 
 ## Next steps
 
