@@ -20,3 +20,6 @@ dist
 /site/.astro
 /site/node_modules
 /site/public/blockcharts.skill
+
+# Claude Code personal settings
+.claude/settings.local.json
