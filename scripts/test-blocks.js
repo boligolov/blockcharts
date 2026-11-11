@@ -2433,7 +2433,139 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     hh.destroy();
     assert.strictEqual((old.listeners.click || []).length, 0);
     assert.strictEqual((old.listeners.dblclick || []).length, 0);
+    assert.strictEqual((old.listeners.keydown || []).length, 0);
     assert(!('class' in old.attrs), 'the class is gone again');
+  });
+
+  /** The first element under `node` (itself included) that `test` says yes to. */
+  const findNode = (node, test) => {
+    if (test(node)) return node;
+    for (const c of node.children || []) {
+      const found = findNode(c, test);
+      if (found) return found;
+    }
+    return null;
+  };
+  const itemNode = (host, k) => findNode(host.children[0], (n) => n.attrs && n.attrs['data-bc-legend-index'] === String(k));
+
+  test('legend-filter: from the keyboard each item is a switch: Enter and Space show and hide it, Shift+Enter isolates it', async () => {
+    const host = new FakeNode('div');
+    const h = BC.chart(host, filterSpec());
+    const root = () => host.children[0];
+    const items = () => [...svgOf(host).matchAll(/<g ([^>]*class="bc-legend-item"[^>]*)>/g)].map((m) => m[1]);
+    assert.strictEqual(root().attrs.role, 'group', 'switches are not read out inside an image: the chart is a group of them');
+    assert.strictEqual(items().length, 3);
+    for (const a of items()) assert(/tabindex="0"/.test(a) && /role="button"/.test(a) && /aria-pressed="true"/.test(a), a);
+    let prevented = 0;
+    const key = (index, k, extra) =>
+      root().fire('keydown', { target: legendItem(index), key: k, preventDefault: () => prevented++, ...extra });
+    key(1, 'Enter');
+    await flush();
+    assert.deepStrictEqual(h.getView().color, ['A', 'C']);
+    assert.deepStrictEqual(
+      items().map((a) => /aria-pressed="(\w+)"/.exec(a)[1]),
+      ['true', 'false', 'true'],
+    );
+    key(1, ' ');
+    await flush();
+    assert.deepStrictEqual(h.getView().color, ['A', 'B', 'C'], 'Space too');
+    assert.strictEqual(prevented, 2, 'and the page does not scroll');
+    key(2, 'Enter', { shiftKey: true });
+    await flush();
+    assert.deepStrictEqual(h.getView().color, ['C'], 'Shift+Enter shows it alone');
+    key(2, 'Enter', { shiftKey: true });
+    await flush();
+    assert.deepStrictEqual(h.getView().color, ['A', 'B', 'C'], 'and again everything');
+    // other keys, a modifier, a key on something that is no item: left alone
+    key(0, 'Tab');
+    key(0, 'a');
+    key(0, 'Enter', { ctrlKey: true });
+    root().fire('keydown', { target: { parentNode: null, attributes: [] }, key: 'Enter', preventDefault: () => prevented++ });
+    await flush();
+    assert.deepStrictEqual(h.getView().color, ['A', 'B', 'C']);
+    assert.strictEqual(prevented, 4);
+    // a key held down does it once: the repeats are taken (a button would click on each), and do nothing
+    for (const k of ['Enter', ' ']) {
+      key(0, k, { repeat: true });
+      await flush();
+      assert.deepStrictEqual(h.getView().color, ['A', 'B', 'C'], k);
+    }
+    assert.strictEqual(prevented, 6);
+    h.destroy();
+  });
+
+  test('legend-filter: an item drawn anew takes the focus back, and focus elsewhere on the page stays there', async () => {
+    const saved = Object.getOwnPropertyDescriptor(FakeNode.prototype, 'focus');
+    FakeNode.prototype.focus = function (options) {
+      document.activeElement = this;
+      this.focusOptions = options;
+    };
+    try {
+      const host = new FakeNode('div');
+      BC.chart(host, filterSpec());
+      const key = (index) => host.children[0].fire('keydown', { target: legendItem(index), key: 'Enter' });
+      const before = itemNode(host, 1);
+      document.activeElement = before;
+      key(1);
+      await flush();
+      const after = itemNode(host, 1);
+      assert(after && after !== before, 'the redraw drew it anew');
+      assert.strictEqual(document.activeElement, after, 'the same item has the focus');
+      assert.deepStrictEqual(after.focusOptions, { preventScroll: true });
+      const elsewhere = new FakeNode('button');
+      document.activeElement = elsewhere;
+      key(1);
+      await flush();
+      assert.strictEqual(document.activeElement, elsewhere, 'a redraw takes no focus it did not have');
+    } finally {
+      if (saved) Object.defineProperty(FakeNode.prototype, 'focus', saved);
+      else delete FakeNode.prototype.focus;
+      delete document.activeElement;
+    }
+  });
+
+  test('a chart is named for a screen reader: an image by its alt or title; with switches, only they are read out', () => {
+    const attrs = (spec) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, spec);
+      assert.deepStrictEqual(h.diagnostics, []);
+      return { root: host.children[0].attrs, svg: svgOf(host), h, host };
+    };
+    const titled = attrs({ ...ptSpec([{ type: 'legend', scale: 'color' }]), title: 'Points by group' });
+    assert.strictEqual(titled.root.role, 'img');
+    assert.strictEqual(titled.root['aria-label'], 'Points by group');
+    assert(!/tabindex|aria-pressed|aria-hidden/.test(titled.svg), 'a legend nothing filters is part of the image');
+    assert.strictEqual(
+      attrs({ ...ptSpec([]), title: 'Shown', alt: 'Six points in three groups' }).root['aria-label'],
+      'Six points in three groups',
+    );
+    assert(!('aria-label' in attrs(ptSpec([])).root), 'nothing to call it by: no name rather than an empty one');
+    // a name with markup is text: the attribute is written escaped
+    const hostile = attrs({ ...ptSpec([]), alt: '"><script>alert(1)</script>' });
+    assert.strictEqual(hostile.root['aria-label'], '"><script>alert(1)</script>');
+    assert(!/<script>/.test(hostile.svg), 'written as text');
+    // update() names it anew
+    titled.h.update({ ...ptSpec([]), title: 'Renamed' });
+    assert.strictEqual(titled.host.children[0].attrs['aria-label'], 'Renamed');
+    // a paint names it by its list: a name gone is gone from the element too
+    const listOf = (label) => ({ size: { w: 10, h: 10 }, plot: { x: 0, y: 0, w: 10, h: 10 }, layers: [], ...(label ? { label } : {}) });
+    const painted = BC.get('renderer.svg').render(listOf('First'), new FakeNode('div'));
+    assert.strictEqual(painted.root.attrs['aria-label'], 'First');
+    painted.update(listOf());
+    assert(!('aria-label' in painted.root.attrs), 'not the old name');
+
+    // with switches the rest is kept from a screen reader: ticks read one after another say nothing
+    const filtered = attrs({ ...filterSpec(), title: 'Filtered' });
+    assert.strictEqual(filtered.root.role, 'group');
+    assert.strictEqual(filtered.root['aria-label'], 'Filtered');
+    assert(count(filtered.svg, /aria-hidden="true"/g) > 4, 'the points, the axes');
+    assert(!/<g class="bc-legend-item"[^>]*aria-hidden/.test(filtered.svg), 'not the switches');
+    assert(/<text [^>]*aria-hidden="true"/.test(filtered.svg), 'tick labels are hidden');
+
+    assert(
+      BC.validate({ ...ptSpec([]), alt: 5 }).some((d) => d.level === 'error' && d.path === 'alt' && /alt must be text/.test(d.message)),
+    );
+    assert(!BC.validate({ ...ptSpec([]), alt: 'Fine' }).some((d) => d.path === 'alt'), 'alt is a key of a spec');
   });
 
   test('interaction.legend-filter on a pie: hiding a slice is not a separate feature — the rest just recompute their share of the smaller total', async () => {

@@ -271,6 +271,7 @@ test('csv file: read from inside the folder, and nowhere else', () => {
 
 const barSpec = (data) => ({
   data,
+  alt: 'Values by key',
   scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
   marks: [{ type: 'rect', x: 'k', y: 'v' }],
 });
@@ -297,6 +298,7 @@ test('csv in a page: text and files become datasets, everything downstream still
     charts: [
       {
         data: 's',
+        alt: 'Revenue by region',
         transforms: [{ type: 'aggregate', groupby: ['region'], measures: [{ op: 'sum', field: 'rev', as: 'total' }] }],
         scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
         marks: [{ type: 'rect', x: 'region', y: 'total' }],

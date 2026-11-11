@@ -682,7 +682,7 @@ Version 3, 0.6 KB. Grid lines at the ticks of a positional scale (the same ticks
 
 ## guide.kpi
 
-Version 9, 4.8 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number. A tile is laid out at the width of its card, also two to a row on a phone: a value too wide for it is written smaller, and so are the label and the change, down to 10 px, then cut with an ellipsis.
+Version 10, 4.9 KB. A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number. A tile is laid out at the width of its card, also two to a row on a phone: a value too wide for it is written smaller, and so are the label and the change, down to 10 px, then cut with an ellipsis. A screen reader hears the label, the value and the change after the name of the chart.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -703,7 +703,7 @@ Version 9, 4.8 KB. A key figure as the heading of a chart: a label, the value in
 
 ## guide.legend
 
-Version 15, 5.9 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. A column that would take more than a fifth of the width of the chart (a phone, long labels) or more than its height (many categories) is drawn as a row on top instead; a label too long for a row is cut with an ellipsis and shown whole on hover. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
+Version 16, 6.0 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. A column that would take more than a fifth of the width of the chart (a phone, long labels) or more than its height (many categories) is drawn as a row on top instead; a label too long for a row is cut with an ellipsis and shown whole on hover. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -748,7 +748,7 @@ Needs: `lib.pointer`.
 
 ## interaction.legend-filter
 
-Version 5, 2.5 KB. Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.
+Version 6, 3.0 KB. Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). From the keyboard each item is a switch: Tab reaches it, Enter or Space hides or shows its category, Shift+Enter isolates it (on a canvas there are no items to reach). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -802,8 +802,8 @@ Needs: `lib.view`.
 
 ## renderer.canvas
 
-Version 3, 6.1 KB. Draws a display list on one <canvas>, scaled to its container and sharp on high-density screens. Meant for charts with tens of thousands of marks (a big scatter plot), where an SVG element per mark gets slow: about 5 times faster to redraw at 50,000 points. A single long line is one path either way, so it gains little; decimate it instead. It reads the same CSS variables as the SVG renderer (themes, dark mode) and follows changes of the color scheme, but a canvas has no elements: CSS classes and native tooltips on marks do not exist here. Zoom, brush, tooltip and legend filter work as usual, and so do fading fills.
+Version 4, 6.2 KB. Draws a display list on one <canvas>, scaled to its container and sharp on high-density screens. Meant for charts with tens of thousands of marks (a big scatter plot), where an SVG element per mark gets slow: about 5 times faster to redraw at 50,000 points. A single long line is one path either way, so it gains little; decimate it instead. It reads the same CSS variables as the SVG renderer (themes, dark mode) and follows changes of the color scheme, but a canvas has no elements: CSS classes and native tooltips on marks do not exist here. Zoom, brush, tooltip and legend filter work as usual with a pointer, and so do fading fills; the legend filter has no keys here. A screen reader hears the chart as an image named by its `alt` or title.
 
 ## renderer.svg
 
-Version 5, 3.2 KB. Draws a display list as one <svg> scaled to its container via viewBox. Paths have no implicit fill: marks set `fill: "none"` for strokes. A style with `fade` gets a vertical gradient over the plot, from the fill color to transparent.
+Version 6, 3.9 KB. Draws a display list as one <svg> scaled to its container via viewBox. Paths have no implicit fill: marks set `fill: "none"` for strokes. A style with `fade` gets a vertical gradient over the plot, from the fill color to transparent. The chart is an image named by its `alt` or title for a screen reader; one with switches a key can press (the items of a legend filter) is a group of them instead, and the switch that has the focus keeps it when the chart is drawn anew.

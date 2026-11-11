@@ -158,6 +158,7 @@ const DATA = {
 };
 const bars = () => ({
   data: 'cats',
+  alt: 'Values by category',
   scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
   guides: [
     { type: 'axis', scale: 'x' },
@@ -167,6 +168,7 @@ const bars = () => ({
 });
 const scatter = () => ({
   data: 'pts',
+  alt: 'Points by group',
   scales: { x: { type: 'linear' }, y: { type: 'linear' }, color: { type: 'color' } },
   guides: [
     { type: 'axis', scale: 'x' },
@@ -957,7 +959,7 @@ test('compose: facet draws one chart per value on shared scales, with one legend
     ],
   }).entries;
   assert.deepStrictEqual(mixed[0], { section: 'S', note: 'n' });
-  assert.deepStrictEqual(mixed[1], { title: 'A', note: undefined, spec: spec() });
+  assert.deepStrictEqual(mixed[1], { title: 'A', note: undefined, spec: { ...spec(), alt: 'A' } }, 'named by its card');
 
   const free = specs(compose({ data: { d: rows }, charts: [{ spec: spec(), facet: { field: 'r', free: ['y'] } }] }).html);
   assert.strictEqual(free[0].scales.y.domain, undefined, 'a free scale keeps its own');
@@ -1110,6 +1112,7 @@ test('compose dry run: warnings are reported and do not stop the page', () => {
   const rows = Array.from({ length: 20000 }, (_, i) => ({ a: (i * 7919) % 20000, b: i % 17 }));
   const unsorted = {
     data: 'u',
+    alt: 'A long line',
     transforms: [{ type: 'decimate', x: 'a', y: 'b' }],
     scales: { x: { type: 'linear' }, y: { type: 'linear' } },
     marks: [{ type: 'line', x: 'a', y: 'b' }],
@@ -1148,6 +1151,7 @@ test('compose dry run: a good page says nothing, leaves no trace, and stays fast
     charts: [
       {
         data: 'big',
+        alt: 'A hundred thousand points',
         transforms: [{ type: 'decimate', x: 'a', y: 'b' }],
         scales: { x: { type: 'linear' }, y: { type: 'linear' } },
         marks: [{ type: 'line', x: 'a', y: 'b' }],
@@ -1159,6 +1163,7 @@ test('compose dry run: a good page says nothing, leaves no trace, and stays fast
   assert(Date.now() - t0 < 8000, `100000 rows composed in ${Date.now() - t0} ms`);
   const spec = {
     data: 'big',
+    alt: 'A hundred thousand points',
     transforms: [{ type: 'decimate', x: 'a', y: 'b' }],
     scales: { x: { type: 'linear' }, y: { type: 'linear' } },
     marks: [{ type: 'line', x: 'a', y: 'b' }],
@@ -1177,7 +1182,14 @@ test('compose: binary columns are checked and drawn like any dataset, and stored
   const cols = { a: Array.from({ length: 50 }, (_, i) => i), b: Array.from({ length: 50 }, (_, i) => (i * 7) % 13) };
   const page = {
     data: { d: encodeColumns(cols) },
-    charts: [{ data: 'd', scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'point', x: 'a', y: 'b' }] }],
+    charts: [
+      {
+        data: 'd',
+        alt: 'Fifty points',
+        scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+        marks: [{ type: 'point', x: 'a', y: 'b' }],
+      },
+    ],
   };
   const r = compose(page);
   assert.deepStrictEqual(r.diagnostics, []);
@@ -1407,6 +1419,53 @@ test('compose command line: a page.json is a page — it cannot run code, write 
   assert.strictEqual(bad.status, 1);
   assert.match(bad.stderr, /page\.json is not valid JSON/);
   assert.match(run(null, '[1, 2]').stderr, /must hold one object/);
+});
+
+test('compose: a chart is named for a screen reader by its card, a panel by its card and value; a nameless one is a warning', () => {
+  const rows = [
+    { r: 'North', m: 1, v: 3 },
+    { r: 'South', m: 1, v: 5 },
+    { r: 'North', m: 2, v: 4 },
+    { r: 'South', m: 2, v: 6 },
+  ];
+  const spec = (extra) => ({
+    data: 'd',
+    scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+    marks: [{ type: 'point', x: 'm', y: 'v' }],
+    ...extra,
+  });
+  const specs = (html) => [...html.matchAll(/data-bc-chart>(.*?)<\/script>/g)].map((m) => JSON.parse(m[1].replace(/\\u003c/g, '<')));
+  const hostile = 'Sales "Q1" </script><script>alert(1)</script>';
+  const page = compose({
+    data: { d: rows },
+    charts: [
+      { title: 'From the card', spec: spec() },
+      { title: 'Card', spec: spec({ title: 'Drawn title' }) },
+      { title: 'Card', spec: spec({ alt: 'Four points, rising' }) },
+      { title: hostile, spec: spec() },
+      { title: 'By region', spec: spec(), facet: { field: 'r' } },
+    ],
+  });
+  assert.deepStrictEqual(page.diagnostics, []);
+  const [card, drawn, own, bad, north, south] = specs(page.html);
+  assert.strictEqual(card.alt, 'From the card');
+  assert.strictEqual(drawn.alt, undefined, 'a chart with a title of its own is called by it');
+  assert.strictEqual(own.alt, 'Four points, rising', 'an alt is kept');
+  assert.strictEqual(bad.alt, hostile, 'a title with markup is text');
+  assert(!page.html.includes('</script><script>alert(1)'), 'and cannot end the script it is in');
+  assert.strictEqual(north.alt, 'By region: North');
+  assert.strictEqual(south.alt, 'By region: South', 'one panel does not sound like the next');
+  assert(/\.bc-legend-item:focus-visible\{outline:/.test(page.html), 'a switch of the legend shows where the focus is');
+
+  // a chart with no name at all: the agent hears of it, unless it says something itself (a KPI tile)
+  const nameless = compose({ data: { d: rows }, charts: [spec()] });
+  assert.deepStrictEqual(
+    nameless.diagnostics.map((d) => [d.level, d.path]),
+    [['warn', 'charts[0]']],
+  );
+  assert.match(nameless.diagnostics[0].message, /screen reader hears this chart only as "image".*"title".*"alt"/);
+  const tile = compose({ data: { d: rows }, charts: [spec({ guides: [{ type: 'kpi', field: 'v', label: 'Visits' }] })] });
+  assert.deepStrictEqual(tile.diagnostics, [], 'a KPI tile is named by its figure');
 });
 
 (async () => {

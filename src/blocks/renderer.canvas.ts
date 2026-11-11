@@ -14,8 +14,8 @@
   const def: BC.RendererDef = {
     role: 'renderer',
     type: 'canvas',
-    version: 3,
-    doc: 'Draws a display list on one <canvas>, scaled to its container and sharp on high-density screens. Meant for charts with tens of thousands of marks (a big scatter plot), where an SVG element per mark gets slow: about 5 times faster to redraw at 50,000 points. A single long line is one path either way, so it gains little; decimate it instead. It reads the same CSS variables as the SVG renderer (themes, dark mode) and follows changes of the color scheme, but a canvas has no elements: CSS classes and native tooltips on marks do not exist here. Zoom, brush, tooltip and legend filter work as usual, and so do fading fills.',
+    version: 4,
+    doc: 'Draws a display list on one <canvas>, scaled to its container and sharp on high-density screens. Meant for charts with tens of thousands of marks (a big scatter plot), where an SVG element per mark gets slow: about 5 times faster to redraw at 50,000 points. A single long line is one path either way, so it gains little; decimate it instead. It reads the same CSS variables as the SVG renderer (themes, dark mode) and follows changes of the color scheme, but a canvas has no elements: CSS classes and native tooltips on marks do not exist here. Zoom, brush, tooltip and legend filter work as usual with a pointer, and so do fading fills; the legend filter has no keys here. A screen reader hears the chart as an image named by its `alt` or title.',
     render(list, host) {
       const doc = host.ownerDocument || document;
       const canvas = doc.createElement('canvas');
@@ -203,6 +203,8 @@
       const paint = (l: BC.DisplayList) => {
         if (destroyed) return;
         current = l;
+        if (l.label) canvas.setAttribute('aria-label', l.label);
+        else canvas.removeAttribute('aria-label');
         colors = new Map();
         styles = typeof getComputedStyle === 'function' ? getComputedStyle(host) : null;
         family = (styles && styles.fontFamily) || DEFAULT_FONT;

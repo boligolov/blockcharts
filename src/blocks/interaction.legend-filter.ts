@@ -4,13 +4,22 @@
   const CLASS = 'bc-legend-filter';
   /** Only categories can be hidden one by one: the scale has to color categories. */
   const ofCategories = (scale: BC.Scale) => scale.output === 'color' && scale.input === 'category';
+  /** The scale it filters: `scale`, else that of the first guide of a categorical color scale (the legend that shows its
+   *  categories); undefined when it is not one of categories. */
+  const scaleOf = (spec: BC.InteractionSpec, chart: BC.ChartSpec, scales: Readonly<Record<string, BC.Scale>>) => {
+    const shown = (chart.guides || []).find((g) => typeof g.scale === 'string' && !!scales[g.scale] && ofCategories(scales[g.scale]));
+    const name = typeof spec.scale === 'string' ? spec.scale : shown ? (shown.scale as string) : undefined;
+    return name && scales[name] && ofCategories(scales[name]) ? name : undefined;
+  };
+  /** Keys on a legend item: Enter or Space shows or hides its category, with Shift they show it alone (as a double-click). */
+  const pressing = (ev: KeyboardEvent) => ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar';
 
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'legend-filter',
-    version: 5,
+    version: 6,
     outerLegend: true,
-    doc: 'Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.',
+    doc: 'Click an item of a categorical legend to hide or show that category; double-click isolates it (double-click again shows everything). From the keyboard each item is a switch: Tab reaches it, Enter or Space hides or shows its category, Shift+Enter isolates it (on a canvas there are no items to reach). Hidden categories are drawn by no mark and stay in the legend, dimmed. The visible set is the view of the color scale, so it can also be set with setView. Hiding everything shows everything.',
     params: {
       scale: { kind: 'scale', doc: 'The color scale to filter. Default: the scale of the first legend.' },
       legend: {
@@ -19,15 +28,13 @@
       },
       fit: { kind: 'list', doc: 'Scales to refit to the visible rows after a change (usually ["y"]); by default they keep their domain.' },
     },
+    // the legend in the chart, unless the page draws one outside it
+    toggles: (spec, ctx) => (typeof spec.legend === 'string' ? undefined : scaleOf(spec, ctx.spec, ctx.scales)),
     attach(spec, live) {
       const outer = typeof spec.legend === 'string' ? spec.legend : null;
-      // by default the scale of the first guide of a categorical color scale: the legend that shows its categories
-      const shown = (live.spec.guides || []).find(
-        (g) => typeof g.scale === 'string' && !!live.scales[g.scale] && ofCategories(live.scales[g.scale]),
-      );
-      const name = typeof spec.scale === 'string' ? spec.scale : shown ? (shown.scale as string) : undefined;
+      const name = scaleOf(spec, live.spec, live.scales);
       const scale = name ? live.scales[name] : undefined;
-      if (!name || !scale || !ofCategories(scale)) {
+      if (!name || !scale) {
         console.warn(
           '[blockcharts] interaction.legend-filter: needs a categorical color scale (set "scale", or add a legend guide for one); ignored',
         );
@@ -91,9 +98,25 @@
         apply(shown.length === 1 && shown[0] === item.value ? base.slice() : [item.value]);
       };
 
+      // A key on an item does what a click and a double-click do, on the page's own buttons too (a facet's legend): the
+      // key is taken before the button clicks on it. A key held down does it once.
+      const onKey = (ev: Event) => {
+        const key = ev as KeyboardEvent;
+        if (!pressing(key) || key.altKey || key.ctrlKey || key.metaKey) return;
+        const item = itemOf(ev);
+        if (!item) return;
+        ev.preventDefault(); // Space would scroll the page, Enter would click the button
+        if (key.repeat) return;
+        const shown = visible();
+        before = null;
+        if (key.shiftKey) apply(shown.length === 1 && shown[0] === item.value ? base.slice() : [item.value]);
+        else apply(base.filter((v) => (v === item.value ? shown.indexOf(v) < 0 : shown.indexOf(v) >= 0)));
+      };
+
       const target: EventTarget = shared || root;
       target.addEventListener('click', onClick);
       target.addEventListener('dblclick', onDblClick);
+      target.addEventListener('keydown', onKey);
       // a canvas has no legend elements for a stylesheet to give a pointer cursor: it is set while the pointer is over an item
       let savedCursor: string | null = null;
       const onMove = (ev: Event) => {
@@ -115,6 +138,7 @@
       live.cleanup(() => {
         target.removeEventListener('click', onClick);
         target.removeEventListener('dblclick', onDblClick);
+        target.removeEventListener('keydown', onKey);
         if (isCanvas) root.removeEventListener('pointermove', onMove);
         if (previousClass === null) root.removeAttribute ? root.removeAttribute('class') : root.setAttribute('class', '');
         else root.setAttribute('class', previousClass);

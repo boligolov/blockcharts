@@ -103,6 +103,9 @@ test('canvas: a chart is one <canvas>, and the bars, grid, axes and labels are d
   const canvas = host.children[0];
   assert.strictEqual(canvas.tag, 'canvas');
   assert.strictEqual(canvas.attrs.role, 'img');
+  assert(!('aria-label' in canvas.attrs), 'no title, no alt: no name');
+  const named = draw(w, withGuides({ alt: 'Three bars' })).host.children[0];
+  assert.strictEqual(named.attrs['aria-label'], 'Three bars', 'a screen reader hears it by its alt');
   assert(/display:block;width:100%;height:auto/.test(canvas.attrs.style), 'scales with its container');
   assert.strictEqual(host.children.length, 1);
   const f = frame(ctx);
@@ -441,6 +444,11 @@ test(
     handle.update(list);
     assert.strictEqual(ops(ctx.calls, 'clearRect').length, n + 1);
     assert.strictEqual(handle.root, host.children[0]);
+    // and names it by its list: a name gone is gone from the element too
+    handle.update({ ...list, label: 'Named' });
+    assert.strictEqual(handle.root.attrs['aria-label'], 'Named');
+    handle.update(list);
+    assert(!('aria-label' in handle.root.attrs), 'not the old name');
     handle.destroy();
     assert.strictEqual(host.children.length, 0);
   }),
@@ -606,7 +614,7 @@ test('canvas: the spec names it, BC.needs lists it, and the composer and validat
   assert.deepStrictEqual(arr(w.BC.validate(bars())), []);
   assert(arr(w.BC.validate(bars({ renderer: 'webgl' }))).some((d) => /renderer\.webgl/.test(d.message) || /webgl/.test(d.message)));
   const def = w.BC.get('renderer.canvas');
-  assert.strictEqual(def.version, 3);
+  assert.strictEqual(def.version, 4);
   assert(/canvas/i.test(def.doc));
 });
 

@@ -117,6 +117,8 @@
     /** The size of the line under the value, the change and the note alike. */
     lineSize: number;
     height: number;
+    /** What a screen reader hears: the label, the value, and the change with its note, whole and without the arrow. */
+    spoken: string[];
   }
 
   /** What the tile writes and how large, in the width it has: from the left of the plot to the right of the chart. Every
@@ -139,6 +141,7 @@
     const valueSize = fitted(ctx, valueText, own, 650, room, MIN_VALUE);
 
     let change = '';
+    let changeSaid = '';
     let changeColor = FLAT;
     if (isFinite(value) && isFinite(base)) {
       const diff = value - base;
@@ -159,6 +162,7 @@
       }
       const arrow = flat ? '■' : up ? '▲' : '▼';
       change = `${arrow} ${text}`.trim();
+      changeSaid = text;
     }
     // the change and the note are one line at one size, the note NOTE_GAP after the change; the width is linear in the size
     const fullNote = noteOf(spec);
@@ -173,7 +177,8 @@
     // the slots go by what there is to say, not by what was left of it in the width
     const line = change || fullNote ? GAP + DELTA_SIZE : 0;
     const height = (fullLabel ? LABEL_SIZE + GAP : 0) + valueSize + line + BOTTOM;
-    return { labelled: !!fullLabel, label, labelSize, value: valueText, valueSize, change, changeColor, note, lineSize, height };
+    const spoken = [fullLabel, valueText, [changeSaid, fullNote].filter(Boolean).join(' ')];
+    return { labelled: !!fullLabel, label, labelSize, value: valueText, valueSize, change, changeColor, note, lineSize, height, spoken };
   }
 
   /** What the row of the figure is called: the month of a maximum. An aggregate of many rows has no row of its own. */
@@ -199,10 +204,10 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'kpi',
-    version: 9,
+    version: 10,
     // it fits its text to the width itself, so a tile is laid out at its card's width however narrow
     narrow: true,
-    doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number. A tile is laid out at the width of its card, also two to a row on a phone: a value too wide for it is written smaller, and so are the label and the change, down to 10 px, then cut with an ellipsis.',
+    doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number. A tile is laid out at the width of its card, also two to a row on a phone: a value too wide for it is written smaller, and so are the label and the change, down to 10 px, then cut with an ellipsis. A screen reader hears the label, the value and the change after the name of the chart.',
     params: {
       field: { kind: 'field', required: true, doc: 'The numeric field the figure comes from.' },
       label: { kind: 'string', doc: 'What the figure is ("Revenue", "Active users"), above it.' },
@@ -279,6 +284,8 @@
         noteAt = left + ctx.textWidth(t.change, t.lineSize, 600) + NOTE_GAP;
       }
       if (t.note) line(t.note, noteAt, t.lineSize, 400, LABEL, 'bc-kpi-note');
+      // the chart is an image to a screen reader, its text unread: the figure goes into its name
+      for (const words of t.spoken) ctx.say(words);
       return { axes: out };
     },
   };

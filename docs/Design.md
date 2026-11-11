@@ -1467,6 +1467,23 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   Items are now placed by `textWidth`: 14 px apart in Inter, as even as that estimate is near the font (a narrower
   system sans-serif leaves a few px of difference). A row is still wrapped by the larger of the two, as a run of
   capitals is wider than `measure()` says, so no font runs it off the chart.
+- **A screen reader hears a chart by its name, and the legend filter works from the keyboard.** Every chart was an
+  `<svg role="img">` (or a canvas) with no name: a screen reader said "image" and nothing more. As an image its text is
+  not read either, so a KPI tile kept its figure from it. A chart is now named by `alt` (new: what it shows, in a
+  sentence) or its title, followed by what its guides say (`ChartCtx.say`): a KPI tile is "Revenue, December. $312.6K.
+  +5.1% vs November", the arrow left out, the text whole where the tile cuts it. The composer gives a chart that has
+  neither the title of its card, and a panel of a facet that title and its value ("Drinks by region: North"); a chart it
+  draws with no name at all is a warning. The legend filter answered only clicks. An interaction now says which scale
+  it switches from the legend (`InteractionDef.toggles`, read through `ChartCtx.toggled`), the legend marks those items
+  `pressed` (a primitive a key can press), and the SVG renderer makes them buttons: `tabindex`, `role="button"`,
+  `aria-pressed`. Enter or Space shows or hides a category, Shift+Enter shows it alone, as a double-click does. Inside
+  an image nothing is read out, buttons neither, so a chart with them is a `group`, and everything else in it is
+  `aria-hidden`: read in order, the ticks are "Q1 Q2 Q3 Q4 0 5 10". A paint draws every element anew, so the item that
+  had the focus lost it at the first key: the renderer gives it back to the item drawn in its place (`preventScroll`),
+  and takes no focus it did not have. The legend over a facet is the page's own buttons: the filter takes the key before
+  the button clicks on it, and a key held down (a button clicks at every repeat) toggles once. The composer's stylesheet
+  rings the focused item. A canvas has no elements to focus: it is named, and its legend filter keeps to the pointer
+  (see the roadmap).
 
 ## Next steps
 

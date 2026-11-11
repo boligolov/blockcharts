@@ -13,17 +13,16 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.35): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
+Done (skill 0.33.1–0.33.36): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
 every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
 month, an axis's top label, the color of a tooltip's dot, cards on error bars, dumbbells and lollipops, KPI tiles two to a
-row on a phone, a treemap laid out for its plot, even gaps in a legend).
+row on a phone, a treemap laid out for its plot, even gaps in a legend); D1, a chart's name for a screen reader and the
+legend filter from the keyboard.
 
 Left, in this order:
 
-- [ ] **D1** Charts are `role="img"` with no name (renderer.svg, renderer.canvas); the legend filter cannot be reached
-      by keyboard (guide.legend, interaction.legend-filter).
 - [ ] **D2** Site: `--faint #8b93a1` is 2.8–3.1:1 in light, 4.43:1 in dark (site.css).
 - [ ] **D3** Site: 51 pages skip a heading level; no skip link; every copy button says only "Copy".
 - [ ] **E1** Tooltips show internals and raw values: highlight-bar (ISO date, raw number, a helper field), waterfall
@@ -59,6 +58,9 @@ Left, in this order:
   the release below: publishing and deploying are the owner's step.
 
 Found along the way:
+
+- [ ] The legend filter of a canvas chart has no keys: a canvas has no elements to focus. Buttons of the page over the
+      legend (as the composer draws above a facet), or keys on the canvas itself with a ring it draws.
 
 - [ ] From 720 px to about 1050 px (a tablet, a narrow window) a grid of 4 columns makes cards narrower than 200 px (136 at 800): the
       donut of executive-dashboard is laid out at 200 px and scaled down, its legend at 8 px (the KPI tiles are laid out at

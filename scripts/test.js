@@ -57,7 +57,7 @@ class FakeNode {
   }
   serialize() {
     const a = Object.entries(this.attrs)
-      .map(([k, v]) => ` ${k}="${v.replace(/"/g, '&quot;')}"`)
+      .map(([k, v]) => ` ${k}="${v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')}"`)
       .join('');
     const inner = this.text.replace(/&/g, '&amp;').replace(/</g, '&lt;') + this.children.map((c) => c.serialize()).join('');
     return `<${this.tag}${a}>${inner}</${this.tag}>`;

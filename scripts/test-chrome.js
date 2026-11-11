@@ -477,6 +477,125 @@ test('treemap: near-square cells on a phone and, after the window widens, on a d
   await p.close();
 });
 
+// ───────────────────────── a screen reader and the keyboard ─────────────────────────
+
+test('screen reader: every chart of the executive dashboard has a name, a KPI tile its figure, a filtered legend its buttons', async () => {
+  const p = await open(recipe('executive-dashboard'), 1100);
+  const tree = await p.locator('main').ariaSnapshot();
+  const charts = [...tree.matchAll(/^\s*- (img|group) "([^"]*)"/gm)].map((m) => [m[1], m[2]]);
+  assert.strictEqual(charts.length, 8, tree);
+  for (const [, name] of charts) assert(name.trim(), 'named: ' + tree);
+  assert(/^Revenue, December\. \$[\d.]+K\. \+[\d.]+% vs November$/.test(charts[0][1]), charts[0][1]);
+  assert(
+    charts.some(([role, name]) => role === 'group' && name === 'Revenue by channel'),
+    tree,
+  );
+  // in a group only the switches are read out, not the ticks one after another
+  assert(/- group "Revenue by channel":\n(\s+- button "[^"]+" \[pressed\]\n){5}/.test(tree + '\n'), tree);
+  await p.close();
+});
+
+test('keyboard: Tab reaches the legend, Enter and Space hide and show, Shift+Enter isolates; the focus stays and shows', async () => {
+  const p = await open(recipe('grouped-bar'), 1100);
+  const state = () =>
+    p.evaluate(() => {
+      const svg = document.querySelector('.bc-section svg[viewBox]');
+      const a = document.activeElement;
+      return {
+        focused: a && a.classList && a.classList.contains('bc-legend-item') ? a.textContent : null,
+        ring: !!(a && a.matches && a.matches(':focus-visible') && getComputedStyle(a).outlineStyle === 'solid'),
+        pressed: [...svg.querySelectorAll('[aria-pressed]')].map((e) => e.getAttribute('aria-pressed')).join(' '),
+        bars: svg.querySelectorAll('[data-bc-layer="marks"] [data-bc-mark]').length,
+      };
+    });
+  let s;
+  for (let k = 0; k < 10 && !(s && s.focused); k++) {
+    await p.keyboard.press('Tab');
+    s = await state();
+  }
+  assert.strictEqual(s.focused, 'Hardware', 'Tab reaches the first item');
+  assert(s.ring, 'and shows where it is');
+  const press = async (key) => {
+    await p.keyboard.press(key);
+    await p.waitForTimeout(150);
+    return state();
+  };
+  s = await press('Enter');
+  assert.deepStrictEqual([s.focused, s.pressed, s.bars], ['Hardware', 'false true true', 8], 'hidden, and the focus stays on it');
+  await p.keyboard.press('Tab');
+  s = await press('Space');
+  assert.deepStrictEqual([s.focused, s.pressed, s.bars], ['Software', 'false false true', 4]);
+  assert.strictEqual(await p.evaluate(() => scrollY), 0, 'Space does not scroll the page');
+  s = await press('Shift+Enter');
+  assert.deepStrictEqual([s.pressed, s.bars], ['false true false', 4], 'Software alone');
+  s = await press('Shift+Enter');
+  assert.deepStrictEqual([s.focused, s.pressed, s.bars], ['Software', 'true true true', 12], 'everything again');
+  // a click focuses the item too, without a ring
+  await p.locator('.bc-legend-item').nth(2).click();
+  await p.waitForTimeout(150);
+  s = await state();
+  assert.deepStrictEqual([s.focused, s.ring, s.pressed], ['Services', false, 'true true false']);
+  assert.deepStrictEqual(p.errors, []);
+  await p.close();
+});
+
+test('keyboard: the legend over a facet is buttons of the page; a key, held or not, toggles once, Shift+Enter isolates', async () => {
+  const rows = [];
+  for (const r of ['North', 'South'])
+    for (const k of ['Tea', 'Coffee', 'Cocoa']) rows.push({ r, k, v: k.length + (r === 'North' ? 1 : 2) });
+  const p = await open(
+    {
+      title: 'Facet',
+      data: { d: rows },
+      charts: [
+        {
+          title: 'Drinks by region',
+          facet: { field: 'r' },
+          spec: {
+            data: 'd',
+            size: [300, 200],
+            scales: { x: { type: 'band' }, y: { type: 'linear', zero: true }, color: { type: 'color' } },
+            guides: [{ type: 'legend', scale: 'color' }],
+            marks: [{ type: 'rect', x: 'k', y: 'v', color: 'k' }],
+            interaction: [{ type: 'legend-filter' }],
+          },
+        },
+      ],
+    },
+    1100,
+  );
+  const names = await p.$$eval('.bc-facet svg', (s) => s.map((e) => e.getAttribute('aria-label')));
+  assert.deepStrictEqual(names, ['Drinks by region: North', 'Drinks by region: South'], 'a panel by its card and value');
+  const bars = () => p.$$eval('.bc-facet svg', (s) => s.map((e) => e.querySelectorAll('[data-bc-layer="marks"] [data-bc-mark]').length));
+  assert.deepStrictEqual(await bars(), [3, 3]);
+  await p.evaluate(() => (document.body.style.minHeight = '3000px'));
+  await p.focus('.bc-facet-legend button:nth-of-type(2)');
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(150);
+  assert.deepStrictEqual(await bars(), [2, 2], 'Enter: Coffee hidden, and not shown again by a click as well');
+  await p.keyboard.press('Space');
+  await p.waitForTimeout(150);
+  assert.deepStrictEqual(await bars(), [3, 3], 'Space: shown, once');
+  assert.strictEqual(await p.evaluate(() => scrollY), 0, 'Space does not scroll the page');
+  // a button clicks on every repeat of a key held down: the filter does it once
+  for (let k = 0; k < 4; k++) await p.keyboard.down('Enter');
+  await p.keyboard.up('Enter');
+  await p.waitForTimeout(150);
+  assert.deepStrictEqual(await bars(), [2, 2], 'Enter held down: hidden once');
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(150);
+  await p.keyboard.press('Shift+Enter');
+  await p.waitForTimeout(150);
+  assert.deepStrictEqual(await bars(), [1, 1], 'Shift+Enter: Coffee alone, and not toggled by a click as well');
+  assert.deepStrictEqual(await p.$$eval('.bc-facet-legend button', (b) => b.map((e) => e.getAttribute('aria-pressed'))), [
+    'false',
+    'true',
+    'false',
+  ]);
+  assert.deepStrictEqual(p.errors, []);
+  await p.close();
+});
+
 // ───────────────────────── KPI tiles ─────────────────────────
 
 /** Every card of a page: where it is, whether it is a KPI tile, and how its chart is drawn (px of text on the screen). */

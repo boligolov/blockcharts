@@ -400,6 +400,7 @@
         'size',
         'padding',
         'title',
+        'alt',
         'scales',
         'guides',
         'marks',
@@ -469,6 +470,7 @@
               }
           }
           if (spec.title !== undefined && typeof spec.title !== 'string') err('title', 'title must be text');
+          if (spec.alt !== undefined && typeof spec.alt !== 'string') err('alt', 'alt must be text: what the chart shows, in a sentence');
           if (spec.id !== undefined && typeof spec.id !== 'string') err('id', 'id must be text');
           if (spec.responsive !== undefined && typeof spec.responsive !== 'boolean') err('responsive', 'responsive must be true or false');
           if (spec.renderer !== undefined && typeof spec.renderer !== 'string')
@@ -873,6 +875,14 @@
     return em * size * bold;
   }
 
+  /** What a reader who cannot see the chart hears of it: its `alt` or title, then what its guides said, each once. */
+  function nameOf(spec: BC.ChartSpec, said: string[]): string {
+    const words: string[] = [];
+    const own = typeof spec.alt === 'string' && spec.alt.trim() ? spec.alt : spec.title;
+    for (const w of [typeof own === 'string' ? own.trim() : '', ...said]) if (w && words.indexOf(w) < 0) words.push(w);
+    return words.join('. ');
+  }
+
   function insetsPlot(size: { w: number; h: number }, ins: BC.Insets): BC.Rect {
     return { x: ins.left, y: ins.top, w: Math.max(1, size.w - ins.left - ins.right), h: Math.max(1, size.h - ins.top - ins.bottom) };
   }
@@ -1239,6 +1249,8 @@
       return { from, to };
     };
 
+    /** What the guides said in this draw (ChartCtx.say). */
+    let spoken: string[] = [];
     const ctx: BC.ChartCtx = {
       spec,
       format: (f, kind) => formatter(f, kind, language),
@@ -1258,6 +1270,15 @@
         const def = registry.get(`interaction.${is.type}`) as BC.InteractionDef | undefined;
         return !!(def && def.alongX);
       }),
+      toggled(scale) {
+        return (spec.interaction || []).some((is) => {
+          const def = registry.get(`interaction.${is.type}`) as BC.InteractionDef | undefined;
+          return !!(def && def.toggles && def.toggles(is, ctx) === scale);
+        });
+      },
+      say(text) {
+        if (typeof text === 'string' && text.trim()) spoken.push(text.trim());
+      },
       orientation(name) {
         const r = scaleSpecs[name] && rangeSetting(name, scaleSpecs[name]);
         return r === 'width' ? 'horizontal' : r === 'height' ? 'vertical' : null;
@@ -1445,6 +1466,7 @@
     let list!: BC.DisplayList;
     function draw(): void {
       speak();
+      spoken = [];
       if (dynamicSpecs.length) {
         let t = baseTable;
         dynamicSpecs.forEach((ts, i) => {
@@ -1507,6 +1529,8 @@
           clip: name === 'marks' && zoomed ? { ...plot } : undefined,
         })),
       };
+      const label = nameOf(spec, spoken);
+      if (label) list.label = label;
       hush();
     }
 

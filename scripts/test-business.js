@@ -236,6 +236,32 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.strictEqual(k.note.text, 'vs March');
   });
 
+  test('guide.kpi: a screen reader hears the figure, its change and the note after the name of the chart, whole and once', () => {
+    const named = (extra) => /aria-label="([^"]*)"/.exec(draw(monthly(extra)).svg)[1];
+    const kpi = { type: 'kpi', field: 'rev', label: 'Revenue', format: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } };
+    assert.strictEqual(
+      named({ guides: [{ ...kpi, note: 'vs March' }] }),
+      'Revenue. $160. +77.8% vs March',
+      'no arrow: it is read out as a shape',
+    );
+    assert.strictEqual(named({ alt: 'Revenue', guides: [kpi] }), 'Revenue. $160. +77.8%', 'a word the name already says is said once');
+    assert.strictEqual(named({ title: 'Q1', guides: [{ ...kpi, label: undefined, compare: 'none' }] }), 'Q1. $160');
+    // in a tile two to a row on a phone the text is cut on screen; a screen reader still hears all of it
+    const host = new FakeNode('div');
+    host.clientWidth = 110;
+    const long = 'Annual recurring revenue across every region';
+    BC.chart(
+      host,
+      monthly({ size: [300, 120], guides: [{ ...kpi, label: long, note: 'against the same quarter of last year' }], marks: [] }),
+    );
+    const svg = svgOf(host);
+    assert(
+      texts(svg).some((t) => /…$/.test(t)),
+      'cut on screen: ' + texts(svg).join(' | '),
+    );
+    assert.strictEqual(/aria-label="([^"]*)"/.exec(svg)[1], `${long}. $160. +77.8% against the same quarter of last year`);
+  });
+
   test('guide.kpi: better "down", sum, against a field, absolute change, no comparison', () => {
     const cost = kpiTexts(draw(monthly({ guides: [{ type: 'kpi', field: 'cost', better: 'down' }] })).svg);
     assert(/--bc-bad/.test(cost.delta.fill), 'costs going up are bad');

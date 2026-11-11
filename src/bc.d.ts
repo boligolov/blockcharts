@@ -72,6 +72,10 @@ declare namespace BC {
     /** px; a number is every side. Default 16 on every side, and the guides take what they need on top of it. */
     padding?: Partial<Insets> | number;
     title?: string;
+    /** What a reader who cannot see the chart hears it called (its aria-label): what it shows. Default: the title; the
+     *  composer gives a chart without either the title of its card. What its guides say (a KPI's figure and change)
+     *  follows it. */
+    alt?: string;
     /** Declared once per chart, referenced by name from marks and guides. */
     scales?: Record<string, ScaleSpec>;
     guides?: GuideSpec[];
@@ -251,6 +255,10 @@ declare namespace BC {
     title?: string;
     /** Extra attributes, written as `data-<key>` (a legend item tells an interaction which value it stands for). */
     data?: Record<string, string>;
+    /** A switch a key can press, on or off (a legend item an interaction toggles): a renderer with elements makes it a
+     *  button that takes the focus, keeps the focus on it from one redraw to the next, and names the chart a group of
+     *  controls instead of an image (whose content a screen reader would not read). Its name is its text or `title`. */
+    pressed?: boolean;
   }
 
   /** `d` is a standard SVG path string (Path2D understands it too, so a Canvas renderer can reuse it). */
@@ -305,6 +313,8 @@ declare namespace BC {
     size: { w: number; h: number };
     plot: Rect;
     layers: Layer[];
+    /** What the chart is called for a reader who cannot see it (ChartSpec.alt): a renderer gives its element this name. */
+    label?: string;
   }
 
   // ───────────────────────── contexts ─────────────────────────
@@ -364,6 +374,12 @@ declare namespace BC {
     /** An interaction on the chart reads it along x, at any height (InteractionDef.alongX, a crosshair): a mark's pick
      *  then answers for the x of the pointer above or below its shape too. */
     readonly alongX: boolean;
+    /** Whether an interaction switches the categories of this scale from its legend in the chart (InteractionDef.toggles):
+     *  the legend then makes its items switches (Prim.pressed). */
+    toggled(scale: string): boolean;
+    /** From a guide's render: words a reader who cannot see the chart needs, said after its name (a KPI's figure and
+     *  change; see ChartSpec.alt). Collected afresh at every draw. */
+    say(text: string): void;
   }
 
   /** Available to interactions once the chart is in the DOM. */
@@ -599,6 +615,8 @@ declare namespace BC {
     /** It can follow a legend outside the chart (legend-filter): a page that draws one legend for several charts, as the
      *  composer does above a facet, gives it `legend`, the id of that element, and `scale`, the scale the legend shows. */
     outerLegend?: boolean;
+    /** The scale whose categories it switches from the legend in the chart (legend-filter), or undefined: ChartCtx.toggled. */
+    toggles?(spec: InteractionSpec, ctx: ChartCtx): string | undefined;
     attach(spec: InteractionSpec, live: LiveCtx): void;
   }
 

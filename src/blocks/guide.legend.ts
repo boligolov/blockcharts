@@ -204,7 +204,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 15,
+    version: 16,
     shownOnce: true,
     doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. A column that would take more than a fifth of the width of the chart (a phone, long labels) or more than its height (many categories) is drawn as a row on top instead; a label too long for a row is cut with an ellipsis and shown whole on hover. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
@@ -372,11 +372,14 @@
       }
 
       const items = itemsOf(scale, ctx, column ? Infinity : rowRoom(ctx, side));
+      // an interaction that shows and hides categories from here (legend-filter) makes each item a switch a key can press
+      const switches = ctx.toggled(String(spec.scale));
       const put = (px: number, py: number, it: Item) => {
         prims.push({
           type: 'g',
           cls: 'bc-legend-item',
           data: { 'bc-legend-scale': String(spec.scale), 'bc-legend-index': String(it.index) },
+          pressed: switches ? !it.hidden : undefined,
           style: it.hidden ? { opacity: HIDDEN_OPACITY } : undefined,
           title: it.label !== it.full ? it.full : undefined,
           children: [

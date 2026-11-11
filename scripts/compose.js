@@ -209,7 +209,7 @@ const defaultCss = (light) =>
     '.bc-facet-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;margin:0 0 8px}.bc-facet-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.bc-facet-legend button{all:unset;cursor:pointer}.bc-facet-legend button:focus-visible{outline:2px solid currentColor;outline-offset:2px}.bc-facet-legend [aria-pressed=false]{opacity:.4}',
     '@media (max-width:720px){.bc-facets{grid-template-columns:repeat(min(var(--bc-facet-cols,2),2),minmax(0,1fr))}}@media (max-width:480px){.bc-facets{grid-template-columns:minmax(0,1fr)}}',
     '.bc-scroll{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}',
-    '.bc-chart{user-select:none}.bc-chart text{font-variant-numeric:tabular-nums}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}',
+    '.bc-chart{user-select:none}.bc-chart text{font-variant-numeric:tabular-nums}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}.bc-legend-item:focus-visible{outline:2px solid var(--fg);outline-offset:1px;border-radius:4px}',
     '@media (max-width:720px){.bc-grid{grid-template-columns:repeat(var(--bc-phone-cols,1),minmax(0,1fr))}.bc-grid>.bc-section{grid-column:1/-1!important}.bc-grid>.bc-section.bc-pair{grid-column:auto!important;padding:14px 14px 10px}.bc-page{padding:20px 12px 40px}}',
     '@media print{body{background:#fff}.bc-page,.bc-page.bc-wide{max-width:none;padding:0}.bc-section{box-shadow:none;break-inside:avoid}.bc-group{break-after:avoid}.bc-scroll{overflow:visible}}',
   ].join('\n');
@@ -400,6 +400,19 @@ function styleTag(parts) {
 
 const MAX_PANELS = 36;
 
+/** What a screen reader calls a chart: its `alt` or its title (BC.ChartSpec.alt). */
+const nameOf = (spec) => (typeof spec.alt === 'string' && spec.alt.trim()) || (typeof spec.title === 'string' && spec.title.trim()) || '';
+
+/** Each panel of a facet is called by the card and its own value ("Revenue by month: Europe"), or one panel would sound
+ *  like the next. */
+const namePanels = (entry) => {
+  for (const p of entry.panels || []) {
+    if (!p.label) continue;
+    const card = nameOf(entry.spec);
+    p.spec = { ...p.spec, alt: card ? `${card}: ${p.label}` : p.label };
+  }
+};
+
 const facetSpec = (spec, field, value, at) => {
   const transforms = (spec.transforms || []).slice();
   transforms.splice(at, 0, { type: 'filter', field, value });
@@ -553,7 +566,13 @@ function compose(opts) {
       entry.spec = { ...entry.spec, locale: entry.lang };
     if (entry.minWidth !== undefined && (!Number.isFinite(entry.minWidth) || entry.minWidth <= 0 || entry.minWidth > 4000))
       throw new ComposeError(`charts[${i}].minWidth must be a width in px, from 1 to 4000`);
-    if (entry.facet !== undefined && entry.spec && typeof entry.spec === 'object') entry.panels = facetPanels(entry, i, data);
+    // a screen reader hears a chart by its alt or its title: the title of its card names one that has neither
+    if (typeof entry.title === 'string' && entry.title.trim() && entry.spec && typeof entry.spec === 'object' && !nameOf(entry.spec))
+      entry.spec = { ...entry.spec, alt: entry.title.trim() };
+    if (entry.facet !== undefined && entry.spec && typeof entry.spec === 'object') {
+      entry.panels = facetPanels(entry, i, data);
+      namePanels(entry);
+    }
     if (entry.span !== undefined && (!Number.isInteger(entry.span) || entry.span < 1 || entry.span > columns)) {
       throw new ComposeError(`charts[${i}].span must be a whole number from 1 to ${columns} (layout.columns)`);
     }
@@ -631,7 +650,11 @@ function compose(opts) {
       throw new ComposeError(`data "${name}": ${e.message}`);
     }
   }
-  for (const entry of facets) if (entry.madeField) entry.panels = transformFacet(entry, BC);
+  for (const entry of facets)
+    if (entry.madeField) {
+      entry.panels = transformFacet(entry, BC);
+      namePanels(entry);
+    }
   charts = panelled();
   const diagnostics = dataWarnings.slice();
   charts.forEach(({ spec, index: i }) => {
@@ -715,8 +738,17 @@ function compose(opts) {
         // run inside the sandbox, under its timeout: a block stuck in a loop on this data stops the build with an error
         // instead of hanging the composer (and the agent waiting for it) forever
         sandbox.__bcTrial = () => {
-          const handle = BC.chart(new El('div', sandbox.document), spec);
+          const host = new El('div', sandbox.document);
+          const handle = BC.chart(host, spec);
           found = plain(Array.from(handle.diagnostics));
+          // the element the renderer drew (none while data is still on its way): the name a screen reader hears it by
+          const drawn = host.children.find((c) => c.getAttribute('role'));
+          if (drawn && !drawn.getAttribute('aria-label'))
+            found.push({
+              level: 'warn',
+              path: '',
+              message: 'a screen reader hears this chart only as "image": give the entry a "title", or the spec an "alt" (what it shows)',
+            });
           handle.destroy();
         };
         vm.runInContext('__bcTrial()', sandbox, { timeout: drawTimeout });

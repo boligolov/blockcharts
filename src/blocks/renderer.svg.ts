@@ -8,6 +8,8 @@
     defs: Element;
     plot: BC.Rect;
     fades: Map<string, string>;
+    /** The switches drawn so far (Prim.pressed), in order: the next paint gives the focus back to the same one. */
+    controls: Element[];
   }
 
   function el(name: string): Element {
@@ -122,6 +124,12 @@
       node.setAttribute('data-bc-mark', String(p.ref.mark));
       node.setAttribute('data-bc-row', String(p.ref.row));
     }
+    if (p.pressed !== undefined) {
+      node.setAttribute('tabindex', '0');
+      node.setAttribute('role', 'button');
+      node.setAttribute('aria-pressed', p.pressed ? 'true' : 'false');
+      pt.controls.push(node);
+    }
     if (p.title) {
       const t = el('title');
       t.textContent = p.title;
@@ -133,26 +141,46 @@
   const def: BC.RendererDef = {
     role: 'renderer',
     type: 'svg',
-    version: 5,
-    doc: 'Draws a display list as one <svg> scaled to its container via viewBox. Paths have no implicit fill: marks set `fill: "none"` for strokes. A style with `fade` gets a vertical gradient over the plot, from the fill color to transparent.',
+    version: 6,
+    doc: 'Draws a display list as one <svg> scaled to its container via viewBox. Paths have no implicit fill: marks set `fill: "none"` for strokes. A style with `fade` gets a vertical gradient over the plot, from the fill color to transparent. The chart is an image named by its `alt` or title for a screen reader; one with switches a key can press (the items of a legend filter) is a group of them instead, and the switch that has the focus keeps it when the chart is drawn anew.',
     render(list, host) {
       const svg = el('svg');
       svg.setAttribute('width', '100%');
       svg.setAttribute('role', 'img');
       svg.setAttribute('style', 'display:block;height:auto');
+      let controls: Element[] = [];
       const paint = (l: BC.DisplayList) => {
+        // a paint draws every element anew: the switch that has the focus loses it, and the one drawn in its place takes it
+        const doc = svg.ownerDocument || (typeof document === 'undefined' ? null : document);
+        const focused = doc && doc.activeElement ? controls.indexOf(doc.activeElement) : -1;
         svg.textContent = '';
         svg.setAttribute('viewBox', `0 0 ${l.size.w} ${l.size.h}`);
         const defs = el('defs');
         svg.appendChild(defs);
-        const pt: Paint = { defs, plot: l.plot, fades: new Map() };
+        const pt: Paint = { defs, plot: l.plot, fades: new Map(), controls: [] };
+        /** What is drawn around the switches: the bars, the axes' ticks. */
+        const rest: Element[] = [];
         for (const layer of l.layers) {
           const g = el('g');
           g.setAttribute('data-bc-layer', layer.name);
           if (layer.clip) clipped(g, layer.clip, defs);
-          for (const p of layer.prims) g.appendChild(build(p, pt));
+          for (const p of layer.prims) {
+            const had = pt.controls.length;
+            const node = build(p, pt);
+            if (pt.controls.length === had) rest.push(node);
+            g.appendChild(node);
+          }
           svg.appendChild(g);
         }
+        controls = pt.controls;
+        // What is inside an image is not read out, switches neither: a chart with switches is a group of them. The rest is
+        // kept from a screen reader, or it would read the ticks one after another ("Q1 Q2 Q3 Q4 0 5 10").
+        svg.setAttribute('role', controls.length ? 'group' : 'img');
+        if (controls.length) for (const node of rest) node.setAttribute('aria-hidden', 'true');
+        if (l.label) svg.setAttribute('aria-label', l.label);
+        else svg.removeAttribute('aria-label');
+        const back = focused >= 0 ? (controls[focused] as HTMLElement | undefined) : undefined;
+        if (back && typeof back.focus === 'function') back.focus({ preventScroll: true });
       };
       paint(list);
       host.appendChild(svg);
