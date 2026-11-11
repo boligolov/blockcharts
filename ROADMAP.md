@@ -7,6 +7,74 @@ commit that finishes it.
 The skill (`skills/blockcharts/`) is the main product; the principles (`docs/spec/`), the library (`src/`)
 and the ways to ship it (composer, kits, loader, npm) serve it.
 
+## The production review
+
+A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): code, skill text, recipes, the site,
+every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
+one note in [docs/Design.md](docs/Design.md#the-production-review) each.
+
+Done (skill 0.33.1–0.33.26): A, safety (5); B, silent wrong results in validation and data (21); C1–C11 and C13, layout
+and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
+vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`).
+
+Left, in this order:
+
+- [ ] **C12** Desktop font sizes vary 11–18 px because charts scale to the card width: slope, boxplot and dotplot are
+      bigger than the card titles; slope leaves the right third empty.
+- [ ] **C14** Waterfall on a phone: value labels 8.5 px; rotated labels leave a blank band (the executive dashboard too).
+- [ ] **C15** Marimekko: region labels sit in different segments per column; Africa about 8 px.
+- [ ] **C16** Hexbin's top row is above the top gridline; histogram bins of zero draw a hairline; Gantt has no "Jan"
+      tick; the candlestick top label is clipped by 1 px.
+- [ ] **C17** The tooltip's color dot is not the mark's color: candlestick (blue on green/red), bullet (grey band,
+      invisible in dark), heatmap dark cells.
+- [ ] **C18** No tooltip on error-bar whiskers, dumbbell connectors, lollipop stems.
+- [ ] **C19** KPI tile: `phoneColumns: 2` shrinks it to 66% (highlight-bar); stretched with an empty bottom on a desk;
+      the executive Orders / Conversion / Churn tiles have no tooltip; phone tiles are about 300 px tall.
+- [ ] **C20** Treemap: Latin America cells unlabelled (`labelMin` 0.03); legend items have uneven gaps (treemap,
+      streamgraph).
+- [ ] **D1** Charts are `role="img"` with no name (renderer.svg, renderer.canvas); the legend filter cannot be reached
+      by keyboard (guide.legend, interaction.legend-filter).
+- [ ] **D2** Site: `--faint #8b93a1` is 2.8–3.1:1 in light, 4.43:1 in dark (site.css).
+- [ ] **D3** Site: 51 pages skip a heading level; no skip link; every copy button says only "Copy".
+- [ ] **E1** Tooltips show internals and raw values: highlight-bar (ISO date, raw number, a helper field), waterfall
+      `value1` (executive too), boxplot outlier "count 10" and q1/q3/low/high, histogram bin0/bin1, bars-and-line
+      quarterTotal/line, funnel stepRate "–", moving-average avg7/toDate, dumbbell y2024/y2025, pie/donut "share 19"
+      with no %, dual-axis "month 1", error-bars forecast "– – –", scatter-large axis titles x/y, scatter-groups A/B
+      with no axis titles. Some are block defaults (the helper fields of waterfall and stack), some are the recipes.
+- [ ] **E2** Recipes against SKILL.md's own advice: dashboard (custom css, no layout, teal points on a blue line, a
+      scatter with no axis titles), report-from-csv (same colors; the bar axis is not currency; on a phone the line has
+      only Jan/Apr), dual-axis (no legend, no axis titles), stacked-area-100 (0.0–1.0, not %).
+- [ ] **E3** Recipe notes are prose for the agent but are shown to readers under the charts (example pages,
+      downloadable reports): backticks, "transform.stack", "NaN". Decided: a separate field for the caption a reader
+      sees, so notes stay for the agent; its semantics are still to settle.
+- [ ] **E4** SKILL.md: the inline CSV example has literal newlines inside a JSON string.
+- [ ] **E5** SKILL.md: `runtime/encode-columns.js` is named as a tool but has no CLI.
+- [ ] **E6** SKILL.md: the KPI paragraph comes before the `kpi` guide is introduced and has a sentence with no verb;
+      the zoom paragraph is out of order too.
+- [ ] **E7** The trigger description: leave out charts embedded in an app's own code; a hint for "table" requests (a
+      heatmap with text).
+- [ ] **F1** README and docs/spec/principles.md: every size and count is stale (34 vs 58 blocks, kits 60 → 86.7 KB …).
+      Generate them or link /blocks/#sizes.
+- [ ] **F2** site/public/og.png is stale (21 of 42 blocks, 69.8 KB): `npm run og` and check it.
+- [ ] **F3** guide.astro says "A Canvas renderer … is planned"; site-demos.js says "Charts are SVG".
+- [ ] **F4** /blocks/ parameter tables cut the doc column on a phone (16 of 63 tables), also the /guide/ kit table and
+      /embed/data/: stack the rows below about 600 px.
+- [ ] **F6** "48 KB smallest report" (Stats.astro) vs 39.5 KB in the gallery; "everything" is 179.6 / 182.5 / 183 KB.
+- [ ] **F7** /embed/kit/ inline code widens the page to 526 px on a phone (site-demos.js).
+- [ ] **F8** Install.astro "updates itself"; principles v1.0 vs 1.1 (README, Principles.astro); the compose path in
+      [name].astro; HowItWorks "above"; mouse-only hints on phones (Hero, examples index); titles "Bar chart: chart
+      example"; no 404 page; README "no dependencies"; the canvas bench says 50,000 points where it measured 21,000;
+      0.1.0 vs 0.33.x versions unexplained; browser minimums (ES2020, DecompressionStream: Safari 16.4+, Firefox 113+).
+- F5 (`npm install blockcharts` is a 404, `cdn.example.com` placeholders, blockcharts.online does not resolve) waits for
+  the release below: publishing and deploying are the owner's step.
+
+Found along the way:
+
+- [ ] Date categories on a band axis are thinned by the width of the whole label on one line, so twelve months in
+      Japanese show every other month on a desk although "2024年 / 1月" on two lines would fit (guide.axis `fitWritten`).
+- [ ] The browsers dashboard (in `dashboards/`, not in the repository) now stops with an error on a diverging color
+      domain `[-2.1, 0, 2.1]`: the stricter domain reading of 0.33.10 caught it. Fix the dashboard or accept such domains.
+
 ## The repository and the site
 
 - [ ] **Try the plugin install from the marketplace** (`/plugin marketplace add boligolov/blockcharts`, then
