@@ -4718,7 +4718,7 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
 
   // ───────────────────────── responsive layout ─────────────────────────
 
-  test('responsive: a container narrower than the size lays the chart out at its width, again when it changes, keeping the zoom', async () => {
+  test('responsive: a container narrower or wider than the size lays the chart out at its width, again when it changes, keeping the zoom', async () => {
     const observers = [];
     const savedRO = globalThis.ResizeObserver;
     globalThis.ResizeObserver = class {
@@ -4754,7 +4754,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       host.clientWidth = 1200;
       observers[observers.length - 1].cb();
       await wait();
-      assert.deepStrictEqual(box(host), [640, 300], 'wider than the size: the drawing scales up as before');
+      assert.deepStrictEqual(box(host), [1200, 300], 'wider than the size: laid out at that width too, so text is not enlarged');
+      assert.deepStrictEqual(h.getView().x.map(Number), zoomed, 'the zoom survives a wider layout too');
+
+      host.clientWidth = 640;
+      observers[observers.length - 1].cb();
+      await wait();
+      assert.deepStrictEqual(box(host), [640, 300], 'the width of the size: the size itself');
 
       const drawn = svgOf(host);
       observers[observers.length - 1].cb();
@@ -4773,6 +4779,17 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       tiny.clientWidth = 90;
       BC.chart(tiny, spec);
       assert.deepStrictEqual(box(tiny), [200, 300], 'never laid out narrower than 200 px');
+
+      // a chart sized narrower than 200 px (a sparkline in a tile): laid out at its own size below it, at the width above
+      const small = { ...spec, size: [150, 60], guides: [] };
+      const narrow = new FakeNode('div');
+      narrow.clientWidth = 90;
+      BC.chart(narrow, small);
+      assert.deepStrictEqual(box(narrow), [150, 60], 'below its own narrow size it scales down, not out to 200 px');
+      const between = new FakeNode('div');
+      between.clientWidth = 180;
+      BC.chart(between, small);
+      assert.deepStrictEqual(box(between), [180, 60], 'between its size and 200 px it takes the width');
 
       const unknown = new FakeNode('div');
       BC.chart(unknown, spec);

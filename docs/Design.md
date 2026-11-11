@@ -169,9 +169,9 @@ Marks know nothing about SVG; they return primitives, and the renderer draws the
 - The composer and the agent need not know about SVG/Canvas — that is the renderer's decision.
 - Spec errors are caught by the core's validation (`BC.validate`), which throws nothing and returns
   diagnostics (`level`, `path`, `message`).
-- Scaling is through `viewBox` (the SVG stretches to its container). The price: text scales with the chart.
-  Acceptable for reports; the alternative (several layouts / recomputing layout in JS) is expensive and
-  postponed.
+- Scaling is through `viewBox` (the SVG stretches to its container), and the core lays the chart out again at the
+  container's width (see "Responsive layout" below), so the stretch is 1 and text keeps its size; only a chart with
+  `responsive: false`, or one narrower than 200 px, is scaled as a drawing.
 
 ## Known rough edges
 
@@ -784,8 +784,9 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
 - **Responsive layout, in the core**: when the host is narrower than `size[0]`, the chart is built at the
   host's width (the height stays), so text keeps its size on a phone instead of shrinking with the drawing; a
   ResizeObserver rebuilds it when the width changes, keeping the zoom, and ignores changes of height. Never
-  narrower than 200 px; `responsive: false` keeps the old behaviour; a wider host scales up as before, and
-  with no width known (a server, the composer's dry run, the tests) nothing changes.
+  narrower than 200 px; `responsive: false` keeps the old behaviour; with no width known (a server, the
+  composer's dry run, the tests) nothing changes. A wider host scaled the drawing up until the production review
+  (below): now it is laid out at its width too.
 - **Table** stays in ROADMAP, much later.
 
 ## Review fixes and bubbles (2026-10-25)
@@ -1355,6 +1356,14 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   long names were cut. Now the totals are on every node or on none; a total that does not fit goes under its name and a
   long name breaks at a space, as many lines as the node is tall; two labels that meet in the last gap first move apart,
   up and down beside their nodes, and only share the gap when they cannot.
+- **Text is the same size in every card.** A chart was laid out again at its container's width only when that was
+  narrower than `size`; a wider card stretched the drawing, text and all. On a desk the cards of a report are about
+  800 px wide, so the labels were 11 px on a chart sized 800 and 18 px on the slope chart sized 480, larger than the
+  card's own title (14 px). Now the chart is laid out at the container's width either way, at the height of `size`:
+  every label of every recipe is 11–12 px at any width, and `size[0]` is the width only where none is known. A
+  chart sized narrower than 200 px is laid out at its own size below it, where it was stretched out to 200. The slope
+  recipe drops its `padding.right` of 110 px: on a band axis the last point stands in the middle of its band, whose
+  outer padding holds the names, and the padding had left the right third of the card empty.
 
 ## Next steps
 

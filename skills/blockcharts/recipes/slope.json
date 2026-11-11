@@ -15,11 +15,10 @@
   "charts": [
     {
       "title": "Net Promoter Score by region, 2024 → 2025",
-      "note": "A slope chart: mark.line on a band x-scale joins each region's two values, mark.point marks the ends. The order of the domain is the order of the line, so name it when the rows may come in another order. End labels replace the legend; leave room for them on the right.",
+      "note": "A slope chart: mark.line on a band x-scale joins each region's two values, mark.point marks the ends. The order of the domain is the order of the line, so name it when the rows may come in another order. End labels replace the legend. On a band scale the last point stands in the middle of its band, so the outer padding of the band holds the labels: give `paddingOuter` more for long names, not `padding.right`.",
       "spec": {
         "data": "nps",
         "size": [480, 340],
-        "padding": { "right": 110 },
         "scales": {
           "x": { "type": "band", "domain": ["2024", "2025"], "paddingOuter": 0.25 },
           "y": { "type": "linear", "zero": true, "nice": true },

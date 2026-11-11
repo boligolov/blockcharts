@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.33.26"
+  version: "0.33.27"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -152,11 +152,12 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 - A `note` that says what the chart shows, in one sentence.
 - Names at the line ends instead of a legend: `"label": "name"` (or `"value"`, `"both"` with `format`) on each
   `line`, `"name"` for a line that is not split into series, and room on the right (`"padding": {"right": 96}`, more
-  for Chinese, Japanese or Korean, about 12 px a character). Padding stays the same on a phone, so keep it modest.
+  for Chinese, Japanese or Korean, about 12 px a character). Padding stays the same on a phone, so keep it modest. On a
+  band x (a slope chart) the last point stands in the middle of its band: its outer padding holds the names.
 - `{"type": "crosshair"}` with the tooltip on time series: a line that follows the pointer to the nearest date.
 - `{"type": "animate"}`: the chart plays in once (bars grow, lines draw); readers who ask for less motion get none.
-- On a phone a chart is laid out again at the screen width, so keep `size` for the desktop card and do not
-  shrink it for phones. Text categories that no longer fit go at an angle by themselves; labels inside cells that
+- A chart is laid out at the width of its card, on a phone and on a desk, and at the height of `size`, so its text
+  is the same size in every card. Keep `size` for the desktop card and do not shrink it for phones. Text categories that no longer fit go at an angle by themselves; labels inside cells that
   do not fit are left out, so give such a chart `minWidth` in its `charts` entry.
 
 ## Recipes

@@ -13,14 +13,13 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.26): A, safety (5); B, silent wrong results in validation and data (21); C1–C11 and C13, layout
+Done (skill 0.33.1–0.33.27): A, safety (5); B, silent wrong results in validation and data (21); C1–C13, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
-vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`).
+vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
+every card).
 
 Left, in this order:
 
-- [ ] **C12** Desktop font sizes vary 11–18 px because charts scale to the card width: slope, boxplot and dotplot are
-      bigger than the card titles; slope leaves the right third empty.
 - [ ] **C14** Waterfall on a phone: value labels 8.5 px; rotated labels leave a blank band (the executive dashboard too).
 - [ ] **C15** Marimekko: region labels sit in different segments per column; Africa about 8 px.
 - [ ] **C16** Hexbin's top row is above the top gridline; histogram bins of zero draw a hairline; Gantt has no "Jan"
@@ -31,7 +30,8 @@ Left, in this order:
 - [ ] **C19** KPI tile: `phoneColumns: 2` shrinks it to 66% (highlight-bar); stretched with an empty bottom on a desk;
       the executive Orders / Conversion / Churn tiles have no tooltip; phone tiles are about 300 px tall.
 - [ ] **C20** Treemap: Latin America cells unlabelled (`labelMin` 0.03); legend items have uneven gaps (treemap,
-      streamgraph).
+      streamgraph). The cells are laid out for `aspect`, not for the plot: on a phone (a plot of 324 × 400) they are
+      about three times taller than wide. Read the plot's aspect when none is given, as hexbin does.
 - [ ] **D1** Charts are `role="img"` with no name (renderer.svg, renderer.canvas); the legend filter cannot be reached
       by keyboard (guide.legend, interaction.legend-filter).
 - [ ] **D2** Site: `--faint #8b93a1` is 2.8–3.1:1 in light, 4.43:1 in dark (site.css).
@@ -70,6 +70,9 @@ Left, in this order:
 
 Found along the way:
 
+- [ ] From 720 px to about 1050 px (a tablet, a narrow window) a grid of 4 columns makes cards narrower than 200 px (136 at 800): the
+      KPI tiles and the donut of executive-dashboard are laid out at 200 px and scaled down, text 7.5–8 px. The grid could
+      take fewer columns in that range.
 - [ ] Date categories on a band axis are thinned by the width of the whole label on one line, so twelve months in
       Japanese show every other month on a desk although "2024年 / 1月" on two lines would fit (guide.axis `fitWritten`).
 - [ ] The browsers dashboard (in `dashboards/`, not in the repository) now stops with an error on a diverging color

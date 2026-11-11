@@ -1606,7 +1606,7 @@
     return problem ? [{ level: 'error', path: 'data', message: problem }] : [];
   }
 
-  /** Narrowest width a chart is laid out at, px: below it, it scales down as a drawing. */
+  /** Narrowest width a chart is laid out at, px (unless its size is narrower): below it, it scales down as a drawing. */
   const MIN_LAYOUT_WIDTH = 200;
 
   function chart(host: HTMLElement, spec: BC.ChartSpec): BC.ChartHandle {
@@ -1691,13 +1691,16 @@
 
     const run = () => start(++epoch);
 
-    /** The width to lay the chart out at: the container's, when it is narrower than the chart's size; else null. */
+    /** The width to lay the chart out at: the container's, narrower or wider than the chart's size, so text is drawn at
+     *  its own size in any card; null for the size itself (no width known, or the same width). Never narrower than
+     *  MIN_LAYOUT_WIDTH, or than the size when that is narrower still: below it the drawing scales down. */
     const widthFor = (s: BC.ChartSpec): number | null => {
       if (!s || typeof s !== 'object' || s.responsive === false) return null;
       const w = (host as { clientWidth?: unknown }).clientWidth;
       const design = Array.isArray(s.size) && typeof s.size[0] === 'number' ? s.size[0] : 640;
-      if (typeof w !== 'number' || !isFinite(w) || w <= 0 || w >= design - 1) return null;
-      return Math.max(MIN_LAYOUT_WIDTH, Math.round(w));
+      if (typeof w !== 'number' || !isFinite(w) || w <= 0) return null;
+      const at = Math.max(Math.round(w), Math.min(design, MIN_LAYOUT_WIDTH));
+      return Math.abs(at - design) < 1 ? null : at;
     };
     // relayout when the container's width changes (a phone turned, a window resized), keeping the zoom. Watched whatever
     // the spec says: an update() may turn `responsive` on or off, and widthFor reads the spec of the moment.

@@ -16,9 +16,9 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 | Where | Key | Meaning |
 | --- | --- | --- |
 | chart | `data` | name of a dataset in the page data (required) |
-| chart | `size` | `[width, height]` of the drawing, default `[640, 400]`; the chart scales to its container |
+| chart | `size` | `[width, height]` px, default `[640, 400]`; the chart is laid out at the width of its container and this height |
 | chart | `title` | text above the plot |
-| chart | `padding` | `{top, right, bottom, left}` in drawing units, default 16 each; one number is every side |
+| chart | `padding` | `{top, right, bottom, left}` px, default 16 each; one number is every side |
 | chart | `transforms`, `scales`, `guides`, `marks`, `interaction` | lists of blocks (`scales` is an object of named scales) |
 | chart | `view` | starting zoom: `{"x": [from, to]}` (dates as ISO strings or milliseconds) |
 | scale | `type` | the scale block: `band`, `color`, `linear`, `log`, `sequential`, `size`, `time` |

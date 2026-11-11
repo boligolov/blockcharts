@@ -66,7 +66,8 @@ declare namespace BC {
     data: string;
     /** Applied in order to the dataset before scales are built (stack, bin, ...). */
     transforms?: TransformSpec[];
-    /** Logical size; the SVG uses it as viewBox and scales to the container. Default [640, 400]. */
+    /** [width, height] px. The chart is laid out at its container's width and this height (see `responsive`); the width
+     *  is used where no container's width is known (a server, the composer's check). Default [640, 400]. */
     size?: [number, number];
     /** px; a number is every side. Default 16 on every side, and the guides take what they need on top of it. */
     padding?: Partial<Insets> | number;
@@ -78,9 +79,9 @@ declare namespace BC {
     interaction?: InteractionSpec[];
     /** Initial view: scale name → visible domain (zoomed state). Same thing `setView` changes at runtime. */
     view?: Record<string, unknown[]>;
-    /** When the chart's container is narrower than `size` (a phone), the chart is laid out again at the container's width,
-     *  so text keeps its size instead of shrinking with the drawing; and again whenever that width changes. Default true;
-     *  false keeps `size` and only scales. A wider container scales the drawing up as always. */
+    /** The chart is laid out at its container's width, narrower (a phone) or wider (a desk card) than `size`, so text keeps
+     *  its size instead of shrinking or growing with the drawing; the height stays; again whenever that width changes.
+     *  Never narrower than 200 px. Default true; false keeps `size` and scales the drawing to the container. */
     responsive?: boolean;
     /** Default "svg". */
     renderer?: string;
