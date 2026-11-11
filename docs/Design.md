@@ -1364,6 +1364,19 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   chart sized narrower than 200 px is laid out at its own size below it, where it was stretched out to 200. The slope
   recipe drops its `padding.right` of 110 px: on a band axis the last point stands in the middle of its band, whose
   outer padding holds the names, and the padding had left the right third of the card empty.
+- **A waterfall on a phone keeps its figures at full size.** Seven bars on a phone have about 36 px each, and the
+  figures shrank to 8.5 px: a label on a band had the step from one category to the next, as if the labels beside it
+  were as wide and at the same height. Now a label at its bar (not in a cell) may reach into the gap before the next
+  bar and shares the step only with a label of the next band at the same height (all of a row still take one size).
+  In a waterfall a loss starts at the top of the bar before it, so with every figure on top two of them always stood
+  side by side; the recipes now put each figure where its bar ends, a loss's under it, through a new channel of
+  `mark.text`: `sign` names the field whose sign `negative: "flip"` reads (`amount`) when the label stands at the end of
+  a bar that is above zero (`value1`). A flip that would carry a label out of the plot (a loss down to nearly zero)
+  leaves it on its own side. With a figure on every bar the value axis and its grid go, as IBCS has it, and their 45
+  px with them: the figures are 11 px from 360 px up. The names under the bars, at 45° on a phone, left an empty band
+  of about 26 px: the axis reserved their length by `measure()`, which is generous by a quarter on Latin text. It now
+  uses `ctx.textWidth`, the widths of characters measured in Chrome that `mark.text` had kept to itself, moved into the
+  core for both.
 
 ## Next steps
 

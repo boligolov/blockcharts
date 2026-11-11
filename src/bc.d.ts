@@ -352,8 +352,11 @@ declare namespace BC {
     series(mark: MarkSpec, xs: ArrayLike<number>): { key: unknown; rows: number[] }[];
     /** Categorical color by index, from the theme (`--bc-c<N>`) with a built-in fallback palette. */
     color(index: number): string;
-    /** Rough text measurement for layout (no DOM access). */
+    /** Rough text measurement for layout (no DOM access), generous: text laid out by it is never clipped. */
     measure(text: string, size?: number): { w: number; h: number };
+    /** The width of a label as a sans-serif such as Inter draws it, a little over: for room that shows when it is
+     *  overestimated (between value labels, under slanted ones). `weight` as in a text primitive. */
+    textWidth(text: string, size?: number, weight?: unknown): number;
     /** Whether a text has characters a full em wide (Chinese, Japanese, Korean): such text can break between any two. */
     wide(text: string): boolean;
     /** The px an overlay (InteractionDef.corner) takes from the left and the right end of the chart's top or bottom edge. */

@@ -853,6 +853,26 @@
     return { w: em * size, h: size * 1.2 };
   }
 
+  /** Width of a label in px, from the widths of its characters in a sans-serif such as Inter (measured in Chrome), a
+   *  little over the real width. measure() is more generous still, which is right where text must never be clipped and
+   *  wrong where the room left over shows: around a value label, or under a slanted one. */
+  function textWidth(text: string, size: number = 11, weight?: unknown): number {
+    let em = 0;
+    for (const ch of text) {
+      if (ch === ' ' || "iIl|!.,:;'".indexOf(ch) >= 0) em += 0.28;
+      else if ('fjrt()[]-'.indexOf(ch) >= 0) em += 0.4;
+      else if (ch === 'M' || ch === 'W' || ch === 'm' || ch === 'w' || ch === '%' || ch === '@') em += 0.95;
+      else if (ch >= '0' && ch <= '9') em += 0.6;
+      else if (ch >= 'a' && ch <= 'z') em += 0.54;
+      else if (ch >= 'A' && ch <= 'Z') em += 0.7;
+      else if (ch.charCodeAt(0) < 0x2e80) em += 0.62;
+      else em += 1; // CJK and other full-width characters
+    }
+    const bold =
+      weight === 'bold' || (typeof weight === 'number' && weight >= 700) ? 1.08 : typeof weight === 'number' && weight >= 600 ? 1.04 : 1;
+    return em * size * bold;
+  }
+
   function insetsPlot(size: { w: number; h: number }, ins: BC.Insets): BC.Rect {
     return { x: ins.left, y: ins.top, w: Math.max(1, size.w - ins.left - ins.right), h: Math.max(1, size.h - ins.top - ins.bottom) };
   }
@@ -1212,6 +1232,7 @@
       },
       scales,
       measure,
+      textWidth,
       wide,
       alongX: (spec.interaction || []).some((is) => {
         const def = registry.get(`interaction.${is.type}`) as BC.InteractionDef | undefined;

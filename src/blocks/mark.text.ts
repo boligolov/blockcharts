@@ -29,25 +29,6 @@
     return (lum + 0.05) / (DARK_LUMINANCE + 0.05) >= 1.05 / (lum + 0.05) ? DARK : LIGHT;
   }
 
-  /** Width of a label in px, from the widths of its characters in a sans-serif such as Inter (measured in Chrome),
-   *  a little over the real width. ctx.measure() is too generous here: it would shrink or drop labels that fit. */
-  function widthOf(text: string, size: number, weight: unknown): number {
-    let em = 0;
-    for (const ch of text) {
-      if (ch === ' ' || "iIl|!.,:;'".indexOf(ch) >= 0) em += 0.28;
-      else if ('fjrt()[]-'.indexOf(ch) >= 0) em += 0.4;
-      else if (ch === 'M' || ch === 'W' || ch === 'm' || ch === 'w' || ch === '%' || ch === '@') em += 0.95;
-      else if (ch >= '0' && ch <= '9') em += 0.6;
-      else if (ch >= 'a' && ch <= 'z') em += 0.54;
-      else if (ch >= 'A' && ch <= 'Z') em += 0.7;
-      else if (ch.charCodeAt(0) < 0x2e80) em += 0.62;
-      else em += 1; // CJK and other full-width characters
-    }
-    const bold =
-      weight === 'bold' || (typeof weight === 'number' && weight >= 700) ? 1.08 : typeof weight === 'number' && weight >= 600 ? 1.04 : 1;
-    return em * size * bold;
-  }
-
   function format(v: unknown, decimals: number | undefined): string {
     if (v == null) return '';
     if (typeof v === 'number') {
@@ -58,12 +39,15 @@
     return String(v);
   }
 
+  /** The least room between two labels side by side, and (half of it on each side) between a label and the next bar. */
+  const GAP = 4;
+
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'text',
-    version: 13,
+    version: 14,
     markColor: false,
-    doc: 'A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped, and the same label on the same spot is written once (a total a transform repeated on each row of its quarter). To keep a label readable on a colored cell, give it `on`: the same field as the cell\'s color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.',
+    doc: 'A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as "percent" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped, and the same label on the same spot is written once (a total a transform repeated on each row of its quarter). To keep a label readable on a colored cell, give it `on`: the same field as the cell\'s color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it may reach past its band into the gap before the next bar, but not into a label of the next band at the same height (a label in a cell, with `y2`, keeps to the step from one category to the next), and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline "middle" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that.',
     params: {
       size: { kind: 'number', default: 11, doc: 'Font size in px.' },
       weight: { kind: 'any', doc: 'Font weight: a number (600) or a word ("bold").' },
@@ -91,7 +75,7 @@
         kind: 'enum',
         values: ['same', 'flip'],
         default: 'same',
-        doc: '"flip" mirrors the placement of a row whose value is below zero, so that the label of a negative bar sits past its end, not inside it: `baseline` and `dy` on a value y, `anchor` and `dx` on a value x (with a band y, as in horizontal bars).',
+        doc: '"flip" mirrors the placement of a row whose value is below zero, so that the label of a negative bar sits past its end, not inside it: `baseline` and `dy` on a value y, `anchor` and `dx` on a value x (with a band y, as in horizontal bars). The value is the one the label stands at, or the `sign` field when there is one. A row the flip would put out of the plot keeps its own side.',
       },
       collide: {
         kind: 'enum',
@@ -119,6 +103,10 @@
         doc: 'The other side of the box the label has to fit in, vertically.',
       },
       text: { required: true, unscaled: true, doc: 'Field with the text to show.' },
+      sign: {
+        unscaled: true,
+        doc: 'With `negative: "flip"`: the field whose sign says which way a row\'s bar runs, when the label stands at the end of the bar and that end is not below zero. A waterfall step: `y` at `<field>1`, where the bar ends, and `sign: "amount"` puts the figure of a loss under its bar.',
+      },
       color: { accepts: { output: 'color' }, doc: 'Text color per row, from a color scale.' },
       on: {
         accepts: { output: 'color' },
@@ -130,6 +118,7 @@
       const cx = ctx.channel(spec, 'x');
       const cy = ctx.channel(spec, 'y');
       const labels = ctx.channel(spec, 'text').raw;
+      const signs = spec.sign !== undefined ? ctx.channel(spec, 'sign').raw : null;
       const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
       const backgrounds = spec.on !== undefined ? ctx.channel(spec, 'on').mapped : null;
       const write = spec.format !== undefined ? BC.formatter(spec.format as BC.FormatSpec | string) : null;
@@ -147,17 +136,25 @@
       const minSize = typeof spec.minSize === 'number' && spec.minSize > 0 ? Math.min(spec.minSize, size) : Math.min(8, size);
       const x2 = spec.x2 !== undefined ? ctx.channel(spec, 'x2').mapped : null;
       const y2 = spec.y2 !== undefined ? ctx.channel(spec, 'y2').mapped : null;
-      // the room of a label centered in a band: the distance to the next band's center, less a small gap
+      const widthOf = (text: string, px: number) => ctx.textWidth(text, px, weight);
+      // A label centered in a band has the step from one category to the next, less a gap, when the labels beside it
+      // are as wide. One that stands at its bar (not in a cell, which it keeps to) may reach into the gap before the
+      // next bar: it shares the step only with a label at the same height in the next band (see the end).
+      let step = 0;
       let bandRoom = Infinity;
+      let spread = Infinity;
       if (halfX && !x2 && anchor === 'middle' && rotate === undefined && cx.scale) {
         const cats = cx.scale.domain() as unknown[];
-        const step = cats.length > 1 ? Math.abs((cx.scale(cats[1]) as number) - (cx.scale(cats[0]) as number)) : ctx.plot.w;
-        if (isFinite(step) && step > 0) bandRoom = step - 4;
+        step = cats.length > 1 ? Math.abs((cx.scale(cats[1]) as number) - (cx.scale(cats[0]) as number)) : ctx.plot.w;
+        if (isFinite(step) && step > 0) {
+          bandRoom = step - GAP;
+          spread = y2 ? bandRoom : Math.max(bandRoom, 2 * (step - halfX) - GAP);
+        }
       }
       /** Room on each axis for a label whose anchor point (dx / dy added) is (x, y); Infinity when nothing bounds it
        *  (no band, no x2 / y2, or a row whose x2 / y2 is missing). */
       const roomAt = (i: number, x: number, y: number): [number, number] => {
-        let w = bandRoom;
+        let w = spread;
         let h = Infinity;
         if (x2 && rotate === undefined && isFinite(x2[i])) {
           const lo = Math.min(cx.mapped[i], x2[i]);
@@ -177,36 +174,53 @@
       };
       const flipNegative = spec.negative === 'flip';
       const flipX = flipNegative && !!cy.half && !cx.half;
-      const values = flipNegative ? (flipX ? cx : cy).raw : null;
+      const values = flipNegative ? (signs ? signs : (flipX ? cx : cy).raw) : null;
       const hideOverlaps = spec.collide === 'hide' && rotate === undefined;
       const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
       /** The box of a label, from its anchor point. */
-      const boxOf = (text: string, px: number, py: number, base: string, fontSize: number) => {
-        const w = widthOf(text, fontSize, weight);
-        const x0 = anchor === 'start' ? px : anchor === 'end' ? px - w : px - w / 2;
+      const boxOf = (text: string, px: number, py: number, base: string, fontSize: number, at: string = anchor) => {
+        const w = widthOf(text, fontSize);
+        const x0 = at === 'start' ? px : at === 'end' ? px - w : px - w / 2;
         const y0 = base === 'hanging' ? py : base === 'auto' ? py - fontSize : py - fontSize / 2;
         return { x0, x1: x0 + w, y0, y1: y0 + fontSize };
       };
       const free = (b: (typeof placed)[number]) => !placed.some((o) => b.x0 < o.x1 && o.x0 < b.x1 && b.y0 < o.y1 && o.y0 < b.y1);
       const mirrored = (b: 'auto' | 'middle' | 'hanging') => (b === 'auto' ? 'hanging' : b === 'hanging' ? 'auto' : b);
       const { from, to } = ctx.rows(spec);
-      const out: BC.Prim[] = [];
+      let out: BC.Prim[] = [];
+      /** The size each label would have kept to its own band, from one category to the next: the way back when labels
+       *  that reach into the gap meet even at minSize. */
+      const own: number[] = [];
       // the same label on the same spot is one label: a total a transform repeated on each row of its quarter
       const seen = new Set<string>();
+      const plot = ctx.plot;
       for (let i = from; i < to; i++) {
-        const below = values !== null && typeof values[i] === 'number' && (values[i] as number) < 0;
+        const text = write ? write(labels[i]) : format(labels[i], decimals);
+        const color = backgrounds ? (backgrounds[i] ? inkOn(backgrounds[i]) || fill : '') : colors ? colors[i] : fill;
+        if (!text || !color) continue;
+        // centered in its box, or `x` and `x2` would both be edges with no room around the anchor
+        const xMid = x2 && !halfX && anchor === 'middle' && rotate === undefined && isFinite(x2[i]);
+        const yMid = y2 && !halfY && baseline === 'middle' && rotate === undefined && isFinite(y2[i]);
+        const x0 = xMid ? (cx.mapped[i] + (x2 as ArrayLike<number>)[i]) / 2 : cx.mapped[i] + halfX;
+        const y0 = yMid ? (cy.mapped[i] + (y2 as ArrayLike<number>)[i]) / 2 : cy.mapped[i] + halfY;
+        let below = values !== null && typeof values[i] === 'number' && (values[i] as number) < 0;
+        if (below) {
+          // past the end of a bar that runs to the edge of the plot is out of it: there the label keeps its own side
+          const box = flipX
+            ? boxOf(text, x0 - dx, y0, baseline, size, anchor === 'start' ? 'end' : anchor === 'end' ? 'start' : anchor)
+            : boxOf(text, x0, y0 - dy, mirrored(baseline), size);
+          const outside = flipX
+            ? box.x0 < plot.x - 0.5 || box.x1 > plot.x + plot.w + 0.5
+            : box.y0 < plot.y - 0.5 || box.y1 > plot.y + plot.h + 0.5;
+          if (outside) below = false;
+        }
         const rowAnchor = below && flipX ? (anchor === 'start' ? 'end' : anchor === 'end' ? 'start' : anchor) : anchor;
         const rowDx = below && flipX ? -dx : dx;
         let rowBaseline: 'auto' | 'middle' | 'hanging' = below && !flipX ? mirrored(baseline) : baseline;
         let rowDy = below && !flipX ? -dy : dy;
-        // centered in its box, or `x` and `x2` would both be edges with no room around the anchor
-        const xMid = x2 && !halfX && anchor === 'middle' && rotate === undefined && isFinite(x2[i]);
-        const yMid = y2 && !halfY && baseline === 'middle' && rotate === undefined && isFinite(y2[i]);
-        const x = (xMid ? (cx.mapped[i] + (x2 as ArrayLike<number>)[i]) / 2 : cx.mapped[i] + halfX) + rowDx;
-        let y = (yMid ? (cy.mapped[i] + (y2 as ArrayLike<number>)[i]) / 2 : cy.mapped[i] + halfY) + rowDy;
-        const text = write ? write(labels[i]) : format(labels[i], decimals);
-        const color = backgrounds ? (backgrounds[i] ? inkOn(backgrounds[i]) || fill : '') : colors ? colors[i] : fill;
-        if (!text || !isFinite(x) || !isFinite(y) || !color) continue;
+        const x = x0 + rowDx;
+        let y = y0 + rowDy;
+        if (!isFinite(x) || !isFinite(y)) continue;
         const key = `${x},${y},${rowAnchor},${rowBaseline},${color}|${text}`;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -214,7 +228,7 @@
         const [w, h] = roomAt(i, x, y);
         if (w < Infinity || h < Infinity) {
           // the glyphs of one line, from the top of a capital to the bottom of a descender, are about the font size tall
-          fit = Math.min(size, (size * w) / widthOf(text, size, weight), h);
+          fit = Math.min(size, (size * w) / widthOf(text, size), h);
           if (!(fit >= minSize)) continue;
           fit = Math.floor(fit * 2) / 2;
         }
@@ -231,6 +245,7 @@
           }
           placed.push(box);
         }
+        own.push(spread > bandRoom ? Math.floor(Math.min(size, (size * bandRoom) / widthOf(text, size)) * 2) / 2 : fit);
         out.push({
           type: 'text',
           x,
@@ -245,11 +260,36 @@
           ref: { mark: index, row: i },
         });
       }
-      // the labels of a row of categories read as one series: they share the size of the smallest (cells keep their own)
+      // the labels of a row of categories read as one series: they share the size of the smallest (cells keep their own),
+      // and at that size two labels in neighbouring bands whose lines meet must not run into each other
       if (bandRoom < Infinity && !y2) {
+        const labels = out as BC.TextPrim[];
         let common = size;
-        for (const p of out) common = Math.min(common, (p as { size: number }).size);
-        for (const p of out) (p as { size: number }).size = common;
+        for (const p of labels) common = Math.min(common, p.size as number);
+        const order = labels.map((_, k) => k).sort((a, b) => labels[a].x - labels[b].x);
+        const meet = (px: number) => {
+          for (let a = 0; a < order.length; a++) {
+            const p = labels[order[a]];
+            const pb = boxOf(p.text, p.x, p.y, p.baseline as string, px);
+            for (let b = a + 1; b < order.length; b++) {
+              const q = labels[order[b]];
+              if (q.x - p.x >= 2 * step) break;
+              if (q.x - p.x < step / 2) continue; // the same band: one label above another
+              const qb = boxOf(q.text, q.x, q.y, q.baseline as string, px);
+              if (pb.x1 + GAP > qb.x0 && pb.y0 < qb.y1 && qb.y0 < pb.y1) return true;
+            }
+          }
+          return false;
+        };
+        while (common >= minSize && meet(common)) common -= 0.5;
+        if (common < minSize) {
+          // they meet even at the smallest size: every label keeps to its own band, and one that does not fit is left out
+          const kept = labels.filter((_, k) => own[k] >= minSize);
+          common = size;
+          labels.forEach((_, k) => own[k] >= minSize && (common = Math.min(common, own[k])));
+          out = kept;
+        }
+        for (const p of out as BC.TextPrim[]) p.size = common;
       }
       return out;
     },

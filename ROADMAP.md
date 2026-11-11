@@ -13,14 +13,13 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.27): A, safety (5); B, silent wrong results in validation and data (21); C1–C13, layout
+Done (skill 0.33.1–0.33.28): A, safety (5); B, silent wrong results in validation and data (21); C1–C14, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
-every card).
+every card, a waterfall's figures on a phone).
 
 Left, in this order:
 
-- [ ] **C14** Waterfall on a phone: value labels 8.5 px; rotated labels leave a blank band (the executive dashboard too).
 - [ ] **C15** Marimekko: region labels sit in different segments per column; Africa about 8 px.
 - [ ] **C16** Hexbin's top row is above the top gridline; histogram bins of zero draw a hairline; Gantt has no "Jan"
       tick; the candlestick top label is clipped by 1 px.
@@ -73,6 +72,9 @@ Found along the way:
 - [ ] From 720 px to about 1050 px (a tablet, a narrow window) a grid of 4 columns makes cards narrower than 200 px (136 at 800): the
       KPI tiles and the donut of executive-dashboard are laid out at 200 px and scaled down, text 7.5–8 px. The grid could
       take fewer columns in that range.
+- [ ] calculated-field on a phone: the figures over its eight quarters are 9.5 px (profit) and 9 px (margin); eight bars
+      in 324 px with figures at nearly one height. Like the waterfall, a figure on every bar could take the value axis's
+      place.
 - [ ] Date categories on a band axis are thinned by the width of the whole label on one line, so twelve months in
       Japanese show every other month on a desk although "2024年 / 1月" on two lines would fit (guide.axis `fitWritten`).
 - [ ] The browsers dashboard (in `dashboards/`, not in the repository) now stops with an error on a diverging color

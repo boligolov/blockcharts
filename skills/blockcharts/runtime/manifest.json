@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 39858,
+    "bytes": 40250,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 28885,
+        "bytes": 29277,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 25851,
+        "bytes": 26243,
         "off": [
           "CHECKS",
           "DECODE"
@@ -1945,8 +1945,8 @@
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 4912,
-      "version": 13,
+      "bytes": 5409,
+      "version": 14,
       "requires": [],
       "closure": [
         "mark.text"
@@ -2015,7 +2015,7 @@
             "flip"
           ],
           "default": "same",
-          "doc": "\"flip\" mirrors the placement of a row whose value is below zero, so that the label of a negative bar sits past its end, not inside it: `baseline` and `dy` on a value y, `anchor` and `dx` on a value x (with a band y, as in horizontal bars)."
+          "doc": "\"flip\" mirrors the placement of a row whose value is below zero, so that the label of a negative bar sits past its end, not inside it: `baseline` and `dy` on a value y, `anchor` and `dx` on a value x (with a band y, as in horizontal bars). The value is the one the label stands at, or the `sign` field when there is one. A row the flip would put out of the plot keeps its own side."
         },
         "collide": {
           "kind": "enum",
@@ -2072,6 +2072,10 @@
           "unscaled": true,
           "doc": "Field with the text to show."
         },
+        "sign": {
+          "unscaled": true,
+          "doc": "With `negative: \"flip\"`: the field whose sign says which way a row's bar runs, when the label stands at the end of the bar and that end is not below zero. A waterfall step: `y` at `<field>1`, where the bar ends, and `sign: \"amount\"` puts the figure of a loss under its bar."
+        },
         "color": {
           "accepts": {
             "output": "color"
@@ -2086,7 +2090,7 @@
           "doc": "The color the text sits on (the field a heatmap cell is colored by): the text turns dark or light to stay readable. On a palette color a theme can set the text with `--bc-on-c<N>`. Rows with no such color get no text."
         }
       },
-      "doc": "A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as \"percent\" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped, and the same label on the same spot is written once (a total a transform repeated on each row of its quarter). To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it must fit the step from one category to the next, and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline \"middle\" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that."
+      "doc": "A text label per row at (x, y): value labels on bars, annotations on points. The text comes from the `text` field: numbers are written with `format` (a preset such as \"percent\" or an object of Intl options), or rounded to `decimals`, or to 6 significant digits. On a band scale the label is centered in its band. Rows without text are skipped, and the same label on the same spot is written once (a total a transform repeated on each row of its quarter). To keep a label readable on a colored cell, give it `on`: the same field as the cell's color. A label never runs into its neighbours or out of its cell: on a band x scale (anchor middle) it may reach past its band into the gap before the next bar, but not into a label of the next band at the same height (a label in a cell, with `y2`, keeps to the step from one category to the next), and with `x2` / `y2` it must fit the box from (x, y) to (x2, y2), keeping `dx` / `dy` as the margin on the far side too (the cells of a treemap); with anchor or baseline \"middle\" it sits in the middle of the box. A label that does not fit is drawn smaller, down to `minSize`, and is left out below that."
     },
     "mark.violin": {
       "file": "blocks/mark.violin.js",
@@ -2168,8 +2172,8 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 8386,
-      "version": 16,
+      "bytes": 8373,
+      "version": 17,
       "requires": [],
       "closure": [
         "guide.axis"

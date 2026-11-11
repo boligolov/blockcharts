@@ -278,7 +278,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 16,
+    version: 17,
     doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover.',
     params: {
       scale: { kind: 'scale', required: true },
@@ -321,8 +321,13 @@
         let left = 0;
         let right = 0;
         for (const t of written(spec, ctx)) {
-          const reachAlong = ctx.measure(t.label, FONT).w * lean;
-          across = Math.max(across, ctx.measure(t.label, FONT).w * height);
+          // the length of a slanted label is what shows as an empty band under it when overestimated: measure() is generous
+          // by a quarter on Latin text, and a label that ran a little longer has the chart's padding below it
+          const length = ctx.textWidth(t.label, FONT);
+          // and the corner of its line, which stands most of a font size above the middle it is set on: turned, that is
+          // the corner farthest out, as the one below is farthest down (FONT * SLANT under the plot)
+          const reachAlong = (length + FONT) * lean;
+          across = Math.max(across, length * height);
           // a label ends at its tick and runs away from it, to the left of the tick below the axis and to the right above it
           if (side === 'bottom') left = Math.max(left, ctx.plot.x - (t.pos - reachAlong));
           else right = Math.max(right, t.pos + reachAlong - (ctx.plot.x + ctx.plot.w));
@@ -438,7 +443,7 @@
           if (marks) d += `M${t.pos} ${y0}V${y0 + dir * TICK}`;
           if (slanted.has(spec)) {
             const angle = slanted.get(spec) as number;
-            labelSpace = Math.max(labelSpace, ctx.measure(t.label, FONT).w * (angle === 90 ? 1 : SLANT) + FONT * SLANT);
+            labelSpace = Math.max(labelSpace, ctx.textWidth(t.label, FONT) * (angle === 90 ? 1 : SLANT) + FONT * SLANT);
             texts.push({
               type: 'text',
               x: t.pos,

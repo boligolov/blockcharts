@@ -611,6 +611,113 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.strictEqual(count(same, /dominant-baseline="hanging"/g), 0, 'off by default');
   });
 
+  let signLive = null;
+  BC.define({
+    role: 'interaction',
+    type: 'probe-sign',
+    version: 1,
+    attach(_s, live) {
+      signLive = live;
+    },
+  });
+  test('mark.text: `sign` says which way a bar runs, and a flip that would leave the plot keeps the label on its side', () => {
+    // a bridge whose figures stand where each bar ends: a loss's under its bar; the tax takes the profit down to 2
+    BC.data('bridgeSign', [
+      { item: 'Revenue', value: 100 },
+      { item: 'Costs', value: -40 },
+      { item: 'Profit', value: null, total: true },
+      { item: 'Tax', value: -58 },
+      { item: 'Net', value: null, total: true },
+    ]);
+    const labels = (extra) => {
+      const host = new FakeNode('div');
+      const h = BC.chart(host, {
+        data: 'bridgeSign',
+        size: [400, 300],
+        transforms: [{ type: 'waterfall', field: 'value', total: 'total' }],
+        scales: { x: { type: 'band', paddingInner: 0.3 }, y: { type: 'linear', zero: true } },
+        marks: [
+          { type: 'rect', x: 'item', y: 'value1', y2: 'value0' },
+          { type: 'text', x: 'item', y: 'value1', text: 'amount', baseline: 'auto', dy: -6, negative: 'flip', sign: 'amount', ...extra },
+        ],
+        interaction: [{ type: 'probe-sign' }],
+      });
+      assert.deepStrictEqual(h.diagnostics, []);
+      const svg = host.children[0].serialize();
+      return [...layer(svg, 'marks').matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"([^>]*)>([^<]*)</g)].map((m) => ({
+        y: +m[2],
+        below: /dominant-baseline="hanging"/.test(m[3]),
+        text: m[4],
+      }));
+    };
+    const ls = labels({});
+    const y = signLive.scales.y;
+    const bottom = signLive.plot.y + signLive.plot.h;
+    assert.deepStrictEqual(
+      ls.map((l) => [l.text, l.below]),
+      [
+        ['100', false],
+        ['-40', true],
+        ['60', false],
+        ['-58', false],
+        ['2', false],
+      ],
+      'a gain and a total above their end, a loss under it; the tax, ending 2 above zero, stays above',
+    );
+    assert(Math.abs(ls[1].y - (y(60) + 6)) < 1e-6, 'the loss of 40 hangs 6 px under 60, where its bar ends');
+    assert(y(2) + 6 + 11 > bottom, 'under the tax it would have left the plot');
+    assert(Math.abs(ls[3].y - (y(2) - 6)) < 1e-6, 'so it stands where it would without the flip');
+
+    assert(
+      labels({ sign: undefined }).every((l) => !l.below),
+      'without sign: every end is above zero, nothing flips',
+    );
+    assert(
+      labels({ negative: 'same' }).every((l) => !l.below),
+      'without flip, sign does nothing',
+    );
+
+    // a sign that is not a number does not flip its row
+    BC.data('oddSigns', [
+      { k: 'a', v: 5, s: 'down' },
+      { k: 'b', v: 5, s: null },
+      { k: 'c', v: 5, s: NaN },
+      { k: 'd', v: 5, s: -1 },
+    ]);
+    const odd = draw({
+      data: 'oddSigns',
+      size: [300, 200],
+      scales: { x: { type: 'band' }, y: { type: 'linear', domain: [0, 10] } },
+      marks: [{ type: 'text', x: 'k', y: 'v', text: 'k', baseline: 'auto', dy: -4, negative: 'flip', sign: 's' }],
+    });
+    assert.deepStrictEqual(odd.h.diagnostics, []);
+    assert.strictEqual(count(odd.svg, /dominant-baseline="hanging"/g), 1, 'only the row with a sign below zero');
+    const missing = BC.validate({
+      data: 'oddSigns',
+      scales: { x: { type: 'band' }, y: { type: 'linear' } },
+      marks: [{ type: 'text', x: 'k', y: 'v', text: 'k', negative: 'flip', sign: 'nope' }],
+    });
+    assert(
+      missing.some((d) => d.level === 'error' && /sign/.test(d.path)),
+      'a sign field that is not there is an error: ' + JSON.stringify(missing),
+    );
+
+    // across: a bar to the left edge of the plot keeps its label at its own side too
+    BC.data('edge', [
+      { k: 'a', v: 5 },
+      { k: 'b', v: -5 },
+    ]);
+    const across = (domain) =>
+      draw({
+        data: 'edge',
+        size: [300, 200],
+        scales: { x: { type: 'linear', domain, nice: false }, y: { type: 'band' } },
+        marks: [{ type: 'text', x: 'v', y: 'k', text: 'v', anchor: 'start', dx: 4, negative: 'flip' }],
+      }).svg;
+    assert.strictEqual(count(across([-10, 10]), /text-anchor="end"/g), 1, 'with room the label of -5 goes left of its end');
+    assert.strictEqual(count(across([-5, 10]), /text-anchor="end"/g), 0, 'at the edge it stays');
+  });
+
   test('mark.text: collide hide tries the other side of the point, then leaves the label out', () => {
     BC.data('close', [
       { x: 1, y: 1, n: 'first' },
@@ -3335,6 +3442,46 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       months.every((m) => !/rotate/.test(m[1])),
       'a sequence is not turned',
     );
+  });
+
+  test('band axis: slanted labels take the room under the plot they need, not an empty band below them', () => {
+    const names = ['Revenue', 'Cost of sales', 'Gross profit', 'Marketing', 'Salaries', 'Other income', 'Operating profit'];
+    BC.data(
+      'bridgeNames',
+      names.map((k, i) => ({ k, v: i + 1 })),
+    );
+    const { svg, h } = draw({
+      data: 'bridgeNames',
+      size: [324, 340],
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      guides: [{ type: 'axis', scale: 'x' }],
+      marks: [{ type: 'rect', x: 'k', y: 'v' }],
+    });
+    assert.deepStrictEqual(h.diagnostics, []);
+    const slanted = [...layer(svg, 'axes').matchAll(/<text ([^>]*)class="bc-axis-label"[^>]*>([^<]*)<\/text>/g)];
+    assert(slanted.length === 7 && slanted.every((m) => /rotate\(-45/.test(m[1])), 'the phone case: all seven at 45°');
+    const line = paths(layer(svg, 'axes')).find((p) => /class="bc-axis"/.test(p.attrs));
+    const y0 = +/^M[\d.]+ ([\d.]+)H/.exec(line.d)[1];
+    // "Operating profit" is 80 px in Inter at 11 px (measured in Chrome): at 45° its far corner is (80 + 5.5) × 0.71 px
+    // under its tick, which stands 8 px under the line; the chart's padding of 16 px is below that
+    const needs = 8 + (80 + 5.5) * 0.71 + 16;
+    const below = 340 - y0;
+    assert(below >= needs, `the longest label and the padding fit under the line: ${below} px for ${needs}`);
+    assert(below <= needs + 14, `with no empty band under them: ${below - needs} px more than they take`);
+    const first = +/rotate\(-45 ([\d.]+) /.exec(slanted[0][1])[1];
+    // "Revenue" is 42 px: it reaches (42 + 5.5) × 0.71 px to the left of its tick
+    assert(first >= (42 + 5.5) * 0.71, 'the first label does not run out on the left: its tick is at ' + first);
+    // with no padding it is the label that makes the room on the left
+    const bare = draw({
+      data: 'bridgeNames',
+      size: [324, 340],
+      padding: 0,
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      guides: [{ type: 'axis', scale: 'x' }],
+      marks: [{ type: 'rect', x: 'k', y: 'v' }],
+    }).svg;
+    const tick = +/rotate\(-45 ([\d.]+) /.exec(layer(bare, 'axes'))[1];
+    assert(tick >= (42 + 5.5) * 0.71, 'nor with no padding: its tick is at ' + tick);
   });
 
   test('a constant on a position is in the units of its scale, on every mark', () => {

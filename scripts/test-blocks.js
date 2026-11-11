@@ -5455,15 +5455,21 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(Math.abs(Math.sqrt(c0 * c1) - 100) < 1e-6 && c0 > 1, `"+" zooms around the middle of the screen: ${c0}, ${c1}`);
   });
 
-  BC.data(
-    'wideLabels',
-    ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((k, i) => ({ k, v: (i + 1) * 100, label: i === 3 ? '$34K' : '-$891.6K' })),
-  );
-  const labelled = (size, extra) => ({
-    data: 'wideLabels',
+  // labels of a row of bars: rising (each a bar higher than the last) or level (all at one height)
+  const row = (level) =>
+    ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((k, i) => ({
+      k,
+      v: level ? 100 : (i + 1) * 100,
+      zero: 0,
+      label: i === 3 ? '$34K' : '-$891.6K',
+    }));
+  BC.data('wideLabels', row(false));
+  BC.data('levelLabels', row(true));
+  const labelled = (size, extra, data = 'levelLabels', band = {}) => ({
+    data,
     size,
     padding: { top: 20, right: 10, bottom: 10, left: 10 },
-    scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+    scales: { x: { type: 'band', ...band }, y: { type: 'linear', zero: true } },
     marks: [
       { type: 'rect', x: 'k', y: 'v' },
       { type: 'text', x: 'k', y: 'v', text: 'label', baseline: 'auto', dy: -4, weight: 600, ...extra },
@@ -5471,8 +5477,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     interaction: [{ type: 'probe2' }],
   });
   const fontOf = (l) => +/font-size="([\d.]+)"/.exec(l.attrs)[1];
+  // Inter at weight 600 is about 0.52 em per character of these labels (measured in Chrome): what a label takes on screen
+  const inked = (l) => {
+    const w = fontOf(l) * 0.52 * l.text.length;
+    return { x0: l.x - w / 2, x1: l.x + w / 2, y0: l.y - fontOf(l), y1: l.y };
+  };
 
-  test('mark.text on a band scale: labels that would run into each other shrink together, and go when even minSize does not fit', () => {
+  test('mark.text on a band scale: labels at one height that would run into each other shrink together, and go when even minSize does not fit', () => {
     const wide = new FakeNode('div');
     BC.chart(wide, labelled([800, 200]));
     assert.deepStrictEqual(texts(layer(svgOf(wide), 'marks')).map(fontOf), [11, 11, 11, 11, 11, 11, 11], 'room enough: nothing changes');
@@ -5486,7 +5497,6 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     const sizes = [...new Set(ls.map(fontOf))];
     assert.strictEqual(sizes.length, 1, `one size for the whole row, the short label too: ${sizes}`);
     assert(sizes[0] >= 8 && sizes[0] < 11, String(sizes[0]));
-    // Inter at weight 600 is about 0.52 em per character of these labels (measured in Chrome)
     assert(sizes[0] * 0.52 * '-$891.6K'.length <= step, `a label fits its step: ${sizes[0]} px in ${step} px`);
 
     const tiny = new FakeNode('div');
@@ -5520,6 +5530,118 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
       const got = texts(layer(svgOf(host), 'marks')).map(fontOf);
       assert(got.length && got.every((s) => s >= 8 && s <= 11), `minSize ${bad}: ${got}`);
     }
+  });
+
+  test('mark.text on a band scale: a label at its bar reaches into the gap before the next bar, where no label stands', () => {
+    // rising bars: no two labels side by side at one height, so each has its band and the gaps on either side of it
+    const host = new FakeNode('div');
+    BC.chart(host, labelled([340, 200], {}, 'wideLabels', { paddingInner: 0.3 }));
+    const step = Math.abs(probed.scales.x('b') - probed.scales.x('a'));
+    const half = probed.scales.x.bandwidth / 2;
+    const ls = texts(layer(svgOf(host), 'marks'));
+    assert.strictEqual(ls.length, 7);
+    assert.deepStrictEqual(ls.map(fontOf), [11, 11, 11, 11, 11, 11, 11], 'full size, where its step alone would have shrunk it');
+    assert(11 * 0.52 * '-$891.6K'.length > step - 4, `which it would have: the label is wider than its step (${step} px)`);
+    for (const l of ls) {
+      const b = inked(l);
+      assert(b.x1 <= l.x + step - half - 2 && b.x0 >= l.x - step + half + 2, `${l.text} stops short of the next bars`);
+    }
+    for (let i = 1; i < ls.length; i++) {
+      const [p, q] = [inked(ls[i - 1]), inked(ls[i])];
+      assert(p.x1 <= q.x0 || p.y1 <= q.y0 || q.y1 <= p.y0, `labels ${i - 1} and ${i} do not meet`);
+    }
+
+    // the same rising row with no gap between the bars: a label has its step, as before
+    const tight = new FakeNode('div');
+    BC.chart(tight, labelled([340, 200], {}, 'wideLabels', { paddingInner: 0 }));
+    const tightStep = Math.abs(probed.scales.x('b') - probed.scales.x('a'));
+    const tl = texts(layer(svgOf(tight), 'marks'));
+    assert(tl.length === 7 && fontOf(tl[0]) < 11, 'no gap to reach into');
+    assert(fontOf(tl[0]) * 0.52 * '-$891.6K'.length <= tightStep, 'within the step');
+
+    // a waterfall: a loss starts at the top of the bar before it, so their labels stand side by side
+    BC.data('bridge2', [
+      { item: 'Revenue', value: 891600 },
+      { item: 'Costs', value: -348200 },
+      { item: 'Other', value: 33900 },
+      { item: 'Tax', value: -80000 },
+    ]);
+    const bridge = (w) => {
+      const chart = new FakeNode('div');
+      BC.chart(chart, {
+        data: 'bridge2',
+        size: [w, 240],
+        padding: { top: 28, right: 10, bottom: 10, left: 10 },
+        transforms: [{ type: 'waterfall', field: 'value' }],
+        scales: { x: { type: 'band', paddingInner: 0.28 }, y: { type: 'linear', zero: true } },
+        marks: [
+          { type: 'rect', x: 'item', y: 'value1', y2: 'value0' },
+          {
+            type: 'text',
+            x: 'item',
+            y: 'top',
+            text: 'amount',
+            format: { style: 'currency', currency: 'USD', notation: 'compact' },
+            baseline: 'auto',
+            dy: -6,
+            weight: 600,
+          },
+        ],
+      });
+      return texts(layer(svgOf(chart), 'marks'));
+    };
+    const ws = bridge(150);
+    assert.strictEqual(ws.length, 4);
+    assert(fontOf(ws[0]) < 11, `two labels at one height share the step: ${fontOf(ws[0])}`);
+    const [p, q] = [inked(ws[0]), inked(ws[1])];
+    assert(p.y0 < q.y1 && q.y0 < p.y1, 'Revenue and Costs are at one height');
+    assert(q.x0 - p.x1 >= 4, `and apart: ${q.x0 - p.x1}`);
+    assert.deepStrictEqual(bridge(400).map(fontOf), [11, 11, 11, 11], 'room enough');
+  });
+
+  test('mark.text on a band scale, hostile: labels in cells, one band, labels above each other, rows with no place', () => {
+    // a label in a cell (y2) keeps to the step: it reads as the cell's
+    const cell = new FakeNode('div');
+    BC.chart(cell, labelled([340, 200], { y2: 'zero', baseline: 'middle', dy: 0 }, 'wideLabels', { paddingInner: 0.3 }));
+    const cl = texts(layer(svgOf(cell), 'marks'));
+    assert.deepStrictEqual(cl.map(fontOf), [9, 9, 9, 11, 9, 9, 9], 'cells keep to their step, each its own size');
+
+    // one category: its step is the plot, and nothing is beside it
+    BC.data('oneLabel', [{ k: 'only', v: 5, label: '-$891.6K' }]);
+    const one = new FakeNode('div');
+    BC.chart(one, { ...labelled([120, 120]), data: 'oneLabel' });
+    assert.deepStrictEqual(texts(layer(svgOf(one), 'marks')).map(fontOf), [11]);
+
+    // two labels in one band, one above the other (a stacked bar): they are not neighbours of each other
+    BC.data('stackedLabels', [
+      { k: 'a', v: 100, label: '-$891.6K' },
+      { k: 'a', v: 300, label: '-$891.6K' },
+      { k: 'b', v: 200, label: '-$891.6K' },
+      { k: 'b', v: 400, label: '-$891.6K' },
+    ]);
+    const stacked = new FakeNode('div');
+    BC.chart(stacked, labelled([200, 200], {}, 'stackedLabels', { paddingInner: 0.3 }));
+    const sl = texts(layer(svgOf(stacked), 'marks'));
+    assert.strictEqual(sl.length, 4);
+    for (const a of sl)
+      for (const b of sl) {
+        if (a === b || a.x === b.x) continue;
+        const [p, q] = [inked(a), inked(b)];
+        assert(p.x1 <= q.x0 || q.x1 <= p.x0 || p.y1 <= q.y0 || q.y1 <= p.y0, 'labels of the two bands do not meet');
+      }
+
+    // rows with no value, no text or no category draw nothing, and the rest are laid out as if they were not there
+    BC.data('holes', [
+      { k: 'a', v: 100, label: '-$891.6K' },
+      { k: 'b', v: NaN, label: '-$891.6K' },
+      { k: 'c', v: 300, label: null },
+      { k: 'd', v: 500, label: '-$891.6K' },
+    ]);
+    const holes = new FakeNode('div');
+    const hh = BC.chart(holes, labelled([300, 200], {}, 'holes', { paddingInner: 0.3 }));
+    const hl = texts(layer(svgOf(holes), 'marks'));
+    assert(hl.length === 2 && hl.every((l) => isFinite(l.x) && isFinite(l.y) && fontOf(l) === 11), JSON.stringify(hl));
+    assert(!hh.diagnostics.some((d) => d.level === 'error'), JSON.stringify(hh.diagnostics));
   });
 
   BC.data('cells', [

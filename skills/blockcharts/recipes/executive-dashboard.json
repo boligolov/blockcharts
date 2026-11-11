@@ -612,21 +612,8 @@
         },
         "guides": [
           {
-            "type": "grid",
-            "scale": "y"
-          },
-          {
             "type": "axis",
             "scale": "x"
-          },
-          {
-            "type": "axis",
-            "scale": "y",
-            "format": {
-              "style": "currency",
-              "currency": "USD",
-              "notation": "compact"
-            }
           }
         ],
         "marks": [
@@ -641,8 +628,10 @@
           {
             "type": "text",
             "x": "item",
-            "y": "top",
+            "y": "value1",
             "text": "amount",
+            "sign": "amount",
+            "negative": "flip",
             "format": {
               "style": "currency",
               "currency": "USD",

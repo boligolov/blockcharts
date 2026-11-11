@@ -162,6 +162,63 @@ test('tooltip: a short card on a desk is one line per field, beside the point', 
   await p.close();
 });
 
+// ───────────────────────── value labels and slanted names on a phone ─────────────────────────
+
+const recipe = (name) => JSON.parse(fs.readFileSync(path.join(__dirname, '../skills/blockcharts/recipes', name + '.json'), 'utf8'));
+
+/** The bridge chart of a page: the size of its figures, their boxes, and where its slanted names end. */
+const bridgeOf = (p, title) =>
+  p.evaluate((title) => {
+    const card = [...document.querySelectorAll('.bc-section')].find((s) => s.textContent.includes(title));
+    const svg = card.querySelector('svg[viewBox]');
+    const box = svg.getBoundingClientRect();
+    const scale = box.width / svg.viewBox.baseVal.width;
+    const rect = (e) => {
+      const r = e.getBoundingClientRect();
+      return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+    };
+    const figures = [...svg.querySelectorAll('[data-bc-layer="marks"] text')].map((t) => ({
+      text: t.textContent,
+      px: parseFloat(getComputedStyle(t).fontSize) * scale,
+      ...rect(t),
+    }));
+    const names = [...svg.querySelectorAll('[data-bc-layer="axes"] text.bc-axis-label')].map((t) => ({
+      slanted: /rotate\(-45/.test(t.getAttribute('transform') || ''),
+      ...rect(t),
+    }));
+    return { svg: rect(svg), figures, names };
+  }, title);
+
+// 360 px: a small Android phone, the narrowest common screen
+for (const [name, title, width] of [
+  ['waterfall', 'From revenue to operating profit', 360],
+  ['waterfall', 'From revenue to operating profit', 390],
+  ['executive-dashboard', 'From revenue to operating profit', 390],
+]) {
+  test(`${name} at ${width} px: every figure at full size and clear of the others, the names at an angle with no empty band under them`, async () => {
+    const p = await open(recipe(name), width);
+    const { svg, figures, names } = await bridgeOf(p, title);
+    assert.strictEqual(figures.length, 7);
+    for (const f of figures) assert(f.px >= 11, `${f.text} is ${f.px} px`);
+    for (let i = 1; i < figures.length; i++) {
+      const [a, b] = [figures[i - 1], figures[i]];
+      const apart = a.right + 2 <= b.left || a.bottom <= b.top || b.bottom <= a.top;
+      assert(apart, `${a.text} and ${b.text} meet: ${a.right} / ${b.left}`);
+    }
+    // a loss's figure under its bar: below the figure of the bar before it, which stands above the same height
+    const loss = figures.find((f) => f.text.startsWith('-'));
+    assert(loss.top > figures[0].bottom, 'the first loss is under its bar, not beside the gain before it');
+    assert(names.length === 7 && names.every((n) => n.slanted), 'seven names at 45°');
+    for (const n of names) assert(n.left >= svg.left && n.bottom <= svg.bottom, `a name stays in the chart: ${n.left} / ${svg.left}`);
+    const under = svg.bottom - Math.max(...names.map((n) => n.bottom));
+    // the chart's padding (16 px) and a few px of a label's line box: not the 40 px band there was
+    assert(under <= 28, `${under} px empty under the names`);
+    assert.strictEqual(await overflow(p), 0);
+    assert.deepStrictEqual(p.errors, []);
+    await p.close();
+  });
+}
+
 (async () => {
   browser = await chromium.launch({ channel: 'chrome' });
   let passed = 0;
