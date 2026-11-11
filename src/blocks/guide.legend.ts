@@ -14,7 +14,10 @@
     label: string;
     full: string;
     color: string;
+    /** The room the label is given (roomOf), so a row never runs past the chart. */
     w: number;
+    /** How wide the label is drawn (textWidth): what the next item is placed after, so every gap is ITEM_GAP. */
+    drawn: number;
     hidden: boolean;
     index: number;
   }
@@ -34,13 +37,16 @@
     label: string;
     r: number;
     w: number;
+    drawn: number;
   }
   function sizesOf(scale: BC.Scale, spec: BC.GuideSpec, ctx: BC.ChartCtx): Sized[] {
     const ticks = barTicks(scale, spec, 3).filter((t) => isFinite(t.pos) && t.pos > 0);
-    return ticks.map((t) => ({ label: t.label, r: t.pos, w: ctx.measure(t.label, FONT).w }));
+    return ticks.map((t) => ({ label: t.label, r: t.pos, w: roomOf(t.label, ctx), drawn: ctx.textWidth(t.label, FONT) }));
   }
   const SIZE_STROKE = 'var(--bc-label, var(--bc-text, #888))';
   const sizeWidth = (s: Sized) => 2 * s.r + GAP + s.w;
+  /** How far a circle and its label reach as drawn: the next one starts ITEM_GAP after it. */
+  const sizeDrawn = (s: Sized) => 2 * s.r + GAP + s.drawn;
   /** The width a row legend (categories or a size key) is packed into. Not the plot's: measure sees the plot before the axes take their room and render
    *  after, so the two would wrap differently and the last line would fall outside the room measured. The chart's width
    *  is the same for both. */
@@ -73,6 +79,11 @@
     return lines;
   }
 
+  /** The room a label is given: measure's width, more than most fonts take, or textWidth's where that is more (a run of
+   *  wide capitals), so a row packed by it never runs past the chart. Items are placed by textWidth, the closer of the
+   *  two: placed by measure, the gap after a label grew with how far measure overrates it (Europe 6 px, Asia Pacific 15). */
+  const roomOf = (text: string, ctx: BC.ChartCtx) => Math.max(ctx.measure(text, FONT).w, ctx.textWidth(text, FONT));
+
   /** Every category of the scale, also the ones a filter has hidden, so they can be switched back on. A label wider than
    *  `room` (a row on a phone) is cut short with an ellipsis; `full` keeps it for the item's title. */
   function itemsOf(scale: BC.Scale, ctx: BC.ChartCtx, room = Infinity): Item[] {
@@ -81,19 +92,27 @@
     return scale.baseDomain().map((v, index) => {
       const full = String(v);
       const label = fit(full, room - SWATCH - GAP, ctx);
-      return { label, full, color: colors[index], w: ctx.measure(label, FONT).w, hidden: !visible.has(v), index };
+      return {
+        label,
+        full,
+        color: colors[index],
+        w: roomOf(label, ctx),
+        drawn: ctx.textWidth(label, FONT),
+        hidden: !visible.has(v),
+        index,
+      };
     });
   }
 
   /** The text cut to at most `room` wide, ending in an ellipsis when it had to be cut; whole characters only. */
   function fit(text: string, room: number, ctx: BC.ChartCtx): string {
-    if (!(room < Infinity) || ctx.measure(text, FONT).w <= room) return text;
+    if (!(room < Infinity) || roomOf(text, ctx) <= room) return text;
     const chars = Array.from(text);
     let lo = 0;
     let hi = chars.length;
     while (lo < hi) {
       const mid = (lo + hi + 1) >> 1;
-      if (ctx.measure(chars.slice(0, mid).join('') + '…', FONT).w <= room) lo = mid;
+      if (roomOf(chars.slice(0, mid).join('') + '…', ctx) <= room) lo = mid;
       else hi = mid - 1;
     }
     return chars.slice(0, lo).join('').trimEnd() + '…';
@@ -156,6 +175,8 @@
 
   const ITEM_GAP = 14; // between two items of a row
   const itemWidth = (it: Item) => SWATCH + GAP + it.w;
+  /** How far an item reaches as drawn: the next one starts ITEM_GAP after it. */
+  const itemDrawn = (it: Item) => SWATCH + GAP + it.drawn;
 
   /** Items of a row legend packed into lines no wider than `width` (see rowRoom): a long legend wraps instead of running off. */
   function linesOf(items: Item[], width: number): Item[][] {
@@ -183,7 +204,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'legend',
-    version: 14,
+    version: 15,
     shownOnce: true,
     doc: 'Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. A column that would take more than a fifth of the width of the chart (a phone, long labels) or more than its height (many categories) is drawn as a row on top instead; a label too long for a row is cut with an ellipsis and shown whole on hover. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.',
     params: {
@@ -291,7 +312,7 @@
             );
             for (const s of line.items) {
               circle(cx + s.r, top + line.h / 2, s, cx + 2 * s.r + GAP);
-              cx += sizeWidth(s) + ITEM_GAP;
+              cx += sizeDrawn(s) + ITEM_GAP;
             }
             top += line.h;
           }
@@ -393,7 +414,7 @@
           );
           for (const it of line) {
             put(cx, top + k * ROW, it);
-            cx += itemWidth(it) + ITEM_GAP;
+            cx += itemDrawn(it) + ITEM_GAP;
           }
         });
       }

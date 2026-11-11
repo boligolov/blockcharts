@@ -928,8 +928,8 @@
     },
     "transform.treemap": {
       "file": "blocks/transform.treemap.js",
-      "bytes": 3288,
-      "version": 5,
+      "bytes": 3526,
+      "version": 6,
       "requires": [
         "lib.columns"
       ],
@@ -954,12 +954,11 @@
         },
         "name": {
           "kind": "field",
-          "doc": "Field with each cell's name, copied to `label` for cells that are big enough."
+          "doc": "Field with each cell's name, copied to `label` (see `labelMin`)."
         },
         "aspect": {
           "kind": "number",
-          "default": 1.6,
-          "doc": "Width / height of the plot the treemap fills (for a 640 × 400 chart with no axes, about 1.6)."
+          "doc": "Width / height of the plot, to lay the cells out once for that shape instead of following the plot: at another size they come out stretched."
         },
         "padding": {
           "kind": "number",
@@ -968,8 +967,8 @@
         },
         "labelMin": {
           "kind": "number",
-          "default": 0.02,
-          "doc": "Cells smaller than this share of the whole get no label (so small ones stay clean)."
+          "default": 0,
+          "doc": "Cells smaller than this share of the whole get no label, even where it would fit. With 0 every named cell has one, and mark.text with x2 / y2 leaves out the ones that do not fit."
         },
         "as": {
           "kind": "list",
@@ -981,7 +980,7 @@
           "doc": "Name of the label column."
         }
       },
-      "doc": "A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square."
+      "doc": "A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` with the name of each cell. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1) with x2 = x1 and y2 = y0, which leaves out a name its cell has no room for. The cells are laid out for the shape of the plot as it is drawn, and anew when the chart changes width, so they stay near square on a phone as on a wide screen."
     },
     "transform.waterfall": {
       "file": "blocks/transform.waterfall.js",
@@ -2366,8 +2365,8 @@
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",
-      "bytes": 5976,
-      "version": 14,
+      "bytes": 6090,
+      "version": 15,
       "requires": [],
       "closure": [
         "guide.legend"

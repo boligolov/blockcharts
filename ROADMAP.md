@@ -13,18 +13,15 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.34): A, safety (5); B, silent wrong results in validation and data (21); C1–C19, layout
+Done (skill 0.33.1–0.33.35): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
 every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
 month, an axis's top label, the color of a tooltip's dot, cards on error bars, dumbbells and lollipops, KPI tiles two to a
-row on a phone).
+row on a phone, a treemap laid out for its plot, even gaps in a legend).
 
 Left, in this order:
 
-- [ ] **C20** Treemap: Latin America cells unlabelled (`labelMin` 0.03); legend items have uneven gaps (treemap,
-      streamgraph). The cells are laid out for `aspect`, not for the plot: on a phone (a plot of 324 × 400) they are
-      about three times taller than wide. Read the plot's aspect when none is given, as hexbin does.
 - [ ] **D1** Charts are `role="img"` with no name (renderer.svg, renderer.canvas); the legend filter cannot be reached
       by keyboard (guide.legend, interaction.legend-filter).
 - [ ] **D2** Site: `--faint #8b93a1` is 2.8–3.1:1 in light, 4.43:1 in dark (site.css).

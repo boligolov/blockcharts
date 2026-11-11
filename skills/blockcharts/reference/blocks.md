@@ -337,7 +337,7 @@ Version 5, 2.2 KB. Stacks the values of `field` on top of each other within ever
 
 ## transform.treemap
 
-Version 5, 3.2 KB. A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` for the cells big enough to hold one. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1). Set `aspect` to the width / height of the plot so the cells come out square.
+Version 6, 3.4 KB. A treemap: each row becomes a rectangle whose area is its `field`, laid out as near-square cells (squarified), largest at the top left. With `group`, rows are first gathered into one block per group (an area per region, then per product inside it), and with `subgroup` each block is divided once more (region, country, product). Writes the corners in 0..1 (`x0`, `x1`, `y0`, `y1`, y up) and a `label` with the name of each cell. Draw with mark.rect (x = x0, x2 = x1, y = y1, y2 = y0) on two linear scales with domain [0, 1] and no axes; color by the group; label with mark.text at (x0, y1) with x2 = x1 and y2 = y0, which leaves out a name its cell has no room for. The cells are laid out for the shape of the plot as it is drawn, and anew when the chart changes width, so they stay near square on a phone as on a wide screen.
 
 Needs: `lib.columns`.
 
@@ -346,10 +346,10 @@ Needs: `lib.columns`.
 | `field` | field, **required** |  | The size of each cell (positive numbers; others are left out). |
 | `group` | field |  | Field that gathers cells into blocks, one per distinct value. |
 | `subgroup` | field |  | Field that gathers the cells of a block into smaller blocks: a third level. Needs `group`. |
-| `name` | field |  | Field with each cell's name, copied to `label` for cells that are big enough. |
-| `aspect` | number | `1.6` | Width / height of the plot the treemap fills (for a 640 × 400 chart with no axes, about 1.6). |
+| `name` | field |  | Field with each cell's name, copied to `label` (see `labelMin`). |
+| `aspect` | number |  | Width / height of the plot, to lay the cells out once for that shape instead of following the plot: at another size they come out stretched. |
 | `padding` | number | `0.004` | Space between cells, as a share of the plot height. |
-| `labelMin` | number | `0.02` | Cells smaller than this share of the whole get no label (so small ones stay clean). |
+| `labelMin` | number | `0` | Cells smaller than this share of the whole get no label, even where it would fit. With 0 every named cell has one, and mark.text with x2 / y2 leaves out the ones that do not fit. |
 | `as` | list |  | Names of the four corner columns. Default [x0, x1, y0, y1]. |
 | `labelAs` | string | `"label"` | Name of the label column. |
 
@@ -703,7 +703,7 @@ Version 9, 4.8 KB. A key figure as the heading of a chart: a label, the value in
 
 ## guide.legend
 
-Version 14, 5.8 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. A column that would take more than a fifth of the width of the chart (a phone, long labels) or more than its height (many categories) is drawn as a row on top instead; a label too long for a row is cut with an ellipsis and shown whole on hover. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
+Version 15, 5.9 KB. Legend of a color scale. A categorical scale (`color`) lists every value with a swatch, and values a filter hides stay listed, dimmed. A continuous scale (`sequential`) draws a color bar with a few labels; a `size` scale draws a few round values as circles of their size (the key of a bubble chart). On the right or left it is a column, on top or bottom a row that wraps onto more lines when it is wider than the plot. A column that would take more than a fifth of the width of the chart (a phone, long labels) or more than its height (many categories) is drawn as a row on top instead; a label too long for a row is cut with an ellipsis and shown whole on hover. Takes space on its side like an axis, so list it after an axis on the same side to sit outside it.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |

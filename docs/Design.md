@@ -738,7 +738,9 @@ Asked for: new blocks for business dashboards, examples, the site, and ideas for
 - **`transform.waterfall`** (`<field>0`, `<field>1`, `step`, `amount`, `top`; subtotal rows from 0),
   **`transform.funnel`** (bars centered on 0, `rate`, `stepRate`), **`transform.treemap`** (squarified, one
   or two levels, corners in 0..1, labels only for cells big enough). Static transforms: a view-dependent
-  one would not take part in domain inference, so the treemap takes the plot's `aspect` as a parameter.
+  one would not take part in domain inference, so the treemap takes the plot's `aspect` as a parameter. (Since
+  hexbin a transform can follow the plot and still give the scales a first guess; the treemap does since the
+  production review.)
 - **`mark.rule`** — lines at values: a constant `{ "value": 50000 }` is a value on the scale, like a
   constant on any position (see "What a real dashboard found"); on a band it spans the band
   (`thickness`): the bullet chart's target tick. Repeated rows draw one line. **`mark.rect` `thickness`**
@@ -1451,6 +1453,20 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   of four (370 px before the first chart, not 780), and highlight-bar, whose one tile pairs with nothing, no longer does. On a desk a tile beside a taller chart was stretched to its height with its figure at the top and the
   rest empty: the chart of a tile now stands in the middle of the room under its title. The executive tiles of orders,
   conversion and churn had no tooltip; all four have one, headed by the month, with the figure named and formatted.
+- **A treemap is laid out for its plot, and its small cells are named.** The cells were laid out for `aspect`, a width /
+  height the agent had to work out (the recipe said 1.9). On a phone the chart is laid out at 324 px and its plot is
+  taller than wide, so they came out about three times taller than wide, the worst seven times. Without `aspect` the
+  treemap now follows the plot as hexbin does: once without a view for the scales' first guess, then for the plot as
+  laid out, and anew when the chart changes width; not at a zoom, which changes the scales and not the plot, so the
+  cells are magnified. `aspect` still lays it out once for that shape. `labelMin`, a share of the whole below which a
+  cell had no name, hid names that fit: the two cells of Latin America (2.7% and 1.6% of the recipe's revenue) had none,
+  and the region was only in the legend. It is 0 now: the text mark with x2 / y2 already leaves out a name its cell has
+  no room for, and only it knows the room. The recipe keeps its names to `minSize` 10.
+  A row legend placed each item after the room `measure()` gives its label, 0.6 em a character, so the gap after a
+  label grew with how much that overrates it: 18 to 40 px between the treemap's items, 15 to 32 on the streamgraph.
+  Items are now placed by `textWidth`: 14 px apart in Inter, as even as that estimate is near the font (a narrower
+  system sans-serif leaves a few px of difference). A row is still wrapped by the larger of the two, as a run of
+  capitals is wider than `measure()` says, so no font runs it off the chart.
 
 ## Next steps
 

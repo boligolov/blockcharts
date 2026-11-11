@@ -3578,6 +3578,16 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     };
     assert(!overlap(box('EU'), box('US')), 'each group is one block');
     assert.deepStrictEqual(Array.from(t.columns.label), ['a', 'b', 'c', 'd', null, null, null], 'the tiny cell gets no label');
+    // by default every named cell has its label: the text mark leaves out the ones that do not fit, as only it can tell
+    assert.deepStrictEqual(Array.from(apply('treemap', rows, { field: 'v', group: 'g', name: 'p' }).columns.label), [
+      'a',
+      'b',
+      'c',
+      'd',
+      'tiny',
+      null,
+      null,
+    ]);
     const padded = cellsOf(apply('treemap', rows, { field: 'v', group: 'g', padding: 0.02 }));
     for (let a = 0; a < padded.length; a++) for (let b = a + 1; b < padded.length; b++) assert(!overlap(padded[a], padded[b]));
     assert(
@@ -3609,6 +3619,64 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     const area = cells.reduce((a, r) => a + r.w * r.h, 0);
     assert(area > 640 * 400 * 0.97, 'the cells fill the plot: ' + area);
     assert.deepStrictEqual(texts(layer(svg, 'marks')), ['Alpha', 'Beta', 'Gamma']);
+  });
+
+  test('transform.treemap without aspect is laid out for the plot: near square on a phone, magnified by a zoom', async () => {
+    BC.data(
+      'tree-sales',
+      [
+        ['NA', 'Enterprise', 42],
+        ['NA', 'Pro', 26],
+        ['NA', 'Starter', 9],
+        ['EU', 'Enterprise', 31],
+        ['EU', 'Pro', 22],
+        ['EU', 'Starter', 7],
+        ['AP', 'Enterprise', 19],
+        ['AP', 'Pro', 15],
+        ['AP', 'Starter', 6],
+        ['LA', 'Pro', 5],
+        ['LA', 'Starter', 3],
+      ].map(([g, p, v]) => ({ g, p, v })),
+    );
+    const spec = (extra) => ({
+      data: 'tree-sales',
+      size: [720, 400],
+      padding: 0,
+      transforms: [{ type: 'treemap', field: 'v', group: 'g', name: 'p', padding: 0, ...extra }],
+      scales: { x: { type: 'linear', domain: [0, 1] }, y: { type: 'linear', domain: [0, 1] }, color: { type: 'color' } },
+      guides: [{ type: 'legend', scale: 'color', position: 'bottom' }],
+      marks: [{ type: 'rect', x: 'x0', x2: 'x1', y: 'y1', y2: 'y0', color: 'g' }],
+      interaction: [{ type: 'zoom' }],
+    });
+    /** How much longer than wide (or wider than long) each cell is drawn. */
+    const shapes = (svg) => rects(layer(svg, 'marks')).map((r) => Math.max(r.w / r.h, r.h / r.w));
+    const mean = (xs) => xs.reduce((a, x) => a + x, 0) / xs.length;
+    const at = (width, extra = {}) => {
+      const host = new FakeNode('div');
+      host.clientWidth = width; // 320: a phone, where the chart is laid out at 320 px and its plot is taller than wide
+      const h = BC.chart(host, spec(extra));
+      assert.deepStrictEqual(h.diagnostics, []);
+      return { host, h, svg: svgOf(host) };
+    };
+    const phone = shapes(at(320).svg);
+    assert.strictEqual(phone.length, 11);
+    assert(mean(phone) < 2 && Math.max(...phone) < 4.5, 'near square on a phone: ' + phone.map((x) => x.toFixed(1)).join(' '));
+    // laid out once for a wide plot, the same cells come out about twice as tall as they should
+    const fixed = shapes(at(320, { aspect: 1.9 }).svg);
+    assert(mean(fixed) > 2.5 && Math.max(...fixed) > 6, 'aspect keeps the shape it names: ' + fixed.map((x) => x.toFixed(1)).join(' '));
+    const desk = shapes(at(1100).svg);
+    assert(mean(desk) < 2 && Math.max(...desk) < 4.5, 'and on a wide screen: ' + desk.map((x) => x.toFixed(1)).join(' '));
+
+    // a zoom changes the scales, not the plot: the same cells, magnified
+    const { host, h } = at(720);
+    const before = rects(layer(svgOf(host), 'marks'));
+    h.setView('x', [0, 0.5]);
+    await flush();
+    const after = rects(layer(svgOf(host), 'marks'));
+    assert(near(after[0].w, 2 * before[0].w, 1e-6) && near(after[0].h, before[0].h, 1e-6), 'twice as wide, as tall');
+    h.setView('x', null);
+    await flush();
+    assert.deepStrictEqual(rects(layer(svgOf(host), 'marks')), before, 'and back');
   });
 
   // ───────────────────────── mark.rule, bar thickness ─────────────────────────
@@ -3802,6 +3870,63 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       return Math.max(...[...d.matchAll(/A([\d.]+)/g)].map((m) => +m[1]));
     };
     assert(radius(draw(spec(280)).svg) < radius(draw({ ...spec(280), guides: [] }).svg), 'the wrapped legend takes its room from the plot');
+  });
+
+  test('guide.legend: a row is placed by how wide its labels are drawn, so the gaps are even and no label runs into the next', () => {
+    let textWidth;
+    BC.define({
+      role: 'guide',
+      type: 'width-probe',
+      version: 1,
+      measure: (s, ctx) => {
+        textWidth = ctx.textWidth;
+        return {};
+      },
+      render: () => ({}),
+    });
+    const items = (svg) =>
+      [...svg.matchAll(/<g class="bc-legend-item"[^>]*><rect x="([\d.]+)"[^>]*><\/rect><text x="([\d.]+)"[^>]*>([^<]*)<\/text>/g)].map(
+        (m) => ({
+          swatch: +m[1],
+          text: +m[2],
+          label: m[3],
+        }),
+      );
+    const legend = (labels, width) => {
+      BC.data(
+        'legend-widths',
+        labels.map((c, i) => ({ c, v: i + 1 })),
+      );
+      const { svg, h } = draw({
+        data: 'legend-widths',
+        size: [width, 240],
+        scales: { color: { type: 'color' } },
+        guides: [{ type: 'legend', scale: 'color', position: 'bottom' }, { type: 'width-probe' }],
+        marks: [{ type: 'arc', value: 'v', color: 'c' }],
+      });
+      assert.deepStrictEqual(h.diagnostics, []);
+      return items(svg);
+    };
+    // "illicit" is drawn far narrower than measure() rates seven characters, "MMMMMM" wider
+    const row = legend(['North America', 'Europe', 'illicit', 'MMMMMM', 'Asia Pacific'], 900);
+    assert.strictEqual(row.length, 5);
+    const gaps = row.slice(1).map((it, k) => it.swatch - (row[k].text + textWidth(row[k].label, 11)));
+    assert(
+      gaps.every((g) => near(g, gaps[0], 1e-6)) && gaps[0] > 8,
+      'the same gap after every label: ' + gaps.map((g) => g.toFixed(1)).join(' '),
+    );
+    // a row of wide capitals is wrapped by the room they are drawn in, so none runs off a narrow chart
+    for (const width of [220, 300, 380]) {
+      const wide = legend(['MMMMMMMM', 'WWWWWWWW', 'MWMWMWMW', 'WMWMWMWM'], width);
+      assert.strictEqual(wide.length, 4);
+      assert(
+        wide.every((it) => it.text + textWidth(it.label, 11) <= width),
+        width + ': inside the chart: ' + JSON.stringify(wide),
+      );
+      for (let k = 1; k < wide.length; k++)
+        if (wide[k].text > wide[k - 1].text)
+          assert(wide[k].swatch > wide[k - 1].text + textWidth(wide[k - 1].label, 11), width + ': no label runs into the next');
+    }
   });
 
   test('guide.legend: a row legend measured before other guides take their room still fits in what it measured', () => {

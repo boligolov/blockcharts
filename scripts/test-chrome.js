@@ -440,6 +440,43 @@ for (const width of [1100, 390, 360]) {
   });
 }
 
+// ───────────────────────── a treemap's cells ─────────────────────────
+
+test('treemap: near-square cells on a phone and, after the window widens, on a desk; every region named somewhere', async () => {
+  const p = await open(recipe('treemap'), 390);
+  /** Each cell's color, how much longer than wide (or wider than long) it is on the screen, and the names drawn in it. */
+  const cells = () =>
+    p.evaluate(() => {
+      const svg = document.querySelector('.bc-section svg[viewBox]');
+      const names = [...svg.querySelectorAll('[data-bc-layer="marks"] text')].map((t) => t.getBoundingClientRect());
+      return [...svg.querySelectorAll('[data-bc-layer="marks"] path, [data-bc-layer="marks"] rect')].map((e) => {
+        const r = e.getBoundingClientRect();
+        const named = names.filter((n) => n.left >= r.left && n.right <= r.right && n.top >= r.top && n.bottom <= r.bottom).length;
+        return { fill: e.getAttribute('fill'), shape: Math.max(r.width / r.height, r.height / r.width), named };
+      });
+    });
+  const check = (got, where) => {
+    assert.strictEqual(got.length, 11, where);
+    const shapes = got.map((c) => c.shape);
+    const mean = shapes.reduce((a, s) => a + s, 0) / shapes.length;
+    assert(mean < 2 && Math.max(...shapes) < 4.5, `${where}: near square: ${shapes.map((s) => s.toFixed(1)).join(' ')}`);
+    // Latin America's two cells are under 3% of the whole each, and went without a name
+    const fills = new Set(got.map((c) => c.fill));
+    assert.strictEqual(fills.size, 4, where);
+    for (const f of fills)
+      assert(
+        got.some((c) => c.fill === f && c.named),
+        `${where}: a cell of ${f} is named`,
+      );
+  };
+  check(await cells(), 'phone');
+  await p.setViewportSize({ width: 1100, height: 900 });
+  await p.waitForTimeout(300);
+  check(await cells(), 'desk');
+  assert.deepStrictEqual(p.errors, []);
+  await p.close();
+});
+
 // ───────────────────────── KPI tiles ─────────────────────────
 
 /** Every card of a page: where it is, whether it is a KPI tile, and how its chart is drawn (px of text on the screen). */
