@@ -1431,6 +1431,11 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   "today", the middle line of a pyramid) is the same line on every row and stands for none, so it picks nothing and
   leaves the pointer to the bars under it. A line many rows draw (an average repeated on each) stands for all of them,
   and its card shows what they share (`Pick.rows`).
+- **A category alone is a line through its band** (found while doing the above). A rule spanned a share of the band
+  on a band scale, as the target tick across a bar does, also when nothing was on the other axis; that axis then gave
+  the whole plot, and `{"type": "rule", "x": "region"}` drew a diagonal from a corner of each band to the opposite
+  one. With nothing on the other axis the line now runs across the plot through the middle of its band, as with x2 or
+  y2. No recipe drew one.
 
 ## Next steps
 

@@ -4204,6 +4204,43 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(near(m[1], 100, 25), 'in the middle of the band: ' + m);
   });
 
+  test('mark.rule: a category alone is a line through the middle of its band across the plot, not a diagonal', () => {
+    BC.data('cats', [
+      { g: 'A', v: 2 },
+      { g: 'B', v: 4 },
+      { g: 'C', v: 3 },
+    ]);
+    const ends = (scales, rule) =>
+      paths(
+        layer(
+          draw({
+            data: 'cats',
+            size: [600, 300],
+            padding: { top: 0, right: 0, bottom: 0, left: 0 },
+            scales,
+            guides: [],
+            marks: [{ type: 'point', x: scales.x.type === 'band' ? 'g' : 'v', y: scales.y.type === 'band' ? 'g' : 'v' }, rule],
+          }).svg,
+          'marks',
+        ),
+      ).map((p) => /^M([\d.-]+) ([\d.-]+)L([\d.-]+) ([\d.-]+)$/.exec(p.d).slice(1).map(Number));
+    const band = { type: 'band', paddingInner: 0, paddingOuter: 0 };
+    const linear = { type: 'linear', domain: [0, 5] };
+    assert.deepStrictEqual(ends({ x: band, y: linear }, { type: 'rule', x: 'g' }), [
+      [100, 300, 100, 0],
+      [300, 300, 300, 0],
+      [500, 300, 500, 0],
+    ]);
+    assert.deepStrictEqual(ends({ x: band, y: linear }, { type: 'rule', x: { value: 'B' } }), [[300, 300, 300, 0]]);
+    assert.deepStrictEqual(ends({ y: band, x: linear }, { type: 'rule', y: 'g' }), [
+      [0, 50, 600, 50],
+      [0, 150, 600, 150],
+      [0, 250, 600, 250],
+    ]);
+    // with a value on the other axis it is still the tick across the band (`thickness` 0.7 of it)
+    assert.deepStrictEqual(ends({ x: band, y: linear }, { type: 'rule', x: 'g', y: { value: 3 } })[1], [230, 120, 370, 120]);
+  });
+
   test('mark.rect: with no band, bars stand at their positions, a step wide, and do not reach back to 1970', () => {
     const { svg, h } = draw({
       ...monthly({}),

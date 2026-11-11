@@ -563,7 +563,7 @@ Version 16, 4.5 KB. Rectangles. On a band scale a channel spans the band; on a c
 
 ## mark.rule
 
-Version 10, 3.7 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it. A tooltip finds a line that reads a column (an error bar, a dumbbell, a lollipop) within a few px of it; a line of constants alone stands for no row and leaves the pointer to the marks under it.
+Version 11, 3.7 KB. Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one, through the middle of its band on a band scale. With both, on a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it. A tooltip finds a line that reads a column (an error bar, a dumbbell, a lollipop) within a few px of it; a line of constants alone stands for no row and leaves the pointer to the marks under it.
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |

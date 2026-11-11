@@ -1,8 +1,9 @@
 (function () {
   const r2 = (v: number) => Math.round(v * 100) / 100;
 
-  /** The segment a row draws, in px, or null. A channel on a band scale spans (a share of) the band; a continuous channel
-   *  with its `2` partner spans between the two; a continuous channel alone is a position the other axis runs across. */
+  /** The segment a row draws, in px, or null. A channel on a band scale spans (a share of) the band, or is the middle
+   *  of it when the line runs along the band; a continuous channel with its `2` partner spans between the two; a
+   *  continuous channel alone is a position the other axis runs across. */
   function segments(spec: BC.MarkSpec, ctx: BC.ChartCtx) {
     const resolve = (name: string): BC.ChannelData | null => (spec[name] === undefined ? null : ctx.channel(spec, name));
     const cx = resolve('x');
@@ -14,7 +15,7 @@
     const span = (
       c: BC.ChannelData | null,
       c2: BC.ChannelData | null,
-      cross: BC.ChannelData | null,
+      along: boolean,
       i: number,
       lo: number,
       hi: number,
@@ -24,8 +25,9 @@
       if (!isFinite(a)) return null;
       const bw = c.scale ? c.scale.bandwidth : undefined;
       if (bw !== undefined) {
-        // a line from x to x2 is the line of its band, along the middle of it (a range, a dumbbell)
-        if (cross) return [a + bw / 2, a + bw / 2];
+        // a line from x to x2 is the line of its band, along the middle of it (a range, a dumbbell); so is a line
+        // with nothing on the other axis, which runs across the whole plot
+        if (along) return [a + bw / 2, a + bw / 2];
         const inset = (bw * (1 - share)) / 2;
         return [a + inset, a + bw - inset];
       }
@@ -36,8 +38,8 @@
       return [a, a];
     };
     return (i: number): [number, number, number, number] | null => {
-      const sx = span(cx, cx2, cy2, i, x, x + w);
-      const sy = span(cy, cy2, cx2, i, y + h, y);
+      const sx = span(cx, cx2, !!cy2 || !cy, i, x, x + w);
+      const sy = span(cy, cy2, !!cx2 || !cx, i, y + h, y);
       if (!sx || !sy) return null;
       // a point (both continuous, no partner) is not a rule
       if (sx[0] === sx[1] && sy[0] === sy[1]) return null;
@@ -121,8 +123,8 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rule',
-    version: 10,
-    doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it. A tooltip finds a line that reads a column (an error bar, a dumbbell, a lollipop) within a few px of it; a line of constants alone stands for no row and leaves the pointer to the marks under it.',
+    version: 11,
+    doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one, through the middle of its band on a band scale. With both, on a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it. A tooltip finds a line that reads a column (an error bar, a dumbbell, a lollipop) within a few px of it; a line of constants alone stands for no row and leaves the pointer to the marks under it.',
     params: {
       stroke: { kind: 'color', doc: 'Any CSS color. Default: the theme text color.' },
       strokeWidth: { kind: 'number', default: 2 },
