@@ -174,6 +174,21 @@ the labels inside the charts, and it is no native speaker).
         revoked once someone has the file and the password.
       - Tests: wrong password, damaged data, truncated data, `</script>` in the content, no `crypto.subtle`.
 
+## Research
+
+- [ ] **What in the core not every page needs.** The core goes on every page whatever its charts, and it has grown with
+      them (about 2,200 lines in `src/core.ts`). Two build switches already drop what a composed page does not need:
+      `CHECKS` (the validation the composer has already run) and `DECODE` (encoded data); see the top of `src/core.ts`
+      and `CORE_VARIANTS` in `scripts/minify.js`. To find out:
+      - how many bytes (minified and gzipped) each part of the core is, and which recipes reach it: the zoom pipeline
+        (views, transforms that follow the view, `TransformView.fitting`), the responsive relayout (ResizeObserver), the
+        layout of wide (CJK) text, number and date formatting, the error box;
+      - for a part only some pages use, whether it becomes one more switch the composer turns off, or moves to a `lib.*`
+        block that the blocks needing it `require`, as `lib.pointer` and `lib.ticks` are;
+      - the same for the larger blocks: options few charts use (the spans of guide.axis for a Marimekko, the Sankey card
+        and flows of interaction.tooltip).
+      Worth doing only if the smallest page gets noticeably lighter (39.5 KB in the gallery): decide from the numbers.
+
 ## Ideas, not decided
 
 - An MCP server with one tool, `compose_report`, for agents that cannot run `node`.
