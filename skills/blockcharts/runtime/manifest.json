@@ -804,8 +804,8 @@
     },
     "transform.sankey": {
       "file": "blocks/transform.sankey.js",
-      "bytes": 3548,
-      "version": 2,
+      "bytes": 4199,
+      "version": 3,
       "requires": [
         "lib.columns"
       ],
@@ -837,10 +837,10 @@
         },
         "as": {
           "kind": "list",
-          "doc": "Names of the five new columns: [x0, x1, y0, y1, thickness]."
+          "doc": "Names of the new columns: [x0, x1, y0, y1, thickness, waypoints]; five names keep \"waypoints\"."
         }
       },
-      "doc": "The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); and `thickness`. A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it."
+      "doc": "The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; a flow that reaches past the next column gets a place of its own in each column between, so its ribbon runs through a gap rather than behind a node; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); `thickness`; and `waypoints`, the column and the top of the ribbon in each column it passes ([x, top, x, top, ...], empty for a flow to the next column). A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it."
     },
     "transform.sort": {
       "file": "blocks/transform.sort.js",
@@ -1889,8 +1889,8 @@
     },
     "mark.sankey": {
       "file": "blocks/mark.sankey.js",
-      "bytes": 4851,
-      "version": 5,
+      "bytes": 6618,
+      "version": 6,
       "requires": [],
       "closure": [
         "mark.sankey"
@@ -1916,7 +1916,7 @@
         },
         "layout": {
           "kind": "list",
-          "doc": "Names of the five columns transform.sankey writes, when its `as` renames them: [x0, x1, y0, y1, thickness]."
+          "doc": "Names of the columns transform.sankey writes, when its `as` renames them: [x0, x1, y0, y1, thickness, waypoints]; five names keep \"waypoints\"."
         },
         "labelMin": {
           "kind": "number",

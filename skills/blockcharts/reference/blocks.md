@@ -297,7 +297,7 @@ Version 4, 2.1 KB. The five-number summary of `field` (min/max here mean the Tuk
 
 ## transform.sankey
 
-Version 2, 3.5 KB. The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); and `thickness`. A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it.
+Version 3, 4.1 KB. The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; a flow that reaches past the next column gets a place of its own in each column between, so its ribbon runs through a gap rather than behind a node; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); `thickness`; and `waypoints`, the column and the top of the ribbon in each column it passes ([x, top, x, top, ...], empty for a flow to the next column). A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it.
 
 Needs: `lib.columns`.
 
@@ -307,7 +307,7 @@ Needs: `lib.columns`.
 | `target` | field, **required** |  | Field with the name of the node a flow arrives at. |
 | `value` | field, **required** |  | Numeric field: the size of the flow. |
 | `nodeGap` | number | `0.03` | Space between the nodes of a column, as a share of the height of the plot; it shrinks when a column is full, so the gaps take at most half of it. |
-| `as` | list |  | Names of the five new columns: [x0, x1, y0, y1, thickness]. |
+| `as` | list |  | Names of the new columns: [x0, x1, y0, y1, thickness, waypoints]; five names keep "waypoints". |
 
 ## transform.sort
 
@@ -583,7 +583,7 @@ Version 8, 2.5 KB. Lines at values: a target, a threshold, an average, the targe
 
 ## mark.sankey
 
-Version 5, 4.7 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
+Version 6, 6.5 KB. A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).
 
 | Channel | | Accepted scales | Notes |
 | --- | --- | --- | --- |
@@ -597,7 +597,7 @@ Version 5, 4.7 KB. A Sankey diagram: one row per flow, from `source` to `target`
 | `format` | format |  | How the total of a node is written after its name. Without it, only the name. |
 | `linkOpacity` | number | `0.35` | Opacity of the ribbons. |
 | `nodeLabels` | list |  | What a tooltip calls what flows into and out of a node: ["In", "Out"] by default. Translate it on a page in another language. |
-| `layout` | list |  | Names of the five columns transform.sankey writes, when its `as` renames them: [x0, x1, y0, y1, thickness]. |
+| `layout` | list |  | Names of the columns transform.sankey writes, when its `as` renames them: [x0, x1, y0, y1, thickness, waypoints]; five names keep "waypoints". |
 | `labelMin` | number | `11` | Nodes shorter than this many px get no label, so that labels do not overlap. |
 
 ## mark.text

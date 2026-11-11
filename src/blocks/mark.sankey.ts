@@ -3,7 +3,8 @@
   const NODE_WIDTH = 12;
   const LABEL_GAP = 6;
   const LABEL_SIZE = 12;
-  const LAYOUT = ['x0', 'x1', 'y0', 'y1', 'thickness'];
+  const LINE = 15;
+  const LAYOUT = ['x0', 'x1', 'y0', 'y1', 'thickness', 'waypoints'];
   const r2 = (v: number) => Math.round(v * 100) / 100;
 
   interface Node {
@@ -27,6 +28,8 @@
     /** Centers of the ribbon at its two ends. */
     y0: number;
     y1: number;
+    /** Where it passes the columns between its ends: the left edge of the column and the center of the ribbon there. */
+    via: { x: number; y: number }[];
   }
   interface Geometry {
     nodes: Node[];
@@ -43,14 +46,18 @@
    *  ribbon starts. */
   function geometry(spec: BC.MarkSpec, ctx: BC.ChartCtx): Geometry | null {
     const given = spec.layout;
-    if (given !== undefined && !(Array.isArray(given) && given.length === 5 && given.every((n) => typeof n === 'string' && n)))
-      throw new Error('mark.sankey: "layout" must be five column names: [x0, x1, y0, y1, thickness]');
-    const names = given === undefined ? LAYOUT : (given as string[]);
+    if (
+      given !== undefined &&
+      !(Array.isArray(given) && (given.length === 5 || given.length === 6) && given.every((n) => typeof n === 'string' && n))
+    )
+      throw new Error('mark.sankey: "layout" must be six column names: [x0, x1, y0, y1, thickness, waypoints] (five keep "waypoints")');
+    const names = given === undefined ? LAYOUT : (given as string[]).concat(given.length === 5 ? [LAYOUT[5]] : []);
     const layout = names.map((n) => ctx.table.columns[n]);
-    const missing = names.find((_, k) => !layout[k]);
+    // the places a flow passes are new: a table laid out without them draws its long flows straight
+    const missing = names.slice(0, 5).find((_, k) => !layout[k]);
     if (missing !== undefined)
       throw new Error(`mark.sankey: there is no column "${missing}" with the layout of the flows: put a sankey transform before it`);
-    const [lx0, lx1, ly0, ly1, lth] = layout;
+    const [lx0, lx1, ly0, ly1, lth, lvia] = layout;
     const sources = ctx.channel(spec, 'source').raw;
     const targets = ctx.channel(spec, 'target').raw;
     const values = ctx.channel(spec, 'value').raw;
@@ -91,7 +98,11 @@
       const a = node(String(sources[row]), a0);
       const b = node(String(targets[row]), a1);
       if (a === b) continue;
-      const link: Link = { row, from: a, to: b, value: v, thick: th * h, y0: y + (t0 + th / 2) * h, y1: y + (t1 + th / 2) * h };
+      const through = lvia ? lvia[row] : null;
+      const via: { x: number; y: number }[] = [];
+      if (Array.isArray(through) && through.length % 2 === 0 && through.every((t) => typeof t === 'number' && isFinite(t)))
+        for (let k = 0; k < through.length; k += 2) via.push({ x: x + through[k] * (w - width), y: y + (through[k + 1] + th / 2) * h });
+      const link: Link = { row, from: a, to: b, value: v, thick: th * h, y0: y + (t0 + th / 2) * h, y1: y + (t1 + th / 2) * h, via };
       links.push(link);
       a.outs.push(link);
       b.ins.push(link);
@@ -113,51 +124,99 @@
     return { nodes, links };
   }
 
-  /** The ends of a ribbon: it leaves the right edge of a node and arrives at the left edge of another. */
-  function span(l: Link, width: number) {
-    const x0 = l.from.x + width;
-    const x1 = l.to.x;
-    return { x0, x1, mid: (x0 + x1) / 2 };
-  }
-
-  /** A ribbon of even vertical thickness: one curve along the top, one back along the bottom. */
-  function ribbon(l: Link, width: number): string {
-    const { x0, x1, mid } = span(l, width);
-    const half = l.thick / 2;
-    return (
-      `M${r2(x0)} ${r2(l.y0 - half)}C${r2(mid)} ${r2(l.y0 - half)} ${r2(mid)} ${r2(l.y1 - half)} ${r2(x1)} ${r2(l.y1 - half)}` +
-      `L${r2(x1)} ${r2(l.y1 + half)}C${r2(mid)} ${r2(l.y1 + half)} ${r2(mid)} ${r2(l.y0 + half)} ${r2(x0)} ${r2(l.y0 + half)}Z`
-    );
-  }
-
-  /** The height of a ribbon's center at x: the curve's x runs one way, so halving finds it. */
-  function centerAt(l: Link, width: number, px: number): number {
-    const { x0, x1, mid } = span(l, width);
-    const xAt = (t: number) => {
-      const u = 1 - t;
-      return u * u * u * x0 + 3 * u * t * (u + t) * mid + t * t * t * x1;
-    };
-    let lo = 0;
-    let hi = 1;
-    for (let i = 0; i < 20; i++) {
-      const t = (lo + hi) / 2;
-      if (xAt(t) < px) lo = t;
-      else hi = t;
+  /** The curves of a ribbon, by its center: from the right edge of a node to the left edge of the next column; through
+   *  a column it passes, it runs straight across, as wide as a node, from the end of one curve to the start of the next. */
+  function legs(l: Link, width: number): { xa: number; ya: number; xb: number; yb: number }[] {
+    const out: { xa: number; ya: number; xb: number; yb: number }[] = [];
+    let xa = l.from.x + width;
+    let ya = l.y0;
+    for (const v of l.via) {
+      out.push({ xa, ya, xb: v.x, yb: v.y });
+      xa = v.x + width;
+      ya = v.y;
     }
-    const t = (lo + hi) / 2;
-    const u = 1 - t;
-    return (u * u * u + 3 * u * u * t) * l.y0 + (3 * u * t * t + t * t * t) * l.y1;
+    out.push({ xa, ya, xb: l.to.x, yb: l.y1 });
+    return out;
   }
 
-  /** What fits between two columns: the name and total, else the name, else as much of the name as there is room for. */
-  function fitted(ctx: BC.ChartCtx, name: string, total: string | null, room: number): string {
+  /** A ribbon of even vertical thickness: curves along the top, and back along the bottom. */
+  function ribbon(l: Link, width: number): string {
+    const half = l.thick / 2;
+    const parts = legs(l, width);
+    const curve = (xa: number, ya: number, xb: number, yb: number) => {
+      const mid = r2((xa + xb) / 2);
+      return `C${mid} ${r2(ya)} ${mid} ${r2(yb)} ${r2(xb)} ${r2(yb)}`;
+    };
+    let d = `M${r2(parts[0].xa)} ${r2(parts[0].ya - half)}`;
+    parts.forEach((p, k) => {
+      if (k) d += `L${r2(p.xa)} ${r2(p.ya - half)}`;
+      d += curve(p.xa, p.ya - half, p.xb, p.yb - half);
+    });
+    const end = parts[parts.length - 1];
+    d += `L${r2(end.xb)} ${r2(end.yb + half)}`;
+    for (let k = parts.length - 1; k >= 0; k--) {
+      const p = parts[k];
+      if (k < parts.length - 1) d += `L${r2(p.xb)} ${r2(p.yb + half)}`;
+      d += curve(p.xb, p.yb + half, p.xa, p.ya + half);
+    }
+    return d + 'Z';
+  }
+
+  /** The height of a ribbon's center at x, or NaN past its ends: on a curve its x runs one way, so halving finds it. */
+  function centerAt(l: Link, width: number, px: number): number {
+    const parts = legs(l, width);
+    for (let k = 0; k < parts.length; k++) {
+      const { xa, ya, xb, yb } = parts[k];
+      if (k && px < xa) return ya; // straight across a column it passes
+      if (px < xa || px > xb) continue;
+      const mid = (xa + xb) / 2;
+      const xAt = (t: number) => {
+        const u = 1 - t;
+        return u * u * u * xa + 3 * u * t * (u + t) * mid + t * t * t * xb;
+      };
+      let lo = 0;
+      let hi = 1;
+      for (let i = 0; i < 20; i++) {
+        const t = (lo + hi) / 2;
+        if (xAt(t) < px) lo = t;
+        else hi = t;
+      }
+      const t = (lo + hi) / 2;
+      const u = 1 - t;
+      return (u * u * u + 3 * u * u * t) * ya + (3 * u * t * t + t * t * t) * yb;
+    }
+    return NaN;
+  }
+
+  /** The lines of a node's label in `room` px and at most `most` lines, or null when they do not fit: the name and its
+   *  total on one line; else the total under the name; the name broken at the space that makes its two lines most even
+   *  when it is too long for one. */
+  function lay(ctx: BC.ChartCtx, name: string, total: string | null, room: number, most: number): string[] | null {
+    const wide = (t: string) => ctx.measure(t, LABEL_SIZE).w;
+    const names: string[][] = [[name]];
+    const words = name.split(/\s+/).filter(Boolean);
+    let even: string[] | null = null;
+    for (let k = 1; k < words.length; k++) {
+      const two = [words.slice(0, k).join(' '), words.slice(k).join(' ')];
+      if (!even || Math.max(...two.map(wide)) < Math.max(...even.map(wide))) even = two;
+    }
+    if (even) names.push(even);
+    for (const lines of names) {
+      const end = lines[lines.length - 1];
+      const tries = total === null ? [lines] : [lines.slice(0, -1).concat(`${end} ${total}`), lines.concat(total)];
+      for (const t of tries) if (t.length <= most && t.every((line) => wide(line) <= room)) return t;
+    }
+    return null;
+  }
+
+  /** As much of a name as fits on one line, cut with an ellipsis; empty when not even a letter does. */
+  function cut(ctx: BC.ChartCtx, name: string, room: number): string {
     const fits = (t: string) => ctx.measure(t, LABEL_SIZE).w <= room;
-    if (total !== null && fits(`${name} ${total}`)) return `${name} ${total}`;
     if (fits(name)) return name;
     const chars = Array.from(name);
     for (let n = chars.length - 1; n > 0; n--) {
-      const cut = chars.slice(0, n).join('').trimEnd() + '…';
-      if (fits(cut)) return cut;
+      const short = chars.slice(0, n).join('').trimEnd() + '…';
+      if (fits(short)) return short;
     }
     return '';
   }
@@ -165,7 +224,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'sankey',
-    version: 5,
+    version: 6,
     doc: 'A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).',
     params: {
       nodeWidth: { kind: 'number', default: NODE_WIDTH, doc: 'Width of a node, in px.' },
@@ -177,7 +236,7 @@
       },
       layout: {
         kind: 'list',
-        doc: 'Names of the five columns transform.sankey writes, when its `as` renames them: [x0, x1, y0, y1, thickness].',
+        doc: 'Names of the columns transform.sankey writes, when its `as` renames them: [x0, x1, y0, y1, thickness, waypoints]; five names keep "waypoints".',
       },
       labelMin: { kind: 'number', default: 11, doc: 'Nodes shorter than this many px get no label, so that labels do not overlap.' },
     },
@@ -203,34 +262,78 @@
       // a label goes towards the middle of the chart: the last column writes it to its left, the rest to their right
       const leftward = (n: Node) => n.x + width >= right - 0.5 && g.nodes.some((o) => o.x < n.x);
       const total = (n: Node) => (write ? write(n.value) : null);
-      const widthAt = (n: Node) => ctx.measure(fitted(ctx, n.name, total(n), room), LABEL_SIZE).w;
-      // the last gap is written into from both sides: two labels at one height that do not fit together take half of it each
-      const limit = new Map<Node, number>();
-      const beforeLast = columns[columns.length - 2];
+      // a label has as many lines as its node is tall
+      const most = (n: Node) => Math.max(1, Math.floor(n.h / LINE));
       const labelled = g.nodes.filter((n) => n.h >= labelMin);
-      for (const a of labelled.filter((n) => n.x === beforeLast && !leftward(n)))
-        for (const b of labelled.filter(leftward)) {
-          const sameHeight = Math.abs(a.y + a.h / 2 - (b.y + b.h / 2)) < LABEL_SIZE + 2;
-          if (!sameHeight || widthAt(a) + widthAt(b) + LABEL_GAP <= room) continue;
-          limit.set(a, (room - LABEL_GAP) / 2);
-          limit.set(b, (room - LABEL_GAP) / 2);
+      const rooms = new Map<Node, number>(labelled.map((n) => [n, room]));
+      const lines = new Map<Node, string[]>();
+      const layOut = () => {
+        // totals are written on every node or on none: a total on some only reads as if the others had none
+        const totals = labelled.every((n) => lay(ctx, n.name, total(n), rooms.get(n) as number, most(n)) !== null);
+        for (const n of labelled) {
+          const r = rooms.get(n) as number;
+          lines.set(n, lay(ctx, n.name, totals ? total(n) : null, r, most(n)) || [cut(ctx, n.name, r)].filter(Boolean));
         }
+      };
+      layOut();
+      // the last gap is written into from both sides. Two labels there that meet move apart, up and down, as far as their
+      // nodes reach (a label stays beside its node); when that is not enough, each takes half of the gap
+      const beforeLast = columns[columns.length - 2];
+      const shift = new Map<Node, number>();
+      const height = (n: Node) => (lines.get(n) as string[]).length * LINE;
+      const middle = (n: Node) => n.y + n.h / 2 + (shift.get(n) || 0);
+      // how far the middle of a label may move up (-) or down (+) and keep the label beside its node
+      const reach = (n: Node, dir: number) => Math.max(0, (n.h - height(n)) / 2) * dir - (shift.get(n) || 0);
+      const extent = (n: Node) => ({
+        w: (lines.get(n) as string[]).reduce((m, line) => Math.max(m, ctx.measure(line, LABEL_SIZE).w), 0),
+        top: middle(n) - height(n) / 2,
+        bottom: middle(n) + height(n) / 2,
+      });
+      const facing = (pass: (a: Node, b: Node, overlap: number) => void) => {
+        for (const a of labelled.filter((n) => n.x === beforeLast && !leftward(n)))
+          for (const b of labelled.filter(leftward)) {
+            const ea = extent(a);
+            const eb = extent(b);
+            const overlap = Math.min(ea.bottom, eb.bottom) - Math.max(ea.top, eb.top);
+            if (overlap > 0 && ea.w + eb.w + LABEL_GAP > room) pass(a, b, overlap);
+          }
+      };
+      facing((a, b, overlap) => {
+        const [up, down] = middle(a) <= middle(b) ? [a, b] : [b, a];
+        const need = overlap + 2;
+        const canUp = -reach(up, -1);
+        const canDown = reach(down, 1);
+        if (canUp + canDown < need) return;
+        const moveUp = Math.min(canUp, Math.max(need / 2, need - canDown));
+        shift.set(up, (shift.get(up) || 0) - moveUp);
+        shift.set(down, (shift.get(down) || 0) + (need - moveUp));
+      });
+      let shared = false;
+      facing((a, b) => {
+        rooms.set(a, (room - LABEL_GAP) / 2);
+        rooms.set(b, (room - LABEL_GAP) / 2);
+        shift.delete(a);
+        shift.delete(b);
+        shared = true;
+      });
+      if (shared) layOut();
       for (const n of g.nodes) {
         out.push({ type: 'rect', x: r2(n.x), y: r2(n.y), w: width, h: r2(Math.max(1, n.h)), style: { fill: n.color } });
-        if (n.h < labelMin) continue;
+        const ls = lines.get(n);
+        if (!ls) continue;
         const toLeft = leftward(n);
-        const text = fitted(ctx, n.name, total(n), limit.get(n) ?? room);
-        if (!text) continue;
-        out.push({
-          type: 'text',
-          x: r2(toLeft ? n.x - LABEL_GAP : n.x + width + LABEL_GAP),
-          y: r2(n.y + n.h / 2),
-          text,
-          size: LABEL_SIZE,
-          anchor: toLeft ? 'end' : 'start',
-          baseline: 'middle',
-          style: { fill: TEXT },
-        });
+        ls.forEach((text, k) =>
+          out.push({
+            type: 'text',
+            x: r2(toLeft ? n.x - LABEL_GAP : n.x + width + LABEL_GAP),
+            y: r2(middle(n) + (k - (ls.length - 1) / 2) * LINE),
+            text,
+            size: LABEL_SIZE,
+            anchor: toLeft ? 'end' : 'start',
+            baseline: 'middle',
+            style: { fill: TEXT },
+          }),
+        );
       }
       return out;
     },
@@ -266,9 +369,8 @@
       let best: Link | null = null;
       let center = 0;
       for (const l of g.links) {
-        const { x0, x1 } = span(l, width);
-        if (px < x0 || px > x1) continue;
         const c = centerAt(l, width, px);
+        if (isNaN(c)) continue;
         if (Math.abs(py - c) <= Math.max(l.thick, 2) / 2 && (!best || l.thick < best.thick)) {
           best = l;
           center = c;

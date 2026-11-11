@@ -1345,6 +1345,16 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   (年 after 2024 ends the year), never starts with a closing mark (、。」ー, small kana) nor ends with an opening one
   (「); of those places it takes the one whose first line fits and whose two lines are the most even: "2024年 / 1月",
   "2024年 / 第1四半期". Whether the labels go at an angle is decided by the wider of those two lines, not half the label.
+- **A Sankey flow that skips a column runs through a gap of its own.** Jet fuel → Airlines reached from the second
+  column to the last and was drawn as one curve behind "Retail stations". `transform.sankey` now cuts such a flow into
+  pieces through a node no one sees in each column between, which takes part in the order and the height of that
+  column, so the ribbon passes between the nodes; the places are written to a sixth column, `waypoints` (`as` and
+  `layout` take five names still), and `mark.sankey` draws the ribbon straight across the columns it passes and picks
+  it there. A table laid out without them draws its long flows as before.
+- **Sankey labels on a phone.** A label that did not fit lost its total, so some nodes showed one and others not, and
+  long names were cut. Now the totals are on every node or on none; a total that does not fit goes under its name and a
+  long name breaks at a space, as many lines as the node is tall; two labels that meet in the last gap first move apart,
+  up and down beside their nodes, and only share the gap when they cannot.
 
 ## Next steps
 

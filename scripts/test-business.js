@@ -2674,9 +2674,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       JSON.stringify(untold.h.diagnostics),
     );
     assert(
-      chart(['a0', 'a1']).h.diagnostics.some((d) => /mark.sankey: "layout" must be five column names/.test(d.message)),
+      chart(['a0', 'a1']).h.diagnostics.some((d) => /mark.sankey: "layout" must be six column names/.test(d.message)),
       'a short layout is an error',
     );
+    // five names keep "waypoints"; a sixth renames it, and the mark told so finds it
+    assert(Array.isArray(named.waypoints) && named.waypoints.length === rows.length);
+    const six = apply('sankey', rows, { source: 's', target: 't', value: 'v', as: [...as, 'wp'] }).columns;
+    assert(Array.isArray(six.wp) && !('waypoints' in six));
     const bare = draw({ data: 'flows', marks: [{ type: 'sankey', source: 's', target: 't', value: 'v' }] });
     assert(
       bare.h.diagnostics.some((d) => /put a sankey transform before it/.test(d.message)),
@@ -2691,7 +2695,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       [{ nodeGap: 1 }, /"nodeGap"/],
       [{ nodeGap: 'wide' }, /"nodeGap"/],
       [{ nodeGap: NaN }, /"nodeGap"/],
-      [{ as: ['a', 'b'] }, /transform.sankey: "as" must be five column names/],
+      [{ as: ['a', 'b'] }, /transform.sankey: "as" must be six column names/],
+      [{ as: ['a', 'b', 'c', 'd', 'e', 'f', 'g'] }, /"as"/],
       [{ as: ['a', 'b', 'c', 'd', ''] }, /"as"/],
       [{ as: 'x0' }, /"as"/],
     ])
@@ -2748,6 +2753,157 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     let empty = 0;
     for (let x = 20; x < 580; x += 40) for (let y = 0; y < 400; y += 8) if (!BC.get('mark.sankey').pick(spec, ctx, 0, x, y)) empty++;
     assert(empty > 0, 'between the ribbons, nothing');
+  });
+
+  /** The flows of the sankey recipe: Jet fuel reaches Airlines in the last column, Other products reaches Industry. */
+  const oil = [
+    { s: 'Crude oil', t: 'Gasoline', v: 420 },
+    { s: 'Crude oil', t: 'Diesel', v: 310 },
+    { s: 'Crude oil', t: 'Jet fuel', v: 120 },
+    { s: 'Crude oil', t: 'Other products', v: 150 },
+    { s: 'Gasoline', t: 'Retail stations', v: 360 },
+    { s: 'Gasoline', t: 'Wholesale', v: 60 },
+    { s: 'Diesel', t: 'Retail stations', v: 130 },
+    { s: 'Diesel', t: 'Wholesale', v: 180 },
+    { s: 'Jet fuel', t: 'Airlines', v: 120 },
+    { s: 'Other products', t: 'Wholesale', v: 90 },
+    { s: 'Other products', t: 'Industry', v: 60 },
+    { s: 'Retail stations', t: 'Drivers', v: 400 },
+    { s: 'Retail stations', t: 'Fleets', v: 90 },
+    { s: 'Wholesale', t: 'Fleets', v: 210 },
+    { s: 'Wholesale', t: 'Industry', v: 120 },
+  ];
+
+  test('transform.sankey: a flow that reaches past a column runs through a gap of its own there, not behind a node', () => {
+    const c = apply('sankey', oil, { source: 's', target: 't', value: 'v' }).columns;
+    // where each node is in its column, from the ends of its ribbons
+    const nodes = new Map();
+    const put = (name, x, top, th) => {
+      const n = nodes.get(name) || { x, top: Infinity, bottom: -Infinity };
+      n.top = Math.min(n.top, top);
+      n.bottom = Math.max(n.bottom, top + th);
+      nodes.set(name, n);
+    };
+    oil.forEach((r, i) => {
+      put(r.s, c.x0[i], c.y0[i], c.thickness[i]);
+      put(r.t, c.x1[i], c.y1[i], c.thickness[i]);
+    });
+    const long = oil.map((r, i) => i).filter((i) => c.x1[i] - c.x0[i] > 0.34);
+    assert.deepStrictEqual(
+      long.map((i) => oil[i].t),
+      ['Airlines', 'Industry'],
+      'two flows reach past the next column',
+    );
+    for (let i = 0; i < oil.length; i++) {
+      const w = c.waypoints[i];
+      assert.strictEqual(w.length, long.includes(i) ? 2 : 0, `${oil[i].s} → ${oil[i].t}: a place in each column between`);
+      for (let k = 0; k < w.length; k += 2) {
+        const [x, top] = [w[k], w[k + 1]];
+        assert(x > c.x0[i] && x < c.x1[i] && near(x, 2 / 3, 1e-12), 'in the column between: ' + x);
+        assert(top >= -1e-12 && top + c.thickness[i] <= 1 + 1e-12, 'inside the plot');
+        for (const [name, n] of nodes)
+          if (near(n.x, x, 1e-12))
+            assert(top + c.thickness[i] <= n.top + 1e-9 || top >= n.bottom - 1e-9, `${oil[i].s} → ${oil[i].t} clear of ${name}`);
+      }
+    }
+    // the place it takes is height like any node's: the column it passes keeps the gaps, and still fits the plot
+    const fullest = Math.max(...[...nodes.values()].map((n) => n.bottom));
+    assert(fullest <= 1 + 1e-12);
+    assert.strictEqual(c.waypoints[oil.length], undefined);
+    const dropped = apply('sankey', [...oil, { s: 'A', t: 'A', v: 1 }], { source: 's', target: 't', value: 'v' }).columns;
+    assert.strictEqual(dropped.waypoints[oil.length], null, 'a row with no flow has no places either');
+  });
+
+  test('mark.sankey: a label has no more lines than its node is tall', () => {
+    // Tiny is about 19 px tall: one line, and "Tiny stream 5" needs two in this room, so no node shows its total
+    const rows = [
+      { s: 'Big', t: 'Mid', v: 95 },
+      { s: 'Tiny stream', t: 'Mid', v: 5 },
+      { s: 'Mid', t: 'End', v: 100 },
+    ];
+    const ctx = { ...sankeyCtx(rows), plot: { x: 0, y: 0, w: 200, h: 400 }, measure: (t) => ({ w: t.length * 7.2, h: 12 }) };
+    const spec = { type: 'sankey', source: 's', target: 't', value: 'v', format: 'integer' };
+    const words = BC.get('mark.sankey')
+      .render(spec, ctx, 0)
+      .filter((p) => p.type === 'text')
+      .map((p) => p.text);
+    assert(!words.some((w) => /\d/.test(w)), 'no totals: ' + words);
+    assert(words.includes('Tiny str…') && !words.includes('stream'), 'one line, cut: ' + words);
+    const tall = { ...ctx, plot: { ...ctx.plot, h: 800 } };
+    const more = BC.get('mark.sankey')
+      .render(spec, tall, 0)
+      .filter((p) => p.type === 'text')
+      .map((p) => p.text);
+    assert(more.includes('Tiny') && more.includes('stream 5'), 'twice as tall, two lines and the totals: ' + more);
+  });
+
+  test('mark.sankey: a long ribbon runs straight through the column it passes, and is picked there', () => {
+    const ctx = sankeyCtx(oil);
+    const mark = BC.get('mark.sankey');
+    const spec = { type: 'sankey', source: 's', target: 't', value: 'v' };
+    const prims = mark.render(spec, ctx, 0);
+    const jet = prims.find((p) => p.type === 'path' && oil[p.ref.row].t === 'Airlines');
+    const curves = (jet.d.match(/C/g) || []).length;
+    assert.strictEqual(curves, 4, 'two curves along the top and two back: ' + jet.d);
+    // the column between: x = 2/3 of the room the nodes have; the ribbon is level across it
+    const x = (2 / 3) * (600 - 12);
+    const row = oil.findIndex((r) => r.t === 'Airlines');
+    const top = ctx.table.columns.waypoints[row][1] * 400;
+    const th = ctx.table.columns.thickness[row] * 400;
+    assert(new RegExp(`L${(x + 12).toFixed(2).replace(/\.?0+$/, '')} `).test(jet.d), 'straight across the node width: ' + jet.d);
+    const hit = mark.pick(spec, ctx, 0, x + 6, top + th / 2);
+    assert(hit && hit.row === row, 'picked inside the column it passes: ' + JSON.stringify(hit));
+    assert.strictEqual(mark.pick(spec, ctx, 0, x + 6, top - 3), null, 'just above it, in the gap, nothing');
+    // a table laid out before there were places draws the flow straight, as it did
+    const old = { ...ctx, table: { ...ctx.table, columns: { ...ctx.table.columns, waypoints: undefined } } };
+    const straight = mark.render(spec, old, 0).find((p) => p.type === 'path' && p.ref.row === row);
+    assert.strictEqual((straight.d.match(/C/g) || []).length, 2);
+    for (const bad of [[0.5], ['a', 0.1], [0.5, NaN], 'x'])
+      assert.doesNotThrow(() =>
+        mark.render(spec, { ...ctx, table: { ...ctx.table, columns: { ...ctx.table.columns, waypoints: oil.map(() => bad) } } }, 0),
+      );
+  });
+
+  test('mark.sankey: totals on every node or on none; a total that does not fit goes under its name, a long name onto two lines', () => {
+    const labels = (width, height = 400) => {
+      BC.data('oil', oil);
+      const { svg } = draw({
+        data: 'oil',
+        size: [width, height],
+        padding: { top: 8, right: 8, bottom: 8, left: 8 },
+        transforms: [{ type: 'sankey', source: 's', target: 't', value: 'v' }],
+        marks: [{ type: 'sankey', source: 's', target: 't', value: 'v', format: 'integer' }],
+      });
+      return [...marks(svg).matchAll(/<text ([^>]*)>([^<]*)<\/text>/g)].map((m) => {
+        const x = +/(?:^| )x="([-\d.]+)"/.exec(m[1])[1];
+        const w = m[2].length * 7.2; // what the layout measures a character of 12 px as
+        const end = / text-anchor="end"/.test(m[1]);
+        return { x, y: +/(?:^| )y="([-\d.]+)"/.exec(m[1])[1], text: m[2], from: end ? x - w : x, to: end ? x : x + w };
+      });
+    };
+    const wide = labels(1100).map((l) => l.text);
+    assert(wide.includes('Retail stations 490') && wide.includes('Crude oil 1,000'), 'on one line where there is room: ' + wide);
+    const phone = labels(324);
+    const texts = phone.map((l) => l.text);
+    assert(!texts.some((t) => t.endsWith('…')), 'nothing cut: ' + texts);
+    for (const total of ['1,000', '420', '490', '120', '150', '330'])
+      assert(
+        texts.some((t) => t === total || t.endsWith(' ' + total)),
+        total + ': ' + texts,
+      );
+    assert(texts.includes('Retail') && texts.includes('stations'), 'a long name on two lines: ' + texts);
+    // the lines of one label stand one under the other, at one x
+    // labels that face each other across the last gap move apart, up and down beside their nodes, rather than cut
+    for (const a of phone)
+      for (const b of phone)
+        if (a !== b && a.x !== b.x && Math.abs(a.y - b.y) < 15)
+          assert(a.to <= b.from || b.to <= a.from, 'apart: ' + JSON.stringify([a, b]));
+    const retail = phone.find((l) => l.text === 'Retail');
+    const stations = phone.find((l) => l.text === 'stations');
+    assert(near(retail.x, stations.x) && near(stations.y - retail.y, 15), JSON.stringify([retail, stations]));
+    // where the nodes are too short for two lines, no node shows a total rather than some
+    const flat = labels(324, 160).map((l) => l.text);
+    assert(!flat.some((t) => /\d/.test(t)), 'no totals: ' + flat);
   });
 
   // ───────────────────────── transform.treemap ─────────────────────────

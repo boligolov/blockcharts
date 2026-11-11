@@ -8,7 +8,7 @@
   const GAP = 0.03;
   /** Passes of ordering each column by where its neighbours are: enough for the crossings to settle. */
   const ORDER_PASSES = 8;
-  const NAMES = ['x0', 'x1', 'y0', 'y1', 'thickness'];
+  const NAMES = ['x0', 'x1', 'y0', 'y1', 'thickness', 'waypoints'];
 
   interface Node {
     name: string;
@@ -29,6 +29,9 @@
     /** Tops of the ribbon at its two ends. */
     top0: number;
     top1: number;
+    /** A flow that reaches past the next column runs through a place of its own in each column between: the pieces
+     *  from column to column, through nodes no one sees. */
+    parts?: Link[];
   }
 
   function fail(message: string): never {
@@ -38,9 +41,9 @@
   function namesOf(spec: BC.TransformSpec): string[] {
     if (spec.as === undefined) return NAMES;
     const as = spec.as;
-    if (!Array.isArray(as) || as.length !== 5 || !as.every((n) => typeof n === 'string' && n))
-      fail('"as" must be five column names: [x0, x1, y0, y1, thickness]');
-    return as as string[];
+    if (!Array.isArray(as) || (as.length !== 5 && as.length !== 6) || !as.every((n) => typeof n === 'string' && n))
+      fail('"as" must be six column names: [x0, x1, y0, y1, thickness, waypoints] (five keep "waypoints")');
+    return as.length === 6 ? (as as string[]) : (as as string[]).concat(NAMES[5]);
   }
 
   const present = (v: unknown) => v !== null && v !== undefined && v !== '';
@@ -67,6 +70,32 @@
     const last = nodes.reduce((m, n) => Math.max(m, n.layer), 0);
     for (const n of nodes) if (!n.outs.length) n.layer = last;
     return last;
+  }
+
+  /** A flow from column 1 to column 3 would run behind the nodes of column 2: it is cut into pieces through a node no
+   *  one sees in each column between, which takes its place in the order and the height of that column like any other,
+   *  so the ribbon passes through a gap of its own. */
+  function throughColumns(links: Link[], nodes: Node[]): void {
+    for (const l of links) {
+      if (l.to.layer - l.from.layer < 2) continue;
+      const take = (list: Link[]) => list.splice(list.indexOf(l), 1);
+      take(l.from.outs);
+      take(l.to.ins);
+      l.parts = [];
+      let at = l.from;
+      for (let layer = l.from.layer + 1; layer <= l.to.layer; layer++) {
+        let next = l.to;
+        if (layer < l.to.layer) {
+          next = { name: '', layer, value: 0, y: 0, h: 0, ins: [], outs: [] };
+          nodes.push(next);
+        }
+        const part: Link = { row: l.row, from: at, to: next, value: l.value, thick: 0, top0: 0, top1: 0 };
+        at.outs.push(part);
+        next.ins.push(part);
+        l.parts.push(part);
+        at = next;
+      }
+    }
   }
 
   /** The value-weighted middle of the other ends of some links, or NaN when there are none. */
@@ -105,9 +134,9 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'sankey',
-    version: 2,
+    version: 3,
     requires: ['lib.columns'],
-    doc: 'The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); and `thickness`. A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it.',
+    doc: 'The layout of a Sankey diagram, for mark.sankey: one row per flow, from `source` to `target`, its thickness in proportion to `value`. Columns come from the flows themselves: a node goes to the right of everything that flows into it, and a node nothing leaves to the last column; a flow that reaches past the next column gets a place of its own in each column between, so its ribbon runs through a gap rather than behind a node; the nodes of a column are ordered so that ribbons cross as little as they can, and every value is the same height in every column. It keeps the rows and writes on each flow where its ribbon runs, in shares of the plot: `x0` and `x1`, the columns it leaves and reaches (0 the first, 1 the last); `y0` and `y1`, the top of the ribbon at either end (0 the top of the plot, 1 its bottom); `thickness`; and `waypoints`, the column and the top of the ribbon in each column it passes ([x, top, x, top, ...], empty for a flow to the next column). A row with no positive value or no name, or a flow from a node to itself, gets none. Flows have to run one way: a loop is an error that names it.',
     params: {
       source: { kind: 'field', required: true, doc: 'Field with the name of the node a flow leaves.' },
       target: { kind: 'field', required: true, doc: 'Field with the name of the node a flow arrives at.' },
@@ -117,7 +146,7 @@
         default: GAP,
         doc: 'Space between the nodes of a column, as a share of the height of the plot; it shrinks when a column is full, so the gaps take at most half of it.',
       },
-      as: { kind: 'list', doc: 'Names of the five new columns: [x0, x1, y0, y1, thickness].' },
+      as: { kind: 'list', doc: 'Names of the new columns: [x0, x1, y0, y1, thickness, waypoints]; five names keep "waypoints".' },
     },
     outputs: (spec) => namesOf(spec),
     apply(table, spec) {
@@ -159,12 +188,13 @@
       }
       // nodes only a dropped row named have no flow and no place
       const nodes = Array.from(byName.values()).filter((n) => n.ins.length || n.outs.length);
-      const cols: Record<string, number[]> = {};
-      for (const n of names) cols[n] = new Array(table.length).fill(NaN);
+      const cols: Record<string, (number | number[] | null)[]> = {};
+      for (const n of names) cols[n] = new Array(table.length).fill(n === names[5] ? null : NaN);
       const out = { length: table.length, columns: { ...table.columns, ...cols } as Record<string, BC.Column> };
       if (!links.length) return out;
 
       const last = assignLayers(nodes);
+      throughColumns(links, nodes);
       const columns: Node[][] = Array.from({ length: last + 1 }, () => []);
       for (const n of nodes) {
         n.value = Math.max(
@@ -192,7 +222,7 @@
           top += n.h + gap;
         }
       }
-      for (const l of links) l.thick = l.value * k;
+      for (const l of links) for (const p of l.parts || [l]) p.thick = l.value * k;
       // the ribbons of a node stack in the order of the other ends, so they do not cross at the node
       for (const n of nodes) {
         let at = n.y;
@@ -206,13 +236,15 @@
           at += l.thick;
         }
       }
-      const [x0, x1, y0, y1, thick] = names.map((n) => cols[n]);
+      const [x0, x1, y0, y1, thick, through] = names.map((n) => cols[n]);
       for (const l of links) {
+        const parts = l.parts || [l];
         x0[l.row] = last ? l.from.layer / last : 0;
         x1[l.row] = last ? l.to.layer / last : 0;
-        y0[l.row] = l.top0;
-        y1[l.row] = l.top1;
-        thick[l.row] = l.thick;
+        y0[l.row] = parts[0].top0;
+        y1[l.row] = parts[parts.length - 1].top1;
+        thick[l.row] = l.value * k;
+        through[l.row] = parts.slice(0, -1).flatMap((p) => [p.to.layer / last, p.to.y]);
       }
       return out;
     },
