@@ -1388,6 +1388,27 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   it takes, or all go at 45° when that leaves out fewer; unlike a band, whose categories are all as wide, a narrow span
   is the least of the whole and the tooltip still names it. A span under 2 px is named by none. The recipe names its
   columns on top and moves the legend to the bottom; the names are 11 px from 360 px up.
+- **The hexagons of a hexbin keep inside the plot.** The scales took their domains from a first binning for a plot 1.6
+  times as wide as tall, and the hexagons were binned anew for the plot as drawn: the outer ones stood up to 11 px over
+  its edge (on a desk the top row over the padding, on a phone over the top and short of the bottom). Now a transform
+  that follows the plot and can do without it runs once more after the layout, with `TransformView.fitting` and nothing
+  zoomed, and the scales take their domains from that run; again while new domains lay the plot out anew (four rounds at
+  most). Regular hexagons do not fill a box of any shape, whole rows and columns being what they are: stretched to fill
+  it, they came out up to 18% off regular over 9,000 shapes of plot. So they stay regular, and hexbin says through
+  `TransformView.reach` what else the scales are to hold, as MarkDef.reach does for a mark: the box of the hexagons made
+  the plot's shape by as much more on each side along one axis. That room is under a third of a hexagon a side on most
+  plots, up to 2.7 on plots wider than 4:1 with three rows. A redraw on scales that span the room gets the same table; a
+  zoom, a domain of their own or a rounded one makes the hexagons follow the scales, as before.
+- **A Gantt names its first month; a vertical axis keeps its top label in the chart.** The plan ran from 5 January and a
+  time scale ticks on the first of a month, so January had no tick. `scale.time` takes `nice`, off by default so a line
+  runs from edge to edge: the inferred domain goes out to whole calendar units of about ten ticks, as d3's does. The
+  recipe takes it and asks for every month (`count: 6`): January to July, on a desk and on a 360 px phone. The candlestick
+  recipe's padding is 8, and its top label stood 1.25 px out of the chart: a line set on its middle reaches 0.84 em
+  above it in Segoe UI, and the axis kept half of measure()'s line (0.6 em). It keeps 0.85 em now; the default padding
+  of 16 had room enough. A Chrome test looks at every recipe at 1100 and 390 px for a line of text above or below its
+  chart (sideways a label is as wide as the font, which differs between machines: see the roadmap). The review
+  also named a hairline under the empty bins of the histogram: that is the x axis line, which runs under the bars too,
+  and a bin of 0 draws nothing.
 
 ## Next steps
 

@@ -108,11 +108,12 @@ Needs: `lib.ticks`.
 
 ## scale.time
 
-Version 9, 3.5 KB. It places dates. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (milliseconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it. So does it for years given as numbers (2019 is 2 seconds into 1970): give them as text ("2019") or dates. A domain from later to earlier runs the axis the other way.
+Version 10, 4.0 KB. It places dates. Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (milliseconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it. So does it for years given as numbers (2019 is 2 seconds into 1970): give them as text ("2019") or dates. A domain from later to earlier runs the axis the other way.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `padding` | number | `0` | Extra room around the data extent, as a fraction of its span. |
+| `nice` | boolean | `false` | Extend the inferred domain to whole calendar units (days, months, quarters, years: those of about ten ticks), so it starts and ends on a tick: a plan from 5 January to 26 June runs from 1 January to 1 July and names January. Off by default, so a line runs from edge to edge. |
 
 ## transform.aggregate
 
@@ -244,7 +245,7 @@ Needs: `lib.columns`.
 
 ## transform.hexbin
 
-Version 2, 3.2 KB. Hexagonal binning, for a scatter of too many points to read: the plane is tiled with hexagons and each row of the result is one hexagon that has points in it, with how many (`count`). It writes the box of each hexagon (x0, x1, y0, y1), for a mark.rect with `shape: "hexagon"` on two linear scales with `nice: false`, x: x0, x2: x1, y: y0, y2: y1, colored by `count` on a sequential scale; and its center under the names of `x` and `y`, for the tooltip. The hexagons are binned anew for the size the chart is drawn at, and at every zoom, so they stay regular on a phone as on a wide screen; each covers the same area of the data whatever its shape, so a count, and the color legend, mean the same at every size. The scales take their domains from a first binning for a plot 1.6 times as wide as tall, so on a plot of another shape the outer hexagons may stand a little over its edge. Rows where x or y is not a number are left out.
+Version 3, 4.2 KB. Hexagonal binning, for a scatter of too many points to read: the plane is tiled with hexagons and each row of the result is one hexagon that has points in it, with how many (`count`). It writes the box of each hexagon (x0, x1, y0, y1), for a mark.rect with `shape: "hexagon"` on two linear scales with `nice: false`, x: x0, x2: x1, y: y0, y2: y1, colored by `count` on a sequential scale; and its center under the names of `x` and `y`, for the tooltip. The hexagons are binned anew for the size the chart is drawn at, and at every zoom, so they stay regular on a phone as on a wide screen; each covers the same area of the data whatever its shape, so a count, and the color legend, mean the same at every size. The scales take their domains from the hexagons binned for the plot as it is laid out: they keep inside it, from edge to edge along one axis and in the middle along the other, where whole regular hexagons leave a little room (under a third of one on most plots). Rows where x or y is not a number are left out.
 
 Needs: `lib.columns`.
 
@@ -654,7 +655,7 @@ Version 3, 2.9 KB. The shape of a distribution per category, from the rows of tr
 
 ## guide.axis
 
-Version 18, 11.6 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover. With `text`, `from` and `to` a horizontal axis names stretches of the data instead of writing its ticks: the columns of a Marimekko, which are as wide as their shares.
+Version 19, 11.6 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover. With `text`, `from` and `to` a horizontal axis names stretches of the data instead of writing its ticks: the columns of a Marimekko, which are as wide as their shares.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |

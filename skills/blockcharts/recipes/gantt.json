@@ -15,18 +15,18 @@
   "charts": [
     {
       "title": "Project plan, first half of 2026",
-      "note": "A rect spans from x to x2 on a time scale, one band per task on y; tasks read from the top in data order. Color by phase; a rule with a constant x marks today.",
+      "note": "A rect spans from x to x2 on a time scale, one band per task on y; tasks read from the top in data order. Color by phase; a rule with a constant x marks today. nice on the time scale runs it from the first of a month, so the month the plan starts in is named; count 6 asks the axis and the grid for every month.",
       "spec": {
         "data": "plan",
         "size": [720, 340],
         "scales": {
-          "x": { "type": "time" },
+          "x": { "type": "time", "nice": true },
           "y": { "type": "band", "paddingInner": 0.3 },
           "color": { "type": "color" }
         },
         "guides": [
-          { "type": "grid", "scale": "x" },
-          { "type": "axis", "scale": "x", "format": { "month": "short" } },
+          { "type": "grid", "scale": "x", "count": 6 },
+          { "type": "axis", "scale": "x", "format": { "month": "short" }, "count": 6 },
           { "type": "axis", "scale": "y" },
           { "type": "legend", "scale": "color", "position": "auto" }
         ],

@@ -475,13 +475,21 @@ declare namespace BC {
     /** Report something worth knowing that is not an error (data left as it is because it is unsorted, ...). It becomes a
      *  warning in the chart's diagnostics, once, however often the transform reruns. */
     warn(message: string): void;
+    /** true on the run that gives the scales their domains: the plot is laid out, nothing is zoomed, and the scales are
+     *  about to take their domains from what this run writes, so theirs now are only a guess (from the run without a
+     *  view). A transform that bins for the plot's shape bins for `plot` then, not for the scales. */
+    readonly fitting?: boolean;
+    /** On the run with `fitting`: what else a scale is to hold besides the values the marks read from it (room the
+     *  transform keeps around what it wrote: hexagons regular on a plot of any shape), as MarkDef.reach for a mark. */
+    reach?(scale: string, values: unknown[]): void;
   }
 
   interface TransformDef extends BlockBase {
     role: 'transform';
     /** true = the result depends on what is visible (level of detail, bins that refine when zooming). The transform,
      *  and every transform after it, runs again at every redraw with `view`; the ones before it run once. Scale
-     *  domains are still inferred from the full data. */
+     *  domains are inferred from the full data. A function can do without a view: it runs once without one for a first
+     *  guess at the domains, and again with `fitting` once the plot is laid out; `true` cannot (decimate). */
     viewDependent?: boolean | ((spec: TransformSpec) => boolean);
     apply(table: Table, spec: TransformSpec, view?: TransformView): Table;
     /** Names of the columns `apply` adds, so validation still knows every field after the transform ran. */

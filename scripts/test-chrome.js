@@ -269,6 +269,111 @@ for (const width of [360, 390, 1100]) {
   });
 }
 
+// ───────────────────────── hexbin, Gantt, text at the edges ─────────────────────────
+
+for (const width of [1100, 390, 360]) {
+  test(`hexbin at ${width} px: regular hexagons inside the plot, from edge to edge along one axis`, async () => {
+    const page = recipe('hexbin');
+    const p = await open(page, width);
+    // the same chart once more beside it, with its handle: a zoom to the whole view puts the plot's clip on
+    const got = await p.evaluate(
+      (spec) =>
+        new Promise((done) => {
+          const first = document.querySelector('.bc-section svg[viewBox]').parentElement;
+          const host = document.createElement('div');
+          host.style.width = first.getBoundingClientRect().width + 'px';
+          first.parentElement.appendChild(host);
+          const h = BC.chart(host, spec);
+          const svg = host.querySelector('svg');
+          const hexes = [...svg.querySelectorAll('[data-bc-layer="marks"] path')].map((e) => e.getBBox());
+          h.setView('x', h.getView().x);
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              const c = svg.querySelector('clipPath rect');
+              done({
+                diagnostics: h.diagnostics,
+                hexes: hexes.map((b) => [b.x, b.y, b.x + b.width, b.y + b.height]),
+                plot: c && [
+                  +c.getAttribute('x'),
+                  +c.getAttribute('y'),
+                  +c.getAttribute('x') + +c.getAttribute('width'),
+                  +c.getAttribute('y') + +c.getAttribute('height'),
+                ],
+              });
+            }),
+          );
+        }),
+      page.charts[0].spec,
+    );
+    assert.deepStrictEqual(got.diagnostics, []);
+    assert(got.plot && got.hexes.length > 100, `${got.hexes.length} hexagons`);
+    const [l, t, r, b] = got.plot;
+    const ext = [0, 1, 2, 3].map((k) => (k < 2 ? Math.min : Math.max)(...got.hexes.map((h) => h[k])));
+    assert(ext[0] >= l - 0.05 && ext[1] >= t - 0.05 && ext[2] <= r + 0.05 && ext[3] <= b + 0.05, `inside: ${ext} in ${got.plot}`);
+    const across = Math.abs(ext[0] - l) < 0.05 && Math.abs(ext[2] - r) < 0.05;
+    const up = Math.abs(ext[1] - t) < 0.05 && Math.abs(ext[3] - b) < 0.05;
+    assert(across || up, `edge to edge: ${ext} in ${got.plot}`);
+    for (const h of got.hexes) {
+      const ratio = (h[2] - h[0]) / (h[3] - h[1]);
+      assert(Math.abs(ratio / (Math.sqrt(3) / 2) - 1) < 0.005, `a hexagon ${ratio} wide per tall`);
+    }
+    assert.deepStrictEqual(p.errors, []);
+    await p.close();
+  });
+}
+
+for (const width of [1100, 390, 360]) {
+  test(`gantt at ${width} px: the time axis starts on 1 January and names it`, async () => {
+    const p = await open(recipe('gantt'), width);
+    const got = await p.evaluate(() => {
+      const svg = document.querySelector('.bc-section svg[viewBox]');
+      const line = svg.querySelector('[data-bc-layer="axes"] path.bc-axis');
+      const left = line.getBoundingClientRect().left;
+      const labels = [...svg.querySelectorAll('[data-bc-layer="axes"] text.bc-axis-label')]
+        .map((t) => ({ text: t.textContent, ...t.getBoundingClientRect().toJSON() }))
+        .filter((t) => /^[A-Z][a-z]{2}$/.test(t.text));
+      return { left, labels };
+    });
+    const names = got.labels.map((t) => t.text);
+    assert.strictEqual(names[0], 'Jan', names.join(' '));
+    assert.strictEqual(names[names.length - 1], 'Jul', names.join(' '));
+    const jan = got.labels[0];
+    assert(
+      Math.abs((jan.left + jan.right) / 2 - got.left) < 1,
+      `Jan stands at the start of the axis: ${jan.left}..${jan.right} / ${got.left}`,
+    );
+    // a plan wants its months: on a phone too every other one at least
+    assert(names.length >= (width > 500 ? 7 : 4), names.join(' '));
+    await p.close();
+  });
+}
+
+for (const width of [1100, 390]) {
+  test(`every recipe at ${width} px: no line of text reaches above or below its chart`, async () => {
+    const out = [];
+    for (const file of fs.readdirSync(path.join(__dirname, '../skills/blockcharts/recipes'))) {
+      const p = await open(recipe(file.replace(/\.json$/, '')), width);
+      const bad = await p.evaluate(() => {
+        const found = [];
+        for (const svg of document.querySelectorAll('.bc-section svg[viewBox]')) {
+          const s = svg.getBoundingClientRect();
+          for (const t of svg.querySelectorAll('text')) {
+            const r = t.getBoundingClientRect();
+            // up and down only: across, a label's width is the font's, and the fonts of the test machines differ more
+            const over = Math.max(s.top - r.top, r.bottom - s.bottom);
+            if (r.width && over > 0.5) found.push(`"${t.textContent.slice(0, 30)}" by ${over.toFixed(2)} px`);
+          }
+        }
+        return found;
+      });
+      for (const b of bad) out.push(`${file}: ${b}`);
+      assert.deepStrictEqual(p.errors, [], file);
+      await p.close();
+    }
+    assert.deepStrictEqual(out, []);
+  });
+}
+
 (async () => {
   browser = await chromium.launch({ channel: 'chrome' });
   let passed = 0;

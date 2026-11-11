@@ -13,15 +13,14 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.29): A, safety (5); B, silent wrong results in validation and data (21); C1–C15, layout
+Done (skill 0.33.1–0.33.30): A, safety (5); B, silent wrong results in validation and data (21); C1–C16, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
-every card, a waterfall's figures on a phone, a Marimekko's column names).
+every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
+month, an axis's top label).
 
 Left, in this order:
 
-- [ ] **C16** Hexbin's top row is above the top gridline; histogram bins of zero draw a hairline; Gantt has no "Jan"
-      tick; the candlestick top label is clipped by 1 px.
 - [ ] **C17** The tooltip's color dot is not the mark's color: candlestick (blue on green/red), bullet (grey band,
       invisible in dark), heatmap dark cells.
 - [ ] **C18** No tooltip on error-bar whiskers, dumbbell connectors, lollipop stems.
@@ -76,6 +75,10 @@ Found along the way:
       place.
 - [ ] Date categories on a band axis are thinned by the width of the whole label on one line, so twelve months in
       Japanese show every other month on a desk although "2024年 / 1月" on two lines would fit (guide.axis `fitWritten`).
+- [ ] In a wider font than the widths labels are laid out by (Verdana; DejaVu Sans, the sans-serif of many Linux
+      desktops and of CI) some labels reach out of the chart sideways: marimekko "100%" by 3.4 px, top-n "Echo shelf" 1.2,
+      small-multiples "Apr" 0.9, executive and waterfall "Revenue" at 45° 0.8, stacked-area-100 and bullet 0.6–0.7. The
+      Chrome suite checks only up and down for that reason.
 - [ ] The browsers dashboard (in `dashboards/`, not in the repository) now stops with an error on a diverging color
       domain `[-2.1, 0, 2.1]`: the stricter domain reading of 0.33.10 caught it. Fix the dashboard or accept such domains.
 

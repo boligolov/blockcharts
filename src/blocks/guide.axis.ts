@@ -34,6 +34,9 @@
   const MAX_SLANT_CHARS = 20;
   /** The least room between two labels of a numeric or date axis. */
   const LABEL_GAP = 6;
+  /** How far a line of text set on its middle reaches above it, in em: its box in the system sans-serif of Windows
+   *  (Segoe UI) is 0.84 above and 0.52 below, more than the half of measure()'s height (0.6) above. */
+  const ABOVE_MIDDLE = 0.85;
   const SEQUENCE = /^\s*-?\d[\d.,:\/-]*(T[\d:.]+Z?)?\s*$/;
 
   /** Text categories name things, so reading only some of them is no use: when they do not fit, they all go at an angle.
@@ -462,7 +465,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 18,
+    version: 19,
     doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover. With `text`, `from` and `to` a horizontal axis names stretches of the data instead of writing its ticks: the columns of a Marimekko, which are as wide as their shares.',
     params: {
       scale: { kind: 'scale', required: true },
@@ -546,7 +549,9 @@
         );
         label = Math.max(label, vertical ? m.w : m.h);
         if (vertical) {
-          over.top = Math.max(over.top!, p.y - (t.pos - m.h / 2));
+          // the first line is written above the tick by half the others
+          const first = t.pos - ((lines.length - 1) / 2) * LINE;
+          over.top = Math.max(over.top!, p.y - (t.pos - m.h / 2), p.y - (first - ABOVE_MIDDLE * FONT));
           over.bottom = Math.max(over.bottom!, t.pos + m.h / 2 - (p.y + p.h));
         } else {
           over.left = Math.max(over.left!, p.x - (t.pos - m.w / 2));

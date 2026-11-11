@@ -877,6 +877,18 @@
     return { x: ins.left, y: ins.top, w: Math.max(1, size.w - ins.left - ins.right), h: Math.max(1, size.h - ins.top - ins.bottom) };
   }
 
+  /** Whether two lists of domains hold the same values (dates by their time). */
+  function sameDomains(a: unknown[][], b: unknown[][]): boolean {
+    return (
+      a.length === b.length &&
+      a.every(
+        (d, i) =>
+          d.length === b[i].length &&
+          d.every((v, k) => v === b[i][k] || (v instanceof Date && b[i][k] instanceof Date && v.getTime() === (b[i][k] as Date).getTime())),
+      )
+    );
+  }
+
   function append<T>(dst: T[], src: T[]): void {
     for (let i = 0; i < src.length; i++) dst.push(src[i]);
   }
@@ -991,11 +1003,14 @@
     const baseTable = table;
     const dynamicSpecs = transformSpecs.slice(staticCount);
     // Scales take their domains from `table` next. A transform that needs a view only when asked to follow one can also run
-    // without it, and what it writes may be what a scale reads; decimate cannot.
+    // without it, and what it writes may be what a scale reads; decimate cannot. Those run again once the plot is laid
+    // out (refitCount of them, see below).
+    let refitCount = 0;
     for (const ts of dynamicSpecs) {
       const def = registry.get(`transform.${ts.type}`) as BC.TransformDef;
       if (def.viewDependent === true) break;
       table = def.apply(table, ts);
+      refitCount++;
     }
 
     // 2 layout, first guess
@@ -1049,10 +1064,14 @@
       };
     };
 
-    for (const name of Object.keys(scaleSpecs)) {
+    /** `held`: what transforms said a scale is to hold besides what the marks read (TransformView.reach). */
+    const makeScales = (held: Record<string, unknown[]> = {}) => {
+      for (const name of Object.keys(scaleSpecs)) makeScale(name, Object.prototype.hasOwnProperty.call(held, name) ? held[name] : []);
+    };
+    const makeScale = (name: string, held: unknown[]) => {
       const s = scaleSpecs[name];
       const def = registry.get(`scale.${s.type}`) as BC.ScaleDef;
-      const sources: BC.Column[] = [];
+      const sources: BC.Column[] = held.length ? [held as unknown as BC.Column] : [];
       const reader = `scale "${name}"`;
       spec.marks.forEach((m, i) => {
         const md = markDef(m);
@@ -1087,7 +1106,8 @@
         output: { value: def.output },
         input: { value: def.input },
       }) as BC.Scale;
-    }
+    };
+    makeScales();
     const initial = spec.view || {};
     for (const name of Object.keys(initial)) view[name] = initial[name];
     // a zoom carried over from before an update(); a view the new spec sets itself wins
@@ -1350,35 +1370,76 @@
 
     // 4 layout: guides claim space per side in spec.guides order, and remember what was claimed before them
     const guides = spec.guides || [];
-    const claimed: BC.Insets = { top: 0, right: 0, bottom: 0, left: 0 };
     const offsets: BC.Insets[] = [];
-    const overhang: BC.Insets = { top: 0, right: 0, bottom: 0, left: 0 };
-    guides.forEach((gs, i) => {
-      offsets.push({ ...claimed });
-      try {
-        const def = registry.get(`guide.${gs.type}`) as BC.GuideDef;
-        const m = def.measure ? def.measure(gs, ctx) : {};
-        for (const side of SIDES) {
-          claimed[side] += m[side] || 0;
-          if (m.overhang) overhang[side] = Math.max(overhang[side], m.overhang[side] || 0);
+    const layout = () => {
+      // measured from the first guess every time, so the layout depends on the domains alone
+      plot = insetsPlot(size, pad);
+      for (const name of Object.keys(scales)) scales[name].setRange(resolveRange(name, scaleSpecs[name], plot));
+      tickCache.clear();
+      const claimed: BC.Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+      const overhang: BC.Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+      offsets.length = 0;
+      guides.forEach((gs, i) => {
+        offsets.push({ ...claimed });
+        try {
+          const def = registry.get(`guide.${gs.type}`) as BC.GuideDef;
+          const m = def.measure ? def.measure(gs, ctx) : {};
+          for (const side of SIDES) {
+            claimed[side] += m[side] || 0;
+            if (m.overhang) overhang[side] = Math.max(overhang[side], m.overhang[side] || 0);
+          }
+        } catch (e) {
+          fail(`guides[${i}]`, e);
         }
-      } catch (e) {
-        fail(`guides[${i}]`, e);
+      });
+      // padding and stacked guides first; an overhang only widens a margin that is still too small for it
+      const inset = (side: keyof BC.Insets) => Math.max(pad[side] + claimed[side], overhang[side]);
+      plot = insetsPlot(size, { top: inset('top'), right: inset('right'), bottom: inset('bottom'), left: inset('left') });
+      if (inset('top') + inset('bottom') > size.h)
+        warn(
+          'size',
+          `padding and guides need ${inset('top') + inset('bottom')} px of height and the chart has ${size.h}, so its bottom is cut off`,
+        );
+      for (const name of Object.keys(scales)) scales[name].setRange(resolveRange(name, scaleSpecs[name], plot));
+      channelCache.clear();
+      tickCache.clear();
+      rowsCache.clear();
+      seriesCache.clear();
+    };
+    layout();
+
+    // A transform that follows the plot and could also run without it (hexbin) gave the scales their domains from a
+    // guess at the plot's shape. Now that the plot is laid out it runs for it, nothing zoomed, and the scales take their
+    // domains from what it writes then: the outer hexagons end on the plot's edges. New domains can lay the plot out anew
+    // (an axis of wider numbers), so again, until the domains stay.
+    if (refitCount) {
+      const domains = () => Object.keys(scales).map((name) => scales[name].baseDomain());
+      for (let round = 0; round < 4; round++) {
+        for (const name of Object.keys(scales)) scales[name].setDomain(null);
+        let t = baseTable;
+        const held: Record<string, unknown[]> = Object.create(null);
+        for (let i = 0; i < refitCount; i++) {
+          const at = staticCount + i;
+          const next = (registry.get(`transform.${dynamicSpecs[i].type}`) as BC.TransformDef).apply(t, dynamicSpecs[i], {
+            plot,
+            scales,
+            warn: (m) => warn(`transforms[${at}]`, m),
+            fitting: true,
+            reach: (scale, values) => {
+              if (typeof scale === 'string' && Array.isArray(values)) (held[scale] = held[scale] || []).push(...values);
+            },
+          });
+          if (!next) throw Object.assign(new Error('returned no table'), { path: `transforms[${at}]` });
+          t = next;
+        }
+        const before = domains();
+        table = t;
+        makeScales(held);
+        applyView();
+        if (sameDomains(before, domains())) break;
+        layout();
       }
-    });
-    // padding and stacked guides first; an overhang only widens a margin that is still too small for it
-    const inset = (side: keyof BC.Insets) => Math.max(pad[side] + claimed[side], overhang[side]);
-    plot = insetsPlot(size, { top: inset('top'), right: inset('right'), bottom: inset('bottom'), left: inset('left') });
-    if (inset('top') + inset('bottom') > size.h)
-      warn(
-        'size',
-        `padding and guides need ${inset('top') + inset('bottom')} px of height and the chart has ${size.h}, so its bottom is cut off`,
-      );
-    for (const name of Object.keys(scales)) scales[name].setRange(resolveRange(name, scaleSpecs[name], plot));
-    channelCache.clear();
-    tickCache.clear();
-    rowsCache.clear();
-    seriesCache.clear();
+    }
 
     // 5 + 6: ticks are computed lazily through ctx.ticks; marks and guides emit primitives
     let list!: BC.DisplayList;

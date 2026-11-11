@@ -43,6 +43,28 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
 
   // ───────────────────────── the quiet axis ─────────────────────────
 
+  test('guide.axis: the top label of a vertical axis keeps its whole line inside a chart of little padding', () => {
+    for (const padding of [0, 4, 8]) {
+      const { svg, h } = draw(
+        monthly({
+          padding,
+          scales: { x: { type: 'time' }, y: { type: 'linear', domain: [0, 200] } },
+          guides: [{ type: 'axis', scale: 'y' }],
+        }),
+      );
+      assert.deepStrictEqual(h.diagnostics, []);
+      const top = [...layer(svg, 'axes').matchAll(/<text x="[\d.-]+" y="([\d.-]+)"[^>]*>200<\/text>/g)].map((m) => +m[1]);
+      assert.strictEqual(top.length, 1, 'the label of the top tick');
+      // set on its middle, a line of 11 px reaches 0.84 em above it in Chrome's sans-serif on Windows
+      assert(top[0] - 0.84 * 11 >= 0, `padding ${padding}: the top label's middle at ${top[0]}`);
+    }
+    // the default padding has room enough already: the plot starts where it did
+    const plain = draw(
+      monthly({ scales: { x: { type: 'time' }, y: { type: 'linear', domain: [0, 200] } }, guides: [{ type: 'axis', scale: 'y' }] }),
+    );
+    assert(/<text x="[\d.-]+" y="16"[^>]*>200<\/text>/.test(layer(plain.svg, 'axes')), 'at the padding of 16');
+  });
+
   test('guide.axis: by default no tick marks, a line along a horizontal axis only; ticks and line can be asked for', () => {
     const quiet = draw(
       monthly({
@@ -1637,6 +1659,60 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(one.ticks(3).length <= 1000, 'a domain of one instant does not run away');
   });
 
+  test('scale.time nice: the inferred domain out to whole calendar units, only when asked', () => {
+    const iso = (t) =>
+      new Date(t)
+        .toISOString()
+        .replace(/T00:00:00\.000Z$/, '')
+        .replace(/:00\.000Z$/, '');
+    const domainOf = (values, extra = {}) =>
+      BC.get('scale.time')
+        .create({ type: 'time', ...extra }, { name: 'x', sources: [values], range: [0, 200] })
+        .domain()
+        .map(iso);
+    const plan = ['2026-01-05', '2026-06-26'];
+    assert.deepStrictEqual(domainOf(plan), ['2026-01-05', '2026-06-26'], 'off by default: a line runs from edge to edge');
+    assert.deepStrictEqual(domainOf(plan, { nice: true }), ['2026-01-01', '2026-07-01'], 'half a year: months');
+    for (const [values, want, what] of [
+      [['2024-02-10', '2026-11-03'], ['2024-01-01', '2027-01-01'], 'three years: quarters'],
+      [['2001-03-01', '2024-06-01'], ['2000-01-01', '2026-01-01'], 'two decades: years by twos'],
+      [['1903-03-01', '2024-06-01'], ['1900-01-01', '2030-01-01'], 'a century: decades'],
+      [['2026-03-03T10:20', '2026-03-05T07:00'], ['2026-03-03T06:00', '2026-03-05T12:00'], 'two days: six hours'],
+      // a step of 7 days starts on a Monday: 2026-03-02 and 2026-04-27 are Mondays
+      [['2026-03-04', '2026-04-22'], ['2026-03-02', '2026-04-27'], 'seven weeks: weeks'],
+      [['2026-01-01', '2026-07-01'], ['2026-01-01', '2026-07-01'], 'ends already whole stay'],
+      // one instant is a day around it, and the day is whole already
+      [['2026-05-05T12:00', '2026-05-05T12:00'], ['2026-05-05', '2026-05-06'], 'one instant'],
+    ])
+      assert.deepStrictEqual(domainOf(values, { nice: true }), want, what);
+    // after the padding, as a linear scale rounds
+    assert.deepStrictEqual(domainOf(plan, { nice: true, padding: 0.1 }), ['2025-12-01', '2026-08-01'], 'padding first');
+    // a domain given is the domain
+    assert.deepStrictEqual(
+      BC.get('scale.time')
+        .create({ type: 'time', nice: true, domain: plan }, { name: 'x', sources: [], range: [0, 200] })
+        .domain()
+        .map(iso),
+      plan,
+    );
+    // near the ends of time, units past them leave the domain as it is
+    const end = 8.64e15;
+    assert.deepStrictEqual(
+      BC.get('scale.time')
+        .create({ type: 'time', nice: true }, { name: 'x', sources: [[end - 5e14, end]], range: [0, 200] })
+        .domain(),
+      [end - 5e14, end],
+    );
+    // only true rounds: anything else is the default
+    for (const nice of ['true', 1, null]) assert.deepStrictEqual(domainOf(plan, { nice }), plan, JSON.stringify(nice));
+    // and the zoom stays free of it
+    const scale = BC.get('scale.time').create({ type: 'time', nice: true }, { name: 'x', sources: [plan], range: [0, 200] });
+    scale.setDomain(['2026-02-03', '2026-02-20']);
+    assert.deepStrictEqual(scale.domain().map(iso), ['2026-02-03', '2026-02-20']);
+    scale.setDomain(null);
+    assert.deepStrictEqual(scale.domain().map(iso), ['2026-01-01', '2026-07-01']);
+  });
+
   test('guide.grid count: as many lines as its axis has labels when both are given the same count', () => {
     BC.data('grid-count', [
       { d: '2025-01-01', v: 1 },
@@ -2400,6 +2476,147 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
         const side = q3 - q1;
         assert(near(side / Math.hypot(rx - mx, q1 - top), 1, 0.01), `${size}: side ${side}`);
       }
+    }
+  });
+
+  /** The hexagons of a chart: each as [left, top, right, bottom], and how regular (its side / its slanted edge). */
+  const hexagonsOf = (host) =>
+    paths(layer(svgOf(host), 'marks')).map((p) => {
+      const [mx, top, rx, q1, , q3, , bottom, lx] = p.d.match(/-?[\d.]+/g).map(Number);
+      return { box: [lx, top, rx, bottom], regular: (q3 - q1) / Math.hypot(rx - mx, q1 - top) };
+    });
+  const extentOf = (hexes) => [
+    Math.min(...hexes.map((x) => x.box[0])),
+    Math.min(...hexes.map((x) => x.box[1])),
+    Math.max(...hexes.map((x) => x.box[2])),
+    Math.max(...hexes.map((x) => x.box[3])),
+  ];
+
+  test('a hexbin without aspect keeps inside the plot at any shape, regular, from edge to edge along one axis', () => {
+    BC.data('cloud', cloud(2000));
+    for (const [w, h, bins] of [
+      [640, 400, 16],
+      [300, 400, 16],
+      [640, 200, 16],
+      [1000, 150, 10],
+      [200, 500, 26],
+      [324, 400, 26],
+    ]) {
+      const chart = draw({
+        data: 'cloud',
+        size: [w, h],
+        padding: 0,
+        transforms: [{ type: 'hexbin', x: 'w', y: 'h', bins }],
+        scales: { x: { type: 'linear', nice: false }, y: { type: 'linear', nice: false }, color: { type: 'sequential' } },
+        marks: [{ type: 'rect', shape: 'hexagon', x: 'x0', x2: 'x1', y: 'y0', y2: 'y1', color: 'count' }],
+      });
+      assert.deepStrictEqual(chart.h.diagnostics, [], `${w} × ${h}`);
+      const hexes = hexagonsOf(chart.host);
+      for (const x of hexes) assert(near(x.regular, 1, 0.01), `${w} × ${h}: a hexagon ${x.regular} of regular`);
+      // the path is written to 0.01 px
+      const [left, top, right, bottom] = extentOf(hexes);
+      assert(
+        left >= -0.01 && top >= -0.01 && right <= w + 0.01 && bottom <= h + 0.01,
+        `${w} × ${h}: inside, ${[left, top, right, bottom]}`,
+      );
+      const across = near(left, 0, 0.02) && near(right, w, 0.02);
+      const up = near(top, 0, 0.02) && near(bottom, h, 0.02);
+      assert(across || up, `${w} × ${h}: from edge to edge along one axis, ${[left, top, right, bottom]}`);
+      // and in the middle along the other, with less room on a side than a hexagon takes
+      const [hw, hh] = [hexes[0].box[2] - hexes[0].box[0], hexes[0].box[3] - hexes[0].box[1]];
+      if (!across) assert(near(left, w - right, 0.02) && left < hw, `${w} × ${h}: room ${left} / ${w - right} of ${hw}`);
+      if (!up) assert(near(top, h - bottom, 0.02) && top < hh, `${w} × ${h}: room ${top} / ${h - bottom} of ${hh}`);
+    }
+  });
+
+  test('a hexbin with axes and a legend keeps inside the plot they leave; a zoom follows the scales, and the hexagons come back after it', async () => {
+    BC.data('cloud', cloud(2000));
+    for (const nice of [false, true]) {
+      const { host, h } = draw({
+        data: 'cloud',
+        size: [640, 400],
+        transforms: [{ type: 'hexbin', x: 'w', y: 'h', bins: 20 }],
+        scales: { x: { type: 'linear', nice }, y: { type: 'linear', nice }, color: { type: 'sequential' } },
+        guides: [
+          { type: 'axis', scale: 'x' },
+          { type: 'axis', scale: 'y' },
+          { type: 'legend', scale: 'color' },
+        ],
+        marks: [{ type: 'rect', shape: 'hexagon', x: 'x0', x2: 'x1', y: 'y0', y2: 'y1', color: 'count' }],
+      });
+      assert.deepStrictEqual(h.diagnostics, []);
+      // the axis along the bottom of the plot runs from its left to its right; the top is the padding's
+      const [, l, b, r] = paths(layer(svgOf(host), 'axes'))
+        .find((p) => /class="bc-axis"/.test(p.attrs))
+        .d.match(/^M([\d.]+) ([\d.]+)H([\d.]+)$/)
+        .map(Number);
+      const hexes = hexagonsOf(host);
+      const [left, top, right, bottom] = extentOf(hexes);
+      assert(
+        left >= l - 0.01 && top >= 16 - 0.01 && right <= r + 0.01 && bottom <= b + 0.01,
+        `nice ${nice}: ${[left, top, right, bottom]} in ${[l, 16, r, b]}`,
+      );
+      if (!nice) assert((near(left, l, 0.02) && near(right, r, 0.02)) || (near(top, 16, 0.02) && near(bottom, b, 0.02)), 'edge to edge');
+      for (const x of hexes) assert(near(x.regular, 1, 0.01), `nice ${nice}: ${x.regular}`);
+      const before = svgOf(host);
+      h.setView('x', [60, 70]);
+      await flush();
+      const zoomed = hexagonsOf(host);
+      assert(zoomed.length && zoomed.every((x) => near(x.regular, 1, 0.01)), 'regular, zoomed');
+      assert.notStrictEqual(svgOf(host), before, 'binned for the zoom');
+      h.setView('x', null);
+      await flush();
+      assert.strictEqual(svgOf(host), before, `nice ${nice}: the hexagons as they were`);
+    }
+  });
+
+  test('transform.hexbin, on the run that gives the scales their domains: binned for the plot, with the room the scales are to span for it', () => {
+    const def = BC.get('transform.hexbin');
+    const rows = cloud(2000);
+    const table = { length: 2000, columns: { w: rows.map((r) => r.w), h: rows.map((r) => r.h) } };
+    const linear = (domain, range) => {
+      const s = (v) => range[0] + ((v - domain[0]) / (domain[1] - domain[0])) * (range[1] - range[0]);
+      s.domain = () => domain;
+      s.range = () => range;
+      return s;
+    };
+    for (const [w, h] of [
+      [600, 300],
+      [250, 400],
+      [900, 120],
+    ]) {
+      const spec = { type: 'hexbin', x: 'w', y: 'h', bins: 14 };
+      // the domains are a guess, as they are before that run
+      const guess = { x: linear([0, 1], [0, w]), y: linear([0, 1], [h, 0]) };
+      const reached = {};
+      const t = def.apply(table, spec, {
+        plot: { x: 0, y: 0, w, h },
+        scales: guess,
+        warn: assert.fail,
+        fitting: true,
+        reach: (name, values) => (reached[name] = values),
+      });
+      assert.deepStrictEqual(Object.keys(reached).sort(), ['x', 'y']);
+      assert.strictEqual(
+        t.columns.count.reduce((a, b) => a + b, 0),
+        2000,
+      );
+      // on scales that span the room every hexagon is regular and inside it
+      const x = linear(reached.x, [0, w]);
+      const y = linear(reached.y, [h, 0]);
+      for (let k = 0; k < t.length; k++) {
+        const hw = x(t.columns.x1[k]) - x(t.columns.x0[k]);
+        const hh = y(t.columns.y0[k]) - y(t.columns.y1[k]);
+        assert(near(hw / hh, Math.sqrt(3) / 2, 1e-9), `${w} × ${h}: hexagon ${k}`);
+        assert(x(t.columns.x0[k]) >= -1e-9 && x(t.columns.x1[k]) <= w + 1e-9, `${w} × ${h}: inside across`);
+        assert(y(t.columns.y1[k]) >= -1e-9 && y(t.columns.y0[k]) <= h + 1e-9, `${w} × ${h}: inside up`);
+      }
+      // the next redraw, on those scales: the same table; on a zoom: binned for it
+      const view = (scales) => ({ plot: { x: 0, y: 0, w, h }, scales, warn: assert.fail });
+      assert.strictEqual(def.apply(table, spec, view({ x, y })), t);
+      assert.notDeepStrictEqual(def.apply(table, spec, view({ x: linear([60, 70], [0, w]), y })), t);
+      // and so on scales of their own (a domain given, rounded): binned for those
+      assert.notDeepStrictEqual(def.apply(table, spec, view({ x: linear([20, 120], [0, w]), y })), t);
     }
   });
 

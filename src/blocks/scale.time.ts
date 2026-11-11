@@ -114,6 +114,34 @@
     return out;
   }
 
+  /** The span out to whole calendar units, those of the ticks for about ten labels (as d3's nice): a plan from 5 January
+   *  to 26 June runs from 1 January to 1 July, and its first month is named. Unchanged where the units would pass the
+   *  range of dates. */
+  function niceSpan(b0: number, b1: number): [number, number] {
+    const span = b1 - b0;
+    const count = 10;
+    let out: [number, number];
+    const fixed = FIXED.find((f) => span / f <= count);
+    if (fixed !== undefined) {
+      const off = fixed === 7 * D ? WEEK_OFFSET : 0;
+      out = [Math.floor((b0 - off) / fixed) * fixed + off, Math.ceil((b1 - off) / fixed) * fixed + off];
+    } else {
+      const k = MONTHS.find((m) => span / (m * MONTH) <= count);
+      // calendar units: months by k, or years by `years`, counted from year 0
+      const step = k !== undefined ? k : niceYears(span, count) * 12;
+      const at = (idx: number) => utc(Math.floor(idx / 12), ((idx % 12) + 12) % 12, 1);
+      const index = (t: number) => {
+        const d = new Date(t);
+        return d.getUTCFullYear() * 12 + d.getUTCMonth();
+      };
+      const lo = Math.floor(index(b0) / step) * step;
+      let hi = Math.floor(index(b1) / step) * step;
+      if (at(hi) < b1) hi += step;
+      out = [at(lo), at(hi)];
+    }
+    return out.every((t) => isFinite(t) && Math.abs(t) <= MAX_MS) && out[0] < out[1] ? out : [b0, b1];
+  }
+
   /** Ticks for about `count` labels; a calendar step that leaves fewer than two inside the domain (a quarter on half a
    *  year starting on the 5th of January, so only April) is too coarse, and a finer one is taken. The axis still thins
    *  labels that do not fit. */
@@ -129,7 +157,7 @@
   const def: BC.ScaleDef = {
     role: 'scale',
     type: 'time',
-    version: 9,
+    version: 10,
     output: 'position',
     input: 'date',
     merge: 'extent',
@@ -137,6 +165,11 @@
     doc: 'Time scale in UTC. Values: epoch milliseconds, ISO date strings or Dates; a date or time without an offset ("2024-03-01", "2024-03-01T09:00", "2024-03-01 09:00") is UTC, so every reader sees the same hours. Ticks snap to calendar units (milliseconds … years), and months are written in the language of the chart. Numbers beyond the range of dates (nanoseconds, say) are not times: when none of the numbers is one, the chart reports it. So does it for years given as numbers (2019 is 2 seconds into 1970): give them as text ("2019") or dates. A domain from later to earlier runs the axis the other way.',
     params: {
       padding: { kind: 'number', default: 0, doc: 'Extra room around the data extent, as a fraction of its span.' },
+      nice: {
+        kind: 'boolean',
+        default: false,
+        doc: 'Extend the inferred domain to whole calendar units (days, months, quarters, years: those of about ten ticks), so it starts and ends on a tick: a plan from 5 January to 26 June runs from 1 January to 1 July and names January. Off by default, so a line runs from edge to edge.',
+      },
     },
     create(spec, ctx) {
       let b0: number, b1: number;
@@ -192,6 +225,7 @@
           b0 -= pad;
           b1 += pad;
         }
+        if (spec.nice === true) [b0, b1] = niceSpan(b0, b1);
       }
       let d0 = b0;
       let d1 = b1;

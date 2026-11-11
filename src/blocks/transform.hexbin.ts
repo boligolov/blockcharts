@@ -9,6 +9,8 @@
   const MAX_BINS = 200;
   /** The shape of plot the hexagons are binned for when there is no plot yet: the binning the scales take their domains from. */
   const GUESS = 1.6;
+  /** The last binning for the shape of a plot, per spec: every redraw that is not zoomed asks for the same one. */
+  const shaped = new WeakMap<BC.TransformSpec, { table: BC.Table; aspect: number; out: { table: BC.Table; room: number[] } }>();
   const aspectOf = (spec: BC.TransformSpec) =>
     typeof spec.aspect === 'number' && spec.aspect > 0 && isFinite(spec.aspect) ? spec.aspect : undefined;
 
@@ -27,12 +29,12 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'hexbin',
-    version: 2,
+    version: 3,
     requires: ['lib.columns'],
     replacesColumns: true,
     // without a fixed `aspect` it follows the plot, and it can also run without one: the scales read its first result
     viewDependent: (spec) => aspectOf(spec) === undefined,
-    doc: 'Hexagonal binning, for a scatter of too many points to read: the plane is tiled with hexagons and each row of the result is one hexagon that has points in it, with how many (`count`). It writes the box of each hexagon (x0, x1, y0, y1), for a mark.rect with `shape: "hexagon"` on two linear scales with `nice: false`, x: x0, x2: x1, y: y0, y2: y1, colored by `count` on a sequential scale; and its center under the names of `x` and `y`, for the tooltip. The hexagons are binned anew for the size the chart is drawn at, and at every zoom, so they stay regular on a phone as on a wide screen; each covers the same area of the data whatever its shape, so a count, and the color legend, mean the same at every size. The scales take their domains from a first binning for a plot 1.6 times as wide as tall, so on a plot of another shape the outer hexagons may stand a little over its edge. Rows where x or y is not a number are left out.',
+    doc: 'Hexagonal binning, for a scatter of too many points to read: the plane is tiled with hexagons and each row of the result is one hexagon that has points in it, with how many (`count`). It writes the box of each hexagon (x0, x1, y0, y1), for a mark.rect with `shape: "hexagon"` on two linear scales with `nice: false`, x: x0, x2: x1, y: y0, y2: y1, colored by `count` on a sequential scale; and its center under the names of `x` and `y`, for the tooltip. The hexagons are binned anew for the size the chart is drawn at, and at every zoom, so they stay regular on a phone as on a wide screen; each covers the same area of the data whatever its shape, so a count, and the color legend, mean the same at every size. The scales take their domains from the hexagons binned for the plot as it is laid out: they keep inside it, from edge to edge along one axis and in the middle along the other, where whole regular hexagons leave a little room (under a third of one on most plots). Rows where x or y is not a number are left out.',
     params: {
       x: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field along x.' },
       y: { kind: 'field', reads: 'number', required: true, doc: 'Numeric field along y.' },
@@ -151,17 +153,22 @@
         return { a, dx, r, dy, counts, ratio: (u1 - u0 + dx) / (v1 - v0 + 2 * r) };
       };
       /** For a plot `aspect` times as wide as tall whose scales span the boxes of the outer hexagons (a little more than
-       *  the data): `a` is set for those boxes to have that shape, and set again as they shift with it. */
-      const fitted = (aspect: number) => {
-        let best = binAll(aspect);
+       *  the data): `a` is set for those boxes to have that shape, and set again as they shift with it. With `keepArea`
+       *  as many go across as keeps the area of each hexagon that of one binned for a plot GUESS wide, as `followed`. */
+      const fitted = (aspect: number, keepArea = false) => {
+        const across = (a: number) => (keepArea ? bins * Math.sqrt(a / GUESS) : bins);
+        const off = (b: { ratio: number }) => Math.abs(Math.log(b.ratio / aspect));
+        let best = binAll(aspect, across(aspect));
         let last = best;
         for (let round = 0, a = aspect; round < 8 && Math.abs(best.ratio / aspect - 1) > 1e-9; round++) {
           a *= aspect / last.ratio;
-          last = binAll(a);
-          if (Math.abs(Math.log(last.ratio / aspect)) < Math.abs(Math.log(best.ratio / aspect))) best = last;
+          last = binAll(a, across(a));
+          if (off(last) < off(best)) best = last;
         }
         return best;
       };
+      const xName = typeof spec.xScale === 'string' ? spec.xScale : 'x';
+      const yName = typeof spec.yScale === 'string' ? spec.yScale : 'y';
       /** On the plot as it is drawn now: as many px for a unit of `a` across as for one up, read off the two scales. */
       const followed = (v: BC.TransformView) => {
         const pxPerUnit = (name: string) => {
@@ -171,8 +178,6 @@
           const r = scale.range() as unknown[];
           return Math.abs((num(r[1]) - num(r[0])) / (num(d[d.length - 1]) - num(d[0])));
         };
-        const xName = typeof spec.xScale === 'string' ? spec.xScale : 'x';
-        const yName = typeof spec.yScale === 'string' ? spec.yScale : 'y';
         const a = (spanX * pxPerUnit(xName)) / (spanY * pxPerUnit(yName));
         // as many across as keeps the area of a hexagon in the data that of one binned for a plot GUESS wide (a / across²)
         if (a > 0 && isFinite(a)) return binAll(a, bins * Math.sqrt(a / GUESS));
@@ -181,24 +186,84 @@
         );
         return undefined;
       };
+      const rowsOf = ({ a, dx, r, dy, counts }: ReturnType<typeof binAll>): BC.Table => {
+        const out: Record<string, number[]> = { [n.x0]: [], [n.x1]: [], [n.y0]: [], [n.y1]: [], [n.count]: [], [xf]: [], [yf]: [] };
+        // bottom row first, each from the left: the order does not depend on the order of the data
+        const sorted = Array.from(counts.values()).sort((p, q) => p.j - q.j || p.i - q.i);
+        const halfX = ((dx / 2) * spanX) / a;
+        const halfY = r * spanY;
+        for (const b of sorted) {
+          const cx = xmin + (((b.i + (b.j & 1) / 2) * dx) / a) * spanX;
+          const cy = ymin + b.j * dy * spanY;
+          out[n.x0].push(cx - halfX);
+          out[n.x1].push(cx + halfX);
+          out[n.y0].push(cy - halfY);
+          out[n.y1].push(cy + halfY);
+          out[n.count].push(b.n);
+          out[xf].push(cx);
+          out[yf].push(cy);
+        }
+        return { length: sorted.length, columns: out };
+      };
+      /** Binned for a plot `aspect` wide per 1 tall, and the room the scales are to span for it: the box of the outer
+       *  hexagons, made that shape by as much more on each side along the axis it is short. Whole hexagons make a box of
+       *  only some shapes; stretched to the plot's they would not be regular. */
+      const shapedFor = (aspect: number) => {
+        const b = fitted(aspect, true);
+        const t = rowsOf(b);
+        const c = t.columns as Record<string, number[]>;
+        const room = [Infinity, -Infinity, Infinity, -Infinity];
+        for (let k = 0; k < t.length; k++) {
+          room[0] = Math.min(room[0], c[n.x0][k]);
+          room[1] = Math.max(room[1], c[n.x1][k]);
+          room[2] = Math.min(room[2], c[n.y0][k]);
+          room[3] = Math.max(room[3], c[n.y1][k]);
+        }
+        // b.ratio is the box's shape, measured in the units it was binned in
+        if (b.ratio > aspect) {
+          const more = ((room[3] - room[2]) * (b.ratio / aspect - 1)) / 2;
+          room[2] -= more;
+          room[3] += more;
+        } else {
+          const more = ((room[1] - room[0]) * (aspect / b.ratio - 1)) / 2;
+          room[0] -= more;
+          room[1] += more;
+        }
+        return { table: t, room };
+      };
       const given = aspectOf(spec);
-      const { a, dx, r, dy, counts } = (given === undefined && view && followed(view)) || fitted(given ?? GUESS);
-      // bottom row first, each from the left: the order does not depend on the order of the data
-      const sorted = Array.from(counts.values()).sort((p, q) => p.j - q.j || p.i - q.i);
-      const halfX = ((dx / 2) * spanX) / a;
-      const halfY = r * spanY;
-      for (const b of sorted) {
-        const cx = xmin + (((b.i + (b.j & 1) / 2) * dx) / a) * spanX;
-        const cy = ymin + b.j * dy * spanY;
-        cols[n.x0].push(cx - halfX);
-        cols[n.x1].push(cx + halfX);
-        cols[n.y0].push(cy - halfY);
-        cols[n.y1].push(cy + halfY);
-        cols[n.count].push(b.n);
-        cols[xf].push(cx);
-        cols[yf].push(cy);
+      if (given === undefined && view) {
+        // Binned for the shape of the plot (its px), in room the scales are to span. The run that gives the scales their
+        // domains says so; after it the scales do span that room, unless they have a domain of their own, a rounded one,
+        // or a zoom: then the hexagons follow the scales.
+        const length = (name: string) => {
+          const scale = view.scales[name];
+          const r = scale ? (scale.range() as unknown[]) : [];
+          return Math.abs(num(r[1]) - num(r[0]));
+        };
+        const aspect = length(xName) / length(yName);
+        if (aspect > 0 && isFinite(aspect)) {
+          let kept = shaped.get(spec);
+          if (!kept || kept.table !== table || kept.aspect !== aspect) shaped.set(spec, (kept = { table, aspect, out: shapedFor(aspect) }));
+          const { room } = kept.out;
+          if (view.fitting) {
+            if (view.reach) {
+              view.reach(xName, [room[0], room[1]]);
+              view.reach(yName, [room[2], room[3]]);
+            }
+            return kept.out.table;
+          }
+          const spans = (name: string, lo: number, hi: number) => {
+            const d = view.scales[name].domain() as unknown[];
+            const near = Math.abs(hi - lo) * 1e-9;
+            return Math.abs(num(d[0]) - lo) <= near && Math.abs(num(d[d.length - 1]) - hi) <= near;
+          };
+          if (spans(xName, room[0], room[1]) && spans(yName, room[2], room[3])) return kept.out.table;
+        }
+        const f = followed(view);
+        if (f) return rowsOf(f);
       }
-      return { length: sorted.length, columns: cols };
+      return rowsOf(fitted(given ?? GUESS));
     },
   };
 
