@@ -162,6 +162,44 @@ test('tooltip: a short card on a desk is one line per field, beside the point', 
   await p.close();
 });
 
+test('tooltip: the dot by the heading has the color of the shape, with a ring that keeps it in sight on the card', async () => {
+  // [recipe, the shape hovered, where in it, the shape whose color the dot takes]
+  const cases = [
+    ['candlestick', 'rect[data-bc-row="0"]', [0.5, 0.5], 'rect[data-bc-row="0"]'], // fell: red
+    ['candlestick', 'rect[data-bc-row="2"]', [0.5, 0.5], 'rect[data-bc-row="2"]'], // rose: green
+    ['heatmap', 'rect[data-bc-row="19"]', [0.5, 0.5], 'rect[data-bc-row="19"]'], // a dark cell
+    ['bullet', 'rect[data-bc-mark="0"][data-bc-row="0"]', [0.95, 0.15], 'rect[data-bc-mark="3"][data-bc-row="0"]'], // the band: the bar
+  ];
+  for (const scheme of ['light', 'dark']) {
+    for (const [name, hovered, [fx, fy], owner] of cases) {
+      const p = await open(recipe(name), 1100);
+      await p.emulateMedia({ colorScheme: scheme });
+      const box = await p.evaluate((s) => {
+        const el = document.querySelector('.bc-chart ' + s);
+        el.scrollIntoView({ block: 'center' });
+        const r = el.getBoundingClientRect();
+        return { x: r.left, y: r.top, w: r.width, h: r.height };
+      }, hovered);
+      await p.mouse.move(box.x + box.w * fx, box.y + box.h * fy, { steps: 2 });
+      await p.waitForTimeout(100);
+      const got = await p.evaluate((s) => {
+        const sw = [...document.querySelectorAll('.bc-tooltip')]
+          .find((t) => getComputedStyle(t).display !== 'none')
+          .querySelector('.bc-tooltip-swatch');
+        return {
+          dot: getComputedStyle(sw).backgroundColor,
+          ring: getComputedStyle(sw).boxShadow,
+          shape: getComputedStyle(document.querySelector('.bc-chart ' + s)).fill,
+        };
+      }, owner);
+      assert.strictEqual(got.dot, got.shape, `${name} ${hovered} (${scheme})`);
+      assert(/inset/.test(got.ring), `${name} (${scheme}): a ring, ${got.ring}`);
+      assert.deepStrictEqual(p.errors, []);
+      await p.close();
+    }
+  }
+});
+
 // ───────────────────────── value labels and slanted names on a phone ─────────────────────────
 
 const recipe = (name) => JSON.parse(fs.readFileSync(path.join(__dirname, '../skills/blockcharts/recipes', name + '.json'), 'utf8'));

@@ -9,6 +9,14 @@
     return () => r;
   }
 
+  /** The color of each row, shared by render, pick and `color` so that a tooltip shows what is drawn: '' where the
+   *  scale hides it. */
+  function paint(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number): (row: number) => string {
+    const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+    const fill = typeof spec.fill === 'string' ? spec.fill : ctx.color(index);
+    return (row) => (colors ? colors[row] || '' : fill);
+  }
+
   /** The rows to draw, in drawing order: with sizes, the biggest first, so a small bubble is never hidden under a big one. */
   function order(spec: BC.MarkSpec, ctx: BC.ChartCtx, radius: (i: number) => number): number[] {
     const { from, to } = ctx.rows(spec);
@@ -140,7 +148,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'point',
-    version: 14,
+    version: 15,
     doc: 'One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible; on a narrow screen its points shrink so they still fit. An opaque dot that rows repeat on one spot is drawn once; with `opacity` below 1 every one is drawn, so piles show.',
     params: {
       r: { kind: 'number', default: 3, doc: 'Radius in px (when there is no `size` channel).' },
@@ -180,10 +188,9 @@
       const halfX = cx.half;
       const halfY = cy.half;
       const radius = radii(spec, ctx);
-      const fill = typeof spec.fill === 'string' ? spec.fill : ctx.color(index);
       const opacity = typeof spec.opacity === 'number' ? spec.opacity : undefined;
       const stroke = typeof spec.stroke === 'string' ? spec.stroke : undefined;
-      const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+      const colorOf = paint(spec, ctx, index);
       const sw = swarm(spec, ctx, radius);
       // an opaque dot drawn again on itself changes nothing (a total repeated on each row of its quarter): it is drawn
       // once. Dots that let others show through are all drawn, as where they pile up is worth seeing
@@ -194,7 +201,7 @@
         const py = cy.mapped[i] + (sw && sw.across === 'y' ? sw.shift[i] : 0);
         const r = radius(i) * (sw ? sw.k : 1);
         if (!isFinite(px) || !isFinite(py) || !isFinite(r)) continue;
-        const c = colors ? colors[i] : fill;
+        const c = colorOf(i);
         if (!c) continue;
         if (seen) {
           const key = `${px},${py},${r},${c}`;
@@ -212,13 +219,13 @@
       }
       return out;
     },
-    pick(spec, ctx, _index, px, py) {
+    pick(spec, ctx, index, px, py) {
       const cx = ctx.channel(spec, 'x');
       const cy = ctx.channel(spec, 'y');
       const halfX = cx.half;
       const halfY = cy.half;
       const radius = radii(spec, ctx);
-      const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+      const colorOf = paint(spec, ctx, index);
       const sw = swarm(spec, ctx, radius);
       // the circle drawn last that the pointer is in wins (it is on top); otherwise the one whose edge is nearest
       let best = -1;
@@ -229,7 +236,7 @@
         const x = cx.mapped[i] + halfX + (sw && sw.across === 'x' ? sw.shift[i] : 0);
         const y = cy.mapped[i] + halfY + (sw && sw.across === 'y' ? sw.shift[i] : 0);
         const r = radius(i) * (sw ? sw.k : 1);
-        if (!isFinite(x) || !isFinite(y) || !isFinite(r) || (colors && !colors[i])) continue;
+        if (!isFinite(x) || !isFinite(y) || !isFinite(r) || !colorOf(i)) continue;
         const gap = Math.max(0, Math.hypot(x - px, y - py) - r);
         if (gap <= bestGap) {
           bestGap = gap;
@@ -242,14 +249,17 @@
       if (best < 0 || bestGap > 6) return null;
       // dots on one spot are one dot to the pointer: the pick stands for every row of them
       const r0 = radius(best);
-      const c0 = colors ? colors[best] : '';
+      const c0 = colorOf(best);
       const rows: number[] = [];
       for (const i of order(spec, ctx, radius)) {
         const x = cx.mapped[i] + halfX + (sw && sw.across === 'x' ? sw.shift[i] : 0);
         const y = cy.mapped[i] + halfY + (sw && sw.across === 'y' ? sw.shift[i] : 0);
-        if (x === bestX && y === bestY && radius(i) === r0 && (!colors || colors[i] === c0)) rows.push(i);
+        if (x === bestX && y === bestY && radius(i) === r0 && colorOf(i) === c0) rows.push(i);
       }
       return rows.length > 1 ? { row: best, x: bestX, y: bestY, dist: bestGap, rows } : { row: best, x: bestX, y: bestY, dist: bestGap };
+    },
+    color(spec, ctx, index, row) {
+      return paint(spec, ctx, index)(row);
     },
   };
 

@@ -45,19 +45,25 @@
     };
   }
 
+  /** The color of each row, shared by the lines and `color`: '' where the scale hides it. */
+  function paint(spec: BC.MarkSpec, ctx: BC.ChartCtx): (row: number) => string {
+    const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+    const stroke = typeof spec.stroke === 'string' ? spec.stroke : 'var(--bc-text, #444)';
+    return (row) => (colors ? colors[row] || '' : stroke);
+  }
+
   /** The lines a rule draws, each once however many rows repeat it: its ends in px, its color and the first row. */
   function lines(spec: BC.MarkSpec, ctx: BC.ChartCtx): { s: [number, number, number, number]; c: string; row: number }[] {
     if (spec.x === undefined && spec.y === undefined) return [];
     const seg = segments(spec, ctx);
-    const stroke = typeof spec.stroke === 'string' ? spec.stroke : 'var(--bc-text, #444)';
-    const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+    const colorOf = paint(spec, ctx);
     const seen = new Set<string>();
     const out: { s: [number, number, number, number]; c: string; row: number }[] = [];
     const { from, to } = ctx.rows(spec);
     for (let i = from; i < to; i++) {
       const s = seg(i);
       if (!s) continue;
-      const c = colors ? colors[i] : stroke;
+      const c = colorOf(i);
       if (!c) continue;
       const key = s.map(r2).join(',') + '|' + c;
       if (seen.has(key)) continue;
@@ -70,7 +76,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rule',
-    version: 8,
+    version: 9,
     doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it.',
     params: {
       stroke: { kind: 'color', doc: 'Any CSS color. Default: the theme text color.' },
@@ -125,6 +131,9 @@
         );
       }
       return out;
+    },
+    color(spec, ctx, _index, row) {
+      return paint(spec, ctx)(row);
     },
   };
 

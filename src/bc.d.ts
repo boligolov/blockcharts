@@ -551,9 +551,9 @@ declare namespace BC {
     /** How interaction.animate brings it in: bars grow from their baseline ("grow"), series are drawn from left to
      *  right ("wipe"), slices open from the center ("pop"). Without one it fades in. */
     enter?: 'grow' | 'wipe' | 'pop';
-    /** false: it is not drawn in ChartCtx.color(index) when no color channel, fill or stroke says otherwise (a pie
-     *  gives each slice its own color, a label takes the text color), so a tooltip shows no color for its datum. */
-    markColor?: boolean;
+    /** The color it draws `row` in, as its render does: the dot a tooltip shows by the heading and its marker. '' when
+     *  the row has no color (a category the scale hides). A mark without it (a label in the text color) shows none. */
+    color?(spec: MarkSpec, ctx: ChartCtx, index: number, row: number): string;
   }
 
   /** What a guide needs around the plot. The side keys are space the guide occupies and add up with other guides

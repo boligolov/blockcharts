@@ -224,7 +224,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'sankey',
-    version: 6,
+    version: 7,
     doc: 'A Sankey diagram: one row per flow, from `source` to `target`, its thickness in proportion to `value`, drawn where transform.sankey lays it out (put it in `transforms` with the same three fields). Needs no scales and no axes; every node is named on the chart, and has a color of the palette. A label too long for the space between columns loses the total, then the end of the name; two labels that face each other across the last gap share it. Hovering a node lights up its flows. Give the same name to the same node in `source` and `target`, and different names to different stages (a "Direct" channel and a "Direct" segment would be one node).',
     params: {
       nodeWidth: { kind: 'number', default: NODE_WIDTH, doc: 'Width of a node, in px.' },
@@ -377,6 +377,12 @@
         }
       }
       return best ? { row: best.row, x: px, y: center, dist: 0 } : null;
+    },
+    // a flow is drawn in the color of the node it comes from
+    color(spec, ctx, _index, row) {
+      const g = geometry(spec, ctx);
+      const link = g ? g.links.find((l) => l.row === row) : undefined;
+      return link ? link.from.color : '';
     },
   };
 

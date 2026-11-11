@@ -1,10 +1,18 @@
 (function () {
+  /** The color of each row, shared by render, pick and `color` so that a tooltip shows what is drawn: '' where the
+   *  scale hides it. */
+  function paint(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number): (row: number) => string {
+    const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+    const fill = (typeof spec.fill === 'string' && spec.fill) || ctx.color(index);
+    return (row) => (colors ? colors[row] || '' : fill);
+  }
+
   const TEXT = 'var(--bc-text, #333)';
 
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'boxplot',
-    version: 4,
+    version: 5,
     doc: "A box (q1 to q3), a line across it at the median, and whiskers out to low/high — the usual shape for transform.quartiles' output. `x` is the category (a band scale, one box per category) or a plain position on a continuous one; the five value channels share the scale of `y` by default. Outliers are not drawn by this mark: transform.quartiles reports them as their own rows (only `value` set, the others NaN), meant for a plain mark.point layered on top reading the same `x` and `value`.",
     params: {
       width: {
@@ -61,12 +69,11 @@
       const cMedian = ctx.channel(spec, 'median');
       const cQ3 = ctx.channel(spec, 'q3');
       const cHigh = ctx.channel(spec, 'high');
-      const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+      const colorOf = paint(spec, ctx, index);
       const bw = cx.scale && cx.scale.bandwidth !== undefined ? cx.scale.bandwidth : 0;
       const frac = typeof spec.width === 'number' && spec.width > 0 ? spec.width : 0.6;
       const boxW = bw ? (frac <= 1 ? bw * frac : Math.min(frac, bw)) : frac > 1 ? frac : 16;
       const half = bw / 2;
-      const fill = typeof spec.fill === 'string' ? spec.fill : undefined;
       const fillOpacity = typeof spec.fillOpacity === 'number' ? spec.fillOpacity : 0.85;
       const strokeWidth = typeof spec.strokeWidth === 'number' ? spec.strokeWidth : 1.5;
       const opacity = typeof spec.opacity === 'number' ? spec.opacity : undefined;
@@ -81,7 +88,7 @@
         if (!isFinite(low) || !isFinite(q1) || !isFinite(median) || !isFinite(q3) || !isFinite(high)) continue; // an outlier row, or an unmapped x
         const px = cx.mapped[i];
         if (!isFinite(px)) continue;
-        const c = colors ? colors[i] : fill || ctx.color(index);
+        const c = colorOf(i);
         if (!c) continue;
         const xc = px + half;
         const x0 = xc - boxW / 2;
@@ -107,13 +114,13 @@
       }
       return out;
     },
-    pick(spec, ctx, _index, px, py) {
+    pick(spec, ctx, index, px, py) {
       const cx = ctx.channel(spec, 'x');
       const cLow = ctx.channel(spec, 'low');
       const cQ1 = ctx.channel(spec, 'q1');
       const cQ3 = ctx.channel(spec, 'q3');
       const cHigh = ctx.channel(spec, 'high');
-      const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+      const colorOf = paint(spec, ctx, index);
       const bw = cx.scale && cx.scale.bandwidth !== undefined ? cx.scale.bandwidth : 0;
       const frac = typeof spec.width === 'number' && spec.width > 0 ? spec.width : 0.6;
       const boxW = bw ? (frac <= 1 ? bw * frac : Math.min(frac, bw)) : frac > 1 ? frac : 16;
@@ -121,7 +128,7 @@
       const { from, to } = ctx.rows(spec);
       const SLACK = 4;
       for (let i = to - 1; i >= from; i--) {
-        if (colors && !colors[i]) continue;
+        if (!colorOf(i)) continue;
         const low = cLow.mapped[i];
         const q1 = cQ1.mapped[i];
         const q3 = cQ3.mapped[i];
@@ -140,6 +147,9 @@
         }
       }
       return null;
+    },
+    color(spec, ctx, index, row) {
+      return paint(spec, ctx, index)(row);
     },
   };
 

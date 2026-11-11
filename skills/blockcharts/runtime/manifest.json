@@ -1108,8 +1108,8 @@
     },
     "mark.arc": {
       "file": "blocks/mark.arc.js",
-      "bytes": 4867,
-      "version": 6,
+      "bytes": 4985,
+      "version": 7,
       "requires": [],
       "closure": [
         "mark.arc"
@@ -1198,8 +1198,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2747,
-      "version": 14,
+      "bytes": 2917,
+      "version": 15,
       "requires": [
         "lib.curve"
       ],
@@ -1289,8 +1289,8 @@
     },
     "mark.boxplot": {
       "file": "blocks/mark.boxplot.js",
-      "bytes": 2823,
-      "version": 4,
+      "bytes": 2862,
+      "version": 5,
       "requires": [],
       "closure": [
         "mark.boxplot"
@@ -1397,8 +1397,8 @@
     },
     "mark.candlestick": {
       "file": "blocks/mark.candlestick.js",
-      "bytes": 2315,
-      "version": 3,
+      "bytes": 2414,
+      "version": 4,
       "requires": [],
       "closure": [
         "mark.candlestick"
@@ -1485,8 +1485,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 4298,
-      "version": 21,
+      "bytes": 4458,
+      "version": 22,
       "requires": [
         "lib.curve"
       ],
@@ -1576,8 +1576,8 @@
     },
     "mark.point": {
       "file": "blocks/mark.point.js",
-      "bytes": 3961,
-      "version": 14,
+      "bytes": 3995,
+      "version": 15,
       "requires": [],
       "closure": [
         "mark.point"
@@ -1647,8 +1647,8 @@
     },
     "mark.polygon": {
       "file": "blocks/mark.polygon.js",
-      "bytes": 2033,
-      "version": 3,
+      "bytes": 2210,
+      "version": 4,
       "requires": [],
       "closure": [
         "mark.polygon"
@@ -1719,8 +1719,8 @@
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",
-      "bytes": 4513,
-      "version": 15,
+      "bytes": 4558,
+      "version": 16,
       "requires": [],
       "closure": [
         "mark.rect"
@@ -1814,8 +1814,8 @@
     },
     "mark.rule": {
       "file": "blocks/mark.rule.js",
-      "bytes": 2515,
-      "version": 8,
+      "bytes": 2596,
+      "version": 9,
       "requires": [],
       "closure": [
         "mark.rule"
@@ -1894,8 +1894,8 @@
     },
     "mark.sankey": {
       "file": "blocks/mark.sankey.js",
-      "bytes": 6618,
-      "version": 6,
+      "bytes": 6712,
+      "version": 7,
       "requires": [],
       "closure": [
         "mark.sankey"
@@ -1950,7 +1950,7 @@
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 5409,
+      "bytes": 5396,
       "version": 14,
       "requires": [],
       "closure": [
@@ -2099,8 +2099,8 @@
     },
     "mark.violin": {
       "file": "blocks/mark.violin.js",
-      "bytes": 2962,
-      "version": 3,
+      "bytes": 3067,
+      "version": 4,
       "requires": [],
       "closure": [
         "mark.violin"
@@ -2533,8 +2533,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 8843,
-      "version": 20,
+      "bytes": 9290,
+      "version": 21,
       "requires": [
         "lib.pointer"
       ],
@@ -2575,7 +2575,7 @@
           "doc": "\"dot\" draws a small circle at the point; \"box\" highlights the whole shape (used automatically for rect marks like bar/heatmap, where a dot would land on an edge); \"auto\" picks box when the mark reports its bounds and dot otherwise; \"none\" shows the tooltip text without a marker."
         }
       },
-      "doc": "Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share."
+      "doc": "Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it)."
     },
     "interaction.zoom": {
       "file": "blocks/interaction.zoom.js",

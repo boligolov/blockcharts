@@ -7,6 +7,8 @@
     /** Its outlines in px, each closed. */
     rings: [number, number][][];
     color: string;
+    /** Its value of `group` (null without one). */
+    key: unknown;
   }
 
   /** Shared by render and pick, so that what is drawn is what is hit. */
@@ -33,11 +35,11 @@
       if (isFinite(xs[i]) && isFinite(ys[i])) s.rings[s.rings.length - 1].push([xs[i], ys[i]]);
     }
     const out: Shape[] = [];
-    byGroup.forEach((s) => {
+    byGroup.forEach((s, key) => {
       const color = colors ? colors[s.row] : fill;
       if (!color) return; // a value the legend hides
       const closed = s.rings.filter((r) => r.length > 2);
-      if (closed.length) out.push({ row: s.row, rings: closed, color });
+      if (closed.length) out.push({ row: s.row, rings: closed, color, key });
     });
     return out;
   }
@@ -60,7 +62,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'polygon',
-    version: 3,
+    version: 4,
     doc: 'Closed shapes through the rows in their order: the regions of transform.contour, or any outline given point by point. `group` makes a shape of the rows with one value, drawn as one path, in the order the values first come (the last on top); `ring` splits a shape into several outlines, a run of rows each. An outline inside another that runs the other way round is a hole, as the rings of transform.contour do. With `filled: false` only the outlines are drawn (contour lines). The tooltip finds the shape the pointer is in, the top one first.',
     params: {
       group: { kind: 'field', doc: 'Rows with the same value make one shape. Default: all rows are one.' },
@@ -95,6 +97,13 @@
       for (let k = shapes.length - 1; k >= 0; k--)
         if (winding(shapes[k].rings, px, py) !== 0) return { row: shapes[k].row, x: px, y: py, dist: 0 };
       return null;
+    },
+    color(spec, ctx, index, row) {
+      // the shape of the row's group, as a Map keys it (NaN is NaN)
+      const groups = typeof spec.group === 'string' ? ctx.table.columns[spec.group] : undefined;
+      const key = groups ? groups[row] : null;
+      const shape = shapesOf(spec, ctx, index).find((s) => s.key === key || (s.key !== s.key && key !== key));
+      return shape ? shape.color : '';
     },
   };
 

@@ -58,10 +58,16 @@
     return { candles, width: Math.max(1, step * share), step };
   }
 
+  /** The color of a candle: `up` when the price rose (or stayed), `down` when it fell. */
+  function paint(spec: BC.MarkSpec, c: Candle): string {
+    if (c.up) return typeof spec.up === 'string' ? spec.up : UP;
+    return typeof spec.down === 'string' ? spec.down : DOWN;
+  }
+
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'candlestick',
-    version: 3,
+    version: 4,
     doc: 'Open-high-low-close candles, one per row: a body from `open` to `close`, a thin wick from `low` to `high`, in one color when the price rose and in another when it fell. `x` is a date on a time scale (candles as wide as the nearest two allow) or a category on a band scale; the four prices share the scale of `y`. A row with one of its prices missing has no candle.',
     params: {
       width: { kind: 'number', default: WIDTH, doc: 'Width of a body, as a share (0-1) of the step between candles.' },
@@ -91,11 +97,9 @@
       const { candles, width } = geometry(spec, ctx);
       const opacity = typeof spec.opacity === 'number' ? spec.opacity : undefined;
       const strokeWidth = typeof spec.strokeWidth === 'number' && spec.strokeWidth > 0 ? spec.strokeWidth : 1;
-      const up = typeof spec.up === 'string' ? spec.up : UP;
-      const down = typeof spec.down === 'string' ? spec.down : DOWN;
       const out: BC.Prim[] = [];
       for (const c of candles) {
-        const color = c.up ? up : down;
+        const color = paint(spec, c);
         out.push({ type: 'path', d: `M${c.x} ${c.high}L${c.x} ${c.low}`, style: { stroke: color, strokeWidth, opacity } });
         out.push({
           type: 'rect',
@@ -126,6 +130,10 @@
       const top = Math.min(best.open, best.close);
       const h = Math.max(1, Math.abs(best.open - best.close));
       return { row: best.row, x: best.x, y: top, dist, box: { x: best.x - width / 2, y: top, w: width, h } };
+    },
+    color(spec, ctx, _index, row) {
+      const candle = geometry(spec, ctx).candles.find((c) => c.row === row);
+      return candle ? paint(spec, candle) : '';
     },
   };
 

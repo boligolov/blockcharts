@@ -28,6 +28,14 @@
   /** The rows of a series that have a point, per series (kept while the series is): a pointer move asks every frame. */
   const drawable = new WeakMap<number[], number[]>();
 
+  /** The color of a series (its rows, and its place among the mark's series), shared by the line, its end label and
+   *  `color`: '' where the scale hides it. */
+  function strokeOf(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number, rows: number[], n: number): string {
+    if (typeof spec.stroke === 'string') return spec.stroke;
+    if (spec.color !== undefined) return ctx.channel(spec, 'color').mapped[rows[0]] || '';
+    return ctx.color(index + n);
+  }
+
   /** The end labels one line mark asks for: one per series, at its last point in view (inside the plot, when zoomed). */
   function endsOf(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number): EndLabel[] {
     const mode = spec.label === 'name' || spec.label === 'value' || spec.label === 'both' ? spec.label : 'none';
@@ -48,7 +56,7 @@
     const seen = (i: number) => xs[i] <= left + w + 0.5 && ys[i] >= top - 0.5 && ys[i] <= top + h + 0.5;
     const out: EndLabel[] = [];
     ctx.series(spec, xs).forEach(({ key, rows }, n) => {
-      const color = typeof spec.stroke === 'string' ? spec.stroke : colorCh ? colorCh.mapped[rows[0]] : ctx.color(index + n);
+      const color = strokeOf(spec, ctx, index, rows, n);
       if (!color) return;
       let last = -1;
       for (const i of rows) if (isFinite(xs[i]) && isFinite(ys[i]) && seen(i)) last = i;
@@ -78,7 +86,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'line',
-    version: 21,
+    version: 22,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -144,7 +152,7 @@
         }
         flush();
         if (!d) return;
-        const stroke = typeof spec.stroke === 'string' ? spec.stroke : colorCh ? colorCh.mapped[rows[0]] : ctx.color(index + n);
+        const stroke = strokeOf(spec, ctx, index, rows, n);
         if (!stroke) return; // a series whose color the scale hides is not drawn
         out.push({
           type: 'path',
@@ -237,6 +245,11 @@
         if (k1 > k0) best.rows = pts.slice(k0, k1 + 1);
       }
       return best;
+    },
+    color(spec, ctx, index, row) {
+      const all = ctx.series(spec, xsOf(spec, ctx));
+      for (let n = 0; n < all.length; n++) if (all[n].rows.includes(row)) return strokeOf(spec, ctx, index, all[n].rows, n);
+      return '';
     },
   };
 

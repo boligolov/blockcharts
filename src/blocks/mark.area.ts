@@ -34,10 +34,18 @@
     };
   }
 
+  /** The color of a series (its rows, and its place among the mark's series), shared by render and `color`: '' where
+   *  the scale hides it. */
+  function fillOf(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number, rows: number[], n: number): string {
+    if (typeof spec.fill === 'string') return spec.fill;
+    if (spec.color !== undefined) return ctx.channel(spec, 'color').mapped[rows[0]] || '';
+    return ctx.color(index + n);
+  }
+
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 14,
+    version: 15,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
@@ -75,13 +83,12 @@
     },
     render(spec, ctx, index) {
       const { xs, top, bottom } = edges(spec, ctx);
-      const colorCh = spec.color !== undefined ? ctx.channel(spec, 'color') : null;
       const fade = spec.fade === true;
       const opacity = typeof spec.opacity === 'number' ? spec.opacity : fade ? 0.45 : 0.85;
       const curve = spec.curve === 'smooth' || spec.curve === 'step' ? spec.curve : 'linear';
       const out: BC.Prim[] = [];
       ctx.series(spec, xs).forEach(({ rows }, n) => {
-        const fill = typeof spec.fill === 'string' ? spec.fill : colorCh ? colorCh.mapped[rows[0]] : ctx.color(index + n);
+        const fill = fillOf(spec, ctx, index, rows, n);
         if (!fill) return; // a series whose color the scale hides is not drawn
         let d = '';
         let run: number[] = [];
@@ -150,6 +157,11 @@
         best = { row, x: xs[row], y: top[row], dist: 0 };
       }
       return best;
+    },
+    color(spec, ctx, index, row) {
+      const all = ctx.series(spec, edges(spec, ctx).xs);
+      for (let n = 0; n < all.length; n++) if (all[n].rows.includes(row)) return fillOf(spec, ctx, index, all[n].rows, n);
+      return '';
     },
   };
 

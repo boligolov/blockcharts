@@ -1058,8 +1058,9 @@ block can make, and the core reads it:
 - **`MarkDef.enter`**: rect says `"grow"`, line and area `"wipe"`, arc `"pop"`. In `"auto"` mode the animation takes
   the effect the marks ask for, by the old rules: a pie opens; bars grow unless a series is drawn over them. A bar's
   baseline comes from the first mark that grows.
-- **`MarkDef.markColor: false`** (arc, text): the mark is not drawn in `color(index)`. A tooltip then shows no color
-  for its datum unless a color channel, fill or stroke gives one.
+- **`MarkDef.color(spec, ctx, index, row)`**: the color the mark drew a row in, from the function its render draws
+  with. A tooltip shows it by the heading and on its marker; a mark without it (text) shows none. It replaced
+  `markColor: false` (arc, text), with which the tooltip guessed the color from the spec (see the production review).
 - **`InteractionDef.alongX`** (crosshair): it reads the chart along x at any height. `ChartCtx.alongX` says one is on
   the chart, and the pick of a line answers wherever the pointer is above or below it. Before, the line looked for an
   interaction of type `crosshair`.
@@ -1409,6 +1410,18 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   chart (sideways a label is as wide as the font, which differs between machines: see the roadmap). The review
   also named a hairline under the empty bins of the histogram: that is the x axis line, which runs under the bars too,
   and a bin of 0 draws nothing.
+- **The dot on a tooltip's card has the color of what the card is about.** The tooltip guessed a datum's color from the
+  mark's spec: the color channel, else `fill`, else `stroke`, else the palette color of the mark's place. A candle is
+  green or red by its rise or fall, and the dot was the palette's blue. A line split by `group` with no color channel
+  draws its series in the palette colors that follow, and the dot gave each the first. A dot with only an outline
+  (`stroke`) took the outline's color, a Sankey flow the palette's blue and not its node's color. Each mark now says the
+  color it drew a row in, `MarkDef.color`, from the same function its render draws with, and a test draws every recipe
+  again and holds each shape against the color its mark names. On a bullet chart the pointer is mostly over a band behind
+  the bar, while the card, with `fields: ["actual", "target"]`, is about the bar: the dot was the band's grey, near white
+  in light and near the card in dark. With `fields`, when the shape under the pointer does not draw the first value on
+  the card, the dot takes the color of the mark that does (the topmost); the marker and the highlight stay on the shape
+  hovered. A color as light or as dark as the card (a pale band, a dark heatmap cell on a dark card, a yellow one on
+  white) keeps in sight inside a ring of `--bc-tooltip-highlight-line`.
 
 ## Next steps
 

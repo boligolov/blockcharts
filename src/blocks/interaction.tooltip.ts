@@ -28,9 +28,9 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 20,
+    version: 21,
     requires: ['lib.pointer'],
-    doc: 'Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share.',
+    doc: "Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it).",
     params: {
       fields: { kind: 'fields', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
       formats: {
@@ -214,26 +214,58 @@
         return null;
       }
 
-      /** The color the datum is drawn in, for the dot next to the heading; '' when it cannot be told. */
+      const markDef = (mark: BC.MarkSpec) => BC.get(`mark.${mark.type}` as BC.BlockName) as BC.MarkDef | undefined;
+
+      /** The color `mark` draws `row` in, as the mark itself says (MarkDef.color); '' when it does not say. */
       function colorOf(mark: BC.MarkSpec, index: number, row: number): string {
+        const def = markDef(mark);
+        if (!def || typeof def.color !== 'function') return '';
         try {
-          if (mark.color !== undefined) {
-            const c = live.channel(mark, 'color');
-            if (c.scale && c.mapped[row]) return String(c.mapped[row]);
-          }
+          const c = def.color(mark, live, index, row);
+          return typeof c === 'string' ? c : '';
         } catch (e) {
-          // no color channel after all
+          return '';
         }
-        if (typeof mark.fill === 'string') return mark.fill;
-        if (typeof mark.stroke === 'string') return mark.stroke;
-        const def = BC.get(`mark.${mark.type}`) as BC.MarkDef | undefined;
-        return def && def.markColor === false ? '' : live.color(index);
       }
 
-      /** The lines of a datum. A shape that stands for several rows (Pick.rows) shows only what they have in common: a
-       *  line through a quarter's total says the total, not the product of whichever row of the quarter came first. */
-      function lines(mark: BC.MarkSpec, def: BC.MarkDef, row: number, rows: number[]): [string, string][] {
+      /** The fields a mark draws: those its channels read, and its group. */
+      function drawn(mark: BC.MarkSpec, def: BC.MarkDef): string[] {
+        const out: string[] = [];
+        for (const ch of Object.keys(def.channels)) {
+          try {
+            const c = live.channel(mark, ch);
+            if (c.field) out.push(c.field);
+          } catch (e) {
+            // a channel that cannot be resolved draws nothing
+          }
+        }
+        if (typeof mark.group === 'string') out.push(mark.group);
+        return out;
+      }
+
+      /** The color of the dot by the heading: that of the first value on the card. The mark under the pointer draws it,
+       *  unless `fields` puts first a value only other marks draw: on the band behind a bullet chart's bar the card
+       *  says the result, and the dot has the bar's color, not the band's grey. */
+      function swatchOf(mark: BC.MarkSpec, def: BC.MarkDef, index: number, row: number, first: string | null): string {
+        const own = colorOf(mark, index, row);
+        if (first === null || drawn(mark, def).includes(first)) return own;
+        const marks = live.spec.marks;
+        // the mark drawn last is on top
+        for (let i = marks.length - 1; i >= 0; i--) {
+          const other = markDef(marks[i]);
+          if (i === index || !other || !drawn(marks[i], other).includes(first)) continue;
+          const c = colorOf(marks[i], i, row);
+          if (c) return c;
+        }
+        return own;
+      }
+
+      /** The lines of a datum, and the field of each. A shape that stands for several rows (Pick.rows) shows only what
+       *  they have in common: a line through a quarter's total says the total, not the product of whichever row of the
+       *  quarter came first. */
+      function lines(mark: BC.MarkSpec, def: BC.MarkDef, row: number, rows: number[]): { lines: [string, string][]; fields: string[] } {
         const out: [string, string][] = [];
+        const fields: string[] = [];
         const seen = new Set<string>();
         const add = (field: string) => {
           const col = live.table.columns[field];
@@ -244,21 +276,10 @@
           const text = write(field, row);
           if (rows.some((r) => write(field, r) !== text)) return;
           out.push([labels[field] || field, text]);
+          fields.push(field);
         };
-        if (only) {
-          only.forEach(add);
-          return out;
-        }
-        for (const ch of Object.keys(def.channels)) {
-          try {
-            const c = live.channel(mark, ch);
-            if (c.field) add(c.field);
-          } catch (e) {
-            // a channel that cannot be resolved has nothing to show
-          }
-        }
-        if (typeof mark.group === 'string') add(mark.group);
-        return out;
+        (only || drawn(mark, def)).forEach(add);
+        return { lines: out, fields };
       }
 
       function show(ev: PointerEvent): void {
@@ -286,7 +307,9 @@
         const same = pick.rows && pick.rows.length > 1 ? pick.rows : [pick.row];
         const named = card ? null : headingField(mark);
         const heading = named && same.every((r) => write(named, r) === write(named, pick.row)) ? named : null;
-        const rows = card ? card.lines : lines(mark, def, pick.row, same);
+        const listed = card ? { lines: card.lines, fields: [] as string[] } : lines(mark, def, pick.row, same);
+        const rows = listed.lines;
+        const headingLabel = heading ? labels[heading] || heading : null;
         let custom: BC.TooltipContent;
         const fn = card ? undefined : contentFn();
         if (fn) {
@@ -315,16 +338,28 @@
         if (custom === null || custom === false) return hide();
 
         tip.textContent = '';
-        const color = card ? card.color || '' : colorOf(mark, index, pick.row);
+        // the marker stands on the shape under the pointer, in its color
+        const color = colorOf(mark, index, pick.row);
+        const first = listed.fields.find((_, k) => rows[k][0] !== headingLabel);
+        const swatch = card ? card.color || '' : swatchOf(mark, def, index, pick.row, only && first !== undefined ? first : null);
         if (custom === undefined) {
           if (heading || card) {
             const head = doc.createElement('div');
             head.setAttribute('class', 'bc-tooltip-heading');
             if (heading) head.setAttribute('data-bc-field', heading);
             Object.assign(head.style, { display: 'flex', alignItems: 'center', gap: '7px', fontWeight: '600', marginBottom: '4px' });
-            if (color) {
+            if (swatch) {
               const sw = doc.createElement('span');
-              Object.assign(sw.style, { width: '8px', height: '8px', borderRadius: '50%', background: color, flex: 'none' });
+              sw.setAttribute('class', 'bc-tooltip-swatch');
+              // a ring keeps in sight a color as light or as dark as the card: a pale band, a dark cell on a dark card
+              Object.assign(sw.style, {
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: swatch,
+                boxShadow: 'inset 0 0 0 1px var(--bc-tooltip-highlight-line, rgba(127,127,127,.45))',
+                flex: 'none',
+              });
               head.appendChild(sw);
             }
             const t = doc.createElement('span');
@@ -350,7 +385,6 @@
           const grid = doc.createElement('div');
           grid.setAttribute('class', 'bc-tooltip-lines');
           Object.assign(grid.style, { display: 'grid', gridTemplateColumns: 'auto auto', columnGap: '16px', rowGap: '1px' });
-          const headingLabel = heading ? labels[heading] || heading : null;
           for (const [label, value] of rows) {
             if (label === headingLabel) continue;
             const name = doc.createElement('span');

@@ -126,12 +126,17 @@
     return r0 > 0 ? `${outer}L${pt(r0, a1)}A${r0} ${r0} 0 ${large} 0 ${pt(r0, a0)}Z` : `${outer}L${r2(cx)} ${r2(cy)}Z`;
   }
 
+  /** The color of the slice of `row`, the `n`th drawn: shared by render and `color`. '' where the scale hides it. */
+  function fillOf(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number, row: number, n: number): string {
+    if (spec.color !== undefined) return ctx.channel(spec, 'color').mapped[row] || '';
+    return typeof spec.fill === 'string' ? spec.fill : ctx.color(index + n);
+  }
+
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'arc',
-    version: 6,
+    version: 7,
     enter: 'pop',
-    markColor: false,
     doc: "Pie and donut chart: one slice per row, its angle proportional to `value`. Needs no x/y scales (declare only a color scale for the colors); the pie fills the plot area. Rows whose value is not a positive number are left out. Slices are laid out clockwise from 12 o'clock. A gauge or a progress ring is the same mark: `startAngle` -90 and `endAngle` 90 make a half circle, `total` the maximum (the rest of the arc is an empty track), `center` writes the figure in the middle.",
     params: {
       innerRadius: { kind: 'number', default: 0, doc: 'Hole size as a fraction of the radius (0 = pie, 0.5 = donut).' },
@@ -177,7 +182,6 @@
     render(spec, ctx, index) {
       const g = geometry(spec, ctx);
       if (!g) return [];
-      const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
       const pad = ((typeof spec.padAngle === 'number' ? Math.max(0, spec.padAngle) : 1) * Math.PI) / 180;
       const opacity = typeof spec.opacity === 'number' ? spec.opacity : undefined;
       const out: BC.Prim[] = [];
@@ -186,7 +190,7 @@
         out.push({ type: 'path', d: arcPath(g, g.start, g.end), style: { fill: TRACK }, cls: 'bc-arc-track' });
       }
       g.slices.forEach((s, n) => {
-        const fill = typeof spec.fill === 'string' && !colors ? spec.fill : colors ? colors[s.row] : ctx.color(index + n);
+        const fill = fillOf(spec, ctx, index, s.row, n);
         // a slice narrower than its gap keeps a sliver rather than vanishing or inverting
         // (a lone slice has no neighbour to be separated from)
         const gap = g.slices.length > 1 ? Math.min(pad, (s.a1 - s.a0) * 0.5) : 0;
@@ -268,6 +272,11 @@
         }
       }
       return null;
+    },
+    color(spec, ctx, index, row) {
+      const g = geometry(spec, ctx);
+      const n = g ? g.slices.findIndex((s) => s.row === row) : -1;
+      return n < 0 ? '' : fillOf(spec, ctx, index, row, n);
     },
   };
 

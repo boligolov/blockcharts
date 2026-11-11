@@ -222,6 +222,52 @@ for (const file of recipeFiles) {
   });
 }
 
+test('skill: in every recipe a mark names the color it drew each row in (MarkDef.color), the one a tooltip shows', async () => {
+  const wrong = [];
+  let checked = 0;
+  for (const file of recipeFiles) {
+    const page = JSON.parse(fs.readFileSync(path.join(skillDir, 'recipes', file), 'utf8'));
+    const { handles, BC } = runPage(packagedCompose.compose(page).html);
+    for (const h of handles) await h.ready;
+    // every mark that names its colors is drawn again, and what it drew is held against what it names
+    for (const name of BC.blocks().filter((b) => b.startsWith('mark.'))) {
+      const def = BC.get(name);
+      if (!def.color) continue;
+      const render = def.render;
+      def.render = (spec, ctx, index) => {
+        const prims = render(spec, ctx, index);
+        const say = (row) => def.color(spec, ctx, index, row);
+        const where = `${file}: ${name} #${index}`;
+        if (def.series) {
+          // one shape per series that has a point, in the order of the series, in the color it names for its rows
+          const xs = ctx.channel(spec, 'x').mapped;
+          const ys = ctx.channel(spec, 'y').mapped;
+          const series = ctx.series(spec, xs).filter((s) => s.rows.some((i) => isFinite(xs[i]) && isFinite(ys[i])) && say(s.rows[0]));
+          const drawn = prims.map((p) => (p.style.fill && p.style.fill !== 'none' ? p.style.fill : p.style.stroke));
+          if (series.length !== drawn.length) wrong.push(`${where}: ${series.length} series, ${drawn.length} shapes`);
+          else
+            series.forEach((s, n) => {
+              for (const row of [s.rows[0], s.rows[s.rows.length >> 1], s.rows[s.rows.length - 1]]) {
+                checked++;
+                if (say(row) !== drawn[n]) wrong.push(`${where} row ${row}: names ${say(row)}, drew ${drawn[n]}`);
+              }
+            });
+        }
+        for (const p of prims) {
+          if (!p.ref || p.ref.mark !== index) continue;
+          const drawn = p.style.fill && p.style.fill !== 'none' ? p.style.fill : p.style.stroke;
+          checked++;
+          if (say(p.ref.row) !== drawn) wrong.push(`${where} row ${p.ref.row}: names ${say(p.ref.row)}, drew ${drawn}`);
+        }
+        return prims;
+      };
+    }
+    for (const h of handles) h.update(h.spec);
+  }
+  assert.deepStrictEqual(wrong.slice(0, 10), []);
+  assert(checked > 1000, `rows checked: ${checked}`);
+});
+
 test('skill: the recipes together use every block, so the documentation of each one is exercised', () => {
   const used = new Set();
   for (const f of recipeFiles) {

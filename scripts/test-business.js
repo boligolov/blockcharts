@@ -4709,6 +4709,175 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     }
   });
 
+  /** The shapes of the marks layer that stand for a row: their row and the color they are drawn in. */
+  const drawnRows = (host) =>
+    [...layer(svgOf(host), 'marks').matchAll(/<(?:rect|path|circle) ([^>]*data-bc-row="(\d+)"[^>]*)>/g)].map((m) => {
+      const attr = (name) => (m[1].match(new RegExp(` ${name}="([^"]*)"`)) || [])[1];
+      const fill = attr('fill');
+      return { row: +m[2], color: fill && fill !== 'none' ? fill : attr('stroke') };
+    });
+  const headOf = (host) => tipOf(host).children.find((c) => c.attrs.class === 'bc-tooltip-heading');
+  /** The dot by the heading of the card now shown: its color, '' without one, null with no card or no heading. */
+  const swatchNow = (host) => {
+    if (tipOf(host).style.display !== 'block') return null;
+    const head = headOf(host);
+    if (!head) return null;
+    const sw = head.children.find((c) => c.attrs.class === 'bc-tooltip-swatch');
+    return sw ? sw.style.background : '';
+  };
+  /** Hovers the chart all over: the color of the dot by each heading the cards show. */
+  const swatchesAll = async (host) => {
+    const seen = new Map();
+    for (let x = 2; x < 640; x += 9)
+      for (let y = 2; y < 400; y += 9) {
+        await hover(host, x, y);
+        const c = swatchNow(host);
+        if (c === null) continue;
+        const title = headOf(host).children[headOf(host).children.length - 1].text;
+        if (!seen.has(title)) seen.set(title, new Set());
+        seen.get(title).add(c);
+      }
+    return seen;
+  };
+
+  test('interaction.tooltip: the dot by the heading is the color the shape under the pointer is drawn in', async () => {
+    // a candle in the color of its rise or fall, a slice and a flow without a color channel, a dot with an outline
+    BC.data('ohlc', [
+      { id: 'up', d: '2024-01-01', o: 10, h: 13, l: 8, c: 12 },
+      { id: 'down', d: '2024-02-01', o: 12, h: 13, l: 6, c: 7 },
+      { id: 'flat', d: '2024-03-01', o: 7, h: 9, l: 6, c: 7 },
+    ]);
+    BC.data('slices', [
+      { id: 'a', v: 5 },
+      { id: 'b', v: 3 },
+      { id: 'c', v: 2 },
+    ]);
+    BC.data('passing', [
+      { id: 'A to X', s: 'A', t: 'X', v: 10 },
+      { id: 'A to Y', s: 'A', t: 'Y', v: 30 },
+      { id: 'B to X', s: 'B', t: 'X', v: 20 },
+    ]);
+    const charts = {
+      candlestick: {
+        data: 'ohlc',
+        scales: { x: { type: 'time' }, y: { type: 'linear' } },
+        marks: [{ type: 'candlestick', x: 'd', open: 'o', high: 'h', low: 'l', close: 'c' }],
+        interaction: [{ type: 'tooltip', heading: 'id' }],
+      },
+      pie: { data: 'slices', marks: [{ type: 'arc', value: 'v' }], interaction: [{ type: 'tooltip', heading: 'id' }] },
+      donutDown: {
+        data: 'slices',
+        marks: [{ type: 'arc', value: 'v', innerRadius: 0.5, sort: 'asc' }],
+        interaction: [{ type: 'tooltip', heading: 'id' }],
+      },
+      sankey: {
+        data: 'passing',
+        padding: { top: 0, right: 0, bottom: 0, left: 0 },
+        transforms: [{ type: 'sankey', source: 's', target: 't', value: 'v' }],
+        marks: [{ type: 'sankey', source: 's', target: 't', value: 'v' }],
+        interaction: [{ type: 'tooltip', heading: 'id' }],
+      },
+      outlined: {
+        data: 'slices',
+        scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+        marks: [{ type: 'point', x: 'id', y: 'v', r: 12, stroke: '#000' }],
+        interaction: [{ type: 'tooltip' }],
+      },
+    };
+    const rowsOf = { candlestick: 'ohlc', pie: 'slices', donutDown: 'slices', sankey: 'passing', outlined: 'slices' };
+    const ids = { ohlc: ['up', 'down', 'flat'], slices: ['a', 'b', 'c'], passing: ['A to X', 'A to Y', 'B to X'] };
+    for (const [name, spec] of Object.entries(charts)) {
+      const host = new FakeNode('div');
+      BC.chart(host, { size: [640, 400], ...spec });
+      const drawn = new Map(drawnRows(host).map((d) => [ids[rowsOf[name]][d.row], d.color]));
+      const seen = await swatchesAll(host);
+      // a Sankey node is many rows: its card is headed by its name and has the node's color (Pick.card)
+      for (const title of [...seen.keys()]) if (name === 'sankey' && !ids.passing.includes(title)) seen.delete(title);
+      assert(seen.size >= 2, `${name}: cards of several rows: ${[...seen.keys()]}`);
+      for (const [id, colors] of seen) {
+        assert.deepStrictEqual([...colors], [drawn.get(id)], `${name} ${id}: the dot is the shape's color`);
+      }
+      // a mark whose color is no channel and no fill gets it from the palette by its place: each its own
+      if (name === 'pie' || name === 'donutDown') assert.strictEqual(new Set([...seen.values()].map((c) => [...c][0])).size, seen.size);
+    }
+
+    // the lines of a group with no color channel: each in the palette color of its place, the dot and the marker too
+    BC.data('twolines', [
+      { t: '2024-01-01', v: 1, s: 'a' },
+      { t: '2024-02-01', v: 2, s: 'a' },
+      { t: '2024-01-01', v: 8, s: 'b' },
+      { t: '2024-02-01', v: 9, s: 'b' },
+    ]);
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'twolines',
+      size: [640, 400],
+      scales: { x: { type: 'time' }, y: { type: 'linear', domain: [0, 10] } },
+      marks: [{ type: 'line', x: 't', y: 'v', group: 's' }],
+      interaction: [{ type: 'tooltip' }],
+    });
+    const lines = paths(layer(svgOf(host), 'marks'));
+    assert.strictEqual(lines.length, 2);
+    const strokes = lines.map((l) => / stroke="([^"]+)"/.exec(l.attrs)[1]);
+    assert.notStrictEqual(strokes[0], strokes[1], 'two colors');
+    for (const [k, l] of lines.entries()) {
+      const [x, y] = /^M([\d.]+) ([\d.]+)/.exec(l.d).slice(1).map(Number);
+      await hover(host, x, y);
+      assert.strictEqual(swatchNow(host), strokes[k], `line ${k}: the dot by the heading`);
+      assert.strictEqual(partOf(host, 'bc-tooltip-dot').style.background, strokes[k], `line ${k}: the marker`);
+    }
+    // a color as pale or as dark as the card keeps a ring around it
+    assert(/^inset 0 0 0 1px /.test(headOf(host).children[0].style.boxShadow), headOf(host).children[0].style.boxShadow);
+  });
+
+  test('interaction.tooltip: with `fields`, the dot takes the color of the mark that draws the first of them (a bullet chart)', async () => {
+    BC.data('goals', [
+      { metric: 'Revenue', good: 1.2, fair: 0.9, poor: 0.6, actual: 1.04, target: 1, note: 'on plan' },
+      { metric: 'Churn', good: 1.2, fair: 0.9, poor: 0.6, actual: 0.5, target: 1, note: 'behind' },
+    ]);
+    const bullet = (tooltip, extra = []) => {
+      const host = new FakeNode('div');
+      BC.chart(host, {
+        data: 'goals',
+        size: [640, 400],
+        padding: { top: 0, right: 0, bottom: 0, left: 0 },
+        scales: { y: { type: 'band', paddingInner: 0.35 }, x: { type: 'linear', domain: [0, 1.2] } },
+        marks: [
+          { type: 'rect', x: 'good', y: 'metric', fill: '#eeeeee' },
+          { type: 'rect', x: 'fair', y: 'metric', fill: '#cccccc', opacity: 0.55 },
+          { type: 'rect', x: 'poor', y: 'metric', fill: '#cccccc' },
+          { type: 'rect', x: 'actual', y: 'metric', thickness: 0.36, fill: '#3a6fe4' },
+          { type: 'rule', x: 'target', y: 'metric', thickness: 0.75, stroke: '#111111' },
+          ...extra,
+        ],
+        interaction: [{ type: 'tooltip', ...tooltip }],
+      });
+      return host;
+    };
+    // the bands of the first row: the pointer on the good band past the bar, at the height of the bar
+    const at = async (host, x) => {
+      const bar = rects(layer(svgOf(host), 'marks'))[6]; // after the three bands of two rows: the bar of Revenue
+      await hover(host, x, bar.y + bar.h / 2);
+      assert.strictEqual(headOf(host).children[headOf(host).children.length - 1].text, 'Revenue');
+      return swatchNow(host);
+    };
+    const listed = bullet({ fields: ['actual', 'target'] });
+    assert.strictEqual(await at(listed, 1.1 * (640 / 1.2)), '#3a6fe4', 'on the band past the bar: the bar the card is about');
+    assert.strictEqual(await at(listed, 0.3 * (640 / 1.2)), '#3a6fe4', 'on the bar itself');
+    assert.strictEqual(partOf(listed, 'bc-tooltip-highlight').style.display, 'block', 'what lights up is still the shape hovered');
+    assert.strictEqual(await at(bullet({ fields: ['target', 'actual'] }), 1.1 * (640 / 1.2)), '#111111', 'the target first: the rule');
+    assert.strictEqual(await at(bullet({}), 1.1 * (640 / 1.2)), '#eeeeee', 'without fields the card shows the band: its color');
+    assert.strictEqual(await at(bullet({ fields: ['note', 'actual'] }), 1.1 * (640 / 1.2)), '#eeeeee', 'a first field no mark draws');
+    assert.strictEqual(
+      await at(bullet({ fields: ['metric', 'actual'] }), 1.1 * (640 / 1.2)),
+      '#3a6fe4',
+      'the heading is not the first value: it is on every mark',
+    );
+    // a label that writes the value names no color of its own, so it does not take the dot
+    const labelled = bullet({ fields: ['actual'] }, [{ type: 'text', x: 'actual', y: 'metric', text: 'actual' }]);
+    assert.strictEqual(await at(labelled, 1.1 * (640 / 1.2)), '#3a6fe4');
+  });
+
   test('interaction.tooltip: the date heads the card, the dot takes the series color, no crosshair of its own', async () => {
     const host = new FakeNode('div');
     BC.chart(host, monthly({ interaction: [{ type: 'tooltip' }] }));
@@ -5096,7 +5265,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     like('line', 'trace');
     like('line', 'stroke', { series: false, enter: undefined });
     like('rect', 'slab');
-    like('rect', 'tile', { markColor: false });
+    like('rect', 'tile', { color: undefined });
+    like('rect', 'brick', {
+      color() {
+        throw new Error('no color');
+      },
+    });
+    like('rect', 'shard', { color: () => 42 });
     const marked = (type, extra) => monthly({ marks: [{ type, x: 'm', y: 'rev' }], ...extra });
     const firstPoint = (host) =>
       /L([\d.]+) ([\d.]+)/
@@ -5134,10 +5309,13 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       const b = rects(layer(svgOf(host), 'marks'))[0];
       await hover(host, b.x + b.w / 2, b.y + b.h / 2);
       const head = tipOf(host).children.find((c) => c.attrs.class === 'bc-tooltip-heading');
+      assert.strictEqual(tipOf(host).style.display, 'block', type + ': the card is shown');
       return head.children.length > 1;
     };
-    assert.strictEqual(await swatch('slab'), true, 'a mark drawn in its own color shows it');
-    assert.strictEqual(await swatch('tile'), false, 'markColor: false shows none');
+    assert.strictEqual(await swatch('slab'), true, 'a mark that names the color it drew shows it');
+    assert.strictEqual(await swatch('tile'), false, 'a mark that does not name it shows none');
+    assert.strictEqual(await swatch('brick'), false, 'nor one whose color() throws');
+    assert.strictEqual(await swatch('shard'), false, 'nor one that names something else than a color');
 
     // the effect of interaction.animate
     const calls = [];

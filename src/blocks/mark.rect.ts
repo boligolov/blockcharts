@@ -21,6 +21,14 @@
     return { col, order, padding };
   }
 
+  /** The color of each row, shared by render and `color` so that a tooltip shows what is drawn: '' where the scale
+   *  hides it. */
+  function paint(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number): (row: number) => string {
+    const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+    const fill = typeof spec.fill === 'string' ? spec.fill : ctx.color(index);
+    return (row) => (colors ? colors[row] || '' : fill);
+  }
+
   /** Where the baseline is in pixels; one the scale has no place for (0 on a log scale) is the bottom of the domain. */
   function baseAt(scale: BC.Scale, baseline: number): number {
     const px = scale(baseline) as number;
@@ -121,7 +129,7 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rect',
-    version: 15,
+    version: 16,
     enter: 'grow',
     doc: 'Rectangles. On a band scale a channel spans the band; on a continuous scale it spans from `<channel>2` (or from `baseline`) to the value. bar = band + linear; range bar = x/x2. With no band at all (months on a time x, the amount on y) a bar stands at its position, as wide as most of the smallest step in the data. `dodge` turns a bar chart into a grouped one: it splits each band into one bar per distinct value of the field, side by side (for a stacked bar, use `color` with transform.stack instead — dodge and stack are different arrangements of the same `color`/grouping field). `shape: "hexagon"` draws a hexagon in the box instead, for the cells of transform.hexbin.',
     params: {
@@ -166,7 +174,6 @@
     },
     render(spec, ctx, index) {
       const baseline = typeof spec.baseline === 'number' ? spec.baseline : 0;
-      const fill = typeof spec.fill === 'string' ? spec.fill : ctx.color(index);
       const opacity = typeof spec.opacity === 'number' ? spec.opacity : undefined;
       const r = typeof spec.radius === 'number' && spec.radius > 0 ? spec.radius : undefined;
       const hexagon = spec.shape === 'hexagon';
@@ -174,13 +181,13 @@
       const dodge = dodgeOf(ctx, spec, from, to);
       const ax = axis(ctx, spec, 'x', baseline, dodge);
       const ay = axis(ctx, spec, 'y', baseline, dodge);
-      const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+      const colorOf = paint(spec, ctx, index);
       const out: BC.Prim[] = [];
       for (let i = from; i < to; i++) {
         const hx = ax(i);
         const hy = ay(i);
         if (!hx || !hy) continue;
-        const c = colors ? colors[i] : fill;
+        const c = colorOf(i);
         if (!c) continue;
         if (hexagon) out.push({ type: 'path', d: hexagonPath(hx, hy), style: { fill: c, opacity }, ref: { mark: index, row: i } });
         else
@@ -213,18 +220,18 @@
       const half = (step * given) / 2;
       return [lo - half, hi + half];
     },
-    pick(spec, ctx, _index, px, py) {
+    pick(spec, ctx, index, px, py) {
       const baseline = typeof spec.baseline === 'number' ? spec.baseline : 0;
       const { from, to } = ctx.rows(spec);
       const dodge = dodgeOf(ctx, spec, from, to);
       const ax = axis(ctx, spec, 'x', baseline, dodge);
       const ay = axis(ctx, spec, 'y', baseline, dodge);
-      const colors = spec.color !== undefined ? ctx.channel(spec, 'color').mapped : null;
+      const colorOf = paint(spec, ctx, index);
       const hexagon = spec.shape === 'hexagon';
       const SLACK = 2;
       // the last row is drawn on top, so it wins where rectangles overlap
       for (let i = to - 1; i >= from; i--) {
-        if (colors && !colors[i]) continue;
+        if (!colorOf(i)) continue;
         const hx = ax(i);
         const hy = ay(i);
         if (!hx || !hy) continue;
@@ -240,6 +247,9 @@
         }
       }
       return null;
+    },
+    color(spec, ctx, index, row) {
+      return paint(spec, ctx, index)(row);
     },
   };
 
