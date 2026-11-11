@@ -19,11 +19,10 @@ vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run
 every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
 month, an axis's top label, the color of a tooltip's dot, cards on error bars, dumbbells and lollipops, KPI tiles two to a
 row on a phone, a treemap laid out for its plot, even gaps in a legend); D1, a chart's name for a screen reader and the
-legend filter from the keyboard.
+legend filter from the keyboard; D2, the site's text at 4.5:1 (its own colors; the charts' are below).
 
 Left, in this order:
 
-- [ ] **D2** Site: `--faint #8b93a1` is 2.8–3.1:1 in light, 4.43:1 in dark (site.css).
 - [ ] **D3** Site: 51 pages skip a heading level; no skip link; every copy button says only "Copy".
 - [ ] **E1** Tooltips show internals and raw values: highlight-bar (ISO date, raw number, a helper field), waterfall
       `value1` (executive too), boxplot outlier "count 10" and q1/q3/low/high, histogram bin0/bin1, bars-and-line
@@ -59,6 +58,13 @@ Left, in this order:
 
 Found along the way:
 
+- [ ] Text in a chart's own colors reads under 4.5:1 on a white card (WCAG AA; found by D2, in Chrome): the end
+      labels of `mark.line` are in their line's color, made for marks (3:1), so on the light palette Fabrikam (c2)
+      reads 2.2:1, c1 3.1, c3 3.7, c4 3.9 (bump-chart, slope, moving-average, lines-by-series); moving-average's
+      "Daily" is in `--bc-axis`, 1.5:1 (1.8 dark); a KPI tile's change in `--bc-good` #11a05a is 3.4:1 and in
+      `--bc-bad` #e5484d 3.9 (the composer's defaults, which the site repeats). In dark only "Daily" fails. A shade
+      of each color for text, or labels in `--bc-text` with a swatch of the line's color; the composer and site.css
+      change together.
 - [ ] The legend filter of a canvas chart has no keys: a canvas has no elements to focus. Buttons of the page over the
       legend (as the composer draws above a facet), or keys on the canvas itself with a ring it draws.
 

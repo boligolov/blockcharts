@@ -1484,6 +1484,21 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   the button clicks on it, and a key held down (a button clicks at every repeat) toggles once. The composer's stylesheet
   rings the focused item. A canvas has no elements to focus: it is named, and its legend filter keeps to the pointer
   (see the roadmap).
+- **The site's text reads at 4.5:1.** `--faint`, the quietest text of the site (counts, the labels over code, the
+  blocks a page leaves out, the footer note), read 2.7–3.1:1 in light and 3.9–4.4 in dark. axe-core on all 62 pages
+  in Chrome (light and dark, desk and phone) and a measure of the text inside the charts found four more: numbers and
+  some names in highlighted code (VS Code's light-plus is made for white: 4.1–4.4:1 on `--code-bg`), the green of
+  "107.0 KB of code" (3.9), the axis labels in the three theme boxes of /embed/theme/, which set `--bc-text` but kept
+  the page's `--bc-label` (2.8 on the warm box in dark), and the label of the block written in /embed/block/, in its
+  line's orange (2.2). Each color moved to the nearest one in its own hue (OKLCH lightness only) that reads at 4.5 on
+  every background it may stand on: `--faint` #656d7a / #818c9d, `--good` #007c52, eight code colors through Shiki's
+  `colorReplacements` (with dark-plus's grey of an HTML tag's brackets, 4.3, which axe leaves to a person as too
+  short a text). The theme boxes set `--bc-label`, and the snippet that lists the variables names it; the block's
+  label is in `--bc-text`. Light `--faint` is now close to `--muted` (4.6 against 5.3 on the bluest background): AA
+  leaves little room below muted. `npm run site` keeps it so: `check-site.js` measures every text token of site.css on
+  every background, in both themes, that the two dark blocks are the same, and every color of highlighted code on the
+  pages; it fails on the colors before this change. Text in a chart's own colors is the library's and stays in the
+  roadmap: a line's end label in its series color, a KPI tile's change in `--bc-good`.
 
 ## Next steps
 

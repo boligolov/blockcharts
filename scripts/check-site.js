@@ -1,6 +1,7 @@
 // Checks the built site (site/dist) without a browser: every link and script points at a file that exists, every #anchor exists,
 // every chart spec on every page is valid against the data on that page, checked by the real core with the real kit, and
-// every page has what search engines and link previews read (title, description, canonical, image, sitemap).
+// every page has what search engines and link previews read (title, description, canonical, image, sitemap), and its text reads
+// at 4.5:1 in both themes (the tokens of site.css, the colors of highlighted code).
 //   node scripts/check-site.js [siteDir]      (default site/dist; SITE_BASE as when it was built)
 const fs = require('fs');
 const path = require('path');
@@ -17,6 +18,76 @@ const unescapeHtml = (s) =>
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&');
+
+// WCAG 2 contrast of two colors given as #rgb or #rrggbb
+const luminance = (hex) => {
+  const h = hex.slice(1).length === 3 ? hex.slice(1).replace(/./g, '$&$&') : hex.slice(1);
+  const [r, g, b] = [0, 2, 4]
+    .map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a, b) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+// which tokens of site.css are text and which are what text stands on; charts stand on cards (and their tooltip's)
+const TEXT_ON = [
+  [
+    ['fg', 'muted', 'faint', 'accent', 'accent-strong', 'good'],
+    ['bg', 'surface', 'surface-2', 'code-bg', 'accent-soft'],
+  ],
+  [['good'], ['good-soft']],
+  [['accent-ink'], ['accent', 'accent-strong']],
+  [
+    ['bc-text', 'bc-label', 'bc-kpi'],
+    ['surface', 'bc-tooltip-bg'],
+  ],
+];
+const CODE_ON = ['bg', 'code-bg'];
+
+/** The text of the site reads at 4.5:1 (WCAG AA) in both themes: the tokens of site.css, every text color on every
+ * background, and the colors of highlighted code (`--shiki-light`/`--shiki-dark` on the pages) where code stands. */
+function checkContrast(css, pages) {
+  const problems = [];
+  const block = (re) => {
+    const m = css.match(re);
+    return m && Object.fromEntries([...m[1].matchAll(/--([\w-]+):\s*([^;]+);/g)].map((d) => [d[1], d[2].trim()]));
+  };
+  const themes = {
+    light: block(/^:root \{([^}]*)\}/m),
+    dark: block(/^@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme='light'\]\) \{([^}]*)\}/m),
+  };
+  const chosen = block(/^:root\[data-theme='dark'\] \{([^}]*)\}/m);
+  if (!themes.light || !themes.dark || !chosen) return ['site.css: the three blocks of theme tokens are not where they were'];
+  // the dark theme is written twice, for the system's choice and the visitor's
+  if (JSON.stringify(themes.dark) !== JSON.stringify(chosen))
+    problems.push("site.css: the dark tokens of :root[data-theme='dark'] differ from those of prefers-color-scheme: dark");
+  for (const [theme, t] of Object.entries(themes)) {
+    const color = (name) => {
+      if (!HEX.test(t[name] || '')) problems.push(`site.css: --${name} of the ${theme} theme is not a hex color (${t[name]})`);
+      return t[name];
+    };
+    for (const [texts, grounds] of TEXT_ON)
+      for (const fg of texts)
+        for (const bg of grounds) {
+          const r = contrast(color(fg), color(bg));
+          if (r < 4.5) problems.push(`site.css: --${fg} on --${bg} reads ${r.toFixed(2)}:1 in the ${theme} theme (4.5 at least)`);
+        }
+    const used = new Set();
+    for (const text of pages)
+      for (const m of text.matchAll(new RegExp(`--shiki-${theme}:(#[0-9a-f]{6})\\b`, 'gi'))) used.add(m[1].toLowerCase());
+    if (!used.size) problems.push(`no highlighted code with --shiki-${theme} colors on any page`);
+    for (const c of used)
+      for (const bg of CODE_ON) {
+        const r = contrast(c, color(bg));
+        if (r < 4.5)
+          problems.push(`highlighted code: ${c} on --${bg} reads ${r.toFixed(2)}:1 in the ${theme} theme (site/src/lib/highlight.mjs)`);
+      }
+  }
+  return [...new Set(problems)];
+}
 
 function walk(dir) {
   return fs
@@ -58,6 +129,10 @@ async function checkSite(siteDir, options) {
     if (fs.existsSync(f) && fs.statSync(f).isDirectory()) f = path.join(f, 'index.html');
     return f.startsWith(root) && fs.existsSync(f) ? f : null;
   };
+
+  const css = path.join(repo, 'site', 'src', 'styles', 'site.css');
+  if (!fs.existsSync(css)) problems.push(`${css} not found`);
+  else problems.push(...checkContrast(fs.readFileSync(css, 'utf8'), [...textOf.values()]));
 
   // the release folder is the real kit: pages are checked against it
   // what search engines and link previews read: a page is found by its own title and description, under one address;

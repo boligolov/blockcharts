@@ -7,6 +7,13 @@
 import { createHighlighter } from 'shiki';
 
 const THEMES = { light: 'light-plus', dark: 'dark-plus' };
+// The palettes are made for VS Code's own backgrounds (#fff, #1e1e1e); on the site's (--code-bg and --bg of site.css) a few
+// of their colors read under 4.5:1, numbers among them (#098658, 4.2:1). Each is replaced by the nearest one in its own
+// hue (OKLCH lightness only) that reads at 4.5:1 on both; scripts/check-site.js measures every color the pages use.
+const REPLACE = {
+  'light-plus': { '#098658': '#008053', '#e50000': '#e10000', '#ee0000': '#e10000', '#267f99': '#1e7993', '#d16969': '#b45051' },
+  'dark-plus': { '#000080': '#4b7ff6', '#646695': '#7e81b2', '#808080': '#858585' },
+};
 const LANGS = ['json', 'jsonc', 'html', 'javascript', 'css', 'shellscript'];
 const ALIASES = { js: 'javascript', sh: 'shellscript', bash: 'shellscript', text: 'plaintext' };
 
@@ -22,7 +29,7 @@ const styleOf = (vars) =>
 /** Lines of tokens ({ content, htmlStyle }) for one run of code in one language. */
 function tokenLines(h, code, lang) {
   if (lang === 'plaintext') return code.split('\n').map((line) => [{ content: line }]);
-  return h.codeToTokens(code, { lang, themes: THEMES, defaultColor: false }).tokens;
+  return h.codeToTokens(code, { lang, themes: THEMES, defaultColor: false, colorReplacements: REPLACE }).tokens;
 }
 
 /** An HTML snippet as runs of lines: [{ lang: 'html' | 'json', code }], JSON for the bodies of JSON script tags. */

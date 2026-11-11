@@ -261,7 +261,7 @@ ${dataTag({ sales: sales.map((r) => ({ region: r.region, total: r.total })) })}
       {
         h: 'The variables',
         p: 'The first eight colors are for categories, in order of first appearance. Everything has a default, so you only set what you want to change.',
-        code: `.my-theme {\n  --bc-text: #5b3a1e;        /* labels, tick text, tooltip text */\n  --bc-axis: #b08968;        /* axis lines and ticks */\n  --bc-grid: #f0e2d0;        /* grid lines */\n  --bc-tooltip-bg: #fff8ee;  /* tooltip background */\n  --bc-c0: #c1440e;          /* category colors, --bc-c0 ... --bc-c7 */\n  --bc-c1: #e29a3b;\n  --bc-c2: #7a4e2d;\n  --bc-brush-fill: rgba(43, 108, 176, .15);  /* selection rectangle of the brush */\n  --bc-brush-line: #2b6cb0;\n}\n\n@media (prefers-color-scheme: dark) {\n  .my-theme { --bc-text: #d6d3d1; --bc-grid: #2a2826; /* ... */ }\n}`,
+        code: `.my-theme {\n  --bc-text: #5b3a1e;        /* text in the chart and its tooltip */\n  --bc-label: #7a5634;       /* quieter labels: ticks, legend (default: --bc-text) */\n  --bc-axis: #b08968;        /* axis lines and ticks */\n  --bc-grid: #f0e2d0;        /* grid lines */\n  --bc-tooltip-bg: #fff8ee;  /* tooltip background */\n  --bc-c0: #c1440e;          /* category colors, --bc-c0 ... --bc-c7 */\n  --bc-c1: #e29a3b;\n  --bc-c2: #7a4e2d;\n  --bc-brush-fill: rgba(43, 108, 176, .15);  /* selection rectangle of the brush */\n  --bc-brush-line: #2b6cb0;\n}\n\n@media (prefers-color-scheme: dark) {\n  .my-theme { --bc-text: #d6d3d1; --bc-grid: #2a2826; /* ... */ }\n}`,
         label: 'CSS',
       },
     ],
@@ -297,7 +297,7 @@ ${dataTag({ sales: sales.map((r) => ({ region: r.region, total: r.total })) })}
       return {
         overlay: [
           { type: 'path', d: \`M\${x} \${y}H\${x + w}\`, cls: 'bc-target', style: { fill: 'none', stroke: color, strokeWidth: 1.5, strokeDash: [5, 4] } },
-          { type: 'text', x: x + w, y: y - 6, text: spec.label || String(spec.value), anchor: 'end', size: 11, weight: 600, style: { fill: color } },
+          { type: 'text', x: x + w, y: y - 6, text: spec.label || String(spec.value), anchor: 'end', size: 11, weight: 600, style: { fill: 'var(--bc-text, #444)' } },
         ],
       };
     },
