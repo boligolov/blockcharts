@@ -274,7 +274,7 @@ Version 2, 1.4 KB. Marks the rows to set apart in a new column `as`: "yes" there
 
 ## transform.marimekko
 
-Version 3, 2.0 KB. A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label` (the name of the category on the tallest cell of its column, the one with room for it, for a mark.text). Columns and cells keep the order of the data. Rows without a positive value are left out.
+Version 3, 2.0 KB. A Marimekko (mosaic) chart: one column per `category`, as wide as its share of the whole; within it each row takes a height in proportion to `field`. It writes the corners (x0, x1, y0, y1) in 0..1 for a rect on two linear scales with the domain [0, 1], `share` (the part of its column a row takes, 0..1), and `label`, the name of the category on one row of its column. An axis with `"text": "label", "from": "x0", "to": "x1"` names the columns over (or under) them, each over its middle; a mark.text that writes it in a cell finds it on the tallest cell of its column, the one with most room for it. Columns and cells keep the order of the data. Rows without a positive value are left out.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -654,7 +654,7 @@ Version 3, 2.9 KB. The shape of a distribution per category, from the rows of tr
 
 ## guide.axis
 
-Version 17, 8.2 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover.
+Version 18, 11.6 KB. Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover. With `text`, `from` and `to` a horizontal axis names stretches of the data instead of writing its ticks: the columns of a Marimekko, which are as wide as their shares.
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -666,6 +666,9 @@ Version 17, 8.2 KB. Labels for a positional scale, with an axis line and optiona
 | `ticks` | boolean | `false` | Small tick marks at the labels. |
 | `count` | number |  | About how many labels to show: 12 for the months of a year. Labels that would not fit are still thinned. |
 | `anchor` | one of `start`, `end` | `"start"` | Which end thinned labels count from: "end" keeps the last one, for a report about the latest period. |
+| `text` | field |  | Name spans of the data instead of writing the ticks: each row with a value in this field has it written over the middle of its span, from `from` to `to` (values on the scale of this axis), once however many rows share the name and the span. A Marimekko names its columns with `"text": "label", "from": "x0", "to": "x1"`. A name wider than its span breaks onto a second line at a space, and moves a little off the middle (it still stands over the middle of its span) to keep clear of the names beside it; when that is not enough, they all go at an angle. `format` writes the names. A horizontal axis only. |
+| `from` | field |  | With `text`: where each span starts. |
+| `to` | field |  | With `text`: where each span ends. |
 
 ## guide.grid
 

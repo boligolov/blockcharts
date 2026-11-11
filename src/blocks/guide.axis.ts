@@ -38,6 +38,28 @@
 
   /** Text categories name things, so reading only some of them is no use: when they do not fit, they all go at an angle.
    *  Dates and numbers run in order, so every few of them say enough, and sixty months are never slanted. */
+  /** Where the plot will run across the chart once the vertical axes (and other guides at the sides) have taken their
+   *  room out of it: while guides are measured, the plot is not final yet. */
+  function plotAlong(spec: BC.GuideSpec, ctx: BC.ChartCtx): { x: number; w: number } {
+    let left = 0;
+    let right = 0;
+    for (const g of ctx.spec.guides || []) {
+      if (g === spec) continue;
+      if (g.type === 'axis') {
+        const other = g.scale ? sideOf(g, ctx) : 'top';
+        const m = other === 'left' || other === 'right' ? (def.measure as NonNullable<BC.GuideDef['measure']>)(g, ctx)[other] || 0 : 0;
+        if (other === 'left') left += m;
+        else if (other === 'right') right += m;
+      } else {
+        const block = BC.get(`guide.${g.type}` as BC.BlockName) as BC.GuideDef | undefined;
+        const m = block && block.measure ? block.measure(g, ctx) : {};
+        left += m.left || 0;
+        right += m.right || 0;
+      }
+    }
+    return { x: ctx.plot.x + left, w: ctx.plot.w - left - right };
+  }
+
   function slantOf(spec: BC.GuideSpec, ctx: BC.ChartCtx, side: Side): number {
     const scale = spec.scale ? ctx.scales[spec.scale as string] : undefined;
     if (
@@ -49,19 +71,7 @@
     )
       return 0;
     const cats = scale.domain() as unknown[];
-    // the plot is not final yet: the vertical axes have still to take their room out of it
-    let length = ctx.plot.w;
-    for (const g of ctx.spec.guides || []) {
-      if (g === spec) continue;
-      if (g.type === 'axis') {
-        const other = g.scale ? sideOf(g, ctx) : 'top';
-        if (other === 'left' || other === 'right') length -= (def.measure as NonNullable<BC.GuideDef['measure']>)(g, ctx)[other] || 0;
-      } else {
-        const block = BC.get(`guide.${g.type}` as BC.BlockName) as BC.GuideDef | undefined;
-        const m = block && block.measure ? block.measure(g, ctx) : {};
-        length -= (m.left || 0) + (m.right || 0);
-      }
-    }
+    const length = plotAlong(spec, ctx).w;
     if (cats.length < 2 || length / cats.length < MIN_SLANT_STEP) return 0;
     if (cats.every((c) => typeof c === 'number' || c instanceof Date || SEQUENCE.test(String(c)))) return 0;
     if (fits(spec, ctx, length) >= cats.length) return 0;
@@ -264,22 +274,196 @@
     const n = scale && scale.input === 'category' ? scale.domain().length : 0;
     if (!n) return (label) => [label];
     const room = ctx.plot.w / n - 6;
-    return (label) => {
-      if (ctx.measure(label, FONT).w <= room) return [label];
-      const words = label.split(/\s+/).filter(Boolean);
-      if (words.length < 2) return ctx.wide(label) ? splitWide(label, room, ctx) : [label];
-      let first = words[0];
-      let k = 1;
-      while (k < words.length - 1 && ctx.measure(first + ' ' + words[k], FONT).w <= room) first += ' ' + words[k++];
-      return [first, words.slice(k).join(' ')];
-    };
+    return (label) => wrapTo(label, room, ctx);
+  }
+
+  /** A label wider than `room` broken at a space onto a second line (or where Chinese and Japanese may break); one line
+   *  when it has no such place. */
+  function wrapTo(label: string, room: number, ctx: BC.ChartCtx): string[] {
+    if (ctx.measure(label, FONT).w <= room) return [label];
+    const words = label.split(/\s+/).filter(Boolean);
+    if (words.length < 2) return ctx.wide(label) ? splitWide(label, room, ctx) : [label];
+    let first = words[0];
+    let k = 1;
+    while (k < words.length - 1 && ctx.measure(first + ' ' + words[k], FONT).w <= room) first += ' ' + words[k++];
+    return [first, words.slice(k).join(' ')];
+  }
+
+  // ── Spans: an axis that names stretches of the data (the columns of a Marimekko) rather than the ticks of its scale ──
+
+  /** A stretch of the axis with its name, in px: `mid` is where the name belongs. */
+  type Span = { label: string; lo: number; hi: number; mid: number };
+  /** A name as it is written: its lines, how wide the widest is, and the middle it is set on (`x`), which may be off the
+   *  middle of its span to keep clear of the names beside it. */
+  type Named = Span & { lines: string[]; w: number; x: number };
+
+  /** Axes that name spans, and the angle their names were measured at (0: upright, in their lines). */
+  const spanned = new WeakMap<BC.GuideSpec, number>();
+
+  /** The fields that name spans, or null for an axis of ticks. */
+  function spanFields(spec: BC.GuideSpec, ctx: BC.ChartCtx): { text: string; from: string; to: string } | null {
+    const { text, from, to } = spec as { text?: unknown; from?: unknown; to?: unknown };
+    if (text === undefined && from === undefined && to === undefined) return null;
+    if (typeof text !== 'string' || typeof from !== 'string' || typeof to !== 'string')
+      throw new Error('an axis that names spans needs all three of "text", "from" and "to"');
+    const side = sideOf(spec, ctx);
+    if (side === 'left' || side === 'right') throw new Error('"text", "from" and "to" name spans along a horizontal axis (top or bottom)');
+    return { text, from, to };
+  }
+
+  /** The named spans of the data, left to right, where `along` says the plot runs (the plot itself when drawing). A row
+   *  without a name or a span, or whose middle is out of the plot (zoomed), names nothing; the same name over the same
+   *  span (each cell of a column carries its column's span) is one. */
+  function spansOf(spec: BC.GuideSpec, ctx: BC.ChartCtx, along: { x: number; w: number }): Span[] {
+    const f = spanFields(spec, ctx) as NonNullable<ReturnType<typeof spanFields>>;
+    const cols = ctx.table.columns;
+    const texts = cols[f.text];
+    const froms = cols[f.from];
+    const tos = cols[f.to];
+    const scale = ctx.scales[spec.scale as string];
+    if (!texts || !froms || !tos || !scale) return [];
+    const write = spec.format !== undefined ? BC.formatter(spec.format as BC.FormatSpec | string) : null;
+    const p = ctx.plot;
+    const at = (v: number) => along.x + ((v - p.x) * along.w) / p.w;
+    const out: Span[] = [];
+    const seen = new Set<string>();
+    for (let i = 0; i < ctx.table.length; i++) {
+      const t = texts[i];
+      if (t === null || t === undefined || t === '') continue;
+      const label = write ? write(t) : String(t);
+      const a = scale(froms[i]) as number;
+      const b = scale(tos[i]) as number;
+      if (!label || typeof a !== 'number' || typeof b !== 'number' || !isFinite(a) || !isFinite(b)) continue;
+      const mid = (a + b) / 2;
+      if (mid < p.x - 0.5 || mid > p.x + p.w + 0.5) continue;
+      const key = `${a},${b}|${label}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const lo = at(Math.min(a, b));
+      const hi = at(Math.max(a, b));
+      out.push({ label, lo, hi, mid: (lo + hi) / 2 });
+    }
+    return out.sort((s, t) => s.mid - t.mid);
+  }
+
+  /** The names written upright over their spans: a name wider than its span breaks onto a second line at a space, and
+   *  names move apart as little as they can (pool adjacent violators: the least squares off their middles) until there is
+   *  LABEL_GAP between any two, and they keep within `lo`..`hi`. `ok` is false when that cannot be done with every name
+   *  still over the middle of its span: then they go at an angle. */
+  function spread(spans: Span[], ctx: BC.ChartCtx, lo: number, hi: number): { named: Named[]; ok: boolean } {
+    const named: Named[] = spans.map((s) => {
+      const lines = wrapTo(s.label, s.hi - s.lo - LABEL_GAP, ctx);
+      const w = lines.reduce((m, line) => Math.max(m, ctx.textWidth(line, FONT)), 0);
+      return { ...s, lines, w, x: s.mid };
+    });
+    const n = named.length;
+    if (!n) return { named, ok: true };
+    // offsets of each name from the first when packed tight; the names then share one free position per block
+    const off: number[] = [0];
+    for (let i = 1; i < n; i++) off.push(off[i - 1] + (named[i - 1].w + named[i].w) / 2 + LABEL_GAP);
+    const blocks: { first: number; last: number; sum: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      let b = { first: i, last: i, sum: named[i].mid - off[i] };
+      while (blocks.length) {
+        const prev = blocks[blocks.length - 1];
+        if (prev.sum / (prev.last - prev.first + 1) < b.sum / (b.last - b.first + 1)) break;
+        blocks.pop();
+        b = { first: prev.first, last: b.last, sum: prev.sum + b.sum };
+      }
+      blocks.push(b);
+    }
+    for (const b of blocks) for (let i = b.first; i <= b.last; i++) named[i].x = b.sum / (b.last - b.first + 1) + off[i];
+    // into the chart: back from its right edge, then on from its left
+    const sep = (i: number) => off[i] - off[i - 1];
+    named[n - 1].x = Math.min(named[n - 1].x, hi - named[n - 1].w / 2);
+    for (let i = n - 2; i >= 0; i--) named[i].x = Math.min(named[i].x, named[i + 1].x - sep(i + 1));
+    named[0].x = Math.max(named[0].x, lo + named[0].w / 2);
+    for (let i = 1; i < n; i++) named[i].x = Math.max(named[i].x, named[i - 1].x + sep(i));
+    const ok = named[n - 1].x + named[n - 1].w / 2 <= hi + 0.5 && named.every((s) => Math.abs(s.x - s.mid) <= s.w / 2);
+    return { named, ok };
+  }
+
+  /** A span narrower than this is no column a reader can see, and gets no name. */
+  const MIN_SPAN = 2;
+
+  /** The names of the spans as they are measured (`along` estimated) or drawn (the plot as it is). Upright when they fit;
+   *  when they do not, without the names of the narrowest spans, as few as it takes, or at 45° (names at least
+   *  MIN_TILT_STEP apart: of two closer ones, that of the wider span) when that leaves out fewer. Unlike a band, whose
+   *  categories are all as wide, a narrow span is the least of the whole, and its name is still in the tooltip.
+   *  Drawing keeps to the angle that was measured. */
+  function spanLayout(spec: BC.GuideSpec, ctx: BC.ChartCtx, measuring: boolean): { angle: number; named: Named[] } {
+    const along = measuring ? plotAlong(spec, ctx) : { x: ctx.plot.x, w: ctx.plot.w };
+    const spans = spansOf(spec, ctx, along).filter((s) => s.hi - s.lo >= MIN_SPAN);
+    const decided = measuring ? undefined : spanned.get(spec);
+    const tilted: Span[] = [];
+    for (const s of spans) {
+      const last = tilted[tilted.length - 1];
+      if (last && s.mid - last.mid < MIN_TILT_STEP) {
+        if (s.hi - s.lo > last.hi - last.lo) tilted[tilted.length - 1] = s;
+        continue;
+      }
+      tilted.push(s);
+    }
+    if (!decided) {
+      const fit = (list: Span[]) => spread(list, ctx, 0, ctx.size.w);
+      let upright = fit(spans);
+      if (!upright.ok) {
+        // the fewest of the narrowest names to leave out (more left out never makes the rest fit worse): a binary search
+        const narrowest = spans.map((_, i) => i).sort((a, b) => spans[a].hi - spans[a].lo - (spans[b].hi - spans[b].lo));
+        const without = (k: number) => {
+          const out = new Set(narrowest.slice(0, k));
+          return spans.filter((_, i) => !out.has(i));
+        };
+        let lo = 1;
+        let hi = spans.length;
+        while (lo < hi) {
+          const k = (lo + hi) >> 1;
+          if (fit(without(k)).ok) hi = k;
+          else lo = k + 1;
+        }
+        upright = fit(without(lo));
+      }
+      // drawn the way it was measured: a plot a few px narrower than estimated still draws them upright
+      if (decided === 0 || upright.named.length >= tilted.length) return { angle: 0, named: upright.named };
+    }
+    return { angle: 45, named: tilted.map((s) => ({ ...s, label: shorten(s.label), lines: [shorten(s.label)], w: 0, x: s.mid })) };
+  }
+
+  /** The room labels at an angle take below or above the plot, and how far past its ends the first and last reach. */
+  function slantRoom(
+    spec: BC.GuideSpec,
+    ctx: BC.ChartCtx,
+    side: Side,
+    angle: number,
+    ticks: { pos: number; label: string }[],
+  ): BC.GuideMeasure {
+    const lean = angle === 90 ? 0 : SLANT;
+    const height = angle === 90 ? 1 : SLANT;
+    let across = 0;
+    let left = 0;
+    let right = 0;
+    for (const t of ticks) {
+      // the length of a slanted label is what shows as an empty band under it when overestimated: measure() is generous
+      // by a quarter on Latin text, and a label that ran a little longer has the chart's padding below it
+      const length = ctx.textWidth(t.label, FONT);
+      // and the corner of its line, which stands most of a font size above the middle it is set on: turned, that is
+      // the corner farthest out, as the one below is farthest down (FONT * SLANT under the plot)
+      const reachAlong = (length + FONT) * lean;
+      across = Math.max(across, length * height);
+      // a label ends at its tick and runs away from it, to the left of the tick below the axis and to the right above it
+      if (side === 'bottom') left = Math.max(left, ctx.plot.x - (t.pos - reachAlong));
+      else right = Math.max(right, t.pos + reachAlong - (ctx.plot.x + ctx.plot.w));
+    }
+    const out: BC.GuideMeasure = { overhang: { top: 0, right, bottom: 0, left } };
+    out[side] = reach(spec) + across + FONT * SLANT + PAD + (title(spec) ? TITLE_ROOM : 0);
+    return out;
   }
 
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 17,
-    doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover.',
+    version: 18,
+    doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover. With `text`, `from` and `to` a horizontal axis names stretches of the data instead of writing its ticks: the columns of a Marimekko, which are as wide as their shares.',
     params: {
       scale: { kind: 'scale', required: true },
       position: { kind: 'enum', values: ['top', 'right', 'bottom', 'left'] },
@@ -305,37 +489,47 @@
         default: 'start',
         doc: 'Which end thinned labels count from: "end" keeps the last one, for a report about the latest period.',
       },
+      text: {
+        kind: 'field',
+        doc: 'Name spans of the data instead of writing the ticks: each row with a value in this field has it written over the middle of its span, from `from` to `to` (values on the scale of this axis), once however many rows share the name and the span. A Marimekko names its columns with `"text": "label", "from": "x0", "to": "x1"`. A name wider than its span breaks onto a second line at a space, and moves a little off the middle (it still stands over the middle of its span) to keep clear of the names beside it; when that is not enough, they all go at an angle. `format` writes the names. A horizontal axis only.',
+      },
+      from: { kind: 'field', doc: 'With `text`: where each span starts.' },
+      to: { kind: 'field', doc: 'With `text`: where each span ends.' },
     },
     fits,
     measure(spec, ctx) {
       if (!spec.scale) return {};
       const side = sideOf(spec, ctx);
       const vertical = side === 'left' || side === 'right';
+      if (spanFields(spec, ctx)) {
+        const { angle, named } = spanLayout(spec, ctx, true);
+        spanned.set(spec, angle);
+        if (angle)
+          return slantRoom(
+            spec,
+            ctx,
+            side,
+            angle,
+            named.map((s) => ({ pos: s.x, label: s.label })),
+          );
+        const along = plotAlong(spec, ctx);
+        let label = 0;
+        let left = 0;
+        let right = 0;
+        for (const s of named) {
+          label = Math.max(label, s.lines.length > 1 ? s.lines.length * LINE : ctx.measure(s.label, FONT).h);
+          left = Math.max(left, along.x - (s.x - s.w / 2));
+          right = Math.max(right, s.x + s.w / 2 - (along.x + along.w));
+        }
+        // how far a name reaches past the plot as it will be: the margin the chart needs on that side
+        const out: BC.GuideMeasure = { overhang: { top: 0, right, bottom: 0, left } };
+        out[side] = reach(spec) + label + PAD + (title(spec) ? TITLE_ROOM : 0);
+        return out;
+      }
       const angle = slantOf(spec, ctx, side);
       if (angle) slanted.set(spec, angle);
       else slanted.delete(spec);
-      if (angle) {
-        const lean = angle === 90 ? 0 : SLANT;
-        const height = angle === 90 ? 1 : SLANT;
-        let across = 0;
-        let left = 0;
-        let right = 0;
-        for (const t of written(spec, ctx)) {
-          // the length of a slanted label is what shows as an empty band under it when overestimated: measure() is generous
-          // by a quarter on Latin text, and a label that ran a little longer has the chart's padding below it
-          const length = ctx.textWidth(t.label, FONT);
-          // and the corner of its line, which stands most of a font size above the middle it is set on: turned, that is
-          // the corner farthest out, as the one below is farthest down (FONT * SLANT under the plot)
-          const reachAlong = (length + FONT) * lean;
-          across = Math.max(across, length * height);
-          // a label ends at its tick and runs away from it, to the left of the tick below the axis and to the right above it
-          if (side === 'bottom') left = Math.max(left, ctx.plot.x - (t.pos - reachAlong));
-          else right = Math.max(right, t.pos + reachAlong - (ctx.plot.x + ctx.plot.w));
-        }
-        const out: BC.GuideMeasure = { overhang: { top: 0, right, bottom: 0, left } };
-        out[side] = reach(spec) + across + FONT * SLANT + PAD + (title(spec) ? TITLE_ROOM : 0);
-        return out;
-      }
+      if (angle) return slantRoom(spec, ctx, side, angle, written(spec, ctx));
       let label = 0;
       // labels are centered on their tick, so the first and last one can stick out past the plot edge
       const over: Partial<BC.Insets> = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -367,7 +561,8 @@
       if (!spec.scale) return {};
       const side = sideOf(spec, ctx);
       const { x, y, w, h } = ctx.plot;
-      const ticks = written(spec, ctx);
+      const spans = spanFields(spec, ctx);
+      const ticks = spans ? [] : written(spec, ctx);
       const texts: BC.Prim[] = [];
       const name = title(spec);
       let d: string;
@@ -438,34 +633,29 @@
         const dir = side === 'top' ? -1 : 1;
         const y0 = side === 'top' ? y - offset.top : y + h + offset.bottom;
         d = showLine(spec, side) ? `M${x} ${y0}H${x + w}` : '';
-        const wrap = wrapper(spec, ctx, side);
-        for (const t of ticks) {
-          if (marks) d += `M${t.pos} ${y0}V${y0 + dir * TICK}`;
-          if (slanted.has(spec)) {
-            const angle = slanted.get(spec) as number;
-            labelSpace = Math.max(labelSpace, ctx.textWidth(t.label, FONT) * (angle === 90 ? 1 : SLANT) + FONT * SLANT);
-            texts.push({
-              type: 'text',
-              x: t.pos,
-              y: y0 + dir * r,
-              text: t.label,
-              size: FONT,
-              anchor: dir < 0 ? 'start' : 'end',
-              baseline: 'middle',
-              rotate: -angle,
-              style: { fill: LABEL },
-              cls: 'bc-axis-label',
-            });
-            continue;
-          }
-          const lines = wrap(t.label);
-          labelSpace = Math.max(labelSpace, lines.length > 1 ? lines.length * LINE : ctx.measure(t.label, FONT).h);
+        const atAngle = (pos: number, label: string, angle: number) => {
+          labelSpace = Math.max(labelSpace, ctx.textWidth(label, FONT) * (angle === 90 ? 1 : SLANT) + FONT * SLANT);
+          texts.push({
+            type: 'text',
+            x: pos,
+            y: y0 + dir * r,
+            text: label,
+            size: FONT,
+            anchor: dir < 0 ? 'start' : 'end',
+            baseline: 'middle',
+            rotate: -angle,
+            style: { fill: LABEL },
+            cls: 'bc-axis-label',
+          });
+        };
+        const inLines = (pos: number, label: string, lines: string[]) => {
+          labelSpace = Math.max(labelSpace, lines.length > 1 ? lines.length * LINE : ctx.measure(label, FONT).h);
           // lines stack away from the axis: downwards below it, upwards above it
           const order = dir < 0 ? lines.slice().reverse() : lines;
           order.forEach((line, k) => {
             texts.push({
               type: 'text',
-              x: t.pos,
+              x: pos,
               y: y0 + dir * (r + k * LINE),
               text: line,
               size: FONT,
@@ -475,6 +665,21 @@
               cls: 'bc-axis-label',
             });
           });
+        };
+        if (spans) {
+          const { angle, named } = spanLayout(spec, ctx, false);
+          for (const s of named) {
+            if (marks) d += `M${s.mid} ${y0}V${y0 + dir * TICK}`;
+            if (angle) atAngle(s.mid, s.label, angle);
+            else inLines(s.x, s.label, s.lines);
+          }
+        } else {
+          const wrap = wrapper(spec, ctx, side);
+          for (const t of ticks) {
+            if (marks) d += `M${t.pos} ${y0}V${y0 + dir * TICK}`;
+            if (slanted.has(spec)) atAngle(t.pos, t.label, slanted.get(spec) as number);
+            else inLines(t.pos, t.label, wrap(t.label));
+          }
         }
         if (name) {
           const ty = y0 + dir * (r + labelSpace + PAD + 2);

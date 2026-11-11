@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.33.28"
+  version: "0.33.29"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -138,7 +138,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Calendar heatmap**: `transform.calendar` with `field` = the date writes `week`, `weekEnd` and `day`; draw them with `mark.rect` (`x`: week, `x2`: weekEnd, `y`: day, `color`: the value) on a time x, a band y and a sequential color, and give the tooltip `"heading": "<date field>"`, or its card opens with the week. One row per day: aggregate first if there are more. See `recipes/calendar-heatmap.json`.
 
-**Marimekko**: `transform.marimekko` with `field` = the size and `category` = the columns. Draw `x0, x1, y1, y0` with `mark.rect` on two linear scales with the domain [0, 1] and `"nice": false`; both axes are shares of the whole, so format them as `"percent"`. It also writes `share` (of the column) for the tooltip and `label` for a `mark.text`. See `recipes/marimekko.json`.
+**Marimekko**: `transform.marimekko` with `field` = the size and `category` = the columns. Draw `x0, x1, y1, y0` with `mark.rect` on two linear scales with the domain [0, 1] and `"nice": false`; both axes are shares of the whole, so format them as `"percent"`. It also writes `share` (of the column) for the tooltip and `label`, the name of the column. Name the columns with a second x axis over them, `{ "type": "axis", "scale": "x", "position": "top", "text": "label", "from": "x0", "to": "x1", "line": "off" }`, and put the legend at the bottom: each name stands over its own column however narrow it is, where a name in a cell sits on a different segment in each column and finds no room in a narrow one. See `recipes/marimekko.json`.
 
 **Sankey**: one row per flow, with `transform.sankey` in `transforms` and `mark.sankey` in `marks`, both with the same `"source"`, `"target"` and `"value"`. The transform lays the flows out (`"nodeGap"` is the space between nodes, a share of the height); the mark draws them. It needs no scales and no axes, and names its nodes itself; `"format"` adds each node's total. With a tooltip, a ribbon shows its row and a node shows what flows in and out; on a page in another language give `"nodeLabels": ["유입", "유출"]`. Flows have to run one way, so a loop is an error. A name is one node wherever it occurs: if two stages share a name, write them differently. See `recipes/sankey.json`.
 

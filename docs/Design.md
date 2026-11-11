@@ -1377,6 +1377,17 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   of about 26 px: the axis reserved their length by `measure()`, which is generous by a quarter on Latin text. It now
   uses `ctx.textWidth`, the widths of characters measured in Chrome that `mark.text` had kept to itself, moved into the
   core for both.
+- **The columns of a Marimekko are named over them.** Each name stood in its column's tallest cell, so it sat on a
+  different supplier in each column, and a narrow column (Africa, 7% of a phone's plot, 18 px) shrank it to 8 px or
+  left it out. On the top cell it had failed before: real data put a thin cell there (the oil dashboard's own company,
+  1–14%). A Marimekko is a column chart whose columns are as wide as their shares, so its names belong where a column
+  chart has them, on an axis; Highcharts' variwide chart does the same. `guide.axis` takes `text`, `from` and `to`:
+  the rows' own spans, named over their middles, instead of the scale's ticks. Names wider than their span break at a
+  space and move apart as little as they can (pool adjacent violators: the least squares off their middles), each still
+  over its span's middle: on a phone Africa's stands right of its middle. When that is not enough the names of the narrowest spans go, as few as
+  it takes, or all go at 45° when that leaves out fewer; unlike a band, whose categories are all as wide, a narrow span
+  is the least of the whole and the tooltip still names it. A span under 2 px is named by none. The recipe names its
+  columns on top and moves the legend to the bottom; the names are 11 px from 360 px up.
 
 ## Next steps
 

@@ -1983,6 +1983,197 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.throws(() => apply('marimekko', [{ c: 'A', v: 1 }], { field: 'v', category: 'c', shareAs: 'x0' }), /different names/);
   });
 
+  // ───────────────────────── guide.axis naming spans: the columns of a Marimekko ─────────────────────────
+
+  /** The names an axis wrote: where each is set (its middle, as anchor "middle" sets it), its angle and its lines. */
+  const namesOf = (svg) =>
+    [...layer(svg, 'axes').matchAll(/<text x="([\d.-]+)" y="([\d.-]+)"([^>]*)class="bc-axis-label"[^>]*>([^<]*)<\/text>/g)]
+      .map((m) => ({ x: +m[1], y: +m[2], turned: /rotate\(/.test(m[3]), text: m[4] }))
+      .filter((n) => !/%$/.test(n.text));
+  /** The columns of a Marimekko, left to right, from the cells drawn: the cells of a column share its left edge. */
+  const columnsOf = (svg) => {
+    const out = [];
+    for (const r of rects(layer(svg, 'marks'))) {
+      const c = out.find((c) => Math.abs(c.x0 - r.x) < 0.01);
+      if (c) c.top = Math.min(c.top, r.y);
+      else out.push({ x0: r.x, x1: r.x + r.w, top: r.y });
+    }
+    return out.sort((a, b) => a.x0 - b.x0);
+  };
+  // Inter at 11 px is about 0.5 em a character of these names (measured in Chrome): what a name takes on screen
+  const named = (n) => ({ x0: n.x - (n.text.length * 11 * 0.5) / 2, x1: n.x + (n.text.length * 11 * 0.5) / 2 });
+  const mekko = (rows, size, guide = {}) => {
+    BC.data('mekko', rows);
+    return draw({
+      data: 'mekko',
+      size,
+      padding: { top: 8, right: 8, bottom: 8, left: 8 },
+      transforms: [{ type: 'marimekko', field: 'sales', category: 'region' }],
+      scales: { x: { type: 'linear', domain: [0, 1], nice: false }, y: { type: 'linear', domain: [0, 1], nice: false } },
+      guides: [
+        { type: 'axis', scale: 'x', position: 'top', text: 'label', from: 'x0', to: 'x1', ...guide },
+        { type: 'axis', scale: 'y', format: 'percent' },
+      ],
+      marks: [{ type: 'rect', x: 'x0', x2: 'x1', y: 'y1', y2: 'y0' }],
+    });
+  };
+  const market = (totals) => {
+    const rows = [];
+    for (const [region, total] of totals)
+      for (const [supplier, part] of [
+        ['A', 0.4],
+        ['B', 0.35],
+        ['C', 0.25],
+      ])
+        rows.push({ region, supplier, sales: total * part });
+    return rows;
+  };
+  const regions = market([
+    ['Asia', 1000],
+    ['Europe', 500],
+    ['Americas', 500],
+    ['Africa', 150],
+  ]);
+
+  test('axis with text, from and to: each column of a Marimekko named once, over its middle, upright and clear of the others', () => {
+    for (const w of [720, 324]) {
+      const { svg, h } = mekko(regions, [w, 380]);
+      assert.deepStrictEqual(h.diagnostics, []);
+      const names = namesOf(svg);
+      const cols = columnsOf(svg);
+      assert.deepStrictEqual(
+        names.map((n) => n.text),
+        ['Asia', 'Europe', 'Americas', 'Africa'],
+        `${w} px: one name a column, though each of its three cells carries it`,
+      );
+      names.forEach((n, i) => {
+        const mid = (cols[i].x0 + cols[i].x1) / 2;
+        const box = named(n);
+        assert(!n.turned, `${w} px: ${n.text} is upright`);
+        assert(box.x0 <= mid && mid <= box.x1, `${w} px: ${n.text} stands over the middle of its column`);
+        if (w === 720) assert(Math.abs(n.x - mid) < 0.01, `room enough: ${n.text} on its middle`);
+        assert(n.y <= cols[i].top, `${w} px: ${n.text} is above the plot`);
+        assert(box.x0 >= -1 && box.x1 <= w + 1, `${w} px: ${n.text} is in the chart`);
+        if (i) assert(named(names[i - 1]).x1 + 4 <= box.x0, `${w} px: ${names[i - 1].text} and ${n.text} are apart`);
+      });
+    }
+    // the category itself, on every cell of its column, names it as well: once
+    assert.deepStrictEqual(
+      namesOf(mekko(regions, [324, 380], { text: 'region' }).svg).map((n) => (n.turned ? 'turned ' : '') + n.text),
+      ['Asia', 'Europe', 'Americas', 'Africa'],
+      'a name on every cell of its column is written once, and upright as the one name is',
+    );
+    // Africa is 7% of 324 px, narrower than its name: the name moves right of the middle, clear of Americas
+    const phone = namesOf(mekko(regions, [324, 380]).svg);
+    const africa = phone[3];
+    const cols = columnsOf(mekko(regions, [324, 380]).svg);
+    assert(africa.x > (cols[3].x0 + cols[3].x1) / 2, 'moved off its middle, away from the name beside it');
+  });
+
+  test('axis naming spans, hostile: many columns, narrow ones, two-word names, a phone, broken rows and specs', () => {
+    const many = market([
+      ['Asia Pacific', 900],
+      ['Europe', 500],
+      ['North America', 450],
+      ['Latin America', 160],
+      ['Middle East', 120],
+      ['Africa', 60],
+      ['Oceania', 30],
+      ['Antarctica', 4],
+    ]);
+    // on a desk the names of the narrowest columns are left out rather than every name turned: a narrow column is the
+    // least of the whole, and the tooltip names it
+    const desk = namesOf(mekko(many, [800, 380]).svg);
+    assert(
+      desk.every((n) => !n.turned),
+      'upright',
+    );
+    const words = desk.map((n) => n.text).join(' ');
+    assert(desk.some((n) => n.text === 'Latin') && desk.some((n) => n.text === 'America'), 'Latin America breaks onto two lines');
+    assert(!/Antarctica|Oceania/.test(words), 'the two narrowest go: ' + words);
+    // on a phone that would leave out more than going at an angle does: at 45°, at least MIN_TILT_STEP (19 px) apart
+    const phone = namesOf(mekko(many, [324, 380]).svg);
+    assert(phone.length >= 5 && phone.every((n) => n.turned), 'at an angle: ' + phone.map((n) => n.text));
+    for (let i = 1; i < phone.length; i++) assert(phone[i].x - phone[i - 1].x >= 19, 'slanted names do not lie on each other');
+    assert(!phone.some((n) => n.text === 'Antarctica'), 'a column under 2 px wide is named by no one');
+    // a slanted name rises from its column to the right: it ends inside the chart
+    for (const n of phone) assert(n.y - (n.text.length * 5.5 + 5.5) * 0.71 >= 0, `${n.text} stays in the chart`);
+
+    // two columns that are all of it and three under 2 px: only the two are named, upright
+    const tiny = namesOf(
+      mekko(
+        market([
+          ['Asia', 1000],
+          ['Europe', 980],
+          ['Africa', 6],
+          ['Oceania', 5],
+          ['Arctic', 4],
+        ]),
+        [324, 380],
+      ).svg,
+    );
+    assert.deepStrictEqual(
+      tiny.map((n) => [n.text, n.turned]),
+      [
+        ['Asia', false],
+        ['Europe', false],
+      ],
+    );
+
+    // rows without a name or a span name nothing; the same name over the same span is one; `format` writes the names
+    BC.data('spans', [
+      { a: 0, b: 0.5, name: 0.25 },
+      { a: 0, b: 0.5, name: 0.25 },
+      { a: 0.5, b: 1, name: null },
+      { a: NaN, b: 1, name: 0.5 },
+      { a: 0.5, b: 1, name: 0.75 },
+    ]);
+    const plain = (guide, data = 'spans') =>
+      draw({
+        data,
+        size: [400, 200],
+        scales: { x: { type: 'linear', domain: [0, 1] }, y: { type: 'linear', domain: [0, 1] } },
+        guides: [{ type: 'axis', scale: 'x', ...guide }],
+        marks: [{ type: 'rect', x: 'a', x2: 'b', y: { value: 1 }, y2: { value: 0 } }],
+      });
+    const fmt = plain({ text: 'name', from: 'a', to: 'b', format: 'percent' });
+    assert.deepStrictEqual(fmt.h.diagnostics, []);
+    assert.deepStrictEqual(
+      [...layer(fmt.svg, 'axes').matchAll(/class="bc-axis-label"[^>]*>([^<]*)</g)].map((m) => m[1]),
+      ['25%', '75%'],
+    );
+    BC.data('noNames', [
+      { a: 0, b: 0.5, name: null },
+      { a: 0.5, b: 1, name: '' },
+    ]);
+    const none = plain({ text: 'name', from: 'a', to: 'b' }, 'noNames');
+    assert(!none.h.diagnostics.some((d) => d.level === 'error'), JSON.stringify(none.h.diagnostics));
+    assert.strictEqual(count(layer(none.svg, 'axes'), /bc-axis-label/g), 0, 'no names, nothing written');
+
+    // half a span, a vertical axis, a field that is not there: errors that say so, and no ticks drawn as if nothing was asked
+    const half = plain({ text: 'name', from: 'a' });
+    assert(
+      half.h.diagnostics.some((d) => d.level === 'error' && /needs all three of "text", "from" and "to"/.test(d.message)),
+      JSON.stringify(half.h.diagnostics),
+    );
+    assert.strictEqual(count(layer(half.svg, 'axes'), /bc-axis-label/g), 0);
+    const side = plain({ text: 'name', from: 'a', to: 'b', position: 'left' });
+    assert(
+      side.h.diagnostics.some((d) => d.level === 'error' && /horizontal axis/.test(d.message)),
+      JSON.stringify(side.h.diagnostics),
+    );
+    const v = BC.validate({
+      data: 'spans',
+      scales: { x: { type: 'linear' }, y: { type: 'linear' } },
+      guides: [{ type: 'axis', scale: 'x', text: 'name', from: 'nope', to: 'b' }],
+      marks: [{ type: 'rect', x: 'a', x2: 'b', y: { value: 1 }, y2: { value: 0 } }],
+    });
+    assert(
+      v.some((d) => d.level === 'error' && d.path === 'guides[0].from'),
+      JSON.stringify(v),
+    );
+  });
+
   // ───────────────────────── transform.hexbin, mark.rect shape hexagon ─────────────────────────
 
   /** Points of two clusters, from a fixed seed. */

@@ -219,6 +219,56 @@ for (const [name, title, width] of [
   });
 }
 
+// ───────────────────────── the names of a Marimekko's columns ─────────────────────────
+
+for (const width of [360, 390, 1100]) {
+  test(`marimekko at ${width} px: every column named over its middle, at full size, in one row above the plot`, async () => {
+    const p = await open(recipe('marimekko'), width);
+    const got = await p.evaluate(() => {
+      const svg = document.querySelector('svg[viewBox]');
+      const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+      const rect = (e) => {
+        const r = e.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      };
+      // the cells of a column share its left and right edges: one column per left edge, in order
+      const columns = [];
+      for (const r of [...svg.querySelectorAll('[data-bc-layer="marks"] rect')].map(rect)) {
+        const c = columns.find((c) => Math.abs(c.left - r.left) < 0.5);
+        if (c) c.top = Math.min(c.top, r.top);
+        else columns.push({ ...r });
+      }
+      const names = [...svg.querySelectorAll('[data-bc-layer="axes"] text.bc-axis-label')]
+        .map((t) => ({
+          text: t.textContent,
+          px: parseFloat(getComputedStyle(t).fontSize) * scale,
+          turned: !!t.getAttribute('transform'),
+          ...rect(t),
+        }))
+        .filter((n) => !/%$/.test(n.text));
+      return { svg: rect(svg), columns: columns.sort((a, b) => a.left - b.left), names };
+    });
+    const { svg, columns, names } = got;
+    assert.deepStrictEqual(
+      names.map((n) => n.text),
+      ['Asia', 'Europe', 'Americas', 'Africa'],
+    );
+    assert.strictEqual(columns.length, 4);
+    const top = Math.min(...columns.map((c) => c.top));
+    names.forEach((n, i) => {
+      const mid = (columns[i].left + columns[i].right) / 2;
+      assert(n.left <= mid && mid <= n.right, `${n.text} stands over the middle of its column: ${n.left}..${n.right} / ${mid}`);
+      assert(n.px >= 11 && !n.turned, `${n.text}: ${n.px} px, upright`);
+      assert(n.bottom <= top + 1, `${n.text} is above the plot: ${n.bottom} / ${top}`);
+      assert(n.left >= svg.left && n.right <= svg.right && n.top >= svg.top, `${n.text} stays in the chart`);
+      if (i) assert(names[i - 1].right + 4 <= n.left, `${names[i - 1].text} and ${n.text} are apart: ${names[i - 1].right} / ${n.left}`);
+    });
+    assert.strictEqual(await overflow(p), 0);
+    assert.deepStrictEqual(p.errors, []);
+    await p.close();
+  });
+}
+
 (async () => {
   browser = await chromium.launch({ channel: 'chrome' });
   let passed = 0;

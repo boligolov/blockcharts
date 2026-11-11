@@ -19,7 +19,7 @@
   "charts": [
     {
       "title": "Who sells how much, and where",
-      "note": "transform.marimekko makes each region as wide as its share of the market, and each supplier as tall as its share of the region. The area of a cell is its share of the whole. Both axes are in percent of the whole.",
+      "note": "transform.marimekko makes each region as wide as its share of the market, and each supplier as tall as its share of the region. The area of a cell is its share of the whole. Both axes are in percent: x of the market, y of the region. A second x axis with `text`, `from` and `to` names the columns over them, each over its own middle however narrow it is.",
       "spec": {
         "data": "market",
         "size": [720, 380],
@@ -31,14 +31,12 @@
           "color": { "type": "color" }
         },
         "guides": [
+          { "type": "axis", "scale": "x", "position": "top", "text": "label", "from": "x0", "to": "x1", "line": "off" },
           { "type": "axis", "scale": "x", "format": "percent" },
           { "type": "axis", "scale": "y", "format": "percent" },
-          { "type": "legend", "scale": "color", "position": "top" }
+          { "type": "legend", "scale": "color", "position": "bottom" }
         ],
-        "marks": [
-          { "type": "rect", "x": "x0", "x2": "x1", "y": "y1", "y2": "y0", "color": "supplier" },
-          { "type": "text", "x": "x0", "x2": "x1", "y": "y1", "y2": "y0", "text": "label", "on": "supplier", "anchor": "start", "baseline": "hanging", "dx": 8, "dy": 8, "size": 12, "weight": 600 }
-        ],
+        "marks": [{ "type": "rect", "x": "x0", "x2": "x1", "y": "y1", "y2": "y0", "color": "supplier" }],
         "interaction": [
           {
             "type": "tooltip",
