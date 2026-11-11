@@ -4878,6 +4878,176 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert.strictEqual(await at(labelled, 1.1 * (640 / 1.2)), '#3a6fe4');
   });
 
+  test("mark.rule: a tooltip finds an error bar's whisker, a dumbbell's bar and a lollipop's stem, and lights the line up", async () => {
+    BC.data('whiskers', [
+      { g: 'A', mean: 4, low: 2, high: 6 },
+      { g: 'B', mean: 5, low: 3, high: 7 },
+    ]);
+    BC.data('gaps', [
+      { k: 'North', a: 20, b: 80 },
+      { k: 'South', a: 60, b: 30 },
+    ]);
+    const chart = (spec) => {
+      const host = new FakeNode('div');
+      BC.chart(host, { size: [640, 400], padding: { top: 0, right: 0, bottom: 0, left: 0 }, ...spec });
+      return host;
+    };
+    /** The card now shown: its heading, then its lines; null with none. */
+    const card = (host) =>
+      tipOf(host).style.display === 'block'
+        ? [
+            ...(headOf(host) ? [headOf(host).children[headOf(host).children.length - 1].text] : []),
+            ...partOf(tipOf(host), 'bc-tooltip-lines').children.map((c) => c.text),
+          ]
+        : null;
+    /** The box lit up, to 0.01 px (the path is written to that), or null. */
+    const lit = (host) => {
+      const s = partOf(host, 'bc-tooltip-highlight').style;
+      return s.display === 'block' ? [s.left, s.top, s.width, s.height].map((v) => Math.round(parseFloat(v) * 100) / 100) : null;
+    };
+    /** The ends of each line mark `mark` draws, in the order of its rows. */
+    const ends = (host, mark) =>
+      paths(layer(svgOf(host), 'marks'))
+        .filter((p) => p.attrs.includes(`data-bc-mark="${mark}"`))
+        .map((p) => /^M([\d.-]+) ([\d.-]+)L([\d.-]+) ([\d.-]+)$/.exec(p.d).slice(1).map(Number));
+
+    const bars = chart({
+      data: 'whiskers',
+      scales: { x: { type: 'band' }, y: { type: 'linear', domain: [0, 8] } },
+      marks: [
+        { type: 'rule', x: 'g', y: 'low', y2: 'high', strokeWidth: 2 },
+        { type: 'point', x: 'g', y: 'mean', r: 5 },
+      ],
+      interaction: [{ type: 'tooltip', fields: ['mean', 'low', 'high'] }],
+    });
+    const [, [wx, wLow, , wHigh]] = ends(bars, 0);
+    assert.deepStrictEqual([wLow, wHigh], [250, 50], 'from low (3) up to high (7)');
+    // on the whisker of B, 30 px under its top end and 70 px over the mean's dot
+    await hover(bars, wx + 3, 80);
+    assert.deepStrictEqual(card(bars), ['B', 'mean', '5', 'low', '3', 'high', '7']);
+    assert.deepStrictEqual(lit(bars), [wx - 4, 50, 8, 200], 'the whole whisker lights up, 8 px across');
+    assert.strictEqual(partOf(bars, 'bc-tooltip-dot').style.display, 'none');
+    await hover(bars, wx + 12, 80);
+    assert.strictEqual(card(bars), null, '11 px past the stroke is not on it');
+    // the dot at the mean is drawn over the whisker, and it is what the pointer is on there
+    await hover(bars, wx, 150);
+    assert.deepStrictEqual(card(bars), ['B', 'mean', '5', 'low', '3', 'high', '7']);
+    assert.strictEqual(lit(bars), null);
+    assert.strictEqual(partOf(bars, 'bc-tooltip-dot').style.display, 'block');
+
+    const dumbbell = chart({
+      data: 'gaps',
+      scales: { y: { type: 'band' }, x: { type: 'linear', domain: [0, 100] } },
+      marks: [
+        { type: 'rule', x: 'a', x2: 'b', y: 'k', strokeWidth: 3 },
+        { type: 'point', x: 'a', y: 'k', r: 6 },
+        { type: 'point', x: 'b', y: 'k', r: 6 },
+      ],
+      interaction: [{ type: 'tooltip', fields: ['a', 'b'] }],
+    });
+    const [north, south] = ends(dumbbell, 0);
+    assert.deepStrictEqual([north[0], north[2]], [128, 512]);
+    await hover(dumbbell, 320, north[1] + 4);
+    assert.deepStrictEqual(card(dumbbell), ['North', 'a', '20', 'b', '80']);
+    assert.deepStrictEqual(lit(dumbbell), [128, north[1] - 4, 384, 8]);
+    // drawn from 60 back to 30: the box runs from the left end all the same
+    await hover(dumbbell, 300, south[1]);
+    assert.deepStrictEqual(card(dumbbell), ['South', 'a', '60', 'b', '30']);
+    assert.deepStrictEqual(lit(dumbbell), [192, south[1] - 4, 192, 8]);
+
+    const lollipop = chart({
+      data: 'gaps',
+      scales: { y: { type: 'band' }, x: { type: 'linear', domain: [0, 100] } },
+      marks: [
+        { type: 'rule', x: 'a', x2: { value: 0 }, y: 'k', strokeWidth: 6 },
+        { type: 'point', x: 'a', y: 'k', r: 6 },
+      ],
+      interaction: [{ type: 'tooltip', fields: ['a'] }],
+    });
+    const [, stem] = ends(lollipop, 0);
+    await hover(lollipop, 100, stem[1] - 7);
+    assert.deepStrictEqual(card(lollipop), ['South', 'a', '60'], 'a stem 6 px wide: 4 px past its edge is still on it');
+    assert.deepStrictEqual(lit(lollipop), [0, stem[1] - 5, 384, 10], 'wider than the stem by 2 px a side');
+  });
+
+  test('mark.rule: a line of constants leaves the pointer to the bars under it; one line for many rows shows what they share', async () => {
+    BC.data('meanline', [
+      { g: 'A', v: 2, avg: 3, note: 'first' },
+      { g: 'B', v: 4, avg: 3, note: 'second' },
+    ]);
+    const chart = (rule) => {
+      const host = new FakeNode('div');
+      BC.chart(host, {
+        data: 'meanline',
+        size: [640, 400],
+        padding: { top: 0, right: 0, bottom: 0, left: 0 },
+        scales: { x: { type: 'band', paddingInner: 0 }, y: { type: 'linear', domain: [0, 8] } },
+        marks: [{ type: 'rect', x: 'g', y: 'v' }, rule],
+        interaction: [{ type: 'tooltip', fields: ['avg', 'note', 'v'] }],
+      });
+      return host;
+    };
+    const lines = (host) =>
+      tipOf(host).style.display === 'block' ? partOf(tipOf(host), 'bc-tooltip-lines').children.map((c) => c.text) : null;
+
+    // a target of 3 across the plot, over bar B (from 4 down): on the line the card is still bar B's
+    const target = chart({ type: 'rule', y: { value: 3 }, label: 'Target' });
+    await hover(target, 480, 250);
+    assert.deepStrictEqual(lines(target), ['avg', '3', 'note', 'second', 'v', '4']);
+    await hover(target, 160, 251);
+    assert.strictEqual(lines(target), null, 'over bar A, on the target alone: nothing to say');
+
+    // the average of every row, repeated on each: one line, and the card says the average alone
+    const mean = chart({ type: 'rule', y: 'avg' });
+    assert.strictEqual(paths(layer(svgOf(mean), 'marks')).length, 1, 'drawn once');
+    await hover(mean, 160, 252);
+    assert.deepStrictEqual(lines(mean), ['avg', '3']);
+    await hover(mean, 480, 250);
+    assert.deepStrictEqual(lines(mean), ['avg', '3'], 'on its stroke over bar B: the line, drawn on top');
+    await hover(mean, 480, 254);
+    assert.deepStrictEqual(lines(mean), ['avg', '3', 'note', 'second', 'v', '4'], '3 px off the stroke, inside the bar: the bar');
+  });
+
+  test('mark.rule pick: only the part the plot shows, a slanted line gets a dot, nothing for gaps, constants or far away', () => {
+    const rule = BC.get('mark.rule');
+    const ctxOf = (cols, fields = true) => ({
+      channel: (_s, name) => ({ field: fields ? name : undefined, scale: {}, mapped: cols[name], raw: cols[name], half: 0 }),
+      rows: () => ({ from: 0, to: cols[Object.keys(cols)[0]].length }),
+      plot: { x: 0, y: 0, w: 400, h: 300 },
+    });
+    const upright = { type: 'rule', x: 'x', y: 'y', y2: 'y2' };
+    const pick = (spec, cols, px, py, fields) => rule.pick(spec, ctxOf(cols, fields), 0, px, py);
+
+    // zoomed: a line 3 px left of the plot is cut away, one 3 px inside it is not
+    assert.strictEqual(pick(upright, { x: [-3], y: [250], y2: [50] }, 1, 100), null);
+    assert.deepStrictEqual(pick(upright, { x: [3], y: [250], y2: [50] }, 1, 100).box, { x: -1, y: 50, w: 8, h: 200 });
+    // partly out of view: the box ends where the plot does
+    assert.deepStrictEqual(pick(upright, { x: [3], y: [250], y2: [-100] }, 3, 20).box, { x: -1, y: -0.5, w: 8, h: 250.5 });
+    // a line of constants stands for no row, even under the pointer
+    assert.strictEqual(pick(upright, { x: [3], y: [250], y2: [50] }, 3, 100, false), null);
+    // a row with a value missing draws no line
+    assert.strictEqual(pick(upright, { x: [NaN], y: [250], y2: [50] }, 3, 100), null);
+    assert.strictEqual(pick(upright, { x: [3], y: [250], y2: [NaN] }, 3, 100), null);
+
+    // a slanted line: no box, the dot where the line is nearest the pointer; 5 px right of it is 3 px off, 2 past a
+    // stroke of 2; 15 px right is 9 off
+    const slant = { type: 'rule', x: 'x', x2: 'x2', y: 'y', y2: 'y2' };
+    const cols = { x: [0], x2: [400], y: [300], y2: [0] };
+    const on = pick(slant, cols, 200, 150);
+    assert.strictEqual(on.box, undefined);
+    assert(near(on.x, 200, 1e-6) && near(on.y, 150, 1e-6) && on.dist === 0, JSON.stringify(on));
+    const off = pick(slant, cols, 205, 150);
+    assert(off && near(off.dist, 2, 1e-6) && near(off.x, 203.2, 1e-6) && near(off.y, 147.6, 1e-6), JSON.stringify(off));
+    assert.strictEqual(pick(slant, cols, 215, 150), null);
+
+    // two rows on one line: one pick for both; the nearer of two lines wins, the later on a tie
+    const two = { x: [100, 100, 300], y: [250, 250, 250], y2: [50, 50, 50] };
+    assert.deepStrictEqual(pick(upright, two, 101, 100).rows, [0, 1]);
+    assert.strictEqual(pick(upright, two, 101, 100).row, 0);
+    assert.strictEqual(pick(upright, two, 298, 100).row, 2);
+    assert.strictEqual(pick(upright, two, 298, 100).rows, undefined);
+  });
+
   test('interaction.tooltip: the date heads the card, the dot takes the series color, no crosshair of its own', async () => {
     const host = new FakeNode('div');
     BC.chart(host, monthly({ interaction: [{ type: 'tooltip' }] }));

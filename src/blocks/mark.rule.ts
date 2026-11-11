@@ -52,13 +52,16 @@
     return (row) => (colors ? colors[row] || '' : stroke);
   }
 
-  /** The lines a rule draws, each once however many rows repeat it: its ends in px, its color and the first row. */
-  function lines(spec: BC.MarkSpec, ctx: BC.ChartCtx): { s: [number, number, number, number]; c: string; row: number }[] {
+  type Line = { s: [number, number, number, number]; c: string; row: number; rows: number[] };
+
+  /** The lines a rule draws, each once however many rows repeat it: its ends in px, its color, the first row and every
+   *  row that draws it. */
+  function lines(spec: BC.MarkSpec, ctx: BC.ChartCtx): Line[] {
     if (spec.x === undefined && spec.y === undefined) return [];
     const seg = segments(spec, ctx);
     const colorOf = paint(spec, ctx);
-    const seen = new Set<string>();
-    const out: { s: [number, number, number, number]; c: string; row: number }[] = [];
+    const seen = new Map<string, Line>();
+    const out: Line[] = [];
     const { from, to } = ctx.rows(spec);
     for (let i = from; i < to; i++) {
       const s = seg(i);
@@ -66,18 +69,60 @@
       const c = colorOf(i);
       if (!c) continue;
       const key = s.map(r2).join(',') + '|' + c;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push({ s, c, row: i });
+      const known = seen.get(key);
+      if (known) {
+        known.rows.push(i);
+        continue;
+      }
+      const line = { s, c, row: i, rows: [i] };
+      seen.set(key, line);
+      out.push(line);
     }
     return out;
+  }
+
+  /** How far past its stroke a line is still under the pointer: a whisker 2 px wide is hard to hit. */
+  const REACH = 5;
+  /** The narrowest the highlight across a line is: one as thin as the line would not show. */
+  const BAND = 8;
+
+  /** Whether a column decides where or in what color the rule is drawn. A rule of constants alone (a target, "today")
+   *  is the same line on every row and stands for none of them. */
+  function readsData(spec: BC.MarkSpec, ctx: BC.ChartCtx): boolean {
+    return ['x', 'y', 'x2', 'y2', 'color'].some((name) => spec[name] !== undefined && !!ctx.channel(spec, name).field);
+  }
+
+  /** The part of a line inside `r` (Liang–Barsky), or null when none of it is. */
+  function clip(s: [number, number, number, number], r: BC.Rect): [number, number, number, number] | null {
+    const [x0, y0, x1, y1] = s;
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    let t0 = 0;
+    let t1 = 1;
+    const sides: [number, number][] = [
+      [-dx, x0 - r.x],
+      [dx, r.x + r.w - x0],
+      [-dy, y0 - r.y],
+      [dy, r.y + r.h - y0],
+    ];
+    for (const [p, q] of sides) {
+      if (p === 0) {
+        if (q < 0) return null;
+        continue;
+      }
+      const t = q / p;
+      if (p < 0) t0 = Math.max(t0, t);
+      else t1 = Math.min(t1, t);
+      if (t0 > t1) return null;
+    }
+    return [x0 + t0 * dx, y0 + t0 * dy, x0 + t1 * dx, y0 + t1 * dy];
   }
 
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'rule',
-    version: 9,
-    doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it.',
+    version: 10,
+    doc: 'Lines at values: a target, a threshold, an average, the target tick of a bullet chart. `y` alone draws a horizontal line across the plot at that value (`{ "value": 50000 }` for a constant, in the units of the y scale); `x` alone a vertical one. On a band scale the line spans the band (`thickness` of it), so y = category and x = target gives a short tick across each bar. With x2 / y2 it runs between two values, along the middle of the band on a band scale (a range, a dumbbell). The same line is drawn once however many rows repeat it. A tooltip finds a line that reads a column (an error bar, a dumbbell, a lollipop) within a few px of it; a line of constants alone stands for no row and leaves the pointer to the marks under it.',
     params: {
       stroke: { kind: 'color', doc: 'Any CSS color. Default: the theme text color.' },
       strokeWidth: { kind: 'number', default: 2 },
@@ -131,6 +176,51 @@
         );
       }
       return out;
+    },
+    // the line nearest the pointer, within a few px of its stroke: an error bar's whisker, a dumbbell's bar, a
+    // lollipop's stem. A line along an axis lights up as a box around it; a slanted one gets the dot where it is nearest.
+    pick(spec, ctx, _index, px, py) {
+      if (!readsData(spec, ctx)) return null;
+      const width = typeof spec.strokeWidth === 'number' && spec.strokeWidth > 0 ? spec.strokeWidth : 2;
+      const p = ctx.plot;
+      // zoomed, the plot clips what is past its edges: only what the reader sees is picked
+      const seen = { x: p.x - 0.5, y: p.y - 0.5, w: p.w + 1, h: p.h + 1 };
+      let best: { line: Line; s: [number, number, number, number]; x: number; y: number } | null = null;
+      let bestGap = Infinity;
+      for (const line of lines(spec, ctx)) {
+        const s = clip(line.s, seen);
+        if (!s) continue;
+        const dx = s[2] - s[0];
+        const dy = s[3] - s[1];
+        const len2 = dx * dx + dy * dy;
+        const t = len2 ? Math.min(1, Math.max(0, ((px - s[0]) * dx + (py - s[1]) * dy) / len2)) : 0;
+        const nx = s[0] + t * dx;
+        const ny = s[1] + t * dy;
+        const gap = Math.max(0, Math.hypot(px - nx, py - ny) - width / 2);
+        // the line drawn last is on top
+        if (gap <= bestGap) {
+          bestGap = gap;
+          best = { line, s, x: nx, y: ny };
+        }
+      }
+      if (!best || bestGap > REACH) return null;
+      const { line, s } = best;
+      const across = Math.max(BAND, width + 4);
+      const left = Math.min(s[0], s[2]);
+      const top = Math.min(s[1], s[3]);
+      const long = { w: Math.abs(s[2] - s[0]), h: Math.abs(s[3] - s[1]) };
+      const box =
+        long.h < 0.5
+          ? { x: left, y: s[1] - across / 2, w: long.w, h: across }
+          : long.w < 0.5
+            ? { x: s[0] - across / 2, y: top, w: across, h: long.h }
+            : null;
+      const pick: BC.Pick = box
+        ? { row: line.row, x: box.x + box.w / 2, y: box.y, dist: bestGap, box }
+        : { row: line.row, x: best.x, y: best.y, dist: bestGap };
+      // one line for several rows (a total repeated on each row of its group): the card shows what they share
+      if (line.rows.length > 1) pick.rows = line.rows;
+      return pick;
     },
     color(spec, ctx, _index, row) {
       return paint(spec, ctx)(row);

@@ -1422,6 +1422,15 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   the card, the dot takes the color of the mark that does (the topmost); the marker and the highlight stay on the shape
   hovered. A color as light or as dark as the card (a pale band, a dark heatmap cell on a dark card, a yellow one on
   white) keeps in sight inside a ring of `--bc-tooltip-highlight-line`.
+- **An error bar's whisker, a dumbbell's bar and a lollipop's stem have a card.** `mark.rule` had no pick, so the
+  pointer found only the dots at the ends of such lines: on a whisker 2 px wide, away from its mean, no card came. A rule
+  now picks the line nearest the pointer, within 5 px of its stroke, and only the part of it the plot shows (zoomed, the
+  rest is clipped). A line along an axis lights up as a box around it, 8 px across or 2 px a side past a wider stroke,
+  like a bar; a slanted one gets the dot where it is nearest. A dot drawn over the line still wins where it is, as a
+  later mark does on a tie, and a bar under a line wins 1 px off the line's stroke. A rule of constants alone (a target,
+  "today", the middle line of a pyramid) is the same line on every row and stands for none, so it picks nothing and
+  leaves the pointer to the bars under it. A line many rows draw (an average repeated on each) stands for all of them,
+  and its card shows what they share (`Pick.rows`).
 
 ## Next steps
 

@@ -200,6 +200,60 @@ test('tooltip: the dot by the heading has the color of the shape, with a ring th
   }
 });
 
+test("tooltip: an error bar's whisker, a dumbbell's bar and a lollipop's stem show their card and light up, desk and phone", async () => {
+  // [recipe, the chart's title, the row of its rule (mark 0), where along the line from its top or left end, the heading]
+  const cases = [
+    ['error-bars', 'Improvement by dose', 1, 0.15, 'Dose 10 mg'],
+    ['dumbbell', 'Customer satisfaction', 2, 0.5, 'East'],
+    ['dumbbell', 'Net promoter score', 1, 0.5, 'Web app'],
+  ];
+  for (const width of [1100, 390]) {
+    for (const [name, title, row, at, heading] of cases) {
+      const p = await open(recipe(name), width);
+      const line = await p.evaluate(
+        ([title, row]) => {
+          const card = [...document.querySelectorAll('.bc-section')].find((s) => s.textContent.includes(title));
+          const el = card.querySelector(`[data-bc-layer="marks"] path[data-bc-mark="0"][data-bc-row="${row}"]`);
+          el.scrollIntoView({ block: 'center' });
+          const r = el.getBoundingClientRect();
+          return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+        },
+        [title, row],
+      );
+      // a 2-3 px line: one px off its middle, as a hand would be
+      await p.mouse.move(line.left + line.width * at + 1, line.top + line.height * at + 1, { steps: 2 });
+      await p.waitForTimeout(100);
+      const got = await p.evaluate(() => {
+        const tip = [...document.querySelectorAll('.bc-tooltip')].find((t) => getComputedStyle(t).display !== 'none');
+        if (!tip) return null;
+        const host = tip.parentNode;
+        const lit = host.querySelector('.bc-tooltip-highlight');
+        const r = lit.getBoundingClientRect();
+        return {
+          heading: tip.querySelector('.bc-tooltip-heading').textContent,
+          lit: getComputedStyle(lit).display !== 'none' && { left: r.left, top: r.top, right: r.right, bottom: r.bottom },
+        };
+      });
+      const where = `${name} "${title}" at ${width} px`;
+      assert(got, `${where}: a card`);
+      assert.strictEqual(got.heading, heading, where);
+      assert(got.lit, `${where}: the line lights up`);
+      const slack = 0.5;
+      assert(
+        got.lit.left <= line.left + slack &&
+          got.lit.right >= line.right - slack &&
+          got.lit.top <= line.top + slack &&
+          got.lit.bottom >= line.bottom - slack,
+        `${where}: the box holds the whole line: ${JSON.stringify({ line, lit: got.lit })}`,
+      );
+      const across = line.width < line.height ? got.lit.right - got.lit.left : got.lit.bottom - got.lit.top;
+      assert(across >= 7 && across <= 12, `${where}: a box about 8 px across, ${across}`);
+      assert.deepStrictEqual(p.errors, []);
+      await p.close();
+    }
+  }
+});
+
 // ───────────────────────── value labels and slanted names on a phone ─────────────────────────
 
 const recipe = (name) => JSON.parse(fs.readFileSync(path.join(__dirname, '../skills/blockcharts/recipes', name + '.json'), 'utf8'));

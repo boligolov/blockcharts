@@ -13,15 +13,14 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.31): A, safety (5); B, silent wrong results in validation and data (21); C1–C17, layout
+Done (skill 0.33.1–0.33.32): A, safety (5); B, silent wrong results in validation and data (21); C1–C18, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
 every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
-month, an axis's top label, the color of a tooltip's dot).
+month, an axis's top label, the color of a tooltip's dot, cards on error bars, dumbbells and lollipops).
 
 Left, in this order:
 
-- [ ] **C18** No tooltip on error-bar whiskers, dumbbell connectors, lollipop stems.
 - [ ] **C19** KPI tile: `phoneColumns: 2` shrinks it to 66% (highlight-bar); stretched with an empty bottom on a desk;
       the executive Orders / Conversion / Churn tiles have no tooltip; phone tiles are about 300 px tall.
 - [ ] **C20** Treemap: Latin America cells unlabelled (`labelMin` 0.03); legend items have uneven gaps (treemap,
