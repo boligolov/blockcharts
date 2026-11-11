@@ -2,7 +2,8 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'grid',
-    version: 2,
+    version: 3,
+    narrow: true,
     doc: 'Grid lines at the ticks of a positional scale (the same ticks its axis shows). Draws behind the marks. An axis given `count` needs the same `count` here, or the lines and the labels part.',
     params: {
       scale: { kind: 'scale', required: true },

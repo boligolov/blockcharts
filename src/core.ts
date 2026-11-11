@@ -1690,6 +1690,26 @@
 
   /** Narrowest width a chart is laid out at, px (unless its size is narrower): below it, it scales down as a drawing. */
   const MIN_LAYOUT_WIDTH = 200;
+  /** The same for a chart whose marks and guides all draw as well at any width (MarkDef.narrow): a tile two to a row on a
+   *  phone is about 130 px wide, and scaled down from 200 its figure and its label shrank to two thirds. */
+  const MIN_NARROW_WIDTH = 100;
+
+  /** Whether every mark and guide of a spec says it draws as well at any width; a block it does not know says no. */
+  function narrowSpec(s: BC.ChartSpec): boolean {
+    const all = (role: 'mark' | 'guide', list: unknown) =>
+      Array.isArray(list) &&
+      list.every((b) => {
+        if (!b || typeof b !== 'object' || typeof (b as { type?: unknown }).type !== 'string') return false;
+        const def = registry.get(`${role}.${(b as { type: string }).type}`) as BC.MarkDef | BC.GuideDef | undefined;
+        const says = def && def.role === role ? def.narrow : undefined;
+        try {
+          return typeof says === 'function' ? (says as (spec: unknown) => boolean)(b) === true : says === true;
+        } catch (e) {
+          return false;
+        }
+      });
+    return all('mark', s.marks) && (s.guides === undefined || all('guide', s.guides));
+  }
 
   function chart(host: HTMLElement, spec: BC.ChartSpec): BC.ChartHandle {
     let current = spec;
@@ -1775,13 +1795,15 @@
 
     /** The width to lay the chart out at: the container's, narrower or wider than the chart's size, so text is drawn at
      *  its own size in any card; null for the size itself (no width known, or the same width). Never narrower than
-     *  MIN_LAYOUT_WIDTH, or than the size when that is narrower still: below it the drawing scales down. */
+     *  MIN_LAYOUT_WIDTH (MIN_NARROW_WIDTH for a chart of narrow blocks), or than the size when that is narrower still:
+     *  below it the drawing scales down. */
     const widthFor = (s: BC.ChartSpec): number | null => {
       if (!s || typeof s !== 'object' || s.responsive === false) return null;
       const w = (host as { clientWidth?: unknown }).clientWidth;
       const design = Array.isArray(s.size) && typeof s.size[0] === 'number' ? s.size[0] : 640;
       if (typeof w !== 'number' || !isFinite(w) || w <= 0) return null;
-      const at = Math.max(Math.round(w), Math.min(design, MIN_LAYOUT_WIDTH));
+      const floor = narrowSpec(s) ? MIN_NARROW_WIDTH : MIN_LAYOUT_WIDTH;
+      const at = Math.max(Math.round(w), Math.min(design, floor));
       return Math.abs(at - design) < 1 ? null : at;
     };
     // relayout when the container's width changes (a phone turned, a window resized), keeping the zoom. Watched whatever
@@ -2169,6 +2191,7 @@
     // without CHECKS they are not there at all: a page script that calls them fails loudly instead of being told "no problems"
     needs,
     validate,
+    narrow: (spec) => !!spec && typeof spec === 'object' && narrowSpec(spec),
     table: (name) => lake.get(name),
     chart,
     mount,

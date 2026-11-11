@@ -22,7 +22,8 @@
 //           and dates are written in. A { section } or a chart entry can take a lang of its own; a section's lasts until the next
 //   title / subtitle  the page heading (and the <title>) and one line under it
 //   layout  { columns: 1..12, phoneColumns: 1..2 } a dashboard grid: charts fill it left to right, a card takes `span` columns (default: the full row);
-//           on a narrow screen every card takes the full width
+//           on a narrow screen every card takes the full width, except, with phoneColumns 2, the tiles of `span` 1 whose chart
+//           draws as well at any width (BC.narrow: a KPI, a sparkline), two to a row; the last of an odd run takes the row
 //   before / after  raw trusted HTML placed before the charts / after the scripts (page chrome, custom scripts)
 //   include extra block names to inline for hand-written scripts (`after`) that call BC.chart themselves
 //   css     extra stylesheet text, placed after the default one; it cannot fetch (url() other than data:, @import)
@@ -201,13 +202,15 @@ const defaultCss = (light) =>
     '.bc-grid{display:grid;grid-template-columns:repeat(var(--bc-cols,1),minmax(0,1fr));gap:16px}',
     '.bc-section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 14px;min-width:0;box-shadow:0 1px 2px rgba(16,24,40,.04)}',
     '.bc-section h2,.bc-section h3{font-size:14px;font-weight:600;margin:0 0 2px}.bc-section p{margin:0 0 10px;color:var(--muted);font-size:13px}',
+    // a tile next to a taller card is stretched to its height: its figure stands in the middle of the room, not at the top
+    '.bc-tile{display:flex;flex-direction:column}.bc-tile>.bc-chart,.bc-tile>.bc-scroll{margin:auto 0}',
     '.bc-group{grid-column:1/-1;margin:16px 0 -4px}.bc-group:first-child{margin-top:0}.bc-group h2{font-size:18px;line-height:1.3;letter-spacing:-.01em;font-weight:650;margin:0}.bc-group p{margin:2px 0 0;color:var(--muted)}',
     '.bc-facets{display:grid;grid-template-columns:repeat(var(--bc-facet-cols,2),minmax(0,1fr));gap:12px 16px}.bc-facet{min-width:0}.bc-section h4{font-size:12px;font-weight:600;margin:0 0 2px}',
     '.bc-facet-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;margin:0 0 8px}.bc-facet-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.bc-facet-legend button{all:unset;cursor:pointer}.bc-facet-legend button:focus-visible{outline:2px solid currentColor;outline-offset:2px}.bc-facet-legend [aria-pressed=false]{opacity:.4}',
     '@media (max-width:720px){.bc-facets{grid-template-columns:repeat(min(var(--bc-facet-cols,2),2),minmax(0,1fr))}}@media (max-width:480px){.bc-facets{grid-template-columns:minmax(0,1fr)}}',
     '.bc-scroll{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}',
     '.bc-chart{user-select:none}.bc-chart text{font-variant-numeric:tabular-nums}.bc-legend-item{user-select:none}.bc-legend-filter .bc-legend-item{cursor:pointer}',
-    '@media (max-width:720px){.bc-grid{grid-template-columns:repeat(var(--bc-phone-cols,1),minmax(0,1fr))}.bc-grid>.bc-section{grid-column:1/-1!important}.bc-grid>.bc-section.bc-tile{grid-column:auto!important}.bc-page{padding:20px 12px 40px}}',
+    '@media (max-width:720px){.bc-grid{grid-template-columns:repeat(var(--bc-phone-cols,1),minmax(0,1fr))}.bc-grid>.bc-section{grid-column:1/-1!important}.bc-grid>.bc-section.bc-pair{grid-column:auto!important;padding:14px 14px 10px}.bc-page{padding:20px 12px 40px}}',
     '@media print{body{background:#fff}.bc-page,.bc-page.bc-wide{max-width:none;padding:0}.bc-section{box-shadow:none;break-inside:avoid}.bc-group{break-after:avoid}.bc-scroll{overflow:visible}}',
   ].join('\n');
 
@@ -801,11 +804,35 @@ function compose(opts) {
     const cells = panels.map((p) => `<div class="bc-facet"><h4>${escapeText(p.label)}</h4>${chartTag(p.spec)}</div>`).join('');
     return `${keys}<div class="bc-facets" style="--bc-facet-cols:${facet.columns || Math.min(panels.length, 3)}">${cells}</div>`;
   };
-  const section = ({ spec, title, note, noteHtml, span, minWidth, lang, panels, facet, legend, legendId }) => {
+  // with phoneColumns 2, tiles (a card of one column) whose chart draws as well at any width (a KPI, a sparkline: BC.narrow)
+  // stand two to a row on a phone, where every other card takes the whole width. Only tiles next to each other pair up: the
+  // last of an odd run would stand alone beside an empty half, so it takes the whole width too
+  const narrowSpec = (spec) => {
+    try {
+      return BC.narrow(spec) === true;
+    } catch (e) {
+      return false;
+    }
+  };
+  const paired = new Set();
+  if (columns > 1 && phoneColumns === 2) {
+    let run = [];
+    const close = () => {
+      for (const e of run.length % 2 ? run.slice(0, -1) : run) paired.add(e);
+      run = [];
+    };
+    for (const e of entries) {
+      if (e.section === undefined && e.span === 1 && !e.panels && narrowSpec(e.spec)) run.push(e);
+      else close();
+    }
+    close();
+  }
+  const section = (entry) => {
+    const { spec, title, note, noteHtml, span, minWidth, lang, panels, facet, legend, legendId } = entry;
     const script = panels ? facetTag({ panels, facet, legend, legendId }) : chartTag(spec);
     const tag = minWidth ? `<div class="bc-scroll"><div style="min-width:${minWidth}px">${script}</div></div>` : script;
     const width = columns > 1 ? ` style="grid-column:span ${span || columns}"` : '';
-    const tile = columns > 1 && span === 1 ? ' bc-tile' : '';
+    const tile = (columns > 1 && span === 1 ? ' bc-tile' : '') + (paired.has(entry) ? ' bc-pair' : '');
     return `<section class="bc-section${tile}"${langAttr(lang)}${width}>${title ? `<${titleTag}>${escapeText(title)}</${titleTag}>` : ''}${note ? `<p>${escapeText(note)}</p>` : ''}${noteHtml ? `<p>${noteHtml}</p>` : ''}\n${tag}</section>`;
   };
   const heading = ({ section: text, note, lang }) =>

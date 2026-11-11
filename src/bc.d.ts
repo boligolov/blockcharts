@@ -554,6 +554,10 @@ declare namespace BC {
     /** The color it draws `row` in, as its render does: the dot a tooltip shows by the heading and its marker. '' when
      *  the row has no color (a category the scale hides). A mark without it (a label in the text color) shows none. */
     color?(spec: MarkSpec, ctx: ChartCtx, index: number, row: number): string;
+    /** It draws as well at any width: shapes with no text beside them (a mark that writes labels says so only when it
+     *  writes none). A chart whose marks and guides all say so (a tile: a figure over a sparkline) is laid out at its
+     *  container's width down to 100 px; any other chart scales down as a drawing below 200 px. */
+    narrow?: boolean | ((spec: MarkSpec) => boolean);
   }
 
   /** What a guide needs around the plot. The side keys are space the guide occupies and add up with other guides
@@ -580,6 +584,9 @@ declare namespace BC {
     /** It shows its scale and nothing of the panel it is in (a legend). On a facet whose panels share that scale, and the
      *  scale is of categories (merged by "union"), the page draws it once above them, as a row of swatches. */
     shownOnce?: boolean;
+    /** It draws as well at any width (MarkDef.narrow): lines with no text (a grid), or text it fits to the width itself
+     *  (a KPI). */
+    narrow?: boolean | ((spec: GuideSpec) => boolean);
   }
 
   interface InteractionDef extends BlockBase {
@@ -696,6 +703,10 @@ declare namespace BC {
     needs(spec: ChartSpec): BlockName[];
     /** Missing blocks, unknown params, dangling scale/field references. Never throws. */
     validate(spec: ChartSpec): Diagnostic[];
+    /** Whether every mark and guide of the spec draws as well at any width (MarkDef.narrow, GuideDef.narrow): such a chart
+     *  is laid out at its container's width down to 100 px, and a page may put it two to a row on a phone (a KPI tile).
+     *  False when it uses a block that is not defined. */
+    narrow(spec: ChartSpec): boolean;
     /** A dataset as a table, for the composer. Not on a composed page. */
     table?(name: string): Table | undefined;
 

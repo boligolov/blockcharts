@@ -13,16 +13,15 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.32): A, safety (5); B, silent wrong results in validation and data (21); C1–C18, layout
+Done (skill 0.33.1–0.33.34): A, safety (5); B, silent wrong results in validation and data (21); C1–C19, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
 every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
-month, an axis's top label, the color of a tooltip's dot, cards on error bars, dumbbells and lollipops).
+month, an axis's top label, the color of a tooltip's dot, cards on error bars, dumbbells and lollipops, KPI tiles two to a
+row on a phone).
 
 Left, in this order:
 
-- [ ] **C19** KPI tile: `phoneColumns: 2` shrinks it to 66% (highlight-bar); stretched with an empty bottom on a desk;
-      the executive Orders / Conversion / Churn tiles have no tooltip; phone tiles are about 300 px tall.
 - [ ] **C20** Treemap: Latin America cells unlabelled (`labelMin` 0.03); legend items have uneven gaps (treemap,
       streamgraph). The cells are laid out for `aspect`, not for the plot: on a phone (a plot of 324 × 400) they are
       about three times taller than wide. Read the plot's aspect when none is given, as hexbin does.
@@ -65,8 +64,8 @@ Left, in this order:
 Found along the way:
 
 - [ ] From 720 px to about 1050 px (a tablet, a narrow window) a grid of 4 columns makes cards narrower than 200 px (136 at 800): the
-      KPI tiles and the donut of executive-dashboard are laid out at 200 px and scaled down, text 7.5–8 px. The grid could
-      take fewer columns in that range.
+      donut of executive-dashboard is laid out at 200 px and scaled down, its legend at 8 px (the KPI tiles are laid out at
+      their width since C19). The grid could take fewer columns in that range.
 - [ ] calculated-field on a phone: the figures over its eight quarters are 9.5 px (profit) and 9 px (margin); eight bars
       in 324 px with figures at nearly one height. Like the waterfall, a figure on every bar could take the value axis's
       place.

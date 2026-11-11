@@ -45,10 +45,11 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'area',
-    version: 15,
+    version: 16,
     requires: ['lib.curve'],
     series: true,
     enter: 'wipe',
+    narrow: true,
     doc: 'A filled band per series between y and y2 (or `baseline`, default 0). Stack with transform.stack and use its two columns as y2 and y. `group` or a `color` channel splits the rows into series, like mark.line. Missing values break the area. `fade` makes the fill fade out towards the bottom (put a line mark on top for the edge); `curve` matches a smooth or a step line. x also takes a band scale, as on mark.line.',
     params: {
       baseline: { kind: 'number', default: 0, doc: 'Where the area starts when there is no y2. Keep it inside the scale domain.' },

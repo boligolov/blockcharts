@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 41172,
+    "bytes": 41551,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 30205,
+        "bytes": 30584,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 27171,
+        "bytes": 27550,
         "off": [
           "CHECKS",
           "DECODE"
@@ -1198,8 +1198,8 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2917,
-      "version": 15,
+      "bytes": 2927,
+      "version": 16,
       "requires": [
         "lib.curve"
       ],
@@ -1485,8 +1485,8 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 4458,
-      "version": 22,
+      "bytes": 4522,
+      "version": 23,
       "requires": [
         "lib.curve"
       ],
@@ -1576,8 +1576,8 @@
     },
     "mark.point": {
       "file": "blocks/mark.point.js",
-      "bytes": 3995,
-      "version": 15,
+      "bytes": 4005,
+      "version": 16,
       "requires": [],
       "closure": [
         "mark.point"
@@ -1719,8 +1719,8 @@
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",
-      "bytes": 4558,
-      "version": 16,
+      "bytes": 4568,
+      "version": 17,
       "requires": [],
       "closure": [
         "mark.rect"
@@ -1814,8 +1814,8 @@
     },
     "mark.rule": {
       "file": "blocks/mark.rule.js",
-      "bytes": 3818,
-      "version": 11,
+      "bytes": 3867,
+      "version": 12,
       "requires": [],
       "closure": [
         "mark.rule"
@@ -2250,8 +2250,8 @@
     },
     "guide.grid": {
       "file": "blocks/guide.grid.js",
-      "bytes": 564,
-      "version": 2,
+      "bytes": 574,
+      "version": 3,
       "requires": [],
       "closure": [
         "guide.grid"
@@ -2270,8 +2270,8 @@
     },
     "guide.kpi": {
       "file": "blocks/guide.kpi.js",
-      "bytes": 4301,
-      "version": 8,
+      "bytes": 4952,
+      "version": 9,
       "requires": [],
       "closure": [
         "guide.kpi"
@@ -2362,7 +2362,7 @@
           "doc": "Font size of the value, px."
         }
       },
-      "doc": "A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number."
+      "doc": "A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number. A tile is laid out at the width of its card, also two to a row on a phone: a value too wide for it is written smaller, and so are the label and the change, down to 10 px, then cut with an ellipsis."
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",

@@ -2,7 +2,8 @@
   "title": "Executive dashboard",
   "subtitle": "FY2025 · all regions · figures in USD",
   "layout": {
-    "columns": 4
+    "columns": 4,
+    "phoneColumns": 2
   },
   "data": {
     "monthly": [
@@ -247,11 +248,19 @@
               "revenue"
             ],
             "formats": {
+              "month": {
+                "month": "long",
+                "year": "numeric",
+                "timeZone": "UTC"
+              },
               "revenue": {
                 "style": "currency",
                 "currency": "USD",
                 "maximumFractionDigits": 0
               }
+            },
+            "labels": {
+              "revenue": "Revenue"
             }
           }
         ]
@@ -297,6 +306,25 @@
             "y": "orders",
             "fill": "var(--bc-c1, #16a39d)",
             "radius": 2
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "orders"
+            ],
+            "formats": {
+              "month": {
+                "month": "long",
+                "year": "numeric",
+                "timeZone": "UTC"
+              },
+              "orders": "integer"
+            },
+            "labels": {
+              "orders": "Orders"
+            }
           }
         ]
       }
@@ -353,6 +381,28 @@
             "curve": "smooth",
             "stroke": "var(--bc-c4, #8a6be8)"
           }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "conversion"
+            ],
+            "formats": {
+              "month": {
+                "month": "long",
+                "year": "numeric",
+                "timeZone": "UTC"
+              },
+              "conversion": {
+                "style": "percent",
+                "minimumFractionDigits": 2
+              }
+            },
+            "labels": {
+              "conversion": "Conversion rate"
+            }
+          }
         ]
       }
     },
@@ -408,6 +458,28 @@
             "y": "churn",
             "curve": "smooth",
             "stroke": "var(--bc-c3, #e0527a)"
+          }
+        ],
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": [
+              "churn"
+            ],
+            "formats": {
+              "month": {
+                "month": "long",
+                "year": "numeric",
+                "timeZone": "UTC"
+              },
+              "churn": {
+                "style": "percent",
+                "minimumFractionDigits": 1
+              }
+            },
+            "labels": {
+              "churn": "Monthly churn"
+            }
           }
         ]
       }

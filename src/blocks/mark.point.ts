@@ -148,7 +148,8 @@
   const def: BC.MarkDef = {
     role: 'mark',
     type: 'point',
-    version: 15,
+    version: 16,
+    narrow: true,
     doc: 'One circle per row. Channels x and y, optional color (a field on a color scale); constant params r, fill, opacity. Either channel also takes a band scale, centered in its band — a category axis plus a value axis draws a dot plot (Cleveland dot plot). A `size` channel on a scale.size makes it a bubble chart: the area of each circle follows the value, big bubbles are drawn first so small ones stay on top. `swarm` on a category axis spreads the points of each category across its band so none overlap: a beeswarm, every sample visible; on a narrow screen its points shrink so they still fit. An opaque dot that rows repeat on one spot is drawn once; with `opacity` below 1 every one is drawn, so piles show.',
     params: {
       r: { kind: 'number', default: 3, doc: 'Radius in px (when there is no `size` channel).' },

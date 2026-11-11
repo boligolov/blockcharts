@@ -1188,6 +1188,103 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     assert(nameless.svg.includes('>Best<') && !nameless.svg.includes('null'), 'a row with no name adds nothing');
   });
 
+  /** The KPI's lines as drawn: text, font size, where. */
+  const kpiLines = (svg) => {
+    const out = {};
+    for (const m of svg.matchAll(/<text ([^>]*)>([^<]*)<\/text>/g)) {
+      const attr = (n) => (new RegExp(`(?:^| )${n}="([^"]*)"`).exec(m[1]) || [])[1];
+      const cls = /bc-kpi-(\w+)/.exec(attr('class') || '');
+      if (cls) out[cls[1]] = { text: m[2], size: +attr('font-size'), x: +attr('x'), y: +attr('y') };
+    }
+    return out;
+  };
+  const best = ['2025-08-01', '2025-09-01'].map((m, i) => ({ m, v: [996000, 1257800][i] }));
+
+  test('guide.kpi: in a narrow tile the value is written smaller to fit, and the label and the change down to 10 px, then cut', () => {
+    const tile = (w, extra = {}, rows = best) =>
+      drawn(rows, {
+        size: [w, 120],
+        padding: 0,
+        guides: [{ type: 'kpi', field: 'v', format: 'integer', label: 'Best month', rowField: 'm', aggregate: 'max', ...extra }],
+      });
+    const wide = kpiLines(tile(280).svg);
+    assert.strictEqual(wide.value.size, 30, 'a desk tile: the size it was given');
+    assert.strictEqual(wide.label.size, 12);
+    const phone = tile(145);
+    assert.deepStrictEqual(phone.diagnostics, []);
+    const p = kpiLines(phone.svg);
+    assert.strictEqual(p.value.text, '1,257,800', 'a number is never cut short');
+    assert(p.value.size < 30 && p.value.size >= 27, `two to a row on a phone it is a little smaller: ${p.value.size}`);
+    assert.strictEqual(p.label.size, 12, 'a label that fits keeps its size');
+    const tiny = kpiLines(tile(100, { label: 'The best month of the whole financial year' }).svg);
+    assert.strictEqual(tiny.label.size, 10, 'a label too long is made smaller, down to 10 px');
+    assert(tiny.label.text.endsWith('…') && tiny.label.text.length < 30, `and then cut: ${tiny.label.text}`);
+    assert(tiny.value.size < p.value.size, 'the narrower, the smaller the value');
+
+    // a size far too large for the tile comes down to what fits, whatever it was
+    const huge = kpiLines(tile(280, { size: 200 }).svg).value.size;
+    assert(huge < 200 && huge === kpiLines(tile(280, { size: 120 }).svg).value.size, `${huge}`);
+    // a unit as long as a sentence: the value shrinks as far as it must and stays whole
+    const unit = kpiLines(tile(120, { format: { maximumFractionDigits: 0, suffix: ' widgets shipped to customers this year' } }).svg);
+    assert(unit.value.text.endsWith('this year') && unit.value.size >= 8, `${unit.value.size}`);
+
+    // the change keeps itself whole; the note after it is what gives way
+    const changing = (w, note) =>
+      kpiLines(drawn(best, { size: [w, 120], padding: 0, guides: [{ type: 'kpi', field: 'v', format: 'integer', note }] }).svg);
+    const roomy = changing(280, 'vs August');
+    assert.strictEqual(roomy.delta.size, 12);
+    assert.strictEqual(roomy.note.text, 'vs August');
+    const long = changing(130, 'against the same month of the year before');
+    assert.strictEqual(long.delta.text, '▲ +26.3%', 'the change itself is never cut');
+    assert.strictEqual(long.delta.size, 10);
+    assert.strictEqual(long.note.size, 10, 'the note is written at the size of the change');
+    assert(long.note.text.endsWith('…'), long.note.text);
+    assert(long.note.x > long.delta.x, 'after the change');
+    const short = changing(130, 'vs August');
+    assert(short.note.text === 'vs August' && short.delta.size > 10, 'a line a little too wide is only made smaller');
+    const cjk = changing(110, '前年同月比'.repeat(20));
+    assert(cjk.note.text.endsWith('…') && cjk.note.text.length < 12, cjk.note.text);
+  });
+
+  test('guide.kpi: what is cut in a narrow tile keeps its room, and the sparkline under a smaller value grows into the rest', () => {
+    const tile = (w, extra = {}) =>
+      drawn(best, {
+        size: [w, 150],
+        padding: 0,
+        scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+        marks: [{ type: 'rect', x: 'm', y: 'v' }],
+        guides: [{ type: 'kpi', field: 'v', format: 'integer', label: 'Revenue', note: 'vs August', ...extra }],
+      });
+    const top = (svg) => Math.min(...[...layer(svg, 'marks').matchAll(/ y="([\d.]+)"/g)].map((m) => +m[1]));
+    const wide = tile(280);
+    const narrow = tile(110);
+    assert.deepStrictEqual(narrow.diagnostics, []);
+    const k = kpiLines(narrow.svg);
+    assert(top(narrow.svg) < top(wide.svg), 'a smaller value takes less height');
+    assert(top(narrow.svg) >= k.delta.y + 12, 'the bars start under the line of the change');
+    // a label not a letter of which fits still keeps its line: the value stays where it was
+    const gone = kpiLines(tile(12, { label: 'W'.repeat(40) }).svg);
+    const kept = kpiLines(tile(12).svg);
+    assert.strictEqual(gone.value.y, kept.value.y, 'the label slot is kept');
+    // with an axis on the left the tile starts further right and has that much less room
+    const axis = (extra) => kpiLines(tile(150, { label: undefined, note: undefined, ...extra }).svg).value.size;
+    const plain = axis();
+    const withAxis = kpiLines(
+      drawn(best, {
+        size: [150, 150],
+        padding: 0,
+        scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+        marks: [{ type: 'rect', x: 'm', y: 'v' }],
+        guides: [
+          { type: 'axis', scale: 'y' },
+          { type: 'kpi', field: 'v', format: 'integer' },
+        ],
+      }).svg,
+    );
+    assert(withAxis.value.size < plain, `${withAxis.value.size} < ${plain}`);
+    assert(withAxis.value.x > 0);
+  });
+
   test('a chart lower than its guides says that its bottom is cut off', () => {
     const low = drawn(months, { size: [280, 68], guides: [{ type: 'kpi', field: 'v', label: 'Revenue' }] });
     assert(low.diagnostics.some((d) => d.level === 'warn' && d.path === 'size'));
@@ -5720,8 +5817,8 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       BC.chart(tiny, spec);
       assert.deepStrictEqual(box(tiny), [200, 300], 'never laid out narrower than 200 px');
 
-      // a chart sized narrower than 200 px (a sparkline in a tile): laid out at its own size below it, at the width above
-      const small = { ...spec, size: [150, 60], guides: [] };
+      // a chart sized narrower than 200 px: laid out at its own size below it, at the width above
+      const small = { ...spec, size: [150, 60] };
       const narrow = new FakeNode('div');
       narrow.clientWidth = 90;
       BC.chart(narrow, small);
@@ -5730,6 +5827,53 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       between.clientWidth = 180;
       BC.chart(between, small);
       assert.deepStrictEqual(box(between), [180, 60], 'between its size and 200 px it takes the width');
+
+      // a chart of blocks that draw as well at any width (a tile: a figure over a sparkline) goes down to 100 px
+      const at = (s, width) => {
+        const el = new FakeNode('div');
+        el.clientWidth = width;
+        BC.chart(el, s);
+        return box(el);
+      };
+      const tile = monthly({ size: [280, 150], guides: [{ type: 'kpi', field: 'rev', label: 'Revenue' }] });
+      assert.deepStrictEqual(at(tile, 133), [133, 150], 'a tile two to a row on a phone: its own width, not 200 scaled down');
+      assert.deepStrictEqual(at(tile, 60), [100, 150], 'not below 100 px');
+      assert.deepStrictEqual(at({ ...tile, size: [80, 150] }, 60), [80, 150], 'nor below a size narrower still');
+      assert.deepStrictEqual(at({ ...tile, guides: [] }, 133), [133, 150], 'a sparkline alone');
+      const others = [
+        ['an axis', { guides: [{ type: 'axis', scale: 'y' }] }],
+        ['end labels', { marks: [{ type: 'line', x: 'm', y: 'rev', label: 'name' }] }],
+        [
+          'a labelled rule',
+          {
+            marks: [
+              { type: 'line', x: 'm', y: 'rev' },
+              { type: 'rule', y: { value: 100 }, label: 'Target' },
+            ],
+          },
+        ],
+      ];
+      for (const [what, extra] of others) assert.deepStrictEqual(at({ ...tile, ...extra }, 133), [200, 150], `${what}: 200 px`);
+      assert.deepStrictEqual(
+        at(
+          {
+            ...tile,
+            marks: [
+              { type: 'line', x: 'm', y: 'rev', label: 'none' },
+              { type: 'rule', y: { value: 100 } },
+            ],
+          },
+          133,
+        ),
+        [133, 150],
+        'a line with no end labels and a rule with no label are narrow',
+      );
+      assert.strictEqual(BC.narrow(tile), true);
+      assert.strictEqual(BC.narrow({ marks: [], guides: [{ type: 'kpi', field: 'v' }] }), true, 'a tile of the figure alone');
+      const hostile = [null, 'x', 7, {}, { marks: 'x' }, { marks: [null] }, { marks: [{ type: 'nope' }] }, { marks: [], guides: 'x' }];
+      for (const s of hostile) assert.strictEqual(BC.narrow(s), false, JSON.stringify(s));
+      assert.strictEqual(BC.narrow({ marks: [{ type: 'linear' }] }), false, 'a name of another role is not a mark');
+      assert.strictEqual(BC.narrow({ marks: [], guides: [{ type: 'kpi' }, { type: 'axis' }] }), false, 'one wide block is enough');
 
       const unknown = new FakeNode('div');
       BC.chart(unknown, spec);

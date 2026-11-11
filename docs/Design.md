@@ -171,7 +171,8 @@ Marks know nothing about SVG; they return primitives, and the renderer draws the
   diagnostics (`level`, `path`, `message`).
 - Scaling is through `viewBox` (the SVG stretches to its container), and the core lays the chart out again at the
   container's width (see "Responsive layout" below), so the stretch is 1 and text keeps its size; only a chart with
-  `responsive: false`, or one narrower than 200 px, is scaled as a drawing.
+  `responsive: false`, or one narrower than 200 px, is scaled as a drawing (100 px for a chart whose blocks all draw as
+  well at any width: a KPI tile, `MarkDef.narrow`).
 
 ## Known rough edges
 
@@ -1436,6 +1437,20 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   the whole plot, and `{"type": "rule", "x": "region"}` drew a diagonal from a corner of each band to the opposite
   one. With nothing on the other axis the line now runs across the plot through the middle of its band, as with x2 or
   y2. No recipe drew one.
+- **KPI tiles two to a row on a phone, at their own width.** A chart is laid out at its card's width down to 200 px and
+  scaled as a drawing below it, so a tile two to a row on a phone (about 135 px) was built at 200 and shown at two
+  thirds: the figure 20 px, the label 8. Below 200 px an axis or a legend has no room, but a tile has neither: a mark
+  or a guide now says whether it draws as well at any width (`MarkDef.narrow`, `GuideDef.narrow`: shapes with no text
+  beside them, a line without end labels, a rule without its label, a grid, the KPI), and a chart whose blocks all say
+  so is laid out down to 100 px. `guide.kpi` fits its text to the width itself: the value is written as much smaller
+  as it takes (a number is never cut), the label and the line of the change down to 10 px and then cut with an
+  ellipsis, the note before the change. `BC.narrow(spec)` gives the same answer to the composer, which with
+  `phoneColumns: 2` now pairs only tiles that draw at any width, next to each other: the donut of the executive
+  dashboard is `span: 1` too and stood at half a phone's width with its legend at 8 px, and the last tile of an odd run
+  stood beside an empty half. That recipe now takes `phoneColumns: 2`, so its four tiles fill two rows of a phone instead
+  of four (370 px before the first chart, not 780), and highlight-bar, whose one tile pairs with nothing, no longer does. On a desk a tile beside a taller chart was stretched to its height with its figure at the top and the
+  rest empty: the chart of a tile now stands in the middle of the room under its title. The executive tiles of orders,
+  conversion and churn had no tooltip; all four have one, headed by the month, with the figure named and formatted.
 
 ## Next steps
 

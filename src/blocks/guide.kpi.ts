@@ -4,6 +4,14 @@
   const DELTA_SIZE = 12;
   const GAP = 6;
   const BOTTOM = 10;
+  /** Between the change and the note after it. */
+  const NOTE_GAP = 6;
+  /** Kept free at the right of the chart: a font a little wider than the widths text is fitted by stays inside. */
+  const EDGE = 2;
+  /** The label and the line under the value are made no smaller than this to fit a narrow tile; past it they are cut. */
+  const MIN_TEXT = 10;
+  /** The value is made as much smaller as it takes (a number is never cut short), down to this. */
+  const MIN_VALUE = 8;
   const LABEL = 'var(--bc-label, var(--bc-text, #666))';
   const VALUE = 'var(--bc-kpi, var(--bc-text, #111))';
   const GOOD = 'var(--bc-good, #12a150)';
@@ -74,13 +82,99 @@
 
   const noteOf = (spec: BC.GuideSpec) => (typeof spec.note === 'string' ? spec.note : '');
 
-  /** The line under the value is only there when it has something to say, so a plain total takes no room for it. */
-  const height = (spec: BC.GuideSpec, ctx: BC.ChartCtx) => {
-    const size = typeof spec.size === 'number' && spec.size > 0 ? spec.size : VALUE_SIZE;
+  /** The size a line of text is written at in `room` px: its own, or smaller when it is wider, down to `least`. */
+  function fitted(ctx: BC.ChartCtx, text: string, size: number, weight: number, room: number, least: number): number {
+    const w = ctx.textWidth(text, size, weight);
+    if (w <= room) return size;
+    return Math.max(Math.min(least, size), Math.floor(((size * room) / w) * 2) / 2);
+  }
+
+  /** The text cut to at most `room` wide, ending in an ellipsis when it had to be cut; whole characters only. */
+  function cut(ctx: BC.ChartCtx, text: string, size: number, weight: number, room: number): string {
+    if (ctx.textWidth(text, size, weight) <= room) return text;
+    const chars = Array.from(text);
+    let lo = 0;
+    let hi = chars.length;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (ctx.textWidth(chars.slice(0, mid).join('') + '…', size, weight) <= room) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo ? chars.slice(0, lo).join('').trimEnd() + '…' : '';
+  }
+
+  interface Tile {
+    /** There is a label, so its slot is kept, also when not a letter of it fits. */
+    labelled: boolean;
+    label: string;
+    labelSize: number;
+    value: string;
+    valueSize: number;
+    /** The arrow and the change; '' when there is no comparison. */
+    change: string;
+    changeColor: string;
+    note: string;
+    /** The size of the line under the value, the change and the note alike. */
+    lineSize: number;
+    height: number;
+  }
+
+  /** What the tile writes and how large, in the width it has: from the left of the plot to the right of the chart. Every
+   *  line keeps its size where it fits; in a narrow tile (two to a row on a phone) the value is made as much smaller as
+   *  it takes, and the label and the line under the value down to MIN_TEXT, then cut with an ellipsis (the note before
+   *  the change). Only the value's size changes the height: the other lines keep their slots. */
+  function lay(spec: BC.GuideSpec, ctx: BC.ChartCtx): Tile {
+    const room = Math.max(1, ctx.size.w - ctx.plot.x - EDGE);
+    const own = typeof spec.size === 'number' && spec.size > 0 && isFinite(spec.size) ? spec.size : VALUE_SIZE;
+    const row = rowName(spec, ctx);
+    const named = typeof spec.label === 'string' ? spec.label : '';
+    const fullLabel = named && row ? `${named}: ${row}` : named || row;
+    const labelSize = fitted(ctx, fullLabel, LABEL_SIZE, 500, room, MIN_TEXT);
+    const label = cut(ctx, fullLabel, labelSize, 500, room);
+
     const { value, base } = figures(spec, ctx);
-    const line = noteOf(spec) || (isFinite(value) && isFinite(base)) ? GAP + DELTA_SIZE : 0;
-    return (typeof spec.label === 'string' && spec.label ? LABEL_SIZE + GAP : 0) + size + line + BOTTOM;
-  };
+    const write =
+      spec.format !== undefined ? BC.formatter(spec.format as BC.FormatSpec | string) : (v: unknown) => BC.formatter('compact')(v);
+    const valueText = isFinite(value) ? write(value) : '–';
+    const valueSize = fitted(ctx, valueText, own, 650, room, MIN_VALUE);
+
+    let change = '';
+    let changeColor = FLAT;
+    if (isFinite(value) && isFinite(base)) {
+      const diff = value - base;
+      const up = diff > 0;
+      const flat = diff === 0;
+      const good = spec.better === 'down' ? !up : up;
+      changeColor = flat ? FLAT : good ? GOOD : BAD;
+      const given = spec.deltaFormat !== undefined ? BC.formatter(spec.deltaFormat as BC.FormatSpec | string) : null;
+      // a format may write the sign itself (signDisplay)
+      const signed = (s: string) => (up && !/^[+]/.test(s) ? '+' + s : s);
+      let text: string;
+      if (spec.delta === 'absolute') {
+        text = signed((given || write)(diff * (typeof spec.deltaScale === 'number' && isFinite(spec.deltaScale) ? spec.deltaScale : 1)));
+      } else {
+        // a change from zero has no percentage
+        const percent = given || BC.formatter({ style: 'percent', maximumFractionDigits: 1 });
+        text = base !== 0 ? signed(percent(diff / Math.abs(base))) : '';
+      }
+      const arrow = flat ? '■' : up ? '▲' : '▼';
+      change = `${arrow} ${text}`.trim();
+    }
+    // the change and the note are one line at one size, the note NOTE_GAP after the change; the width is linear in the size
+    const fullNote = noteOf(spec);
+    const gap = change && fullNote ? NOTE_GAP : 0;
+    const text = (s: number) => (change ? ctx.textWidth(change, s, 600) : 0) + (fullNote ? ctx.textWidth(fullNote, s, 400) : 0);
+    const wide = text(DELTA_SIZE);
+    const lineSize =
+      gap + wide <= room ? DELTA_SIZE : Math.max(MIN_TEXT, Math.floor(((DELTA_SIZE * Math.max(0, room - gap)) / wide) * 2) / 2);
+    if (change) change = cut(ctx, change, lineSize, 600, room);
+    const note = fullNote ? cut(ctx, fullNote, lineSize, 400, room - (change ? ctx.textWidth(change, lineSize, 600) + gap : 0)) : '';
+
+    // the slots go by what there is to say, not by what was left of it in the width
+    const line = change || fullNote ? GAP + DELTA_SIZE : 0;
+    const height = (fullLabel ? LABEL_SIZE + GAP : 0) + valueSize + line + BOTTOM;
+    return { labelled: !!fullLabel, label, labelSize, value: valueText, valueSize, change, changeColor, note, lineSize, height };
+  }
 
   /** What the row of the figure is called: the month of a maximum. An aggregate of many rows has no row of its own. */
   function rowName(spec: BC.GuideSpec, ctx: BC.ChartCtx): string {
@@ -105,8 +199,10 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'kpi',
-    version: 8,
-    doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number.',
+    version: 9,
+    // it fits its text to the width itself, so a tile is laid out at its card's width however narrow
+    narrow: true,
+    doc: 'A key figure as the heading of a chart: a label, the value in large type, and its change against a comparison, green when it goes the good way and red when not. It takes the room it needs at the top, so a line or an area drawn in the same chart becomes the sparkline under the number. The value is one number from a field: the last row by default (`aggregate`), compared with the row before it; or compare with another field (`against`: a target, last year). A chart may consist of this guide alone (no marks) for a tile with just the number. A tile is laid out at the width of its card, also two to a row on a phone: a value too wide for it is written smaller, and so are the label and the change, down to 10 px, then cut with an ellipsis.',
     params: {
       field: { kind: 'field', required: true, doc: 'The numeric field the figure comes from.' },
       label: { kind: 'string', doc: 'What the figure is ("Revenue", "Active users"), above it.' },
@@ -163,92 +259,26 @@
       }
       if (typeof spec.rowField === 'string' && ['last', 'first', 'min', 'max'].indexOf(how) < 0)
         throw new Error(`guide.kpi: rowField names one row, and aggregate "${how}" comes from many; use last, first, min or max`);
-      return { top: height(spec, ctx) };
+      return { top: lay(spec, ctx).height };
     },
     render(spec, ctx, offset) {
       if (typeof spec.field !== 'string' || !column(ctx, spec.field)) return {};
-      const size = typeof spec.size === 'number' && spec.size > 0 ? spec.size : VALUE_SIZE;
-      const row = rowName(spec, ctx);
-      const named = typeof spec.label === 'string' ? spec.label : '';
-      const label = named && row ? `${named}: ${row}` : named || row;
+      const t = lay(spec, ctx);
       const left = ctx.plot.x;
-      let y = ctx.plot.y - offset.top - height(spec, ctx);
+      let y = ctx.plot.y - offset.top - t.height;
       const out: BC.Prim[] = [];
-      if (label) {
-        out.push({
-          type: 'text',
-          x: left,
-          y,
-          text: label,
-          size: LABEL_SIZE,
-          weight: 500,
-          baseline: 'hanging',
-          style: { fill: LABEL },
-          cls: 'bc-kpi-label',
-        });
-        y += LABEL_SIZE + GAP;
-      }
-      const { value, base } = figures(spec, ctx);
-      const write =
-        spec.format !== undefined ? BC.formatter(spec.format as BC.FormatSpec | string) : (v: unknown) => BC.formatter('compact')(v);
-      out.push({
-        type: 'text',
-        x: left,
-        y,
-        text: isFinite(value) ? write(value) : '–',
-        size,
-        weight: 650,
-        baseline: 'hanging',
-        style: { fill: VALUE },
-        cls: 'bc-kpi-value',
-      });
-      y += size + GAP;
-
+      const line = (text: string, x: number, size: number, weight: number, fill: string, cls: string) =>
+        out.push({ type: 'text', x, y, text, size, weight, baseline: 'hanging', style: { fill }, cls });
+      if (t.label) line(t.label, left, t.labelSize, 500, LABEL, 'bc-kpi-label');
+      if (t.labelled) y += LABEL_SIZE + GAP;
+      line(t.value, left, t.valueSize, 650, VALUE, 'bc-kpi-value');
+      y += t.valueSize + GAP;
       let noteAt = left;
-      if (isFinite(value) && isFinite(base)) {
-        const diff = value - base;
-        const up = diff > 0;
-        const flat = diff === 0;
-        const good = spec.better === 'down' ? !up : up;
-        const color = flat ? FLAT : good ? GOOD : BAD;
-        const given = spec.deltaFormat !== undefined ? BC.formatter(spec.deltaFormat as BC.FormatSpec | string) : null;
-        // a format may write the sign itself (signDisplay)
-        const signed = (s: string) => (up && !/^[+]/.test(s) ? '+' + s : s);
-        let text: string;
-        if (spec.delta === 'absolute') {
-          text = signed((given || write)(diff * (typeof spec.deltaScale === 'number' && isFinite(spec.deltaScale) ? spec.deltaScale : 1)));
-        } else {
-          // a change from zero has no percentage
-          const percent = given || BC.formatter({ style: 'percent', maximumFractionDigits: 1 });
-          text = base !== 0 ? signed(percent(diff / Math.abs(base))) : '';
-        }
-        const arrow = flat ? '■' : up ? '▲' : '▼';
-        const change = `${arrow} ${text}`.trim();
-        out.push({
-          type: 'text',
-          x: left,
-          y,
-          text: change,
-          size: DELTA_SIZE,
-          weight: 600,
-          baseline: 'hanging',
-          style: { fill: color },
-          cls: 'bc-kpi-delta',
-        });
-        noteAt = left + ctx.measure(change, DELTA_SIZE).w + 6;
+      if (t.change) {
+        line(t.change, left, t.lineSize, 600, t.changeColor, 'bc-kpi-delta');
+        noteAt = left + ctx.textWidth(t.change, t.lineSize, 600) + NOTE_GAP;
       }
-      if (noteOf(spec)) {
-        out.push({
-          type: 'text',
-          x: noteAt,
-          y,
-          text: noteOf(spec),
-          size: DELTA_SIZE,
-          baseline: 'hanging',
-          style: { fill: LABEL },
-          cls: 'bc-kpi-note',
-        });
-      }
+      if (t.note) line(t.note, noteAt, t.lineSize, 400, LABEL, 'bc-kpi-note');
       return { axes: out };
     },
   };

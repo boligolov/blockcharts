@@ -661,19 +661,47 @@ test('compose: a tooltip function registered by name in an "after" script is fou
   assert.deepStrictEqual(errors, []);
 });
 
-test('compose: phoneColumns keeps tiles side by side, and text with no chart is told what to use', () => {
+test('compose: phoneColumns pairs the tiles that draw at any width, next to each other; the rest take the row', () => {
   const data = { d: [{ k: 'a', v: 1 }] };
   const tile = { data: 'd', scales: {}, marks: [], guides: [{ type: 'kpi', field: 'v' }] };
-  const { html } = compose({
-    data,
-    layout: { columns: 4, phoneColumns: 2 },
-    charts: [
-      { spec: tile, span: 1 },
-      { spec: tile, span: 3 },
-    ],
-  });
+  const spark = {
+    data: 'd',
+    scales: { x: { type: 'band' }, y: { type: 'linear' } },
+    marks: [{ type: 'line', x: 'k', y: 'v' }],
+    guides: [{ type: 'kpi', field: 'v' }],
+  };
+  const legend = {
+    data: 'd',
+    scales: { c: { type: 'color' } },
+    marks: [{ type: 'arc', value: 'v', color: { field: 'k', scale: 'c' } }],
+    guides: [{ type: 'legend', scale: 'c' }],
+  };
+  const labelled = { ...spark, marks: [{ type: 'line', x: 'k', y: 'v', label: 'name' }] };
+  const classes = (charts, layout = { columns: 4, phoneColumns: 2 }) =>
+    [...compose({ data, layout, charts }).html.matchAll(/<section class="bc-section([^"]*)"/g)].map((m) => m[1].trim());
+  const one = (spec, title) => ({ spec, span: 1, title });
+
+  assert.deepStrictEqual(
+    classes([one(tile), one(spark), one(tile), { spec: tile, span: 3 }, one(legend), one(labelled), one(tile), one(tile)]),
+    ['bc-tile bc-pair', 'bc-tile bc-pair', 'bc-tile', '', 'bc-tile', 'bc-tile', 'bc-tile bc-pair', 'bc-tile bc-pair'],
+    'pairs of narrow tiles; the third of a run, a wide card, a legend, end labels each take the row on a phone',
+  );
+  assert.deepStrictEqual(
+    classes([one(tile), { section: 'Next' }, one(tile), one(tile)]),
+    ['bc-tile', 'bc-tile bc-pair', 'bc-tile bc-pair'],
+    'a heading ends a run',
+  );
+  assert.deepStrictEqual(classes([one(tile), one(tile)], { columns: 4 }), ['bc-tile', 'bc-tile'], 'without phoneColumns 2, no pairs');
+  const facet = { spec: spark, span: 1, facet: { field: 'k' } };
+  assert.deepStrictEqual(classes([facet, one(tile)]), ['bc-tile', 'bc-tile'], 'a facet is never a pair');
+
+  const { html } = compose({ data, layout: { columns: 4, phoneColumns: 2 }, charts: [one(tile), one(tile)] });
   assert(html.includes('--bc-phone-cols:2'));
-  assert.strictEqual(html.split('bc-section bc-tile').length, 2, 'only the span 1 card is a tile');
+  assert(/@media \(max-width:720px\)\{[^@]*\.bc-section\.bc-pair\{grid-column:auto!important/.test(html), 'a pair shares a row');
+  assert(
+    /\.bc-tile\{display:flex;flex-direction:column\}\.bc-tile>\.bc-chart[^{]*\{margin:auto 0\}/.test(html),
+    'a stretched tile centers',
+  );
   assert.throws(() => compose({ data, charts: [{ title: 'Note', note: 'Text' }] }), /text alone is/);
 });
 

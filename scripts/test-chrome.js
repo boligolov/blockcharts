@@ -440,6 +440,91 @@ for (const width of [1100, 390, 360]) {
   });
 }
 
+// ───────────────────────── KPI tiles ─────────────────────────
+
+/** Every card of a page: where it is, whether it is a KPI tile, and how its chart is drawn (px of text on the screen). */
+const cardsOf = (p) =>
+  p.evaluate(() =>
+    [...document.querySelectorAll('.bc-section')].map((s) => {
+      const r = s.getBoundingClientRect();
+      const svg = s.querySelector('svg[viewBox]');
+      const box = svg.getBoundingClientRect();
+      const scale = box.width / svg.viewBox.baseVal.width;
+      const px = (cls) => {
+        const t = svg.querySelector(`.bc-kpi-${cls}`);
+        return t ? Number(t.getAttribute('font-size')) * scale : null;
+      };
+      return {
+        title: (s.querySelector('h2,h3') || {}).textContent || '',
+        left: r.left,
+        top: r.top,
+        width: r.width,
+        svgWidth: box.width,
+        viewBoxWidth: svg.viewBox.baseVal.width,
+        value: px('value'),
+        label: px('label'),
+        delta: px('delta'),
+      };
+    }),
+  );
+
+for (const width of [390, 320]) {
+  test(`KPI tiles at ${width} px: two to a row at their own width, text at its size; the donut beside them takes the row`, async () => {
+    const p = await open(recipe('executive-dashboard'), width);
+    const cards = await cardsOf(p);
+    const tiles = cards.filter((c) => c.value !== null);
+    assert.strictEqual(tiles.length, 4);
+    for (const [a, b] of [
+      [0, 1],
+      [2, 3],
+    ]) {
+      assert(Math.abs(tiles[a].top - tiles[b].top) < 1 && tiles[a].left < tiles[b].left, `tiles ${a} and ${b} share a row`);
+    }
+    assert(tiles[2].top > tiles[0].top + 50, 'two rows of two');
+    const whole = cards.find((c) => c.title === 'Revenue against plan').width;
+    for (const t of tiles) {
+      assert(t.width < whole / 2, 'half a row');
+      // laid out at the width of the card, not at 200 px and scaled down to two thirds
+      assert(Math.abs(t.svgWidth - t.viewBoxWidth) < 1, `drawn at ${t.viewBoxWidth}, shown at ${t.svgWidth}`);
+      assert(t.label >= 10 && t.delta >= 10, `label ${t.label} px, change ${t.delta} px`);
+      assert(t.value >= (width >= 390 ? 26 : 22), `value ${t.value} px`);
+    }
+    assert(Math.abs(cards.find((c) => c.title === 'Revenue by channel').width - whole) < 1, 'the donut of span 1 takes the whole row');
+    assert.deepStrictEqual(p.errors, []);
+    await p.close();
+  });
+}
+
+test('KPI tiles: the last of an odd run takes the whole row on a phone, beside nothing', async () => {
+  const page = recipe('executive-dashboard');
+  page.charts.splice(3, 1); // three tiles
+  const p = await open(page, 390);
+  const tiles = (await cardsOf(p)).filter((c) => c.value !== null);
+  assert.strictEqual(tiles.length, 3);
+  assert(Math.abs(tiles[0].top - tiles[1].top) < 1, 'two side by side');
+  assert(tiles[2].width > tiles[0].width * 1.8, 'the third alone, as wide as the row');
+  await p.close();
+});
+
+test('KPI tile: stretched to the height of a chart beside it on a desk, its figure stands in the middle of the room', async () => {
+  const p = await open(recipe('highlight-bar'), 1280);
+  const gaps = await p.evaluate(() => {
+    const tile = document.querySelector('.bc-tile');
+    const card = tile.getBoundingClientRect();
+    const style = getComputedStyle(tile);
+    const host = tile.querySelector('.bc-chart').getBoundingClientRect();
+    const before = [...tile.children].filter((c) => /^(H2|H3|P)$/.test(c.tagName)).pop();
+    const above = host.top - before.getBoundingClientRect().bottom - parseFloat(getComputedStyle(before).marginBottom);
+    const below = card.bottom - parseFloat(style.paddingBottom) - parseFloat(style.borderBottomWidth) - host.bottom;
+    const next = tile.nextElementSibling.getBoundingClientRect();
+    return { above, below, stretched: Math.abs(card.height - next.height) };
+  });
+  assert(gaps.stretched < 1, 'as high as the chart beside it');
+  assert(gaps.above > 40, `room was left over: ${gaps.above}`);
+  assert(Math.abs(gaps.above - gaps.below) < 2, `as much room above the figure as below it: ${gaps.above} / ${gaps.below}`);
+  await p.close();
+});
+
 for (const width of [1100, 390]) {
   test(`every recipe at ${width} px: no line of text reaches above or below its chart`, async () => {
     const out = [];
