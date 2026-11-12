@@ -12,7 +12,8 @@
   "charts": [
     {
       "title": "Sales by region",
-      "note": "The text mark writes the value above each bar: it reads its x and y like the bars and takes the label from the text field.",
+      "note": "West sells the most, 66, more than twice the 25 of Central.",
+      "how": "The text mark writes the value above each bar: it reads its x and y like the bars and takes the label from the text field.",
       "spec": {
         "data": "sales",
         "size": [640, 300],

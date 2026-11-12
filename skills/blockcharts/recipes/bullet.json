@@ -12,7 +12,8 @@
   "charts": [
     {
       "title": "Results against target",
-      "note": "Each goal as a share of its target, so different units share one axis. Three rect marks draw the grey bands (poor, fair, good) behind a slim bar of the result (`thickness`), and mark.rule draws the target as a tick across each band.",
+      "note": "Revenue and new customers beat their targets; satisfaction, at 86% of its target, is the furthest below.",
+      "how": "Each goal as a share of its target, so different units share one axis. Three rect marks draw the grey bands (poor, fair, good) behind a slim bar of the result (`thickness`), and mark.rule draws the target as a tick across each band.",
       "spec": {
         "data": "goals",
         "size": [720, 300],

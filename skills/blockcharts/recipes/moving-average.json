@@ -190,7 +190,8 @@
   "charts": [
     {
       "title": "Daily sign-ups and their 7-day average",
-      "note": "transform.window with op \"mean\" and size 7 averages each day with the six before it, so the weekly dip disappears and the trend shows. The first six days have no full week and are left out (partial: true would keep them). Draw the raw values thin and quiet and the average on top.",
+      "note": "Sign-ups nearly doubled in three months, from about 167 a day in the first week to 317 in the last; Sundays are the quietest.",
+      "how": "transform.window with op \"mean\" and size 7 averages each day with the six before it, so the weekly dip disappears and the trend shows. The first six days have no full week and are left out (partial: true would keep them). Draw the raw values thin and quiet and the average on top.",
       "spec": {
         "data": "signups",
         "size": [
@@ -271,7 +272,8 @@
     },
     {
       "title": "Revenue to date, by region",
-      "note": "op \"cumsum\" with group: a running total for each region, in the order of sort. Each total is computed over its own region only; end labels name the lines and give the month total.",
+      "note": "North sold the most in September, South the least.",
+      "how": "op \"cumsum\" with group: a running total for each region, in the order of sort. Each total is computed over its own region only; end labels name the lines and give the month total.",
       "spec": {
         "data": "sales",
         "size": [

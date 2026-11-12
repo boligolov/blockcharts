@@ -47,7 +47,8 @@
   "charts": [
     {
       "title": "Profit per quarter",
-      "note": "The data has revenue and cost only. transform.calculate subtracts one from the other into a new column, profit, which the bars and their labels use like any other field.",
+      "note": "Profit more than tripled in two years, from 58,000 in Q1 2023 to 187,000 in Q4 2024; it fell only in Q1 2024.",
+      "how": "The data has revenue and cost only. transform.calculate subtracts one from the other into a new column, profit, which the bars and their labels use like any other field.",
       "spec": {
         "data": "pnl",
         "size": [
@@ -153,7 +154,8 @@
     },
     {
       "title": "Margin per quarter",
-      "note": "Calculations chain: profit first, then margin = profit / revenue. A margin is a fraction (0.15), so the axis and the labels use the percent format.",
+      "note": "The margin rose from 14% to 25% of revenue: profit grew faster than sales.",
+      "how": "Calculations chain: profit first, then margin = profit / revenue. A margin is a fraction (0.15), so the axis and the labels use the percent format.",
       "spec": {
         "data": "pnl",
         "size": [

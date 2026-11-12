@@ -11,7 +11,8 @@
   "charts": [
     {
       "title": "Revenue and units sold by month",
-      "note": "y2 is a second linear scale. A mark chooses it with { field, scale }, and its axis goes to the right with position. Both axes are titled and start at zero, and the legend names the marks: each takes its name as a constant on the color scale.",
+      "note": "Revenue doubled from January to August; units sold grew faster, from 3,400 to 8,800.",
+      "how": "y2 is a second linear scale. A mark chooses it with { field, scale }, and its axis goes to the right with position. Both axes are titled and start at zero, and the legend names the marks: each takes its name as a constant on the color scale.",
       "spec": {
         "data": "monthly",
         "size": [720, 320],

@@ -11,7 +11,8 @@
   "charts": [
     {
       "title": "A sensor reading over 1500 days",
-      "note": "transform.decimate keeps the first, last, lowest and highest point of every pixel column, so the line looks the same but is far lighter, and it is redone when you zoom (Ctrl + wheel). This sample is short, so its threshold is lowered to make the effect visible; on hundreds of thousands of rows the default is right. interaction.zoom-controls adds a \"100%\" / \"-\" / \"+\" button bar (top-right) so a reader without a wheel or a Shift-drag can still reset or step the zoom.",
+      "note": "A reading a day for 1,500 days, between −1.5 and 25.3. Ctrl + wheel or the buttons at the top right zoom in; drag to pan.",
+      "how": "transform.decimate keeps the first, last, lowest and highest point of every pixel column, so the line looks the same but is far lighter, and it is redone when you zoom (Ctrl + wheel). This sample is short, so its threshold is lowered to make the effect visible; on hundreds of thousands of rows the default is right. interaction.zoom-controls adds a \"100%\" / \"-\" / \"+\" button bar (top-right) so a reader without a wheel or a Shift-drag can still reset or step the zoom.",
       "spec": {
         "data": "readings",
         "transforms": [

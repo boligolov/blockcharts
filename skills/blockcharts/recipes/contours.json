@@ -19,7 +19,8 @@
   "charts": [
     {
       "title": "Where most deliveries fall",
-      "note": "transform.contour smooths 6,000 points into a density and outlines the regions that hold a quarter, half, three quarters and 95% of them (shares), nested like the rings of a map; extent cuts them at 0 km, since a distance cannot be negative. mark.polygon fills them, one shape per level. Where a scatter is a blot, this says how much is where: half of all deliveries are short city trips of 15 to 30 minutes. The tooltip names the share of deliveries inside the region under the pointer.",
+      "note": "Half of all deliveries are short city trips of 15 to 30 minutes; the rings hold a quarter, half, three quarters and 95% of them.",
+      "how": "transform.contour smooths 6,000 points into a density and outlines the regions that hold a quarter, half, three quarters and 95% of them (shares), nested like the rings of a map; extent cuts them at 0 km, since a distance cannot be negative. mark.polygon fills them, one shape per level. Where a scatter is a blot, this says how much is where: half of all deliveries are short city trips of 15 to 30 minutes. The tooltip names the share of deliveries inside the region under the pointer.",
       "spec": {
         "data": "deliveries",
         "size": [
@@ -128,7 +129,8 @@
     },
     {
       "title": "Contour lines",
-      "note": "The same density as lines, like the contour lines of a map: levels: 8 draws eight at even steps of the density, closer together where it rises steeply, and filled: false draws only the outlines, in the color of their level.",
+      "note": "The same deliveries as contour lines: where the lines crowd together, the number of deliveries changes fastest.",
+      "how": "The same density as lines, like the contour lines of a map: levels: 8 draws eight at even steps of the density, closer together where it rises steeply, and filled: false draws only the outlines, in the color of their level.",
       "spec": {
         "data": "deliveries",
         "size": [

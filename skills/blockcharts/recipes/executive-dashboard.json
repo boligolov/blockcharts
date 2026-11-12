@@ -583,6 +583,7 @@
     {
       "span": 1,
       "title": "Revenue by channel",
+      "note": "Organic brings over a third of the revenue, paid search a quarter.",
       "spec": {
         "data": "channels",
         "size": [

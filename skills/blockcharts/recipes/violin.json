@@ -607,7 +607,8 @@
   "charts": [
     {
       "title": "Response time by region, ms",
-      "note": "transform.density turns the raw times into a curve per region (extent [0, null]: no time is negative); mark.violin mirrors it on both sides of the band. Unlike a box plot it shows that US West has two humps: most requests are fast, a third take the slow path.",
+      "note": "US West has two humps: most requests are fast, a third take the slow path. Asia is the slowest overall.",
+      "how": "transform.density turns the raw times into a curve per region (extent [0, null]: no time is negative); mark.violin mirrors it on both sides of the band. Unlike a box plot it shows that US West has two humps: most requests are fast, a third take the slow path.",
       "spec": {
         "data": "requests",
         "size": [

@@ -12,7 +12,8 @@
   "charts": [
     {
       "title": "Browser share",
-      "note": "One slice per row, its angle proportional to the value. innerRadius turns the pie into a donut; label writes the percentage outside each slice. Clicking a legend item hides that slice (interaction.legend-filter) and the rest recompute their share against the smaller total automatically — mark.arc always divides by the total of only the visible rows, so hiding is not a separate feature, just a consequence of how the angles are computed. Double-click a legend item to isolate it.",
+      "note": "Chrome holds almost two thirds of the market, Safari a fifth. Click a legend item to hide its slice: the others are shared out to 100% again.",
+      "how": "One slice per row, its angle proportional to the value. innerRadius turns the pie into a donut; label writes the percentage outside each slice. Clicking a legend item hides that slice (interaction.legend-filter) and the rest recompute their share against the smaller total automatically — mark.arc always divides by the total of only the visible rows, so hiding is not a separate feature, just a consequence of how the angles are computed. Double-click a legend item to isolate it.",
       "spec": {
         "data": "browsers",
         "size": [640, 340],

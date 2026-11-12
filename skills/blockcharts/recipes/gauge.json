@@ -9,7 +9,7 @@
     {
       "title": "Customer satisfaction, out of 100",
       "span": 1,
-      "note": "A gauge is mark.arc on a half circle: startAngle -90, endAngle 90. total is the maximum, so the arc fills to 72 and the rest is an empty track; center writes the figure.",
+      "how": "A gauge is mark.arc on a half circle: startAngle -90, endAngle 90. total is the maximum, so the arc fills to 72 and the rest is an empty track; center writes the figure.",
       "spec": {
         "data": "score",
         "size": [360, 220],
@@ -33,7 +33,8 @@
     {
       "title": "Revenue against the $10M target",
       "span": 1,
-      "note": "A progress ring: the same mark on a full circle, total = the target, center \"percent\" = the share of it.",
+      "note": "$8.3M so far, 83% of the $10M target.",
+      "how": "A progress ring: the same mark on a full circle, total = the target, center \"percent\" = the share of it.",
       "spec": {
         "data": "sales",
         "size": [360, 220],

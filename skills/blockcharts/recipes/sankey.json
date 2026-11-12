@@ -22,7 +22,8 @@
   "charts": [
     {
       "title": "From crude oil to the customer, million barrels",
-      "note": "One row per flow. transform.sankey lays the flows out: the columns come from the flows, so it needs no scales and no axes. mark.sankey draws them, and every node is named on the chart.",
+      "note": "Of 1,000 million barrels of crude oil, 420 become gasoline; retail stations sell 490, most of it to drivers.",
+      "how": "One row per flow. transform.sankey lays the flows out: the columns come from the flows, so it needs no scales and no axes. mark.sankey draws them, and every node is named on the chart.",
       "spec": {
         "data": "flows",
         "size": [720, 400],

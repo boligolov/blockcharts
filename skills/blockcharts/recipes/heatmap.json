@@ -12,7 +12,8 @@
   "charts": [
     {
       "title": "Visits by weekday and time of day",
-      "note": "Two band scales make the grid, a sequential scale turns the number into a color. A cell without a row stays empty.",
+      "note": "Evenings are the busiest from Monday to Thursday, Wednesday evening most of all; on Friday, noon is the busiest.",
+      "how": "Two band scales make the grid, a sequential scale turns the number into a color. A cell without a row stays empty.",
       "spec": {
         "data": "activity",
         "size": [640, 300],

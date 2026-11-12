@@ -19,7 +19,8 @@
   "charts": [
     {
       "title": "Revenue by product line",
-      "note": "`dodge` splits each quarter's band into one bar per distinct value of the field, side by side, in the order the value first appears in the data — the same layout as stacked-bar.json's data, just dodged instead of stacked. `dodge` is usually the same field as `color`.",
+      "note": "Hardware sells the most in every quarter but Q3, when Software overtook it; Services grew the most, from 10 to 26.",
+      "how": "`dodge` splits each quarter's band into one bar per distinct value of the field, side by side, in the order the value first appears in the data — the same layout as stacked-bar.json's data, just dodged instead of stacked. `dodge` is usually the same field as `color`.",
       "spec": {
         "data": "revenue",
         "size": [640, 320],

@@ -47,6 +47,20 @@ const several = recipe.charts.length > 1;
 const perChart = several ? recipe.page.charts.map((entry, i) => chartCodeOf(recipe, entry, i)) : [];
 // the charts as the composer settled them: a facet is its panels, on the scales they share
 const entries = entriesOf(recipe);
+// a recipe's note for the agent ("how"), shown under its chart: code in backticks and the names of blocks as code, a block
+// linked to its reference
+const CODE = /`([^`]+)`|\b((?:transform|mark|scale|guide|interaction|renderer|lib)\.[a-z][\w-]*)/g;
+const howParts = (text: string) => {
+  const parts: { text: string; code?: boolean; block?: string }[] = [];
+  let at = 0;
+  for (const m of text.matchAll(CODE)) {
+    if (m.index > at) parts.push({ text: text.slice(at, m.index) });
+    parts.push(m[2] ? { text: m[2], code: true, block: BLOCK_SUMMARY[m[2]] ? m[2] : undefined } : { text: m[1], code: true });
+    at = m.index + m[0].length;
+  }
+  if (at < text.length) parts.push({ text: text.slice(at) });
+  return parts;
+};
 const specsOf = (e) => (e.panels ? e.panels.map((p) => ({ label: p.label, spec: p.spec })) : e.spec ? [{ spec: e.spec }] : []);
 
 // what a reader copies: the kit from a CDN, the data, and every chart of the example
@@ -80,6 +94,14 @@ const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : emb
       {c.title && <h2>{c.title}</h2>}
       {c.note && <p>{c.note}</p>}
       <div class="demo"><ChartEntry entry={c} level={c.title ? 3 : 2} /></div>
+      {c.how && (
+        <p class="how">
+          <strong>How it is made:</strong>{' '}
+          {howParts(c.how).map((p) =>
+            p.block ? <a href={`${base}blocks/#${p.block}`}><code>{p.text}</code></a> : p.code ? <code>{p.text}</code> : p.text,
+          )}
+        </p>
+      )}
       {several && (
         <div class="chart-blocks">
           <p class="muted">On a page of its own this chart would need {perChart[i].blocks.length} blocks, {kb(perChart[i].bytes)} with the core:</p>

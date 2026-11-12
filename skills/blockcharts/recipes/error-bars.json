@@ -25,7 +25,8 @@
   "charts": [
     {
       "title": "Improvement by dose, mean and 95% interval",
-      "note": "Error bars: a rule from y (low) to y2 (high) in the middle of each band, and a point at the mean. A scale that does not start at zero is fine here: the points compare positions, not lengths.",
+      "note": "Every dose helped more than the placebo; 40 mg did little better than 20 mg, and its interval is wider.",
+      "how": "Error bars: a rule from y (low) to y2 (high) in the middle of each band, and a point at the mean. A scale that does not start at zero is fine here: the points compare positions, not lengths.",
       "spec": {
         "data": "trial",
         "size": [640, 300],
@@ -50,7 +51,8 @@
     },
     {
       "title": "Orders, actual and forecast with its 80% range",
-      "note": "A confidence band: an area from y (high) to y2 (low), light, under the lines. The forecast starts at the last actual month, where the band is zero wide, so the lines join. Rows without a value leave the mark out there.",
+      "note": "Orders are forecast to reach about 184 in December, most likely between 157 and 211.",
+      "how": "A confidence band: an area from y (high) to y2 (low), light, under the lines. The forecast starts at the last actual month, where the band is zero wide, so the lines join. Rows without a value leave the mark out there.",
       "spec": {
         "data": "forecast",
         "size": [720, 320],

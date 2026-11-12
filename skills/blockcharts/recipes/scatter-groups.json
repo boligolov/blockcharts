@@ -13,6 +13,7 @@
   "charts": [
     {
       "title": "Height and weight",
+      "note": "Weight rises with height in both teams; Team B weighs more at the same height.",
       "spec": {
         "data": "people",
         "size": [640, 340],

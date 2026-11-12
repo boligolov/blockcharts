@@ -19,7 +19,8 @@
   "charts": [
     {
       "title": "Where the revenue grows, and what it earns",
-      "note": "mark.point with a `size` channel on a scale.size: the area of each circle, not its radius, follows the value, so a product twice the revenue is a bubble twice the area. Big bubbles are drawn first, so small ones stay visible on top; an outline in the card color and some transparency separate the overlaps. The size key is a guide.legend on the size scale.",
+      "note": "Harbor grows fastest, 42%, but keeps the smallest margin, 8%; Beacon, the largest product, keeps the most, 51%.",
+      "how": "mark.point with a `size` channel on a scale.size: the area of each circle, not its radius, follows the value, so a product twice the revenue is a bubble twice the area. Big bubbles are drawn first, so small ones stay visible on top; an outline in the card color and some transparency separate the overlaps. The size key is a guide.legend on the size scale.",
       "spec": {
         "data": "products",
         "size": [640, 420],

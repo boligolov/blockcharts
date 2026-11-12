@@ -1599,6 +1599,14 @@ h1 + .lead + .weight {
   }
 }
 /* an example page: what each chart would need alone, the table of what the report carries, the way on */
+.bc-section p.how {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+}
+.how strong {
+  color: var(--fg);
+  font-weight: 600;
+}
 .chart-blocks {
   margin: 8px 0 0;
 }

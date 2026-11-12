@@ -187,7 +187,8 @@
   "charts": [
     {
       "title": "Market rank by sales, 2020-2025",
-      "note": "transform.window with op \"rank\" and group = the year writes each brand's place in that year (1 for the largest; order \"asc\" for the smallest). A line and points per brand on a reversed y (domain [high, low]) is a bump chart: who overtook whom, not by how much. End labels name the lines, so no legend is needed.",
+      "note": "Fabrikam rose from fifth place in 2020 to first in 2023 and stayed there; Contoso fell from first to fifth.",
+      "how": "transform.window with op \"rank\" and group = the year writes each brand's place in that year (1 for the largest; order \"asc\" for the smallest). A line and points per brand on a reversed y (domain [high, low]) is a bump chart: who overtook whom, not by how much. End labels name the lines, so no legend is needed.",
       "spec": {
         "data": "brands",
         "size": [

@@ -19,7 +19,8 @@
   "charts": [
     {
       "title": "Revenue by product line",
-      "note": "The stack transform adds amount0 (start) and amount1 (end) to every row; the rect draws from amount0 to amount1.",
+      "note": "Revenue grew every quarter and Services grew the fastest; in Q3 Software outsold Hardware.",
+      "how": "The stack transform adds amount0 (start) and amount1 (end) to every row; the rect draws from amount0 to amount1.",
       "spec": {
         "data": "revenue",
         "size": [640, 320],

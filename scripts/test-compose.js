@@ -248,6 +248,67 @@ test('compose: nothing in data, specs, titles or css can break out of its tag', 
   assert(html.includes('<code>ok</code>'), 'noteHtml is passed through as the caller asked');
 });
 
+test('compose: "note" is for the reader and "how" for whoever writes the page, which never shows it', () => {
+  const how = 'HOW-MARKER: transform.stack writes `amount0`';
+  const r = compose({
+    data: DATA,
+    charts: [
+      { section: 'Sales', note: 'Two charts of one quarter.', how: `${how} (section)` },
+      { spec: bars(), title: 'Bars', note: 'B leads, twice A.', how },
+    ],
+  });
+  assert.deepStrictEqual(r.diagnostics, [], 'a plain note and any "how" say nothing');
+  assert(!r.html.includes('HOW-MARKER'), 'the page leaves "how" out');
+  assert(r.html.includes('<p>B leads, twice A.</p>') && r.html.includes('<p>Two charts of one quarter.</p>'));
+  assert.strictEqual(r.entries[1].how, how, 'a page of its own (the site) gets it with the entry');
+  assert.strictEqual(r.entries[0].how, `${how} (section)`);
+
+  // a note written for the one who makes the page: readers would see it, so it is a warning that says where it goes
+  const coded = [
+    ['the `dodge` field splits a band', '`dodge`'],
+    ['transform.window writes a total', 'transform.window'],
+    ['rows of the other mark are NaN', 'NaN'],
+    ['give it { field, scale }', '{'],
+    ['center "percent" with "total": 100', '"total":'],
+  ];
+  for (const [note, piece] of coded)
+    for (const entry of [
+      { spec: bars(), title: 'Bars', note },
+      { section: 'Part', note },
+    ]) {
+      const w = compose({ data: DATA, charts: [entry, bars()] }).diagnostics;
+      assert.strictEqual(w.length, 1, `${note}: ${JSON.stringify(w)}`);
+      assert.strictEqual(w[0].level, 'warn');
+      assert.strictEqual(w[0].path, 'charts[0].note');
+      assert(w[0].message.includes(`"${piece}"`), `${note}: names what reads as code: ${w[0].message}`);
+      assert.match(w[0].message, /keep notes on how it is made in "how", which the page leaves out/);
+    }
+  // reader notes, also with figures, money, quotes and other scripts, say nothing
+  for (const note of [
+    'Q4. Green adds, red takes away; blue bars are the totals so far.',
+    'Of $892K of revenue, $248K is left as operating profit (28%).',
+    'The plan was beaten from October on: 3 of 4 months.',
+    'Customers call it "fast" and "simple".',
+    'Nan Lee’s team leads; Marketing.ops grew.',
+    '2024年の売上は前年比12%増。',
+  ])
+    assert.deepStrictEqual(compose({ data: DATA, charts: [{ spec: bars(), title: 'Bars', note }] }).diagnostics, [], note);
+
+  // both are text; "how" is a key of the entry, not of the spec, and a near miss is named
+  failsWith(() => compose({ data: DATA, charts: [{ spec: bars(), how: ['a'] }] }), /charts\[0\]\.how must be text/);
+  failsWith(() => compose({ data: DATA, charts: [{ spec: bars(), note: 5 }] }), /charts\[0\]\.note must be text/);
+  failsWith(() => compose({ data: DATA, charts: [{ section: 'S', how: {} }, bars()] }), /charts\[0\]\.how must be text/);
+  failsWith(
+    () => compose({ data: DATA, charts: [{ spec: { ...bars(), how: 'x' } }] }),
+    /charts\[0\]\.spec\.how: "how" goes next to "spec"/,
+  );
+  failsWith(() => compose({ data: DATA, charts: [{ spec: bars(), hwo: 'x' }] }), /charts\[0\]: unknown key "hwo"; did you mean "how"\?/);
+  failsWith(
+    () => compose({ data: DATA, charts: [{ section: 'S', span: 2 }, bars()] }),
+    /a section takes "section", "note", "how" and "lang", not "span"/,
+  );
+});
+
 test('compose: unknown blocks, bad specs and bad input are ComposeErrors with the reason', () => {
   failsWith(
     () => compose({ data: DATA, charts: [{ ...bars(), marks: [{ type: 'hexbin', x: 'k', y: 'v' }] }] }),

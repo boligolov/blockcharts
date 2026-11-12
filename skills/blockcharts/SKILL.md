@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.33.44"
+  version: "0.33.45"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -14,7 +14,7 @@ You describe charts as **JSON**. A composer (`runtime/compose.js`, plain Node, n
 ## Workflow
 
 1. Get the data as rows (`[{"region":"North","total":42}, ...]`) or columns.
-2. Pick the closest recipe from `recipes/` (table below) and copy it. Change the data, field names, titles.
+2. Pick the closest recipe from `recipes/` (table below) and copy it. Change the data, field names, titles, and the `note` of each chart: it is written about the recipe's own data. Its `how` says how the recipe is made; it never reaches the page.
 3. Save it as `page.json`.
 4. Run `node "${CLAUDE_SKILL_DIR}/runtime/compose.js" page.json report.html` from the folder that holds `page.json` (`${CLAUDE_SKILL_DIR}` is the folder of this skill; where that variable is not set, use the path of `runtime/` next to this file).
 5. If it prints errors, fix `page.json` and run again. The messages name the path in the JSON (`charts[0].marks[0].y: unknown field "ghost"`). It writes nothing until every chart is valid.
@@ -29,13 +29,13 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
   "title": "Page title",
   "data": { "sales": [ {"region": "North", "total": 42} ] },
   "charts": [
-    { "title": "Heading", "note": "One line of text under it.", "spec": { ...chart spec... } }
+    { "title": "Heading", "note": "What the chart shows, in one line.", "spec": { ...chart spec... } }
   ]
 }
 ```
 
 - `data`: named datasets. A dataset can also be CSV: `{"csv": "date,region,amount\n2024-01-05,North,1200\n2024-01-19,South,2300"}` (a JSON string writes its line breaks as `\n`), or `{"csvFile": "orders.csv"}` for a file next to `page.json` (it must stay inside that folder, and be UTF-8: in Excel, "CSV UTF-8"). The first CSV row names the columns; numbers and ISO dates, months like `2025-01` included, are recognized by themselves. Empty cells, `NA`, `N/A`, `null`, `NULL`, `NaN` and `nan` are missing; `nullValues` (a list) replaces that list for values like `n/a` or `-`, and `types` (`{"zip": "string"}`) forces a column to `number` or `string`. A column with `$1,750` or `USD 8,204.00` stays text, and text does not add up: clean such amounts with a short script first, and give the result to the page. A column of numbers that a few cells keep as text is a warning that names them; a chart that reads numbers from a column with none is an error. Rows (`[{...}]`) or columns (`{"columns": {"a": [..], "b": [..]}}`). Every row has the same keys. Missing value = `null`. Numbers are numbers, not strings. **Dates are ISO strings** (`"2024-03-01"` or `"2024-03-01T12:00:00Z"`), read as UTC; `"3/1/2024"` or `"Mar 1, 2024"` is not a date. Several charts may use the same dataset.
-- `charts`: each entry is a chart spec, or `{title, note, spec, span}` to get a heading and a sentence around it. Every chart sits in a card. A screen reader hears a chart by that `title`, or by `"alt"` in the spec (what the chart shows, in a sentence), and a KPI tile also by its figure: a chart with none of them is a warning. Text with no chart is such a section. An entry `{"section": "Devices", "note": "One line."}` is a heading over the whole width that starts a group of cards: give a page of more than about ten charts sections.
+- `charts`: each entry is a chart spec, or `{title, note, spec, span}` to get a heading and a sentence around it. Every chart sits in a card. The `note` is for the reader: what the chart shows ("West sells the most, twice as much as Central"), never how it is made; a note with code in it (backticks, a block's name, JSON) is a warning. A note for whoever writes the page goes in `how`, which the page leaves out. A screen reader hears a chart by that `title`, or by `"alt"` in the spec (what the chart shows, in a sentence), and a KPI tile also by its figure: a chart with none of them is a warning. Text with no chart is such a section. An entry `{"section": "Devices", "note": "One line."}` is a heading over the whole width that starts a group of cards: give a page of more than about ten charts sections.
 - `facet`: small multiples. `{"spec": {...}, "facet": {"field": "region", "columns": 3}}` draws the chart once per value of a column of the dataset, in one card, on the same axes, colors and bubble sizes, with one legend above the panels. Use it instead of many lines on one plot, or of a row of separate charts. Size the spec for one panel, about [300, 180]. `"values": [...]` picks and orders the panels; `"free": ["y"]` lets a scale differ between panels, for series of very different size (with `"free": ["color"]` each panel keeps its own legend). The field may be in the data or made by a transform. A `legend-filter` works from the legend above the panels: a click hides a category in all of them. See `recipes/small-multiples.json`. A calendar heatmap faceted by year needs `"free": ["x"]`, or every year takes only its part of one shared time axis.
 - `lang`: the language of the page (`"ko"`, `"ja"`, `"zh-CN"`). It sets `<html lang>`, the font for that language and the language of numbers and dates, presets included, so a page in one language needs no `locale` anywhere. Always set it on a page that is not in English: without it Japanese is drawn in a Chinese font. A `{"section": ..., "lang": "ja"}` lasts until the next section, a chart entry can take its own, and a format's own `locale` wins.
 - `title` and `subtitle`: the page heading and one line under it (the period, the scope, the unit: "FY2025 · all regions · USD").

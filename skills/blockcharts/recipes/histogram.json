@@ -8,7 +8,8 @@
   "charts": [
     {
       "title": "Distribution of heights",
-      "note": "transform.bin counts the values in round-edged bins; the rect draws each bin from its start (x) to its end (x2), as tall as its count.",
+      "note": "Half of the 80 people are between 166 and 175 cm tall; the shortest is 141.5 cm, the tallest 190.6 cm.",
+      "how": "transform.bin counts the values in round-edged bins; the rect draws each bin from its start (x) to its end (x2), as tall as its count.",
       "spec": {
         "data": "people",
         "size": [

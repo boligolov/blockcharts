@@ -607,7 +607,8 @@
   "charts": [
     {
       "title": "Listening hours by genre, millions per month",
-      "note": "transform.stack with center: true puts the middle of every month on 0, so the layers flow around a center line. Only the thickness of a layer means something, so there is no y axis; the tooltip gives the numbers. Draw it with mark.area (y = end, y2 = start), curve smooth.",
+      "note": "Pop and hip-hop grew over the two years; rock lost the most, from 36 to 28 million hours a month.",
+      "how": "transform.stack with center: true puts the middle of every month on 0, so the layers flow around a center line. Only the thickness of a layer means something, so there is no y axis; the tooltip gives the numbers. Draw it with mark.area (y = end, y2 = start), curve smooth.",
       "spec": {
         "data": "listening",
         "size": [

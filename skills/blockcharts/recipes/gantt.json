@@ -15,7 +15,8 @@
   "charts": [
     {
       "title": "Project plan, first half of 2026",
-      "note": "A rect spans from x to x2 on a time scale, one band per task on y; tasks read from the top in data order. Color by phase; a rule with a constant x marks today. nice on the time scale runs it from the first of a month, so the month the plan starts in is named; count 6 asks the axis and the grid for every month.",
+      "note": "On April 15 the build is under way; the plan ends with the release on June 26.",
+      "how": "A rect spans from x to x2 on a time scale, one band per task on y; tasks read from the top in data order. Color by phase; a rule with a constant x marks today. nice on the time scale runs it from the first of a month, so the month the plan starts in is named; count 6 asks the axis and the grid for every month.",
       "spec": {
         "data": "plan",
         "size": [720, 340],

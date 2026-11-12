@@ -18,7 +18,7 @@
   "charts": [
     {
       "title": "Visits per channel",
-      "note": "Ctrl + wheel zooms (the y axis follows the visible part), drag pans, Shift + drag selects a range to zoom to, double-click resets. Click a legend item to hide or show a series; double-click it to show only that one.",
+      "note": "Web brings the most visits, the app grows fastest. Ctrl + wheel zooms, drag pans, Shift + drag selects a range to zoom to, double-click resets; click a legend item to hide or show a channel.",
       "spec": {
         "data": "traffic",
         "scales": {

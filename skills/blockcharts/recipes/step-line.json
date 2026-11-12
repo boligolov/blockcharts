@@ -17,7 +17,8 @@
   "charts": [
     {
       "title": "Policy rate, %",
-      "note": "curve \"step\" holds each value until the next row, then jumps: a rate, a price list, a tariff, a stock level. Each row is the day a value took effect; the last row repeats the current value at the end of the period, or the line would stop at the last change.",
+      "note": "The rate fell from 5.5% to 4% during 2024, rose once in May 2025, and has stood at 3.75% since December 2025.",
+      "how": "curve \"step\" holds each value until the next row, then jumps: a rate, a price list, a tariff, a stock level. Each row is the day a value took effect; the last row repeats the current value at the end of the period, or the line would stop at the last change.",
       "spec": {
         "data": "rate",
         "size": [720, 300],

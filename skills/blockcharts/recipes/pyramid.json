@@ -16,7 +16,8 @@
   "charts": [
     {
       "title": "Population by age, millions: men (left) and women (right)",
-      "note": "Two horizontal bars per band: calculate makes the men negative so they grow to the left of 0. The axis writes both sides without a sign (signDisplay \"never\"); the tooltip shows the original fields. Bands read from the top in data order, so the oldest come first. Give x a symmetric domain so 0 sits in the middle.",
+      "note": "People in their thirties are the largest group; from 50 on women outnumber men, by nearly two to one over 80.",
+      "how": "Two horizontal bars per band: calculate makes the men negative so they grow to the left of 0. The axis writes both sides without a sign (signDisplay \"never\"); the tooltip shows the original fields. Bands read from the top in data order, so the oldest come first. Give x a symmetric domain so 0 sits in the middle.",
       "spec": {
         "data": "people",
         "size": [640, 340],

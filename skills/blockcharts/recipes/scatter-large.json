@@ -19,7 +19,8 @@
   "charts": [
     {
       "title": "15,000 points",
-      "note": "With this many marks an SVG chart needs a DOM element per point and gets slow to zoom; renderer: canvas draws them on one canvas instead (about 5 times faster to redraw at 50,000 points). Everything else is unchanged: Ctrl + wheel zooms, drag pans, Shift + drag selects, and the tooltip finds the point under the pointer.",
+      "note": "Each of the 15,000 points is a session: how long it lasted and how long its page took to load. Ctrl + wheel zooms, drag pans, Shift + drag selects a region.",
+      "how": "With this many marks an SVG chart needs a DOM element per point and gets slow to zoom; renderer: canvas draws them on one canvas instead (about 5 times faster to redraw at 50,000 points). Everything else is unchanged: Ctrl + wheel zooms, drag pans, Shift + drag selects, and the tooltip finds the point under the pointer.",
       "spec": {
         "data": "points",
         "renderer": "canvas",

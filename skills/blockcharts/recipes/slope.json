@@ -15,7 +15,8 @@
   "charts": [
     {
       "title": "Net Promoter Score by region, 2024 → 2025",
-      "note": "A slope chart: mark.line on a band x-scale joins each region's two values, mark.point marks the ends. The order of the domain is the order of the line, so name it when the rows may come in another order. End labels replace the legend. On a band scale the last point stands in the middle of its band, so the outer padding of the band holds the labels: give `paddingOuter` more for long names, not `padding.right`.",
+      "note": "North gained the most, from 31 to 44; South is the only region that fell.",
+      "how": "A slope chart: mark.line on a band x-scale joins each region's two values, mark.point marks the ends. The order of the domain is the order of the line, so name it when the rows may come in another order. End labels replace the legend. On a band scale the last point stands in the middle of its band, so the outer padding of the band holds the labels: give `paddingOuter` more for long names, not `padding.right`.",
       "spec": {
         "data": "nps",
         "size": [480, 340],

@@ -19,7 +19,8 @@
   "charts": [
     {
       "title": "Who sells how much, and where",
-      "note": "transform.marimekko makes each region as wide as its share of the market, and each supplier as tall as its share of the region. The area of a cell is its share of the whole. Both axes are in percent: x of the market, y of the region. A second x axis with `text`, `from` and `to` names the columns over them, each over its own middle however narrow it is.",
+      "note": "Asia is nearly half the market, and Refiner A leads there; Refiner B leads in Europe, and smaller suppliers hold half of the Americas and two thirds of Africa.",
+      "how": "transform.marimekko makes each region as wide as its share of the market, and each supplier as tall as its share of the region. The area of a cell is its share of the whole. Both axes are in percent: x of the market, y of the region. A second x axis with `text`, `from` and `to` names the columns over them, each over its own middle however narrow it is.",
       "spec": {
         "data": "market",
         "size": [720, 380],

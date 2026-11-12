@@ -19,7 +19,8 @@
   "charts": [
     {
       "title": "6,000 deliveries: distance and time",
-      "note": "A scatter of thousands of points turns into a blot where they pile up. transform.hexbin counts them in hexagons instead, and mark.rect with shape: hexagon draws each one in the box the transform writes, colored by how many deliveries it holds. City trips form the dense band at the bottom left, the suburbs a second one further out, and late orders a faint layer above both. The hexagons are binned for the plot as it is drawn, so they stay regular on a phone too; nice: false keeps the scales to them. exponent: 0.5 on the color scale gives the sparse hexagons more of the colors. The tooltip shows the center of a hexagon and its count.",
+      "note": "City trips form the dense band at the bottom left, the suburbs a second one further out, and late orders a faint layer above both.",
+      "how": "A scatter of thousands of points turns into a blot where they pile up. transform.hexbin counts them in hexagons instead, and mark.rect with shape: hexagon draws each one in the box the transform writes, colored by how many deliveries it holds. City trips form the dense band at the bottom left, the suburbs a second one further out, and late orders a faint layer above both. The hexagons are binned for the plot as it is drawn, so they stay regular on a phone too; nice: false keeps the scales to them. exponent: 0.5 on the color scale gives the sparse hexagons more of the colors. The tooltip shows the center of a hexagon and its count.",
       "spec": {
         "data": "deliveries",
         "size": [

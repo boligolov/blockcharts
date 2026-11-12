@@ -13,7 +13,8 @@
   "charts": [
     {
       "title": "Wins by team",
-      "note": "A Cleveland dot plot: mark.point on a band y-scale and a linear x-scale, one dot per row, centered in its band. Reads as a lighter bar chart when only the ranking matters, not the exact bar length.",
+      "note": "The Nuggets lead with 53 wins; the Clippers trail with 39.",
+      "how": "A Cleveland dot plot: mark.point on a band y-scale and a linear x-scale, one dot per row, centered in its band. Reads as a lighter bar chart when only the ranking matters, not the exact bar length.",
       "spec": {
         "data": "teams",
         "size": [560, 280],

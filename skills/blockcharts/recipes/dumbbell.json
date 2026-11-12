@@ -19,7 +19,8 @@
   "charts": [
     {
       "title": "Customer satisfaction, 2024 (grey) and 2025 (blue)",
-      "note": "A dumbbell: a rule from x to x2 along the middle of each band, and two point marks at its ends. It shows the gap and its direction better than two bars side by side.",
+      "note": "Satisfaction rose in four of the five regions, most in East (+13); only South fell, from 48 to 45.",
+      "how": "A dumbbell: a rule from x to x2 along the middle of each band, and two point marks at its ends. It shows the gap and its direction better than two bars side by side.",
       "spec": {
         "data": "regions",
         "size": [640, 280],
@@ -39,7 +40,8 @@
     },
     {
       "title": "Net promoter score by product",
-      "note": "A lollipop: a rule from a constant x2 of 0 to the value, and a point at its end. Lighter than a bar when there are many categories.",
+      "note": "The mobile app has the highest score, 54; onboarding the lowest, 15.",
+      "how": "A lollipop: a rule from a constant x2 of 0 to the value, and a point at its end. Lighter than a bar when there are many categories.",
       "spec": {
         "data": "nps",
         "size": [640, 260],

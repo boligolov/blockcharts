@@ -6,7 +6,8 @@
   "charts": [
     {
       "title": "Units by product, one panel per region",
-      "note": "`facet` draws the chart once for each value of a field, on the same axes, so the panels can be compared at a glance. The legend is drawn once, above them.",
+      "note": "Coffee sells best in North and West, tea in South; in East coffee overtook tea in April.",
+      "how": "`facet` draws the chart once for each value of a field, on the same axes, so the panels can be compared at a glance. The legend is drawn once, above them.",
       "facet": { "field": "region", "columns": 2 },
       "spec": {
         "data": "sales",

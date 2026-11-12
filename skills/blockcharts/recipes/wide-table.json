@@ -79,7 +79,8 @@
   "charts": [
     {
       "title": "Revenue per channel",
-      "note": "The table has one column per channel, as exported from a spreadsheet. transform.fold turns each row into one row per channel, with the column name in \"channel\" and its number in \"revenue\", so one line mark colored by channel draws all three. No need to reshape the data by hand.",
+      "note": "Online grew the fastest and overtook retail in October.",
+      "how": "The table has one column per channel, as exported from a spreadsheet. transform.fold turns each row into one row per channel, with the column name in \"channel\" and its number in \"revenue\", so one line mark colored by channel draws all three. No need to reshape the data by hand.",
       "spec": {
         "data": "sales",
         "size": [
@@ -172,7 +173,8 @@
     },
     {
       "title": "Total per quarter, split by channel",
-      "note": "After fold the long table works with every other transform: aggregate sums the months of each quarter per channel, and stack piles the channels up. The quarter is the date it starts on; the axis writes it with the \"quarter\" format.",
+      "note": "Revenue grew every quarter; in Q4 online brought in more than retail for the first time.",
+      "how": "After fold the long table works with every other transform: aggregate sums the months of each quarter per channel, and stack piles the channels up. The quarter is the date it starts on; the axis writes it with the \"quarter\" format.",
       "spec": {
         "data": "sales",
         "size": [

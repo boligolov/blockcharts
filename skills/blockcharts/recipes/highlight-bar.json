@@ -55,7 +55,7 @@
   "charts": [
     {
       "title": "Best month",
-      "note": "The tile finds the month itself: rowField names the row of the maximum.",
+      "how": "The tile finds the month itself: rowField names the row of the maximum.",
       "span": 1,
       "spec": {
         "data": "months",
@@ -92,7 +92,8 @@
     },
     {
       "title": "Revenue by month",
-      "note": "transform.highlight writes which bar is the best; a color scale of two colors sets it apart, and the bar moves by itself when the data changes.",
+      "note": "September was the best month of the year, January the weakest.",
+      "how": "transform.highlight writes which bar is the best; a color scale of two colors sets it apart, and the bar moves by itself when the data changes.",
       "span": 3,
       "spec": {
         "data": "months",

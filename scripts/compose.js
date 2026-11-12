@@ -11,8 +11,9 @@
 //   data    { name: rows | { columns } | { csv: "text" } | { csvFile: "file.csv" } }   the data lake. CSV: the first row names the
 //           columns; numbers are recognized per column, "", NA, null... are missing values; optional delimiter, nullValues and
 //           types ({ col: "string" }). csvFile is relative to `baseDir` and must stay inside it.
-//   charts  [ spec | { spec, title?, note?, noteHtml?, span?, minWidth?, lang?, facet? } | { section, note?, lang? } ]   (ENTRY_KEYS;
-//           noteHtml is raw HTML, for a program only) each chart sits in a card; span =
+//   charts  [ spec | { spec, title?, note?, how?, noteHtml?, span?, minWidth?, lang?, facet? } | { section, note?, how?, lang? } ]
+//           (ENTRY_KEYS; noteHtml is raw HTML, for a program only) each chart sits in a card; note is a line for the reader
+//           under its heading, how a note for whoever writes the page (a recipe says there how it is made), never shown; span =
 //           how many grid columns it takes; minWidth = the px below which the chart keeps its width and its card scrolls sideways.
 //           { section } is a heading over the whole width that starts a group of cards
 //           { spec, facet: { field, columns?, values?, free? } } draws the chart once per value of a field of the dataset, in one
@@ -67,7 +68,7 @@ const escapeText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:";
 
 /** The keys of a chart entry ({ spec, ... }); the spec's own keys are the core's to check. */
-const ENTRY_KEYS = ['spec', 'title', 'note', 'noteHtml', 'span', 'minWidth', 'lang', 'facet'];
+const ENTRY_KEYS = ['spec', 'title', 'note', 'how', 'noteHtml', 'span', 'minWidth', 'lang', 'facet'];
 /** Keys a page.json may not have anywhere: raw HTML, which only a program calling compose() may put on the page. */
 const ENTRY_API_KEYS = ['noteHtml'];
 
@@ -244,6 +245,29 @@ function findUnserializable(value, path, ancestors) {
     if (hit) return hit;
   }
   return null;
+}
+
+/** The first piece of a note that is written for whoever makes the page, not for its reader: code in backticks, the name
+ *  of a block, NaN, a piece of JSON. null when there is none. */
+function codeInNote(text) {
+  const m = /`[^`]*`?|\b(?:transform|mark|scale|guide|interaction|renderer|lib)\.[a-z][\w-]*|\bNaN\b|"\w+"\s*:|[{}]/.exec(text);
+  return m ? (m[0].length > 40 ? m[0].slice(0, 39) + '…' : m[0]) : null;
+}
+
+/** A note and a how of an entry are text; a note that reads like code is a warning, as readers see it. */
+function entryText(c, i, warnings) {
+  for (const key of ['note', 'how'])
+    if (c[key] !== undefined && typeof c[key] !== 'string') throw new ComposeError(`charts[${i}].${key} must be text`);
+  const piece = typeof c.note === 'string' && codeInNote(c.note);
+  if (piece)
+    warnings.push({
+      level: 'warn',
+      chart: i,
+      path: `charts[${i}].note`,
+      message: `readers see the note under the heading, and "${piece}" is written for whoever makes the page: say what the ${
+        c.section !== undefined ? 'section is about' : 'chart shows'
+      }, and keep notes on how it is made in "how", which the page leaves out`,
+    });
 }
 
 /** CSV forms become plain columns; everything else is left for the rest of the pipeline. What the CSV reader warns
@@ -551,19 +575,24 @@ function compose(opts) {
   };
   const pageLang = validLang(options.lang, 'lang');
   let groupLang = pageLang;
+  const textWarnings = [];
   const entries = options.charts.map((c, i) => {
     if (c && c.section !== undefined) {
       if (typeof c.section !== 'string' || !c.section.trim())
         throw new ComposeError(`charts[${i}].section must be the text of the heading`);
       if (c.spec !== undefined) throw new ComposeError(`charts[${i}] has both "section" and "spec": a section is a heading of its own`);
-      if (c.note !== undefined && typeof c.note !== 'string') throw new ComposeError(`charts[${i}].note must be text`);
-      const stray = Object.keys(c).filter((k) => k !== 'section' && k !== 'note' && k !== 'lang');
-      if (stray.length) throw new ComposeError(`charts[${i}]: a section takes "section", "note" and "lang", not "${stray.join('", "')}"`);
+      const stray = Object.keys(c).filter((k) => !['section', 'note', 'how', 'lang'].includes(k));
+      if (stray.length)
+        throw new ComposeError(`charts[${i}]: a section takes "section", "note", "how" and "lang", not "${stray.join('", "')}"`);
+      entryText(c, i, textWarnings);
       groupLang = validLang(c.lang, `charts[${i}].lang`) || pageLang;
       return { ...c, lang: groupLang };
     }
     const entry = c && c.spec ? { ...c, index: i } : { spec: c, index: i };
-    if (c && c.spec) unknownKeys(c, ENTRY_KEYS, `charts[${i}]`);
+    if (c && c.spec) {
+      unknownKeys(c, ENTRY_KEYS, `charts[${i}]`);
+      entryText(c, i, textWarnings);
+    }
     // a key of the entry written inside the spec would be dropped there: say where it goes
     const isChart = entry.spec && typeof entry.spec === 'object' && (entry.spec.data !== undefined || entry.spec.marks !== undefined);
     const misplaced = isChart && ENTRY_KEYS.find((k) => k !== 'spec' && k !== 'title' && entry.spec[k] !== undefined);
@@ -666,7 +695,7 @@ function compose(opts) {
       namePanels(entry);
     }
   charts = panelled();
-  const diagnostics = dataWarnings.slice();
+  const diagnostics = dataWarnings.concat(textWarnings);
   charts.forEach(({ spec, index: i }) => {
     for (const d of plain(Array.from(BC.validate(spec))))
       diagnostics.push({ ...d, chart: i, path: `charts[${i}].${d.path}`.replace(/\.$/, '') });
@@ -918,8 +947,9 @@ function compose(opts) {
   // what the page shows, entry by entry, as settled above: a heading, a chart, or a facet's panels on the scales they share
   // with the legend drawn once above them; a page of one's own (the site) lays them out from this instead of redoing it
   const shown = entries.map((e) => {
-    if (e.section !== undefined) return { section: e.section, note: e.note };
-    const common = { title: e.title, note: e.note };
+    const how = e.how !== undefined ? { how: e.how } : {};
+    if (e.section !== undefined) return { section: e.section, note: e.note, ...how };
+    const common = { title: e.title, note: e.note, ...how };
     if (!e.panels) return { ...common, spec: e.spec };
     const panels = e.panels.map((p) => ({ label: p.label, spec: p.spec }));
     return { ...common, facet: e.facet, panels, legend: e.legend, legendId: e.legendId };

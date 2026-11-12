@@ -19,7 +19,8 @@
   "charts": [
     {
       "title": "Revenue by product line, $M (bars) and operating margin (line, right)",
-      "note": "All marks of a chart draw from one table. After the stack there is a row per quarter and product, so the line's field must have the same value in every row of a quarter (margin here), or the line jumps up and down within it. The line goes on a second scale y2 with its axis on the right.",
+      "note": "Revenue grew every quarter, from $60M to $94M; the margin dipped to 19% in Q3 and peaked at 27% in Q4.",
+      "how": "All marks of a chart draw from one table. After the stack there is a row per quarter and product, so the line's field must have the same value in every row of a quarter (margin here), or the line jumps up and down within it. The line goes on a second scale y2 with its axis on the right.",
       "spec": {
         "data": "revenue",
         "size": [720, 340],
@@ -54,7 +55,8 @@
     },
     {
       "title": "Each line's share of its quarter",
-      "note": "transform.window with op \"total\" writes the sum of each quarter on every row of it, and op \"share\" each row as a part of that sum, without collapsing the rows as aggregate would. The share labels the segments, and the total stands over each stack: it is on every row of its quarter, and a label repeated on one spot is written once.",
+      "note": "Services grew from 17% of the quarter’s revenue in Q1 to 28% in Q4.",
+      "how": "transform.window with op \"total\" writes the sum of each quarter on every row of it, and op \"share\" each row as a part of that sum, without collapsing the rows as aggregate would. The share labels the segments, and the total stands over each stack: it is on every row of its quarter, and a label repeated on one spot is written once.",
       "spec": {
         "data": "revenue",
         "size": [720, 340],

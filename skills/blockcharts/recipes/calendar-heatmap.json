@@ -735,7 +735,8 @@
   "charts": [
     {
       "title": "Orders per day",
-      "note": "transform.calendar turns each date into a week and a weekday, drawn by a rect from week to weekEnd on a time scale and on a band of weekdays. For several years, add a facet on a column with the year.",
+      "note": "Weekdays bring about 105 orders a day, weekends less than half of that, about 45.",
+      "how": "transform.calendar turns each date into a week and a weekday, drawn by a rect from week to weekEnd on a time scale and on a band of weekdays. For several years, add a facet on a column with the year.",
       "spec": {
         "data": "orders",
         "size": [

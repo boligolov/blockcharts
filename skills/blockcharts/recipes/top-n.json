@@ -289,7 +289,8 @@
   "charts": [
     {
       "title": "The eight best-selling products of 2024",
-      "note": "transform.filter keeps the rows of 2024; transform.sort orders them by revenue, highest first, and limit keeps eight. A band scale lists its categories in row order, so the bars come out ranked. No aggregate is needed when the rows are already one per product.",
+      "note": "The Dune sofa sold the most in 2024, ahead of the Haven bed and the Atlas desk.",
+      "how": "transform.filter keeps the rows of 2024; transform.sort orders them by revenue, highest first, and limit keeps eight. A band scale lists its categories in row order, so the bars come out ranked. No aggregate is needed when the rows are already one per product.",
       "spec": {
         "data": "products",
         "size": [
@@ -385,7 +386,8 @@
     },
     {
       "title": "The best product in each region",
-      "note": "With group, sort ranks the rows of each region on their own and limit 1 keeps the top one; regions stay in the order they first appear. The product name is written on its bar.",
+      "note": "Each region has its own best seller: the Echo shelf in North, the Haven bed in South, the Dune sofa in East and the Birch chair in West.",
+      "how": "With group, sort ranks the rows of each region on their own and limit 1 keeps the top one; regions stay in the order they first appear. The product name is written on its bar.",
       "spec": {
         "data": "regions",
         "size": [

@@ -8,7 +8,8 @@
   "charts": [
     {
       "title": "Revenue per month",
-      "note": "The aggregate transform groups the rows (here by calendar month) and sums the amounts; the axes and the tooltip write them as currency with `format`.",
+      "note": "Revenue doubled from January to May, to $8,800, with a dip in April.",
+      "how": "The aggregate transform groups the rows (here by calendar month) and sums the amounts; the axes and the tooltip write them as currency with `format`.",
       "spec": {
         "data": "orders",
         "size": [640, 300],
@@ -37,6 +38,7 @@
     },
     {
       "title": "Revenue by region, largest first",
+      "note": "North brings the most revenue, $11,400 of $32,000.",
       "spec": {
         "data": "orders",
         "size": [640, 300],

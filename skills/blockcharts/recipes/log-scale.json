@@ -621,7 +621,8 @@
   "charts": [
     {
       "title": "Monthly active users of three products",
-      "note": "On a log scale (scale.log) equal ratios are equal steps, so steady growth is a straight line and its slope is the growth rate: Atlas grows fastest although it is still the smallest. On a linear scale the two small products would lie flat on the bottom.",
+      "note": "Atlas grows fastest although it is still the smallest: on this scale steady growth is a straight line, and the steeper the line, the faster the growth.",
+      "how": "On a log scale (scale.log) equal ratios are equal steps, so steady growth is a straight line and its slope is the growth rate: Atlas grows fastest although it is still the smallest. On a linear scale the two small products would lie flat on the bottom.",
       "spec": {
         "data": "mau",
         "size": [
@@ -684,7 +685,8 @@
     },
     {
       "title": "Revenue and headcount of twelve companies",
-      "note": "Both axes are logarithmic: from 3 to 18,000 employees and from $210K to $4.6B of revenue, every company has room. The axis format writes the ticks as currency; without it they are compact (1K, 1M).",
+      "note": "Revenue rises with headcount, from 3 employees and $210K to 18,000 employees and $4.6B.",
+      "how": "Both axes are logarithmic: from 3 to 18,000 employees and from $210K to $4.6B of revenue, every company has room. The axis format writes the ticks as currency; without it they are compact (1K, 1M).",
       "spec": {
         "data": "companies",
         "size": [

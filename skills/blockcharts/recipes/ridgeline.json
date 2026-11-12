@@ -367,7 +367,8 @@
   "charts": [
     {
       "title": "Daily high temperatures by month, °C",
-      "note": "The same density, drawn lying down: the months on a band y, the temperature along x, and side \"one\" makes each curve a ridge that rises into the band above it. Ridges further down are drawn over the ones behind them.",
+      "note": "Daily highs climb from about 3 °C in January to 24 °C in July; December’s vary the most.",
+      "how": "The same density, drawn lying down: the months on a band y, the temperature along x, and side \"one\" makes each curve a ridge that rises into the band above it. Ridges further down are drawn over the ones behind them.",
       "spec": {
         "data": "weather",
         "size": [

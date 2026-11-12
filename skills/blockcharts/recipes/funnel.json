@@ -12,7 +12,8 @@
   "charts": [
     {
       "title": "Checkout funnel",
-      "note": "transform.funnel centers each stage on zero (users0 = -users/2, users1 = +users/2), so the bars narrow like a funnel, and adds the share of the first stage (rate) and of the one before (stepRate). A text mark writes the rate to the right of each bar; the tooltip shows all three.",
+      "note": "Of 48,200 visits, 2,270 ended in a purchase (4.7%); the steepest drop is from viewing a product to adding it to the cart, where seven in ten leave.",
+      "how": "transform.funnel centers each stage on zero (users0 = -users/2, users1 = +users/2), so the bars narrow like a funnel, and adds the share of the first stage (rate) and of the one before (stepRate). A text mark writes the rate to the right of each bar; the tooltip shows all three.",
       "spec": {
         "data": "funnel",
         "size": [720, 320],

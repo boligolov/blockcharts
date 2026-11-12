@@ -14,7 +14,8 @@
   "charts": [
     {
       "title": "From revenue to operating profit",
-      "note": "transform.waterfall keeps a running total in row order: each bar starts where the last one ended. Rows marked by the `total` field are subtotals, drawn from 0. The `step` column (increase, decrease, total) is colored by a color scale with a fixed domain and range. Each figure (`amount`) stands where its bar ends (`value1`): above a gain or a total, under a loss (`negative: \"flip\"` with `sign: \"amount\"`), so no two figures stand side by side. With a figure on every bar the chart needs no value axis.",
+      "note": "Of $892K of revenue, $248K is left as operating profit; after the cost of sales, salaries take the most.",
+      "how": "transform.waterfall keeps a running total in row order: each bar starts where the last one ended. Rows marked by the `total` field are subtotals, drawn from 0. The `step` column (increase, decrease, total) is colored by a color scale with a fixed domain and range. Each figure (`amount`) stands where its bar ends (`value1`): above a gain or a total, under a loss (`negative: \"flip\"` with `sign: \"amount\"`), so no two figures stand side by side. With a figure on every bar the chart needs no value axis.",
       "spec": {
         "data": "bridge",
         "size": [720, 340],

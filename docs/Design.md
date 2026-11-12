@@ -1612,6 +1612,20 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   highlight-bar have them). The zoom paragraph opened with the `titles` of `zoom-controls`, a block it never
   introduced; it now says what `zoom` does, then what `zoom-controls` adds and that it takes the zoom's `scales` and
   `fit`, then its `titles`, and points to long-series, the recipe that has all three.
+- **A note under a chart is for its reader; how the chart is made is a note of its own.** The recipes explained
+  themselves in `note` ("transform.window with op \"total\" writes…", backticks, `NaN`), and the composer writes `note`
+  under the heading: the site's example pages and the reports they offer showed that prose to readers, and an agent
+  that copied a recipe and kept its note put it in front of a client. The review had it the other way round (a new
+  field for the reader, `note` for the agent), but `note` is reader text everywhere else: SKILL.md asks for what the
+  chart shows, sections have one, and both dashboards and every page written so far use it so. So `note` stays, and
+  an entry (a chart or a section) takes `how`, a note for whoever writes the page, which the composer checks is text
+  and never puts on the page; `compose()` hands it back with the entries, and the site shows it under the chart as
+  "How it is made", with code in backticks and the names of blocks as code, a block linked to its reference. The
+  recipes' 61 notes moved to `how`, and each chart got a note written from its own data ("West sells the most, 66,
+  more than twice the 25 of Central"), except a KPI tile and a gauge whose figure says it all; the three of executive-dashboard,
+  already for readers, stayed. A note with code in it (backticks, a block's name, `NaN`, a brace, a JSON key) is a
+  warning that names the piece and says where it goes: 130 notes of the two dashboards in English, Chinese, Japanese
+  and Korean raise none, and every recipe composes with no warning, so a recipe whose note slips back fails the tests.
 
 ## Next steps
 

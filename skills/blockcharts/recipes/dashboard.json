@@ -15,7 +15,8 @@
   "charts": [
     {
       "title": "Tickets opened",
-      "note": "Two charts on one page can read the same dataset.",
+      "note": "Tickets opened peaked at 45 in the week of May 27.",
+      "how": "Two charts on one page can read the same dataset.",
       "span": 1,
       "spec": {
         "data": "tickets",
@@ -31,7 +32,7 @@
     },
     {
       "title": "Opened against closed",
-      "note": "One dot per week.",
+      "note": "One dot per week: in three of the six weeks more tickets were opened than closed.",
       "span": 1,
       "spec": {
         "data": "tickets",

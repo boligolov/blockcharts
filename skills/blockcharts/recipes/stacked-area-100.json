@@ -18,7 +18,8 @@
   "charts": [
     {
       "title": "Traffic mix (100%)",
-      "note": "normalize: true scales every stack to 0..1, so the areas show shares rather than totals. follows: the stack is rebuilt when the legend hides a series, so the rest add up to 100% again.",
+      "note": "Direct grew from 24% of visits in January to 32% in May, at the cost of search and social.",
+      "how": "normalize: true scales every stack to 0..1, so the areas show shares rather than totals. follows: the stack is rebuilt when the legend hides a series, so the rest add up to 100% again.",
       "spec": {
         "data": "sources",
         "transforms": [{ "type": "stack", "field": "visits", "by": "month", "group": "source", "normalize": true, "follows": "color" }],

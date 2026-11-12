@@ -175,7 +175,8 @@
   "charts": [
     {
       "title": "Brent crude, monthly, USD per barrel",
-      "note": "mark.candlestick takes open, high, low and close from each row. They share the y scale; green means the price rose over the month.",
+      "note": "Brent moved between $71 and $90 a barrel over the two years and ended at $82, above the $78 it started at.",
+      "how": "mark.candlestick takes open, high, low and close from each row. They share the y scale; green means the price rose over the month.",
       "spec": {
         "data": "brent",
         "size": [
