@@ -1604,6 +1604,14 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   `compress: true`, which gzips everything else (packed columns gain nothing from it, the text beside them does), and
   only while its JSON and its columns' values together stay within the 64 MB a page unpacks. test-skill runs every
   `runtime/` script SKILL.md or the skill's README names with no arguments: it must stop with a usage line.
+- **A paragraph of SKILL.md says what a thing is before how to size it.** The KPI paragraph opened with the sizes of a
+  tile with and without a sparkline, then `rowField`, and only then named the guide, in a sentence with no verb ("A
+  chart whose guides include `{"type": "kpi", ...}`."); it ended by sizing "the guide alone" at `[280, 150]`, the
+  size it had just given a tile with a sparkline. It now opens with the guide and what it writes, then its options,
+  then the two sizes once each (a sparkline `[280, 150]`, the guide alone `[280, 84]`, as executive-dashboard and
+  highlight-bar have them). The zoom paragraph opened with the `titles` of `zoom-controls`, a block it never
+  introduced; it now says what `zoom` does, then what `zoom-controls` adds and that it takes the zoom's `scales` and
+  `fit`, then its `titles`, and points to long-series, the recipe that has all three.
 
 ## Next steps
 
