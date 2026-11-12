@@ -37,7 +37,7 @@ const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha38
 
   <h2 id="spec">A chart spec</h2>
   <p>A spec names a dataset and says how to draw it. There is no code in it.</p>
-  <Snippet code={specExample} label="chart spec" />
+  <Snippet code={specExample} label="chart spec" name="the chart spec" />
   <ul>
     <li><b>Scales</b> are declared once and named: <code>x</code> and <code>y</code> by convention, anything else is yours (<code>color</code>, <code>y2</code>, …). A chart can have several scales in one direction, which is how dual axes work.</li>
     <li><b>Marks</b> read data through <i>channels</i>: <code>"x": "region"</code> means the field <code>region</code> on the scale named <code>x</code>.</li>
@@ -59,7 +59,7 @@ const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha38
     <code>month</code>, <code>day</code>, <code>date</code>, <code>datetime</code>) or an object of <code>Intl</code> options, with <code>locale</code>, <code>prefix</code> and
     <code>suffix</code> on top. The default locale is <code>en-US</code> and dates are UTC, so a report reads the same on every machine.
   </p>
-  <Snippet code={formatExample} label="format examples" />
+  <Snippet code={formatExample} label="format examples" name="the format examples" />
 
   <h2 id="composer">The composer and the agent skill</h2>
   <p>
@@ -67,7 +67,7 @@ const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha38
     its path in the JSON), draws every chart once in a sandbox to catch what only shows up when drawing, and writes the page. The same input always gives the same bytes, and nothing
     is written until every chart is valid.
   </p>
-  <Snippet code={shell} label="shell" />
+  <Snippet code={shell} label="shell" name="the composer commands" />
   <p>
     <code>npm run skill</code> packs the composer with instructions and recipes for an AI agent. The agent writes only JSON, runs the composer, and fixes what the messages say.
     Every <a href={`${base}examples/`}>example</a> is a recipe from that package.
@@ -95,7 +95,7 @@ const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha38
 
   <h2 id="pin">Pin a version, add integrity</h2>
   <p>Files of a version never change, so put the version in the CDN path. <code>manifest.json</code> has a SHA-384 hash for every file, ready for <code>integrity</code>. This is the real hash of the kit on this site:</p>
-  <Snippet code={integrity} label="HTML" />
+  <Snippet code={integrity} label="HTML" name="the script tag with its integrity" />
 
   <h2 id="limits">Limits</h2>
   <ul>

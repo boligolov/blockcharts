@@ -13,17 +13,17 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.36): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
+Done (skill 0.33.1–0.33.37): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
 every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
 month, an axis's top label, the color of a tooltip's dot, cards on error bars, dumbbells and lollipops, KPI tiles two to a
 row on a phone, a treemap laid out for its plot, even gaps in a legend); D1, a chart's name for a screen reader and the
-legend filter from the keyboard; D2, the site's text at 4.5:1 (its own colors; the charts' are below).
+legend filter from the keyboard; D2, the site's text at 4.5:1 (its own colors; the charts' are below); D3, the
+headings of the site and the reports one level at a time, a skip link, copy buttons that say what they copy.
 
 Left, in this order:
 
-- [ ] **D3** Site: 51 pages skip a heading level; no skip link; every copy button says only "Copy".
 - [ ] **E1** Tooltips show internals and raw values: highlight-bar (ISO date, raw number, a helper field), waterfall
       `value1` (executive too), boxplot outlier "count 10" and q1/q3/low/high, histogram bin0/bin1, bars-and-line
       quarterTotal/line, funnel stepRate "–", moving-average avg7/toDate, dumbbell y2024/y2025, pie/donut "share 19"
@@ -65,6 +65,9 @@ Found along the way:
       `--bc-bad` #e5484d 3.9 (the composer's defaults, which the site repeats). In dark only "Daily" fails. A shade
       of each color for text, or labels in `--bc-text` with a swatch of the line's color; the composer and site.css
       change together.
+- [ ] The zoom controls' "100%" button is named "Reset zoom to the full range" by default (found by D3, axe-core's
+      label-content-name-mismatch): a person who says what they see ("click 100%") does not reach it, as its name
+      leaves the word out. "100%: reset the zoom", or the name starting with the text it shows.
 - [ ] The legend filter of a canvas chart has no keys: a canvas has no elements to focus. Buttons of the page over the
       legend (as the composer draws above a facet), or keys on the canvas itself with a ring it draws.
 

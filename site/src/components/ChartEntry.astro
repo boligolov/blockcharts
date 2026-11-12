@@ -5,6 +5,8 @@ import { jsonForScript } from '../lib/site.mjs';
 
 interface Panel { label: string; spec: unknown }
 interface Props {
+  /** The heading level of a panel's label: one below the title of the chart it stands under. */
+  level?: number;
   entry: {
     spec?: unknown;
     facet?: { columns?: number };
@@ -13,7 +15,8 @@ interface Props {
     legendId?: string;
   };
 }
-const { entry } = Astro.props;
+const { entry, level = 4 } = Astro.props;
+const Label = `h${level}`;
 const panels = entry.panels;
 const columns = panels ? (entry.facet && entry.facet.columns) || Math.min(panels.length, 3) : 0;
 ---
@@ -32,7 +35,7 @@ const columns = panels ? (entry.facet && entry.facet.columns) || Math.min(panels
     )}
     <div class="bc-facets" style={`--bc-facet-cols:${columns}`}>
       {panels.map((p) => (
-        <div class="bc-facet"><h4>{p.label}</h4><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(p.spec)} /></div>
+        <div class="bc-facet"><Label>{p.label}</Label><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(p.spec)} /></div>
       ))}
     </div>
   </div>

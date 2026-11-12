@@ -773,6 +773,26 @@ test('compose: sections head groups of cards, and paths still name the entry of 
   assert(h.indexOf('Sales &lt;all&gt;') < h.indexOf('>One<') && h.indexOf('>One<') < h.indexOf('>Costs<'), 'in the order given');
   assert(h.includes('<h3>One</h3>') && !h.includes('<h2>One</h2>'), 'card titles go one level down');
   assert(compose({ data: DATA, charts: [{ title: 'One', spec: bars() }] }).html.includes('<h2>One</h2>'), 'without sections they stay h2');
+
+  // the outline a screen reader lists goes down one level at a time: a card before the first section is not under it, and
+  // a facet's panels are named one level below their card's title (at its level in a card with none)
+  const facetRows = ['North', 'South'].flatMap((r) => DATA.cats.map((row) => ({ ...row, r })));
+  const outline = (charts) => {
+    const html = compose({ title: 'Report', data: { ...DATA, f: facetRows }, layout: { columns: 2 }, charts }).html;
+    return [...html.replace(/<script\b[\s\S]*?<\/script>/g, '').matchAll(/<h([1-6])>([^<]*)</g)].map((m) => `h${m[1]} ${m[2]}`);
+  };
+  const facet = (title) => ({ ...(title ? { title } : {}), spec: { ...bars(), data: 'f' }, facet: { field: 'r' } });
+  assert.deepStrictEqual(outline([{ title: 'First', spec: bars() }, { section: 'S' }, { title: 'In S', spec: bars() }, facet('Split')]), [
+    'h1 Report',
+    'h2 First',
+    'h2 S',
+    'h3 In S',
+    'h3 Split',
+    'h4 North',
+    'h4 South',
+  ]);
+  assert.deepStrictEqual(outline([facet('Split'), facet()]), ['h1 Report', 'h2 Split', 'h3 North', 'h3 South', 'h2 North', 'h2 South']);
+  assert.deepStrictEqual(outline([{ section: 'S' }, facet()]), ['h1 Report', 'h2 S', 'h3 North', 'h3 South']);
   assert.strictEqual([...h.matchAll(/<script type="application\/json" data-bc-chart>/g)].length, 2);
 
   const broken = bars();
@@ -922,7 +942,7 @@ test('compose: facet draws one chart per value on shared scales, with one legend
   assert(north.scales.y.domain[1] >= 900, 'it reaches the largest panel: ' + north.scales.y.domain);
   assert.deepStrictEqual(north.scales.x.domain, south.scales.x.domain, 'one x');
   assert.deepStrictEqual(north.scales.color.domain, ['Tea', 'Coffee'], 'one set of colors, Coffee has its place in North too');
-  assert(page.html.includes('--bc-facet-cols:2') && page.html.includes('<h4>North</h4>'));
+  assert(page.html.includes('--bc-facet-cols:2') && page.html.includes('<h3>North</h3>'), 'a panel one level below the card');
   assert.strictEqual([...page.html.matchAll(/<section class="bc-section"/g)].length, 1, 'one card');
   assert.strictEqual([...page.html.matchAll(/<div class="bc-facet-legend"/g)].length, 1, 'one legend');
   assert(
@@ -995,7 +1015,7 @@ test('compose: facet draws one chart per value on shared scales, with one legend
   assert.strictEqual(some.length, 1, 'only what is asked for');
 
   const canvasless = compose({
-    data: { d: [{ r: '</h4><script>', x: 'a', v: 1 }] },
+    data: { d: [{ r: '</h2><script>', x: 'a', v: 1 }] },
     charts: [
       {
         spec: { data: 'd', scales: { x: { type: 'band' }, y: { type: 'linear' } }, marks: [{ type: 'rect', x: 'x', y: 'v' }] },
@@ -1003,7 +1023,7 @@ test('compose: facet draws one chart per value on shared scales, with one legend
       },
     ],
   }).html;
-  assert(!canvasless.includes('<h4></h4><script>'), 'a value is text, not markup');
+  assert(!canvasless.includes('<h2></h2><script>'), 'a value is text, not markup');
 
   const broken = spec();
   broken.marks = [{ type: 'line', x: 'nope', y: 'v' }];

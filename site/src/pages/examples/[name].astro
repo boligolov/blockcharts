@@ -58,7 +58,7 @@ const embedded = [
   '</script>',
   '',
   ...entries.flatMap(specsOf).flatMap((c) => [
-    ...(c.label ? [`<h4>${c.label}</h4>`] : []),
+    ...(c.label ? [`<h3>${c.label}</h3>`] : []),
     '<script type="application/json" data-bc-chart>',
     JSON.stringify(c.spec, null, 2),
     '</script>',
@@ -77,9 +77,9 @@ const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : emb
   <script is:inline type="application/json" id="bc-data" set:html={jsonForScript(recipe.data)} />
   {entries.map((c, i) => (
     <section class="bc-section">
-      {c.title && <h3>{c.title}</h3>}
+      {c.title && <h2>{c.title}</h2>}
       {c.note && <p>{c.note}</p>}
-      <div class="demo"><ChartEntry entry={c} /></div>
+      <div class="demo"><ChartEntry entry={c} level={c.title ? 3 : 2} /></div>
       {several && (
         <div class="chart-blocks">
           <p class="muted">On a page of its own this chart would need {perChart[i].blocks.length} blocks, {kb(perChart[i].bytes)} with the core:</p>
@@ -119,7 +119,7 @@ const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : emb
     This is the whole input. <code>data</code> holds the datasets, each chart is a <code>spec</code> that names one.
     Compose it with <code>node scripts/compose.js {recipe.name}.json report.html</code>.
   </p>
-  <Snippet code={recipe.text} label={`${recipe.name}.json`} />
+  <Snippet code={recipe.text} label={`${recipe.name}.json`} name={`${recipe.name}.json`} />
   <p>The report the composer makes from it is <a href={`${base}examples/${recipe.name}.report.html`}>one standalone file</a> ({kb(fileBytes)}): open it from disk, mail it, print it.</p>
 
   <h2>In a page of your own</h2>
@@ -127,7 +127,7 @@ const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : emb
     The charts above use the <code>{kitName}</code> kit ({kb(kit.js.gzip)} gzipped), the smallest one that has the blocks this example needs:
     {blocks.map((b, i) => <>{i ? ', ' : ' '}<code>{b}</code></>)}.
   </p>
-  <Snippet code={shown} label="HTML" />
+  <Snippet code={shown} label="HTML" name="the HTML for a page of your own" />
 
   <nav class="pager" aria-label={`More ${kind.title.toLowerCase()}`}>
     {prev ? <a class="prev" href={`${base}examples/${prev.name}/`}><span>Previous in {kind.title}</span>{prev.title}</a> : <span />}

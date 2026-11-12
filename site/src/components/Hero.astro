@@ -45,7 +45,7 @@ const base = baseUrl(import.meta.env.BASE_URL);
             ))}
           </div>
           <div class="chart-card">
-            {trend.title && <h3>{trend.title}</h3>}
+            {trend.title && <p class="chart-title">{trend.title}</p>}
             <script is:inline type="application/json" data-bc-chart set:html={jsonForScript(trend.spec)} />
           </div>
         </div>

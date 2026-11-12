@@ -12,7 +12,7 @@ const pages = embedPages(base);
   <div class="grid">
     {pages.map((p) => (
       <div class="card">
-        <h3><a href={`${base}embed/${p.file.replace(/\.html$/, '')}/`}>{p.title}</a></h3>
+        <h2><a href={`${base}embed/${p.file.replace(/\.html$/, '')}/`}>{p.title}</a></h2>
         <p set:html={p.lead} />
       </div>
     ))}

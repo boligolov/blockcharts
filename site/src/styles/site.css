@@ -186,6 +186,30 @@ p {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- the skip link: the first stop of the Tab key, seen only when it has the focus ---- */
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 30;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip:focus {
+  top: 12px;
+}
+.skip:hover {
+  color: var(--accent-ink);
+}
+/* the content starts under the sticky header, so the skip link moves the focus there without scrolling */
+main {
+  scroll-margin-top: 64px;
+}
+
 /* ---- header ---- */
 header.site {
   position: sticky;
@@ -1087,14 +1111,18 @@ footer.site .note {
   gap: 6px;
   min-width: 0;
 }
+.card h2,
 .card h3 {
   margin: 0;
   font-size: 16px;
+  line-height: inherit;
 }
+.card h2 a,
 .card h3 a {
   color: var(--fg);
   text-decoration: none;
 }
+.card h2 a:hover,
 .card h3 a:hover {
   color: var(--accent);
 }
@@ -1209,8 +1237,10 @@ th {
 .bc-section {
   margin: 0 0 24px;
 }
-.bc-section h3 {
+.bc-section h2 {
   margin: 0 0 2px;
+  font-size: 17px;
+  line-height: inherit;
 }
 .bc-section p {
   color: var(--muted);
@@ -1908,9 +1938,11 @@ pre.astro-code {
   padding: 12px 14px 6px;
   background: var(--surface);
 }
-.window-body .chart-card h3 {
+.window-body .chart-card .chart-title {
   margin: 0 0 4px;
   font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 .bc-chart text {
   font-variant-numeric: tabular-nums;
@@ -1925,10 +1957,14 @@ pre.astro-code {
 .bc-facet {
   min-width: 0;
 }
-.bc-facet h4 {
+.bc-facet > h2,
+.bc-facet > h3,
+.bc-facet > h4 {
   margin: 0 0 2px;
   font-size: 12px;
   font-weight: 600;
+  line-height: inherit;
+  letter-spacing: normal;
   color: var(--bc-text);
 }
 .bc-facet-legend {

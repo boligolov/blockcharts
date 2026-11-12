@@ -1499,6 +1499,29 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   every background, in both themes, that the two dark blocks are the same, and every color of highlighted code on the
   pages; it fails on the colors before this change. Text in a chart's own colors is the library's and stays in the
   roadmap: a line's end label in its series color, a KPI tile's change in `--bc-good`.
+- **The site reads by its headings, its header can be skipped, and a copy button says what it copies.** 50 pages went
+  from their h1 to an h3: the title of each chart on an example page, the hero's card on the landing page, the cards of
+  /embed/. A chart's title on an example page is an h2 now and a facet's panel one level below it (`ChartEntry`'s
+  `level`), the cards of /embed/ are h2, and the hero's title is a paragraph: the hero is a picture of a report, not a
+  section of the page. Each looks as before (the same size, weight and line height in Chrome). The composer did the
+  same in a report: a facet's panels were h4 under an h2 card (small-multiples), and a card's title went down to h3
+  under sections only when the page had more entries than charts, counted after a facet was split into its panels, so
+  a page with sections and a facet kept its cards at h2, beside the sections. A card is now an h2 up to the first
+  section and an h3 after it, a panel one level below its card's title (at the card's level in a card with none), and
+  the stylesheet finds a panel's label by `.bc-facet>`, not by h4. The site had no way past its header for the
+  keyboard: its first stop is now "Skip to content", seen over the header's corner while it has the focus, and `main`
+  has a scroll margin the height of the sticky header, so the jump moves the focus without scrolling the content
+  under it. Every copy button said "Copy" (the install box's "Copy: Windows · PowerShell"). Each is named by what it
+  copies, unlike the others on its page (`Snippet` takes a `name`): "Copy bar.json", "Copy the HTML of “A chart from a
+  kit”". The word on it stays "Copy", the start of its name, for whoever says what they see to click it. A screen
+  reader does not hear the "Copied" of a named button, so a status line says "Copied bar.json". A second click within
+  1.2 s left the button reading "Copied" for good, as it restored the text it had at the click; it keeps the first.
+  `check-site.js` checks every page so: the headings go down one level at a time from the h1 (the reports' too), the
+  first link of a page of the site skips to an element that is there, and every copy button is "Copy …" and unlike
+  the others. On the build before, it found the 50 pages and the small-multiples report, 62 pages with no skip link
+  and 115 nameless buttons. axe-core in Chrome (heading-order, bypass, skip-link, button-name,
+  label-content-name-mismatch and six more) passes on all 110 pages but for the zoom controls' "100%", named "Reset
+  zoom to the full range": a word the name leaves out, and the library's (see the roadmap).
 
 ## Next steps
 

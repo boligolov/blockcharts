@@ -89,6 +89,49 @@ function checkContrast(css, pages) {
   return [...new Set(problems)];
 }
 
+const withoutScripts = (text) => text.replace(/<script\b[\s\S]*?<\/script>/g, '');
+
+/** The headings of a page go down one level at a time from its h1: a screen reader moving by headings hears the outline,
+ * and a skipped level reads as a section missing. */
+function checkHeadings(rel, text) {
+  const problems = [];
+  let prev = 0;
+  for (const m of withoutScripts(text).matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/g)) {
+    const level = +m[1];
+    if (level > prev + 1) {
+      const words = unescapeHtml(m[2].replace(/<[^>]+>/g, '')).trim();
+      problems.push(`${rel}: h${level} "${words}" comes after ${prev ? `an h${prev}` : 'no heading'} (a level skipped)`);
+    }
+    prev = level;
+  }
+  return problems;
+}
+
+/** What a page of the site is like to read with a keyboard or a screen reader: its headings (above), its first link skips
+ * to the content past the header, and every copy button says what it copies, unlike the others on the page. */
+function checkReading(rel, text) {
+  const problems = checkHeadings(rel, text);
+  const html = withoutScripts(text);
+  const body = html.slice(html.search(/<body\b/));
+  const first = body.match(/<a\b[^>]*>/);
+  const to = first && attr1(first[0], 'href');
+  if (!to || !to.startsWith('#')) problems.push(`${rel}: the first link is not a skip link to the content`);
+  else if (!new RegExp(`\\bid="${to.slice(1)}"`).test(html)) problems.push(`${rel}: the skip link points at no #${to.slice(1)}`);
+  const said = new Set();
+  for (const m of html.matchAll(/<button\b[^>]*\bclass="copy"[^>]*>/g)) {
+    const name = attr1(m[0], 'aria-label');
+    if (!name || !/^Copy \S/.test(name))
+      problems.push(`${rel}: a copy button that does not say what it copies (${name || 'no aria-label'})`);
+    else if (said.has(name)) problems.push(`${rel}: two copy buttons both say "${name}"`);
+    said.add(name);
+  }
+  return problems;
+}
+const attr1 = (tag, name) => {
+  const m = tag.match(new RegExp(`\\b${name}="([^"]*)"`));
+  return m ? unescapeHtml(m[1]) : null;
+};
+
 function walk(dir) {
   return fs
     .readdirSync(dir, { withFileTypes: true })
@@ -150,6 +193,7 @@ async function checkSite(siteDir, options) {
     if (report) {
       if (!/<meta name="robots" content="noindex">/.test(text)) problems.push(`${rel}: a report without noindex`);
       if (canonical !== `${home}examples/${report[1]}/`) problems.push(`${rel}: canonical ${canonical}, not its example page`);
+      problems.push(...checkHeadings(rel, text));
       return;
     }
     const page = rel.replace(/(^|\/)index\.html$/, '$1');
@@ -170,6 +214,7 @@ async function checkSite(siteDir, options) {
     const h1 = (text.match(/<h1[\s>]/g) || []).length;
     if (h1 !== 1) problems.push(`${rel}: ${h1} h1 headings`);
     for (const m of text.matchAll(/<img\b[^>]*>/g)) if (!/\balt="/.test(m[0])) problems.push(`${rel}: an image without alt`);
+    problems.push(...checkReading(rel, text));
   };
 
   // the blocks page says, for each channel, which scales it accepts: they are worked out from what the scales declare (the

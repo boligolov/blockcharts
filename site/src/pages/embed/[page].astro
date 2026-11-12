@@ -11,6 +11,8 @@ export function getStaticPaths() {
 const base = baseUrl(import.meta.env.BASE_URL);
 const { page } = Astro.props;
 const release = loadRelease();
+// a copy button says what it copies: the code of which section (a heading may hold markup)
+const of = (h: string) => `“${h.replace(/<[^>]+>/g, '')}”`;
 ---
 <Base title={page.title} nav="embed" version={release.version} description={page.description || page.lead.replace(/<[^>]+>/g, '')}>
   <p class="muted"><a href={`${base}embed/`}>Embedding</a> /</p>
@@ -24,8 +26,8 @@ const release = loadRelease();
       {s.extra && <Fragment set:html={s.extra} />}
       {s.extraAfter && <Fragment set:html={s.extraAfter} />}
       {s.note && <p class="muted" set:html={s.note} />}
-      {s.html && <Snippet code={s.shown || s.html} label="HTML" />}
-      {s.code && <Snippet code={s.code} label={s.label} />}
+      {s.html && <Snippet code={s.shown || s.html} label="HTML" name={`the HTML of ${of(s.h)}`} />}
+      {s.code && <Snippet code={s.code} label={s.label} name={`the code of ${of(s.h)}`} />}
     </>
   ))}
 </Base>

@@ -97,6 +97,7 @@ const jsonLd = landing
     </script>
   </head>
   <body>
+    <a class="skip" href="#content">Skip to content</a>
     <header class="site">
       <div class="wrap">
         <a class="brand" href={base}><Logo /> blockcharts</a>
@@ -121,7 +122,8 @@ const jsonLd = landing
         </div>
       </div>
     </header>
-    {landing ? <main class="landing"><slot /></main> : <main><div class={wide ? 'wrap' : 'wrap narrow'}><slot /></div></main>}
+    {landing ? <main id="content" class="landing"><slot /></main> : <main id="content"><div class={wide ? 'wrap' : 'wrap narrow'}><slot /></div></main>}
+    <p class="sr" role="status" id="copied"></p>
     <footer class="site">
       <div class="wrap">
         <div class="cols-f">
@@ -166,14 +168,22 @@ const jsonLd = landing
           document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && menu.open) { menu.open = false; menu.querySelector('summary').focus(); } });
           menu.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', function () { menu.open = false; }); });
         }
-        // copy buttons: the text is in data-copy, or in the <pre><code> next to the button
+        // copy buttons: the text is in data-copy, or in the <pre><code> next to the button. A button is named by what it
+        // copies (aria-label), so a screen reader does not hear its "Copied": the status line under the page says it
+        var status = document.getElementById('copied');
         document.querySelectorAll('button.copy').forEach(function (b) {
+          var label = b.textContent;
+          var timer = 0;
           b.addEventListener('click', function () {
             var text = b.getAttribute('data-copy');
             if (text === null) { var code = b.parentNode.querySelector('pre code, pre'); text = code ? code.textContent : ''; }
             if (!text || !navigator.clipboard) return;
-            var label = b.textContent;
-            navigator.clipboard.writeText(text).then(function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = label; }, 1200); }, function () {});
+            navigator.clipboard.writeText(text).then(function () {
+              b.textContent = 'Copied';
+              if (status) status.textContent = (b.getAttribute('aria-label') || 'Copy').replace(/^Copy\b/, 'Copied');
+              clearTimeout(timer);
+              timer = setTimeout(function () { b.textContent = label; if (status) status.textContent = ''; }, 1200);
+            }, function () {});
           });
         });
         // tabs (the install box): arrow keys move between tabs, as the ARIA pattern expects

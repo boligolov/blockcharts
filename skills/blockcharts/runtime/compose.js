@@ -205,7 +205,7 @@ const defaultCss = (light) =>
     // a tile next to a taller card is stretched to its height: its figure stands in the middle of the room, not at the top
     '.bc-tile{display:flex;flex-direction:column}.bc-tile>.bc-chart,.bc-tile>.bc-scroll{margin:auto 0}',
     '.bc-group{grid-column:1/-1;margin:16px 0 -4px}.bc-group:first-child{margin-top:0}.bc-group h2{font-size:18px;line-height:1.3;letter-spacing:-.01em;font-weight:650;margin:0}.bc-group p{margin:2px 0 0;color:var(--muted)}',
-    '.bc-facets{display:grid;grid-template-columns:repeat(var(--bc-facet-cols,2),minmax(0,1fr));gap:12px 16px}.bc-facet{min-width:0}.bc-section h4{font-size:12px;font-weight:600;margin:0 0 2px}',
+    '.bc-facets{display:grid;grid-template-columns:repeat(var(--bc-facet-cols,2),minmax(0,1fr));gap:12px 16px}.bc-facet{min-width:0}.bc-facet>h2,.bc-facet>h3,.bc-facet>h4{font-size:12px;font-weight:600;margin:0 0 2px}',
     '.bc-facet-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;margin:0 0 8px}.bc-facet-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.bc-facet-legend button{all:unset;cursor:pointer}.bc-facet-legend button:focus-visible{outline:2px solid currentColor;outline-offset:2px}.bc-facet-legend [aria-pressed=false]{opacity:.4}',
     '@media (max-width:720px){.bc-facets{grid-template-columns:repeat(min(var(--bc-facet-cols,2),2),minmax(0,1fr))}}@media (max-width:480px){.bc-facets{grid-template-columns:minmax(0,1fr)}}',
     '.bc-scroll{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}',
@@ -821,19 +821,25 @@ function compose(opts) {
   const scripts = [read(core)].concat(blockNames.map((n) => read(manifest.blocks[n].file)));
   const bytes = scripts.reduce((n, s) => n + Buffer.byteLength(s), 0);
 
-  // every chart is a card in the grid; a card spans `span` columns (the whole row by default)
-  // under section headings a card's title is one level down
-  const titleTag = entries.length > charts.length ? 'h3' : 'h2';
+  // every chart is a card in the grid; a card spans `span` columns (the whole row by default). The headings go down one
+  // level at a time, as a screen reader lists them: a card's title is an h2, an h3 under a section heading; the label of a
+  // facet's panel is one level below its card's title (at the card's level in a card with none)
+  const levelOf = new Map();
+  let level = 2;
+  for (const e of entries) {
+    if (e.section !== undefined) level = 3;
+    else levelOf.set(e, level);
+  }
   const langAttr = (lang) => (lang && lang !== pageLang ? ` lang="${lang}"` : '');
   const chartTag = (spec) => `<script type="application/json" data-bc-chart>${jsonForScript(spec)}</script>`;
-  const facetTag = ({ panels, facet, legend, legendId }) => {
+  const facetTag = ({ panels, facet, legend, legendId }, label) => {
     const swatch = (l) => `<i style="background:${escapeText(l.color)}"></i>${escapeText(l.label)}`;
     const item = (l, k) =>
       legendId
         ? `<button type="button" data-bc-legend-index="${k}" aria-pressed="true">${swatch(l)}</button>`
         : `<span>${swatch(l)}</span>`;
     const keys = legend ? `<div class="bc-facet-legend"${legendId ? ` id="${legendId}"` : ''}>${legend.map(item).join('')}</div>` : '';
-    const cells = panels.map((p) => `<div class="bc-facet"><h4>${escapeText(p.label)}</h4>${chartTag(p.spec)}</div>`).join('');
+    const cells = panels.map((p) => `<div class="bc-facet"><${label}>${escapeText(p.label)}</${label}>${chartTag(p.spec)}</div>`).join('');
     return `${keys}<div class="bc-facets" style="--bc-facet-cols:${facet.columns || Math.min(panels.length, 3)}">${cells}</div>`;
   };
   // with phoneColumns 2, tiles (a card of one column) whose chart draws as well at any width (a KPI, a sparkline: BC.narrow)
@@ -861,7 +867,8 @@ function compose(opts) {
   }
   const section = (entry) => {
     const { spec, title, note, noteHtml, span, minWidth, lang, panels, facet, legend, legendId } = entry;
-    const script = panels ? facetTag({ panels, facet, legend, legendId }) : chartTag(spec);
+    const titleTag = `h${levelOf.get(entry)}`;
+    const script = panels ? facetTag({ panels, facet, legend, legendId }, title ? `h${levelOf.get(entry) + 1}` : titleTag) : chartTag(spec);
     const tag = minWidth ? `<div class="bc-scroll"><div style="min-width:${minWidth}px">${script}</div></div>` : script;
     const width = columns > 1 ? ` style="grid-column:span ${span || columns}"` : '';
     const tile = (columns > 1 && span === 1 ? ' bc-tile' : '') + (paired.has(entry) ? ' bc-pair' : '');

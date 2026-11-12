@@ -4,7 +4,8 @@
 import { baseUrl, repoFile, SITE } from '../lib/site.mjs';
 
 const base = baseUrl(import.meta.env.BASE_URL);
-type Block = { label?: string; lines: string[] };
+/** `copy` names what the copy button copies, for a screen reader: "Copy the commands for …". */
+type Block = { label?: string; copy: string; lines: string[] };
 type Way = { id: string; tab: string; note: string; blocks?: Block[]; download?: boolean; after?: string };
 const ways: Way[] = [
   {
@@ -12,8 +13,8 @@ const ways: Way[] = [
     tab: 'Claude Code',
     note: 'A plugin from this project’s own marketplace. It updates itself when a new version is out.',
     blocks: [
-      { label: 'In a Claude Code session', lines: ['/plugin marketplace add boligolov/blockcharts', '/plugin install blockcharts@blockcharts'] },
-      { label: 'Or from a terminal', lines: ['claude plugin marketplace add boligolov/blockcharts', 'claude plugin install blockcharts@blockcharts'] },
+      { label: 'In a Claude Code session', copy: 'the commands for a Claude Code session', lines: ['/plugin marketplace add boligolov/blockcharts', '/plugin install blockcharts@blockcharts'] },
+      { label: 'Or from a terminal', copy: 'the commands for a terminal', lines: ['claude plugin marketplace add boligolov/blockcharts', 'claude plugin install blockcharts@blockcharts'] },
     ],
   },
   {
@@ -27,8 +28,8 @@ const ways: Way[] = [
     tab: 'Any agent',
     note: 'Unpack the folder into the agent’s skills folder (for Claude Code: ~/.claude/skills). It needs Node.js 18 or later.',
     blocks: [
-      { label: 'macOS · Linux', lines: [`curl -fsSL ${SITE}/blockcharts.skill -o /tmp/blockcharts.zip`, 'mkdir -p ~/.claude/skills && unzip -o /tmp/blockcharts.zip -d ~/.claude/skills'] },
-      { label: 'Windows · PowerShell', lines: [`Invoke-WebRequest ${SITE}/blockcharts.skill -OutFile $env:TEMP\\blockcharts.zip`, 'Expand-Archive $env:TEMP\\blockcharts.zip $env:USERPROFILE\\.claude\\skills -Force'] },
+      { label: 'macOS · Linux', copy: 'the commands for macOS and Linux', lines: [`curl -fsSL ${SITE}/blockcharts.skill -o /tmp/blockcharts.zip`, 'mkdir -p ~/.claude/skills && unzip -o /tmp/blockcharts.zip -d ~/.claude/skills'] },
+      { label: 'Windows · PowerShell', copy: 'the commands for Windows PowerShell', lines: [`Invoke-WebRequest ${SITE}/blockcharts.skill -OutFile $env:TEMP\\blockcharts.zip`, 'Expand-Archive $env:TEMP\\blockcharts.zip $env:USERPROFILE\\.claude\\skills -Force'] },
     ],
   },
 ];
@@ -46,7 +47,7 @@ const ways: Way[] = [
         <div class="code">
           {b.label && <span class="label">{b.label}</span>}
           <pre><code>{b.lines.join('\n')}</code></pre>
-          <button class="copy" type="button" data-copy={b.lines.join('\n')} aria-label={`Copy: ${b.label || w.tab}`}>Copy</button>
+          <button class="copy" type="button" data-copy={b.lines.join('\n')} aria-label={`Copy ${b.copy}`}>Copy</button>
         </div>
       ))}
       {w.download && (
