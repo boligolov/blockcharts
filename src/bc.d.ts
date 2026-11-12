@@ -362,9 +362,12 @@ declare namespace BC {
     series(mark: MarkSpec, xs: ArrayLike<number>): { key: unknown; rows: number[] }[];
     /** Categorical color by index, from the theme (`--bc-c<N>`) with a built-in fallback palette. */
     color(index: number): string;
-    /** Rough text measurement for layout (no DOM access), generous: text laid out by it is never clipped. */
+    /** Text measurement for layout, generous: text laid out by it is never clipped. In a browser never narrower than the
+     *  text in the chart's font, with room on each side for ink that reaches past its advance (the tail of an r). */
     measure(text: string, size?: number): { w: number; h: number };
-    /** The width of a label as a sans-serif such as Inter draws it, a little over: for room that shows when it is
+    /** The width of a label in the chart's own font, in a browser: measured in the font family its host draws in, at
+     *  this size and weight, every figure as the widest (figures are drawn tabular). Where no font can be measured (the
+     *  composer, a test), as a sans-serif such as Inter draws it, a little over. For room that shows when it is
      *  overestimated (between value labels, under slanted ones). `weight` as in a text primitive. */
     textWidth(text: string, size?: number, weight?: unknown): number;
     /** Whether a text has characters a full em wide (Chinese, Japanese, Korean): such text can break between any two. */

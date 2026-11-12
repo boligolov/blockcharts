@@ -19,10 +19,12 @@ const code = [manifest.core.file, ...Object.values(manifest.blocks).map((b) => b
 }));
 const flush = () => new Promise((r) => setTimeout(r, 15));
 
-/** A page with the real library in it. vars: what getComputedStyle answers for CSS variables. */
+/** A page with the real library in it. vars: what getComputedStyle answers for CSS variables; family: the font family of
+ *  every element; fonts: the page's document.fonts (none: no font can be measured, as in the composer). */
 function world(options) {
   const o = options || {};
   const doc = createDocument();
+  if (o.fonts) doc.fonts = o.fonts;
   const errors = [];
   const sandbox = {
     console: { warn: (...a) => errors.push(a.join(' ')), error: (...a) => errors.push(a.join(' ')), log() {} },
@@ -31,7 +33,11 @@ function world(options) {
     Path2D: FakePath2D,
     document: doc,
     devicePixelRatio: o.dpr || 1,
-    getComputedStyle: () => ({ position: 'static', fontFamily: 'Test Sans', getPropertyValue: (n) => (o.vars || {})[n] || '' }),
+    getComputedStyle: () => ({
+      position: 'static',
+      fontFamily: o.family || 'Test Sans',
+      getPropertyValue: (n) => (o.vars || {})[n] || '',
+    }),
   };
   Object.assign(sandbox, o.globals || {});
   if (o.noRoundRect) require('./fake-dom.js').FakeContext.prototype.roundRect = undefined;
@@ -636,6 +642,156 @@ test('canvas: a long series is one Path2D, drawn in one stroke', () => {
   assert.strictEqual(strokes.length, 1);
   assert.strictEqual(strokes[0].lineWidth > 0, true);
 });
+
+// ───────────────────────── text measured in the chart's own font ─────────────────────────
+
+/** Fonts as a page has them: `ready` says whether the web font has come; load() settles when come() or fail() is called. */
+const webFonts = (ready) => {
+  const fonts = { ready, loads: 0, settle: null };
+  fonts.check = () => fonts.ready;
+  fonts.load = () => {
+    fonts.loads++;
+    return new Promise((resolve, reject) => {
+      fonts.settle = { resolve, reject };
+    });
+  };
+  fonts.come = () => {
+    fonts.ready = true;
+    fonts.settle.resolve([]);
+  };
+  fonts.fail = () => fonts.settle.reject(new Error('network'));
+  return fonts;
+};
+
+/** A canvas that measures as fonts would: "Wide Sans" a full em a character but "1", half of one, and bold a tenth of an em more;
+ *  any other family (what stands in while a web font has not come) half as wide. The ink of a last "r" reaches a tenth of
+ *  an em past its advance. */
+const measuring = (fonts, fn) => async () => {
+  const { FakeContext } = require('./fake-dom.js');
+  const saved = FakeContext.prototype.measureText;
+  FakeContext.prototype.measureText = function (t) {
+    const [, weight, size, family] = /^(\d+) ([\d.]+)px (.*)$/.exec(this.font) || [];
+    const em = [...String(t)].reduce((n, ch) => n + (ch === '1' ? 0.5 : 1), 0);
+    const wide = family === 'Wide Sans' && (!fonts || fonts.ready) ? 1 : 0.5;
+    const width = (em + (+weight >= 700 ? String(t).length / 10 : 0)) * +size * wide;
+    const tail = String(t).endsWith('r') ? 0.1 * +size * wide : 0;
+    return { width, actualBoundingBoxLeft: 0, actualBoundingBoxRight: width + tail };
+  };
+  try {
+    await fn();
+  } finally {
+    FakeContext.prototype.measureText = saved;
+  }
+};
+
+/** A mark that draws nothing, measures a label as a guide does while the chart is laid out, and keeps the ChartCtx of every
+ *  draw. */
+const probe = (w) => {
+  const seen = [];
+  w.BC.define({
+    role: 'mark',
+    type: 'probe',
+    version: 1,
+    channels: {},
+    render: (spec, ctx) => (ctx.textWidth('Probe', 11), seen.push(ctx), []),
+  });
+  return seen;
+};
+const probed = { data: 'd', size: [400, 240], marks: [{ type: 'probe' }] };
+const builds = (seen) => new Set(seen).size;
+const box = (m) => ({ w: m.w, h: m.h });
+
+test(
+  'text: a label is measured in the font the chart is drawn in, at its size and weight, every figure as the widest',
+  measuring(null, () => {
+    const w = world({ fonts: webFonts(true), family: 'Wide Sans' });
+    const seen = probe(w);
+    const { h } = draw(w, probed);
+    assert.deepStrictEqual(arr(h.diagnostics), []);
+    const ctx = seen[seen.length - 1];
+    assert.strictEqual(ctx.textWidth('Hello', 10), 50);
+    assert.strictEqual(ctx.textWidth('Hello', 10, 700), 55);
+    assert.strictEqual(ctx.textWidth('Hello', 10, 'bold'), 55);
+    assert.strictEqual(ctx.textWidth('Hello'), 55, 'at 11 px when no size is given');
+    // "1" is half as wide in this font, but a figure is drawn as wide as the widest (tabular)
+    assert.strictEqual(ctx.textWidth('2011', 10), 40);
+    assert.strictEqual(ctx.textWidth('2011', 10), 40, 'the second time, from what was kept');
+    // measure is never narrower than the font: here wider than its estimate (0.6 em a character)
+    assert.deepStrictEqual(box(ctx.measure('Hello', 10)), { w: 50, h: 12 });
+    // and keeps the ink in: the tail of the r past its advance, on either side, however the text is anchored
+    assert.strictEqual(ctx.textWidth('Apr', 10), 30);
+    assert.deepStrictEqual(box(ctx.measure('Apr', 10)), { w: 32, h: 12 });
+  }),
+);
+
+test(
+  'text: in a narrow font measure keeps its own generous width; with no fonts to measure, the estimate stands',
+  measuring(null, () => {
+    const narrow = world({ fonts: webFonts(true), family: 'Slim Sans' });
+    const seen = probe(narrow);
+    draw(narrow, probed);
+    const ctx = seen[seen.length - 1];
+    assert.strictEqual(ctx.textWidth('Hello', 10), 25);
+    assert.deepStrictEqual(box(ctx.measure('Hello', 10)), { w: 30, h: 12 });
+    // the composer's sandbox and a test's page have no document.fonts: textWidth's estimate, as a sans-serif draws it
+    const bare = world({ family: 'Wide Sans' });
+    const seenBare = probe(bare);
+    draw(bare, probed);
+    const est = seenBare[seenBare.length - 1];
+    assert(Math.abs(est.textWidth('Hello', 10) - 23.4) < 1e-9, String(est.textWidth('Hello', 10)));
+    assert.deepStrictEqual(box(est.measure('Hello', 10)), { w: 30, h: 12 });
+  }),
+);
+
+{
+  const fonts = webFonts(false);
+  test(
+    'text: a web font that has not come is measured as the font drawn until it does; then every chart is laid out again',
+    measuring(fonts, async () => {
+      const w = world({ fonts, family: 'Wide Sans' });
+      const seen = probe(w);
+      const first = draw(w, probed);
+      const second = draw(w, probed);
+      const gone = draw(w, probed);
+      assert.strictEqual(builds(seen), 3);
+      assert.strictEqual(seen[0].textWidth('Hello', 10), 25, 'the font standing in');
+      assert.strictEqual(fonts.loads, 1, 'the font is asked for once');
+      gone.h.destroy();
+      await flush();
+      assert.strictEqual(builds(seen), 3, 'nothing is laid out again before the font has come');
+      fonts.come();
+      await flush();
+      assert.strictEqual(builds(seen), 5, 'the two charts on the page are laid out again, the one destroyed is not');
+      assert.strictEqual(seen[seen.length - 1].textWidth('Hello', 10), 50, 'measured again, in the font come');
+      assert.strictEqual(seen[0].textWidth('Hello', 10), 50);
+      await flush();
+      assert.strictEqual(builds(seen), 5, 'once');
+      assert.deepStrictEqual([arr(first.h.diagnostics), arr(second.h.diagnostics), w.errors], [[], [], []]);
+    }),
+  );
+}
+
+{
+  const fonts = webFonts(false);
+  test(
+    'text: a web font that fails to load is waited for once; the chart is laid out once more, in the font standing in',
+    measuring(fonts, async () => {
+      const w = world({ fonts, family: 'Wide Sans' });
+      const seen = probe(w);
+      draw(w, probed);
+      fonts.fail();
+      await flush();
+      await flush();
+      assert.strictEqual(builds(seen), 2);
+      assert.strictEqual(seen[seen.length - 1].textWidth('Hello', 10), 25);
+      draw(w, probed);
+      await flush();
+      assert.strictEqual(builds(seen), 3, 'a chart drawn later does not wait for it');
+      assert.strictEqual(fonts.loads, 1);
+      assert.deepStrictEqual(w.errors, []);
+    }),
+  );
+}
 
 (async () => {
   for (const [name, fn] of queue) {

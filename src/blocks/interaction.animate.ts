@@ -1,7 +1,10 @@
 (function () {
   type Effect = 'grow' | 'wipe' | 'pop' | 'fade';
-  /** Charts that have played already: a rebuild of the same chart (a new width, an update) does not play again. */
-  const played = typeof WeakSet === 'function' ? new WeakSet<object>() : null;
+  /** When each chart began to play in, by its host. A chart built again while it plays (its web font has come, its width
+   *  changed) goes on from where it was; one built again after that (a new width, an update) does not play again. */
+  const started = typeof WeakMap === 'function' ? new WeakMap<object, number>() : null;
+  const now = () =>
+    typeof performance === 'object' && performance && typeof performance.now === 'function' ? performance.now() : Date.now();
 
   /** How a mark asks to be brought in (MarkDef.enter), if it does. */
   function enterOf(mark: BC.MarkSpec): Effect | undefined {
@@ -41,8 +44,8 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'animate',
-    version: 3,
-    doc: "Plays the chart in once, when it is first drawn: bars grow from their baseline, lines and areas are drawn from left to right, a pie opens from its center, anything else fades in. Never again on zoom, filter or update of the view, and not at all for readers who ask their system for reduced motion. Uses the browser's own animation of the SVG layer (no timer loop); on a canvas chart it fades the canvas in.",
+    version: 4,
+    doc: "Plays the chart in once, when it is first drawn: bars grow from their baseline, lines and areas are drawn from left to right, a pie opens from its center, anything else fades in. Never again on zoom, filter or update of the view, and not at all for readers who ask their system for reduced motion; a chart laid out again while it plays in (its web font has come) goes on from where it was. Uses the browser's own animation of the SVG layer (no timer loop); on a canvas chart it fades the canvas in.",
     params: {
       effect: {
         kind: 'enum',
@@ -55,16 +58,18 @@
     },
     attach(spec, live) {
       const root = live.root as Element & { animate?: Element['animate'] };
-      if (played) {
-        if (played.has(live.host)) return;
-        played.add(live.host);
-      }
+      let elapsed = 0;
+      const at = started ? started.get(live.host) : undefined;
+      if (at !== undefined) elapsed = Math.max(0, now() - at);
+      else if (started) started.set(live.host, now());
       const view = (live.host.ownerDocument && live.host.ownerDocument.defaultView) || (typeof window !== 'undefined' ? window : undefined);
       // readers who asked for less motion get none
       if (view && typeof view.matchMedia === 'function' && view.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const duration = typeof spec.duration === 'number' && spec.duration >= 0 ? Math.min(10000, spec.duration) : 700;
       const delay = typeof spec.delay === 'number' && spec.delay >= 0 ? Math.min(10000, spec.delay) : 0;
       const timing = { duration, delay, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'backwards' as FillMode };
+      // built again after it has played in: no more
+      if (at !== undefined && elapsed >= delay + duration) return;
       const effect: Effect =
         spec.effect === 'grow' || spec.effect === 'wipe' || spec.effect === 'pop' || spec.effect === 'fade' ? spec.effect : auto(live.spec);
 
@@ -101,6 +106,7 @@
         frames = [{ transform: b.horizontal ? 'scaleX(0)' : 'scaleY(0)' }, { transform: 'none' }];
       }
       const animation = target.animate(frames, timing);
+      if (elapsed > 0) animation.currentTime = elapsed;
       live.cleanup(() => {
         try {
           animation.cancel();

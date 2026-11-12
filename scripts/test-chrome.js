@@ -14,15 +14,23 @@ const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 
 let browser;
-/** A page of the given charts, open at `width` px, with what it logged as errors. */
-async function open(page, width, height = 900) {
+/** A font as wide as DejaVu Sans, the sans-serif of a Linux runner: Verdana has its widths, and where Verdana is missing
+ *  (on Linux) the page falls back on DejaVu Sans itself. The tests of text that must fit run in it as well as in the
+ *  machine's own font, so a run on any machine sees what CI sees. */
+const WIDE = 'Verdana, "DejaVu Sans", sans-serif';
+/** Each font a test of fitting text runs in: the page's own, and WIDE. */
+const FONTS = [null, WIDE];
+const inFont = (font) => (font ? ' in a wide font' : '');
+
+/** A page of the given charts, open at `width` px (in `font` when given), with what it logged as errors. */
+async function open(page, width, height = 900, font = null) {
   const r = compose(page);
   assert.deepStrictEqual(
     r.diagnostics.filter((d) => d.level === 'error'),
     [],
   );
   const file = path.join(dir, `page-${Math.random().toString(36).slice(2)}.html`);
-  fs.writeFileSync(file, r.html);
+  fs.writeFileSync(file, font ? r.html.replace('</head>', `<style>body{font-family:${font}}</style></head>`) : r.html);
   const p = await browser.newPage({ viewport: { width, height } });
   p.errors = [];
   p.on('console', (m) => m.type() === 'error' && p.errors.push(m.text()));
@@ -101,34 +109,35 @@ test('tooltip: a card of long text stays on a phone screen, wherever the point i
   await p.close();
 });
 
-test('tooltip: a card is as wide as its text asks, wherever the card before it stood', async () => {
-  const mixed = {
-    ...notes,
-    data: {
-      sites: [
-        { x: 1, y: 3, site: 'Regional distribution centre, Leeds', code: 'L1' },
-        { x: 7, y: 7, site: 'Hull', code: 'H' },
-        { x: 9, y: 4, site: 'York', code: 'Y' },
-      ],
-    },
-  };
-  const p = await open(mixed, 390);
-  const [a, b] = await p.$$eval('[data-bc-layer="marks"] circle', (cs) =>
-    cs.map((c) => {
-      const r = c.getBoundingClientRect();
-      return [r.left + r.width / 2, r.top + r.height / 2];
-    }),
-  );
-  const width = async ([x, y]) => {
-    await p.mouse.move(x, y);
-    await p.waitForTimeout(60);
-    return (await rectOf(p, '.bc-tooltip')).width;
-  };
-  const first = await width(a);
-  await width(b);
-  assert.strictEqual(await width(a), first, 'after a short card on the right, the long one is as wide as before');
-  await p.close();
-});
+for (const font of FONTS)
+  test(`tooltip: a card is as wide as its text asks, wherever the card before it stood${inFont(font)}`, async () => {
+    const mixed = {
+      ...notes,
+      data: {
+        sites: [
+          { x: 1, y: 3, site: 'Regional distribution centre, Leeds', code: 'L1' },
+          { x: 7, y: 7, site: 'Hull', code: 'H' },
+          { x: 9, y: 4, site: 'York', code: 'Y' },
+        ],
+      },
+    };
+    const p = await open(mixed, 390, 900, font);
+    const [a, b] = await p.$$eval('[data-bc-layer="marks"] circle', (cs) =>
+      cs.map((c) => {
+        const r = c.getBoundingClientRect();
+        return [r.left + r.width / 2, r.top + r.height / 2];
+      }),
+    );
+    const width = async ([x, y]) => {
+      await p.mouse.move(x, y);
+      await p.waitForTimeout(60);
+      return (await rectOf(p, '.bc-tooltip')).width;
+    };
+    const first = await width(a);
+    await width(b);
+    assert.strictEqual(await width(a), first, 'after a short card on the right, the long one is as wide as before');
+    await p.close();
+  });
 
 test('tooltip: a chart wider than the screen keeps its card on the part the reader sees', async () => {
   const wide = { ...notes, charts: [{ ...notes.charts[0], minWidth: 900 }] };
@@ -271,6 +280,7 @@ const bridgeOf = (p, title) =>
     };
     const figures = [...svg.querySelectorAll('[data-bc-layer="marks"] text')].map((t) => ({
       text: t.textContent,
+      size: parseFloat(getComputedStyle(t).fontSize),
       px: parseFloat(getComputedStyle(t).fontSize) * scale,
       ...rect(t),
     }));
@@ -278,7 +288,8 @@ const bridgeOf = (p, title) =>
       slanted: /rotate\(-45/.test(t.getAttribute('transform') || ''),
       ...rect(t),
     }));
-    return { svg: rect(svg), figures, names };
+    const bars = [...svg.querySelectorAll('[data-bc-layer="marks"] rect')].map(rect).sort((a, b) => a.left - b.left);
+    return { svg: rect(svg), figures, names, bars };
   }, title);
 
 // 360 px: a small Android phone, the narrowest common screen
@@ -287,79 +298,89 @@ for (const [name, title, width] of [
   ['waterfall', 'From revenue to operating profit', 390],
   ['executive-dashboard', 'From revenue to operating profit', 390],
 ]) {
-  test(`${name} at ${width} px: every figure at full size and clear of the others, the names at an angle with no empty band under them`, async () => {
-    const p = await open(recipe(name), width);
-    const { svg, figures, names } = await bridgeOf(p, title);
-    assert.strictEqual(figures.length, 7);
-    for (const f of figures) assert(f.px >= 11, `${f.text} is ${f.px} px`);
-    for (let i = 1; i < figures.length; i++) {
-      const [a, b] = [figures[i - 1], figures[i]];
-      const apart = a.right + 2 <= b.left || a.bottom <= b.top || b.bottom <= a.top;
-      assert(apart, `${a.text} and ${b.text} meet: ${a.right} / ${b.left}`);
-    }
-    // a loss's figure under its bar: below the figure of the bar before it, which stands above the same height
-    const loss = figures.find((f) => f.text.startsWith('-'));
-    assert(loss.top > figures[0].bottom, 'the first loss is under its bar, not beside the gain before it');
-    assert(names.length === 7 && names.every((n) => n.slanted), 'seven names at 45°');
-    for (const n of names) assert(n.left >= svg.left && n.bottom <= svg.bottom, `a name stays in the chart: ${n.left} / ${svg.left}`);
-    const under = svg.bottom - Math.max(...names.map((n) => n.bottom));
-    // the chart's padding (16 px) and a few px of a label's line box: not the 40 px band there was
-    assert(under <= 28, `${under} px empty under the names`);
-    assert.strictEqual(await overflow(p), 0);
-    assert.deepStrictEqual(p.errors, []);
-    await p.close();
-  });
+  for (const font of FONTS)
+    test(`${name} at ${width} px${inFont(font)}: every figure at full size and clear of the others, the names at an angle with no empty band under them`, async () => {
+      const p = await open(recipe(name), width, 900, font);
+      const { svg, figures, names, bars } = await bridgeOf(p, title);
+      assert.strictEqual(figures.length, 7);
+      // one size for the row, the full one, unless the font is too wide for it: a figure at full size wider than the room
+      // between the bars beside it (bold DejaVu Sans at 360 px) makes the row smaller, by a px at most
+      const sizes = [...new Set(figures.map((f) => f.size))];
+      assert.strictEqual(sizes.length, 1, `one size for the row: ${sizes}`);
+      const room = 2 * (bars[1].left - bars[0].left) - (bars[0].right - bars[0].left) - 4;
+      const widest = Math.max(...figures.map((f) => ((f.right - f.left) * 11) / f.size));
+      assert(
+        figures.every((f) => f.px >= 11) || (widest > room && sizes[0] >= 10),
+        `figures at ${sizes[0]} px, the widest ${widest.toFixed(1)} px at full size in ${room.toFixed(1)} px`,
+      );
+      for (let i = 1; i < figures.length; i++) {
+        const [a, b] = [figures[i - 1], figures[i]];
+        const apart = a.right + 2 <= b.left || a.bottom <= b.top || b.bottom <= a.top;
+        assert(apart, `${a.text} and ${b.text} meet: ${a.right} / ${b.left}`);
+      }
+      // a loss's figure under its bar: below the figure of the bar before it, which stands above the same height
+      const loss = figures.find((f) => f.text.startsWith('-'));
+      assert(loss.top > figures[0].bottom, 'the first loss is under its bar, not beside the gain before it');
+      assert(names.length === 7 && names.every((n) => n.slanted), 'seven names at 45°');
+      for (const n of names) assert(n.left >= svg.left && n.bottom <= svg.bottom, `a name stays in the chart: ${n.left} / ${svg.left}`);
+      const under = svg.bottom - Math.max(...names.map((n) => n.bottom));
+      // the chart's padding (16 px) and a few px of a label's line box: not the 40 px band there was
+      assert(under <= 28, `${under} px empty under the names`);
+      assert.strictEqual(await overflow(p), 0);
+      assert.deepStrictEqual(p.errors, []);
+      await p.close();
+    });
 }
 
 // ───────────────────────── the names of a Marimekko's columns ─────────────────────────
 
-for (const width of [360, 390, 1100]) {
-  test(`marimekko at ${width} px: every column named over its middle, at full size, in one row above the plot`, async () => {
-    const p = await open(recipe('marimekko'), width);
-    const got = await p.evaluate(() => {
-      const svg = document.querySelector('svg[viewBox]');
-      const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
-      const rect = (e) => {
-        const r = e.getBoundingClientRect();
-        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
-      };
-      // the cells of a column share its left and right edges: one column per left edge, in order
-      const columns = [];
-      for (const r of [...svg.querySelectorAll('[data-bc-layer="marks"] rect')].map(rect)) {
-        const c = columns.find((c) => Math.abs(c.left - r.left) < 0.5);
-        if (c) c.top = Math.min(c.top, r.top);
-        else columns.push({ ...r });
-      }
-      const names = [...svg.querySelectorAll('[data-bc-layer="axes"] text.bc-axis-label')]
-        .map((t) => ({
-          text: t.textContent,
-          px: parseFloat(getComputedStyle(t).fontSize) * scale,
-          turned: !!t.getAttribute('transform'),
-          ...rect(t),
-        }))
-        .filter((n) => !/%$/.test(n.text));
-      return { svg: rect(svg), columns: columns.sort((a, b) => a.left - b.left), names };
+for (const width of [360, 390, 1100])
+  for (const font of FONTS)
+    test(`marimekko at ${width} px${inFont(font)}: every column named over its middle, at full size, in one row above the plot`, async () => {
+      const p = await open(recipe('marimekko'), width, 900, font);
+      const got = await p.evaluate(() => {
+        const svg = document.querySelector('svg[viewBox]');
+        const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+        const rect = (e) => {
+          const r = e.getBoundingClientRect();
+          return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+        };
+        // the cells of a column share its left and right edges: one column per left edge, in order
+        const columns = [];
+        for (const r of [...svg.querySelectorAll('[data-bc-layer="marks"] rect')].map(rect)) {
+          const c = columns.find((c) => Math.abs(c.left - r.left) < 0.5);
+          if (c) c.top = Math.min(c.top, r.top);
+          else columns.push({ ...r });
+        }
+        const names = [...svg.querySelectorAll('[data-bc-layer="axes"] text.bc-axis-label')]
+          .map((t) => ({
+            text: t.textContent,
+            px: parseFloat(getComputedStyle(t).fontSize) * scale,
+            turned: !!t.getAttribute('transform'),
+            ...rect(t),
+          }))
+          .filter((n) => !/%$/.test(n.text));
+        return { svg: rect(svg), columns: columns.sort((a, b) => a.left - b.left), names };
+      });
+      const { svg, columns, names } = got;
+      assert.deepStrictEqual(
+        names.map((n) => n.text),
+        ['Asia', 'Europe', 'Americas', 'Africa'],
+      );
+      assert.strictEqual(columns.length, 4);
+      const top = Math.min(...columns.map((c) => c.top));
+      names.forEach((n, i) => {
+        const mid = (columns[i].left + columns[i].right) / 2;
+        assert(n.left <= mid && mid <= n.right, `${n.text} stands over the middle of its column: ${n.left}..${n.right} / ${mid}`);
+        assert(n.px >= 11 && !n.turned, `${n.text}: ${n.px} px, upright`);
+        assert(n.bottom <= top + 1, `${n.text} is above the plot: ${n.bottom} / ${top}`);
+        assert(n.left >= svg.left && n.right <= svg.right && n.top >= svg.top, `${n.text} stays in the chart`);
+        if (i) assert(names[i - 1].right + 4 <= n.left, `${names[i - 1].text} and ${n.text} are apart: ${names[i - 1].right} / ${n.left}`);
+      });
+      assert.strictEqual(await overflow(p), 0);
+      assert.deepStrictEqual(p.errors, []);
+      await p.close();
     });
-    const { svg, columns, names } = got;
-    assert.deepStrictEqual(
-      names.map((n) => n.text),
-      ['Asia', 'Europe', 'Americas', 'Africa'],
-    );
-    assert.strictEqual(columns.length, 4);
-    const top = Math.min(...columns.map((c) => c.top));
-    names.forEach((n, i) => {
-      const mid = (columns[i].left + columns[i].right) / 2;
-      assert(n.left <= mid && mid <= n.right, `${n.text} stands over the middle of its column: ${n.left}..${n.right} / ${mid}`);
-      assert(n.px >= 11 && !n.turned, `${n.text}: ${n.px} px, upright`);
-      assert(n.bottom <= top + 1, `${n.text} is above the plot: ${n.bottom} / ${top}`);
-      assert(n.left >= svg.left && n.right <= svg.right && n.top >= svg.top, `${n.text} stays in the chart`);
-      if (i) assert(names[i - 1].right + 4 <= n.left, `${names[i - 1].text} and ${n.text} are apart: ${names[i - 1].right} / ${n.left}`);
-    });
-    assert.strictEqual(await overflow(p), 0);
-    assert.deepStrictEqual(p.errors, []);
-    await p.close();
-  });
-}
 
 // ───────────────────────── hexbin, Gantt, text at the edges ─────────────────────────
 
@@ -681,31 +702,31 @@ test('KPI tile: stretched to the height of a chart beside it on a desk, its figu
   await p.close();
 });
 
-for (const width of [1100, 390]) {
-  test(`every recipe at ${width} px: no line of text reaches above or below its chart`, async () => {
-    const out = [];
-    for (const file of fs.readdirSync(path.join(__dirname, '../skills/blockcharts/recipes'))) {
-      const p = await open(recipe(file.replace(/\.json$/, '')), width);
-      const bad = await p.evaluate(() => {
-        const found = [];
-        for (const svg of document.querySelectorAll('.bc-section svg[viewBox]')) {
-          const s = svg.getBoundingClientRect();
-          for (const t of svg.querySelectorAll('text')) {
-            const r = t.getBoundingClientRect();
-            // up and down only: across, a label's width is the font's, and the fonts of the test machines differ more
-            const over = Math.max(s.top - r.top, r.bottom - s.bottom);
-            if (r.width && over > 0.5) found.push(`"${t.textContent.slice(0, 30)}" by ${over.toFixed(2)} px`);
+for (const width of [1100, 390])
+  for (const font of FONTS)
+    test(`every recipe at ${width} px${inFont(font)}: no line of text reaches out of its chart`, async () => {
+      const out = [];
+      for (const file of fs.readdirSync(path.join(__dirname, '../skills/blockcharts/recipes'))) {
+        const p = await open(recipe(file.replace(/\.json$/, '')), width, 900, font);
+        const bad = await p.evaluate(() => {
+          const found = [];
+          for (const svg of document.querySelectorAll('.bc-section svg[viewBox]')) {
+            const s = svg.getBoundingClientRect();
+            for (const t of svg.querySelectorAll('text')) {
+              const r = t.getBoundingClientRect();
+              // on every side: a label is measured in the font it is drawn in, whatever the machine has
+              const over = Math.max(s.top - r.top, r.bottom - s.bottom, s.left - r.left, r.right - s.right);
+              if (r.width && over > 0.5) found.push(`"${t.textContent.slice(0, 30)}" by ${over.toFixed(2)} px`);
+            }
           }
-        }
-        return found;
-      });
-      for (const b of bad) out.push(`${file}: ${b}`);
-      assert.deepStrictEqual(p.errors, [], file);
-      await p.close();
-    }
-    assert.deepStrictEqual(out, []);
-  });
-}
+          return found;
+        });
+        for (const b of bad) out.push(`${file}: ${b}`);
+        assert.deepStrictEqual(p.errors, [], file);
+        await p.close();
+      }
+      assert.deepStrictEqual(out, []);
+    });
 
 (async () => {
   browser = await chromium.launch({ channel: 'chrome' });

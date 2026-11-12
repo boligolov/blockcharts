@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 42087,
+    "bytes": 44210,
     "version": "0.1.0",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 31008,
+        "bytes": 33122,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 27974,
+        "bytes": 30088,
         "off": [
           "CHECKS",
           "DECODE"
@@ -2402,8 +2402,8 @@
     },
     "interaction.animate": {
       "file": "blocks/interaction.animate.js",
-      "bytes": 2277,
-      "version": 3,
+      "bytes": 2495,
+      "version": 4,
       "requires": [],
       "closure": [
         "interaction.animate"
@@ -2432,7 +2432,7 @@
           "doc": "Milliseconds before it starts (stagger the cards of a dashboard)."
         }
       },
-      "doc": "Plays the chart in once, when it is first drawn: bars grow from their baseline, lines and areas are drawn from left to right, a pie opens from its center, anything else fades in. Never again on zoom, filter or update of the view, and not at all for readers who ask their system for reduced motion. Uses the browser's own animation of the SVG layer (no timer loop); on a canvas chart it fades the canvas in."
+      "doc": "Plays the chart in once, when it is first drawn: bars grow from their baseline, lines and areas are drawn from left to right, a pie opens from its center, anything else fades in. Never again on zoom, filter or update of the view, and not at all for readers who ask their system for reduced motion; a chart laid out again while it plays in (its web font has come) goes on from where it was. Uses the browser's own animation of the SVG layer (no timer loop); on a canvas chart it fades the canvas in."
     },
     "interaction.brush": {
       "file": "blocks/interaction.brush.js",
@@ -2532,8 +2532,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 11104,
-      "version": 22,
+      "bytes": 11124,
+      "version": 23,
       "requires": [
         "lib.pointer"
       ],

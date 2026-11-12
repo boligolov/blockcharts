@@ -832,6 +832,9 @@
     getView(): Record<string, unknown[]>;
     /** Only the scales that are zoomed, as requested. */
     viewState(): Record<string, unknown[]>;
+    /** Settles when every web font the chart was measured in while it was still loading has come (or failed); null when
+     *  there was none: then the chart is laid out again. */
+    fontsDue: Promise<unknown> | null;
   }
 
   /** Hangul, kana, CJK ideographs, full-width forms: a full em, against about half of one for Latin. */
@@ -856,8 +859,9 @@
   }
 
   /** Width of a label in px, from the widths of its characters in a sans-serif such as Inter (measured in Chrome), a
-   *  little over the real width. measure() is more generous still, which is right where text must never be clipped and
-   *  wrong where the room left over shows: around a value label, or under a slanted one. */
+   *  little over the real width: what stands where nothing can measure the font (textMeter). measure() is more generous
+   *  still, which is right where text must never be clipped and wrong where the room left over shows: around a value
+   *  label, or under a slanted one. */
   function textWidth(text: string, size: number = 11, weight?: unknown): number {
     let em = 0;
     for (const ch of text) {
@@ -873,6 +877,142 @@
     const bold =
       weight === 'bold' || (typeof weight === 'number' && weight >= 700) ? 1.08 : typeof weight === 'number' && weight >= 600 ? 1.04 : 1;
     return em * size * bold;
+  }
+
+  /** What is known of a face (a weight of a font family) as a browser draws it: each label measured, by size and text
+   *  (its advance and how far its ink reaches past it), and the widest figure at each size, which every figure is
+   *  measured as (figures are drawn tabular). */
+  interface Face {
+    widths: Map<string, [number, number]>;
+    figures: Map<number, string>;
+  }
+  const faces = new Map<string, Face>();
+  /** A web font still on its way, by face: until it has come, text is measured, and drawn, in the font standing in. */
+  const arriving = new Map<string, Promise<unknown>>();
+  /** Faces waited for once: one that failed to load is not waited for again. */
+  const waited = new Set<string>();
+  /** Labels kept for one face before the oldest are let go. */
+  const MEASURED_MAX = 4000;
+  let meterCtx: CanvasRenderingContext2D | null | undefined;
+
+  interface FontSet {
+    check(font: string): boolean;
+    load(font: string): Promise<unknown>;
+  }
+
+  /** The page's fonts, in a browser that can tell whether a font has loaded; null elsewhere. */
+  function fontSet(): FontSet | null {
+    const doc = typeof document === 'object' && document ? (document as unknown as { fonts?: FontSet }) : null;
+    const fonts = doc && doc.fonts;
+    return fonts && typeof fonts.check === 'function' && typeof fonts.load === 'function' ? fonts : null;
+  }
+
+  /** A canvas to measure text on, where there are fonts to measure (fontSet); null in the composer's sandbox and a
+   *  test's page, where textWidth's estimate stands. */
+  function meterCanvas(): CanvasRenderingContext2D | null {
+    if (meterCtx !== undefined) return meterCtx;
+    meterCtx = null;
+    try {
+      if (fontSet()) {
+        const g = document.createElement('canvas').getContext('2d');
+        if (g && typeof g.measureText === 'function') meterCtx = g;
+      }
+    } catch (e) {
+      meterCtx = null;
+    }
+    return meterCtx;
+  }
+
+  /** Text measured in a chart's own font (textMeter). */
+  interface Meter {
+    /** ChartCtx.textWidth: how far the text advances. */
+    width(text: string, size?: number, weight?: unknown): number;
+    /** The width that keeps the text's ink in, however it is anchored: the advance, and on each side as much again as
+     *  the ink reaches past it on either (the tail of an r or an f, an A's foot in Verdana). */
+    inked(text: string, size?: number): number;
+  }
+
+  /** The text of a chart in `host` measured in the font the host draws it in (its family, at the size and weight asked);
+   *  null where nothing can measure, and the estimates stand. A web font not yet loaded is measured as the font drawn
+   *  until it comes; `waitFor` is told, so the chart is laid out again then. */
+  function textMeter(host: HTMLElement, waitFor: (font: Promise<unknown>) => void): Meter | null {
+    const g = meterCanvas();
+    const fonts = fontSet();
+    let family = '';
+    try {
+      family = g && typeof getComputedStyle === 'function' ? String(getComputedStyle(host).fontFamily || '') : '';
+    } catch (e) {
+      family = '';
+    }
+    if (!g || !fonts || !family) return null;
+    /** [advance, how far the ink reaches past it on the farther side], or null when the canvas gives no width. */
+    const raw = (font: string, text: string): [number, number] | null => {
+      g.font = font;
+      const m = g.measureText(text);
+      const w = m.width;
+      if (typeof w !== 'number' || !isFinite(w) || w < 0) return null;
+      const left = typeof m.actualBoundingBoxLeft === 'number' && isFinite(m.actualBoundingBoxLeft) ? m.actualBoundingBoxLeft : 0;
+      const right = typeof m.actualBoundingBoxRight === 'number' && isFinite(m.actualBoundingBoxRight) ? m.actualBoundingBoxRight - w : 0;
+      return [w, Math.max(0, left, right)];
+    };
+    const measured = (text: string, size: number, weight: unknown): [number, number] | null => {
+      if (typeof text !== 'string' || typeof size !== 'number' || !(size > 0) || !isFinite(size)) return null;
+      const w = weight === 'bold' ? 700 : typeof weight === 'number' && weight >= 1 && weight <= 1000 ? Math.round(weight) : 400;
+      const name = `${w} ${family}`;
+      const font = `${w} ${size}px ${family}`;
+      let face = faces.get(name);
+      if (!face) {
+        face = { widths: new Map(), figures: new Map() };
+        faces.set(name, face);
+        if (!waited.has(name)) {
+          let ready = true;
+          try {
+            ready = fonts.check(font);
+          } catch (e) {
+            ready = true;
+          }
+          if (!ready) {
+            waited.add(name);
+            // what was measured in the font standing in is measured again once the font has come
+            const come = () => {
+              arriving.delete(name);
+              faces.delete(name);
+            };
+            arriving.set(name, Promise.resolve(fonts.load(font)).then(come, come));
+          }
+        }
+      }
+      const due = arriving.get(name);
+      if (due) waitFor(due);
+      const key = size + ' ' + text;
+      const kept = face.widths.get(key);
+      if (kept !== undefined) return kept;
+      let figure = face.figures.get(size);
+      if (figure === undefined) {
+        figure = '0';
+        let widest = -1;
+        for (const d of '0123456789') {
+          const m = raw(font, d);
+          if (m && m[0] > widest) [figure, widest] = [d, m[0]];
+        }
+        face.figures.set(size, figure);
+      }
+      const result = raw(font, /[0-9]/.test(text) ? text.replace(/[0-9]/g, figure) : text);
+      if (!result) return null;
+      if (face.widths.size >= MEASURED_MAX) face.widths.delete(face.widths.keys().next().value as string);
+      face.widths.set(key, result);
+      return result;
+    };
+    return {
+      width(text, size = 11, weight) {
+        const m = measured(text, size, weight);
+        return m ? m[0] : textWidth(text, size, weight);
+      },
+      inked(text, size = 11) {
+        const m = measured(text, size, undefined);
+        return m ? m[0] + 2 * m[1] : textWidth(text, size);
+      },
+    };
   }
 
   /** What a reader who cannot see the chart hears of it: its `alt` or title, then what its guides said, each once. */
@@ -1251,6 +1391,9 @@
 
     /** What the guides said in this draw (ChartCtx.say). */
     let spoken: string[] = [];
+    /** Web fonts this chart was measured in before they came (textMeter). */
+    const fontsDue = new Set<Promise<unknown>>();
+    const meter = textMeter(host, (font) => fontsDue.add(font));
     const ctx: BC.ChartCtx = {
       spec,
       format: (f, kind) => formatter(f, kind, language),
@@ -1263,8 +1406,14 @@
         return plot;
       },
       scales,
-      measure,
-      textWidth,
+      measure: meter
+        ? (text, size) => {
+            const m = measure(text, size);
+            const w = meter.inked(text, size);
+            return w > m.w ? { w, h: m.h } : m;
+          }
+        : measure,
+      textWidth: meter ? meter.width : textWidth,
       wide,
       alongX: (spec.interaction || []).some((is) => {
         const def = registry.get(`interaction.${is.type}`) as BC.InteractionDef | undefined;
@@ -1694,7 +1843,16 @@
       return out;
     };
 
-    return { rendered, diagnostics, setView, getView, viewState };
+    return {
+      rendered,
+      diagnostics,
+      setView,
+      getView,
+      viewState,
+      get fontsDue() {
+        return fontsDue.size ? Promise.all(Array.from(fontsDue)) : null;
+      },
+    };
   }
 
   function showErrors(host: HTMLElement, diagnostics: readonly BC.Diagnostic[]): void {
@@ -1800,6 +1958,14 @@
               ? current
               : { ...current, size: [laidOut, Array.isArray(current.size) ? current.size[1] : 400] as [number, number] };
           built = build(host, effective, cleanups, carried || undefined, wanted);
+          // a web font that had not come when the chart was measured: lay it out again, in the same view, once it has
+          const due = built.fontsDue;
+          if (due)
+            due.then(() => {
+              if (destroyed || mine !== epoch) return;
+              keptView = built ? built.viewState() : keptView;
+              run();
+            });
         } catch (e) {
           hush();
           const at = e && typeof (e as { path?: unknown }).path === 'string' ? (e as { path: string }).path : '';

@@ -5637,8 +5637,9 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
     const proto = FakeNode.prototype;
     const saved = { animate: proto.animate, querySelector: proto.querySelector, window: globalThis.window };
     proto.animate = function (frames, timing) {
-      calls.push({ node: this, frames, timing });
-      return { cancel() {} };
+      const animation = { cancel() {} };
+      calls.push({ node: this, frames, timing, animation });
+      return animation;
     };
     proto.querySelector = function (sel) {
       const m = /data-bc-layer="(\w+)"/.exec(sel);
@@ -5694,9 +5695,22 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       });
       assert.strictEqual(signed.call.node.style.transformOrigin, '0px 200px', 'the 0 in the middle of the plot');
 
-      calls.length = 0;
-      bars.h.update(bars.h.spec);
-      assert.strictEqual(calls.length, 0, 'a rebuild of the same chart does not play again');
+      // built again while it plays in (its web font has come): it goes on from where it was; after that, never again
+      const t0 = performance.now();
+      try {
+        performance.now = () => t0 + 250;
+        calls.length = 0;
+        bars.h.update(bars.h.spec);
+        assert.strictEqual(calls.length, 1, 'built again while it plays in: it plays on');
+        const at = calls[0].animation.currentTime;
+        assert(at >= 250 && at < 300, `from where it was: ${at} ms in`);
+        performance.now = () => t0 + 600;
+        calls.length = 0;
+        bars.h.update(bars.h.spec);
+        assert.strictEqual(calls.length, 0, 'a rebuild of the same chart after it has played in does not play again');
+      } finally {
+        delete performance.now;
+      }
 
       globalThis.window = { matchMedia: (q) => ({ matches: /reduce/.test(q) }) };
       assert.strictEqual(run(monthly({ interaction: [{ type: 'animate' }] })).call, undefined, 'reduced motion: none');

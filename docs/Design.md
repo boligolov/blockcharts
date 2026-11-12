@@ -1544,6 +1544,26 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   `quarterTotal`, `total_all`) that no label names; the composer reports it, and a recipe with one fails test-skill,
   as three did. SKILL.md says to name every field. A plain name ("revenue") is not warned about: the reader knows it,
   in lower case.
+- **Text is measured in the font the chart is drawn in.** `ctx.textWidth` was an estimate from the widths of Inter's
+  characters, a little over. In a wider font (Verdana; DejaVu Sans, the sans-serif of many Linux desktops and of the CI
+  runner) labels reached out of the chart and figures met; CI's Chrome suite failed from its first run. Installing Inter
+  on the runner would have made CI pass and left every reader without Inter where they were. Now, in a browser, a chart
+  measures its text on a canvas, in the font family its host is drawn in, at the size and weight asked, and keeps what
+  it measured by face (a weight of a family), size and text; every figure is measured as the widest of them, as figures
+  are drawn tabular. `ctx.measure`, the generous one, is never narrower than that, and leaves room on each side for the
+  ink that reaches past the advance (the tail of an r, Verdana's "Apr" by 0.9 px at the end of an axis). Where nothing
+  can measure (the composer's sandbox, the fake DOM of the tests: no `document.fonts`) the estimate stands. A web font
+  that has not come when the chart is laid out (the site's Inter Variable) is measured as the font standing in, which is
+  what is drawn then; `document.fonts.load` is asked for it once, and when it has come every chart measured in it is
+  laid out again, once, in the same view. A face that fails is not waited for again. `interaction.animate` (v4) goes on
+  from where it was when its chart is laid out again while it plays in, instead of stopping at the relayout. Two things
+  showed up once text was measured: a tooltip card was measured where the card before it stood, so after one on the right
+  a long card wrapped narrower than its text asks (v23 measures it at the left of what is seen); and top-n's region
+  chart left the names at its bars 56 px, which "Echo shelf" passes in Verdana (72 now). The Chrome suite runs its tests
+  of fitting text twice, in the machine's font and in Verdana (DejaVu Sans where Verdana is missing), so a run on Windows
+  sees what Linux does, and checks every recipe's text on all four sides, not only up and down. The waterfall test's
+  "every figure at 11 px at 360 px" is a claim about a font: bold DejaVu Sans is wider than the room between the bars
+  there, and the library makes the row 10 px; the test now asks for full size unless the widest figure does not fit.
 
 ## Next steps
 

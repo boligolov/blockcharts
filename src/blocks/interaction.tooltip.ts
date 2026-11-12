@@ -33,7 +33,7 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 22,
+    version: 23,
     requires: ['lib.pointer'],
     doc: "Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A value the row does not have (null, NaN) has no line. A field is shown under its name in `labels`, else under the name the transform that made it gives it (quartiles: Q1, Median…), else under its own; the composer warns about a name written like code (avg7, quarterTotal). A bar from x to x2 (or y to y2) on one number or time scale with no category to name it, a histogram's bin, is headed by its range (140–145). A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it).",
     params: {
@@ -539,6 +539,9 @@
         // no wider than what is seen: a long text wraps rather than reaching off the screen
         tip.style.display = 'block';
         tip.style.maxWidth = Math.max(MIN_CARD, seenRight - seenLeft) + 'px';
+        // measured at the left of what is seen: a card left where the last one stood, on the right, would be squeezed by
+        // the edge and wrap where it need not
+        tip.style.left = seenLeft + 'px';
         const w = tip.offsetWidth || 0;
         const h = tip.offsetHeight || 0;
         const left = ax + OFFSET + w > seenRight ? ax - OFFSET - w : ax + OFFSET;
