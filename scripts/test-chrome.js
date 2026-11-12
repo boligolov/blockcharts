@@ -374,7 +374,10 @@ for (const width of [360, 390, 1100])
         assert(n.left <= mid && mid <= n.right, `${n.text} stands over the middle of its column: ${n.left}..${n.right} / ${mid}`);
         assert(n.px >= 11 && !n.turned, `${n.text}: ${n.px} px, upright`);
         assert(n.bottom <= top + 1, `${n.text} is above the plot: ${n.bottom} / ${top}`);
-        assert(n.left >= svg.left && n.right <= svg.right && n.top >= svg.top, `${n.text} stays in the chart`);
+        assert(
+          n.left >= svg.left && n.right <= svg.right && n.top >= svg.top,
+          `${n.text} stays in the chart: ${n.left}..${n.right} in ${svg.left}..${svg.right}, top ${n.top} / ${svg.top}`,
+        );
         if (i) assert(names[i - 1].right + 4 <= n.left, `${names[i - 1].text} and ${n.text} are apart: ${names[i - 1].right} / ${n.left}`);
       });
       assert.strictEqual(await overflow(p), 0);

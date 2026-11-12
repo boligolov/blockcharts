@@ -1564,6 +1564,12 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   sees what Linux does, and checks every recipe's text on all four sides, not only up and down. The waterfall test's
   "every figure at 11 px at 360 px" is a claim about a font: bold DejaVu Sans is wider than the room between the bars
   there, and the library makes the row 10 px; the test now asks for full size unless the widest figure does not fit.
+  CI then failed on one test, a Marimekko at 360 px: "Africa", the last column's name, ended 0.001 px past the chart.
+  The names of spans were kept in the chart by textWidth, so the last one stood with its advance exactly on the edge,
+  and the least difference between a canvas and the drawn text put it out. Drawn in DejaVu Sans itself (as a web font,
+  from a local copy) the suite failed the same way here, which Verdana's widths had not shown. Text kept from an edge is
+  text that must never be clipped, measure's case, not textWidth's: names are spaced by textWidth and kept from the
+  chart's edges, and from the plot's for its margin, by measure (guide.axis v20).
 
 ## Next steps
 

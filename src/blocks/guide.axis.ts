@@ -298,7 +298,9 @@
   type Span = { label: string; lo: number; hi: number; mid: number };
   /** A name as it is written: its lines, how wide the widest is, and the middle it is set on (`x`), which may be off the
    *  middle of its span to keep clear of the names beside it. */
-  type Named = Span & { lines: string[]; w: number; x: number };
+  /** A span's name as laid out: its lines, how wide they are drawn (w: what names are spaced by), the room they keep from
+   *  the edges of the chart and the plot (room: measure's, so no ink is cut off there in any font), and its middle (x). */
+  type Named = Span & { lines: string[]; w: number; room: number; x: number };
 
   /** Axes that name spans, and the angle their names were measured at (0: upright, in their lines). */
   const spanned = new WeakMap<BC.GuideSpec, number>();
@@ -357,7 +359,8 @@
     const named: Named[] = spans.map((s) => {
       const lines = wrapTo(s.label, s.hi - s.lo - LABEL_GAP, ctx);
       const w = lines.reduce((m, line) => Math.max(m, ctx.textWidth(line, FONT)), 0);
-      return { ...s, lines, w, x: s.mid };
+      const room = lines.reduce((m, line) => Math.max(m, ctx.measure(line, FONT).w), w);
+      return { ...s, lines, w, room, x: s.mid };
     });
     const n = named.length;
     if (!n) return { named, ok: true };
@@ -376,13 +379,13 @@
       blocks.push(b);
     }
     for (const b of blocks) for (let i = b.first; i <= b.last; i++) named[i].x = b.sum / (b.last - b.first + 1) + off[i];
-    // into the chart: back from its right edge, then on from its left
+    // into the chart, by the room a name keeps from its edges: back from its right edge, then on from its left
     const sep = (i: number) => off[i] - off[i - 1];
-    named[n - 1].x = Math.min(named[n - 1].x, hi - named[n - 1].w / 2);
+    named[n - 1].x = Math.min(named[n - 1].x, hi - named[n - 1].room / 2);
     for (let i = n - 2; i >= 0; i--) named[i].x = Math.min(named[i].x, named[i + 1].x - sep(i + 1));
-    named[0].x = Math.max(named[0].x, lo + named[0].w / 2);
+    named[0].x = Math.max(named[0].x, lo + named[0].room / 2);
     for (let i = 1; i < n; i++) named[i].x = Math.max(named[i].x, named[i - 1].x + sep(i));
-    const ok = named[n - 1].x + named[n - 1].w / 2 <= hi + 0.5 && named.every((s) => Math.abs(s.x - s.mid) <= s.w / 2);
+    const ok = named[n - 1].x + named[n - 1].room / 2 <= hi + 0.5 && named.every((s) => Math.abs(s.x - s.mid) <= s.w / 2);
     return { named, ok };
   }
 
@@ -429,7 +432,7 @@
       // drawn the way it was measured: a plot a few px narrower than estimated still draws them upright
       if (decided === 0 || upright.named.length >= tilted.length) return { angle: 0, named: upright.named };
     }
-    return { angle: 45, named: tilted.map((s) => ({ ...s, label: shorten(s.label), lines: [shorten(s.label)], w: 0, x: s.mid })) };
+    return { angle: 45, named: tilted.map((s) => ({ ...s, label: shorten(s.label), lines: [shorten(s.label)], w: 0, room: 0, x: s.mid })) };
   }
 
   /** The room labels at an angle take below or above the plot, and how far past its ends the first and last reach. */
@@ -465,7 +468,7 @@
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'axis',
-    version: 19,
+    version: 20,
     doc: 'Labels for a positional scale, with an axis line and optional tick marks. Side defaults from the scale orientation; set `position` for a second axis. `format` writes the tick labels (currency, percent, dates), `title` names the axis. The quiet default: no tick marks, a line only along a horizontal axis; pair a value axis with guide.grid. Category labels too wide for their band wrap onto two lines; text categories that still do not fit (a narrow screen) all go at an angle, rather than some of them being left out, while dates and numbers show every few. On a vertical axis the labels take at most 30% of the width of the chart: a longer one breaks onto two lines when its band has room, and the rest is cut with an ellipsis and shown whole on hover. With `text`, `from` and `to` a horizontal axis names stretches of the data instead of writing its ticks: the columns of a Marimekko, which are as wide as their shares.',
     params: {
       scale: { kind: 'scale', required: true },
@@ -521,8 +524,8 @@
         let right = 0;
         for (const s of named) {
           label = Math.max(label, s.lines.length > 1 ? s.lines.length * LINE : ctx.measure(s.label, FONT).h);
-          left = Math.max(left, along.x - (s.x - s.w / 2));
-          right = Math.max(right, s.x + s.w / 2 - (along.x + along.w));
+          left = Math.max(left, along.x - (s.x - s.room / 2));
+          right = Math.max(right, s.x + s.room / 2 - (along.x + along.w));
         }
         // how far a name reaches past the plot as it will be: the margin the chart needs on that side
         const out: BC.GuideMeasure = { overhang: { top: 0, right, bottom: 0, left } };

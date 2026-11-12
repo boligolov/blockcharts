@@ -2176,8 +2176,8 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 11889,
-      "version": 19,
+      "bytes": 11969,
+      "version": 20,
       "requires": [],
       "closure": [
         "guide.axis"

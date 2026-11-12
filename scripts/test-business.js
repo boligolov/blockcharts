@@ -2262,11 +2262,14 @@ module.exports = function ({ test, FakeNode, svgOf, count, flush }) {
       ['Asia', 'Europe', 'Americas', 'Africa'],
       'a name on every cell of its column is written once, and upright as the one name is',
     );
-    // Africa is 7% of 324 px, narrower than its name: the name moves right of the middle, clear of Americas
+    // Africa is 7% of 324 px, narrower than its name, at the right edge: the name keeps from the edge the room measure
+    // gives it (0.6 em a character here; in a browser no less than the text, ink and all, in the chart's font), so no
+    // font draws it out of the chart, and still stands over its column, clear of Americas (above)
     const phone = namesOf(mekko(regions, [324, 380]).svg);
     const africa = phone[3];
     const cols = columnsOf(mekko(regions, [324, 380]).svg);
-    assert(africa.x > (cols[3].x0 + cols[3].x1) / 2, 'moved off its middle, away from the name beside it');
+    assert(africa.x + ('Africa'.length * 11 * 0.6) / 2 <= 324 + 0.01, `kept from the right edge: ${africa.x}`);
+    assert(Math.abs(africa.x - (cols[3].x0 + cols[3].x1) / 2) <= ('Africa'.length * 11 * 0.5) / 2, 'over its column');
   });
 
   test('axis naming spans, hostile: many columns, narrow ones, two-word names, a phone, broken rows and specs', () => {

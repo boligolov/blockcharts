@@ -13,7 +13,7 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.39): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
+Done (skill 0.33.1–0.33.40): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
 every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
