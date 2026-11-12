@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.33.37"
+  version: "0.33.38"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -106,7 +106,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Legend as a filter**: `{"type": "legend-filter"}` lets the reader click legend items to hide or show categories (double-click isolates one). It works with any chart that has a `color` scale and a legend. Add `"fit": ["y"]` to make the y axis follow the visible categories, but not together with a `zoom` that already has `fit`.
 
-**Tooltip**: `{"type":"tooltip"}`; `"fields": [...]` picks what it shows, `"labels": {"median": "Median, ms"}` names them (formats stay keyed by the field). On a line chart it shows the nearest point of the nearest series when the pointer is near it, and at any height with a `crosshair`. Values are shown raw (numbers to 6 digits), so add `"formats": {"revenue": {"style":"currency","currency":"USD"}, "share": "percent", "day": "date"}` to write them properly.
+**Tooltip**: `{"type":"tooltip"}`; `"fields": [...]` picks what it shows, `"labels": {"median": "Median, ms"}` names them (formats stay keyed by the field). On a line chart it shows the nearest point of the nearest series when the pointer is near it, and at any height with a `crosshair`. Values are shown raw (numbers to 6 digits), so add `"formats": {"revenue": {"style":"currency","currency":"USD"}, "share": "percent", "day": "date"}` to write them properly. A field is shown under its own name unless `labels` names it: name every field the card shows in the reader's words (`"avg7": "7-day average"`); the composer warns about a name written like code. The fields `quartiles`, `bin`, `funnel` and `waterfall` make are named already (Q1, Median, Count, Of the stage before), a histogram's card is headed by its bin (150–160), and a value a row does not have gets no line.
 
 **Summarize before drawing**: `{"type": "aggregate", "groupby": [...], "measures": [...]}` in `transforms` turns raw rows into one row per group: `"groupby": ["region"]` or `[{"field": "date", "unit": "month", "as": "month"}]` (units: year, quarter, month, week, day, hour); measures `{"op": "sum" | "mean" | "min" | "max" | "median" | "count" | "distinct", "field": "amount", "as": "revenue"}`; `sort` (an output column), `order` (`"asc"`/`"desc"`), `limit`. After it only the group-by fields and measure names exist as columns. A monthly total is `groupby` month + `sum`, drawn on a `time` x scale. See `recipes/report-from-csv.json`.
 

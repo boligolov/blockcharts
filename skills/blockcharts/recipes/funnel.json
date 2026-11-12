@@ -24,7 +24,18 @@
           { "type": "rect", "x": "users0", "x2": "users1", "y": "stage", "radius": 4 },
           { "type": "text", "x": "users1", "y": "stage", "text": "rate", "format": { "style": "percent", "maximumFractionDigits": 1 }, "anchor": "start", "dx": 8, "weight": 600 }
         ],
-        "interaction": [{ "type": "tooltip", "fields": ["users", "rate", "stepRate"], "formats": { "users": "integer", "rate": { "style": "percent", "maximumFractionDigits": 1 }, "stepRate": { "style": "percent", "maximumFractionDigits": 1 } } }]
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": ["users", "rate", "stepRate"],
+            "formats": {
+              "users": "integer",
+              "rate": { "style": "percent", "maximumFractionDigits": 1 },
+              "stepRate": { "style": "percent", "maximumFractionDigits": 1 }
+            },
+            "labels": { "users": "Users" }
+          }
+        ]
       }
     }
   ]

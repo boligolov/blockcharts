@@ -561,22 +561,12 @@
         "interaction": [
           {
             "type": "tooltip",
-            "fields": [
-              "revenue",
-              "target"
-            ],
+            "fields": ["revenue", "target"],
             "formats": {
-              "revenue": {
-                "style": "currency",
-                "currency": "USD",
-                "maximumFractionDigits": 0
-              },
-              "target": {
-                "style": "currency",
-                "currency": "USD",
-                "maximumFractionDigits": 0
-              }
-            }
+              "revenue": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 },
+              "target": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }
+            },
+            "labels": { "revenue": "Revenue", "target": "Plan" }
           },
           {
             "type": "crosshair"
@@ -624,14 +614,10 @@
         "interaction": [
           {
             "type": "tooltip",
-            "formats": {
-              "revenue": {
-                "style": "currency",
-                "currency": "USD",
-                "notation": "compact",
-                "maximumFractionDigits": 1
-              }
-            }
+            "formats": { "revenue": { "style": "currency", "currency": "USD", "notation": "compact", "maximumFractionDigits": 1 } },
+            "heading": "channel",
+            "fields": ["revenue"],
+            "labels": { "revenue": "Revenue" }
           },
           {
             "type": "legend-filter"
@@ -791,22 +777,13 @@
         "interaction": [
           {
             "type": "tooltip",
-            "fields": [
-              "users",
-              "rate",
-              "stepRate"
-            ],
+            "fields": ["users", "rate", "stepRate"],
             "formats": {
               "users": "integer",
-              "rate": {
-                "style": "percent",
-                "maximumFractionDigits": 1
-              },
-              "stepRate": {
-                "style": "percent",
-                "maximumFractionDigits": 1
-              }
-            }
+              "rate": { "style": "percent", "maximumFractionDigits": 1 },
+              "stepRate": { "style": "percent", "maximumFractionDigits": 1 }
+            },
+            "labels": { "users": "Users" }
           }
         ]
       }

@@ -773,7 +773,165 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.deepStrictEqual(h.diagnostics, []);
     const cs = circles(svgOf(host));
     await hover(host, cs[0].x, cs[0].y);
-    assert.deepStrictEqual(tipText(host), ['c: –']);
+    assert.deepStrictEqual(tipText(host), [], 'a value the row does not have is no line, and a card with nothing on it is not shown');
+    assert.strictEqual(tipOf(host).style.display, 'none');
+    await hover(host, cs[1].x, cs[1].y);
+    assert.deepStrictEqual(tipText(host), ['c: 5']);
+  });
+
+  test('interaction.tooltip: a value the row does not have has no line, whatever its format (actual and forecast)', async () => {
+    BC.data('orders', [
+      { month: '2026-01-01', actual: 120, forecast: null, low: null, note: 'first' },
+      { month: '2026-02-01', actual: null, forecast: 150, low: NaN, note: '' },
+      { month: '2026-03-01', actual: null, forecast: 160, low: 151 },
+    ]);
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'orders',
+      scales: { x: { type: 'band' }, y: { type: 'linear' } },
+      marks: [
+        { type: 'point', x: 'month', y: 'actual' },
+        { type: 'point', x: 'month', y: 'forecast' },
+      ],
+      interaction: [
+        {
+          type: 'tooltip',
+          fields: ['actual', 'forecast', 'low', 'note'],
+          formats: { actual: 'integer', forecast: 'integer', low: 'integer' },
+        },
+      ],
+    });
+    const cs = circles(svgOf(host));
+    assert.strictEqual(cs.length, 3);
+    const lines = [];
+    for (const c of cs) {
+      await hover(host, c.x, c.y);
+      lines.push(tipText(host).slice(1));
+    }
+    assert.deepStrictEqual(lines, [['actual: 120', 'note: first'], ['forecast: 150'], ['forecast: 160', 'low: 151']]);
+  });
+
+  test('interaction.tooltip: a histogram bin is headed by its range, its count named by the transform, and labels win', async () => {
+    BC.data(
+      'heights',
+      [140, 142, 151, 152, 153, 158, 161, 163, 175].map((h) => ({ h })),
+    );
+    const histogram = (tooltip) => ({
+      data: 'heights',
+      transforms: [{ type: 'bin', field: 'h', width: 10 }],
+      scales: { x: { type: 'linear' }, y: { type: 'linear', zero: true } },
+      marks: [{ type: 'rect', x: 'bin0', x2: 'bin1', y: 'count' }],
+      interaction: [{ type: 'tooltip', ...tooltip }],
+    });
+    const middle = (host) => {
+      const r = rects(layer(svgOf(host), 'marks')).sort((a, b) => a.x - b.x)[1];
+      return [r.x + r.w / 2, r.y + r.h / 2];
+    };
+    logged.warn.length = 0;
+    let host = new FakeNode('div');
+    BC.chart(host, histogram({}));
+    await hover(host, ...middle(host));
+    assert.deepStrictEqual(tipText(host), ['bin0 bin1: 150–160', 'Count: 4']);
+    assert.deepStrictEqual(logged.warn, [], 'nothing to warn about: the bin is the heading, the count has a name');
+
+    host = new FakeNode('div');
+    BC.chart(
+      host,
+      histogram({
+        fields: ['bin0', 'bin1', 'count'],
+        labels: { count: 'People' },
+        formats: { bin0: { suffix: ' cm' }, bin1: { suffix: ' cm' } },
+      }),
+    );
+    await hover(host, ...middle(host));
+    assert.deepStrictEqual(tipText(host), ['bin0 bin1: 150 cm – 160 cm', 'People: 4'], 'listed ends still head it, a format writes them');
+
+    host = new FakeNode('div');
+    BC.chart(host, histogram({ fields: ['bin0', 'count'] }));
+    await hover(host, ...middle(host));
+    assert.deepStrictEqual(tipText(host), ['From: 150', 'Count: 4'], 'one end alone is a line, under the name the transform gives it');
+  });
+
+  test('interaction.tooltip: a bar from one date to another is headed by its dates; a category heading keeps them as lines', async () => {
+    BC.data('phases', [
+      { task: 'Research', start: '2026-01-05', end: '2026-01-30', n: 3 },
+      { task: 'Build', start: '2026-02-09', end: '2026-03-13', n: 5 },
+    ]);
+    const spec = (y) => ({
+      data: 'phases',
+      scales: { x: { type: 'time' }, y },
+      marks: [{ type: 'rect', x: 'start', x2: 'end', y: y.type === 'band' ? 'task' : 'n' }],
+      interaction: [{ type: 'tooltip' }],
+    });
+    let host = new FakeNode('div');
+    BC.chart(host, spec({ type: 'linear', zero: true }));
+    let r = rects(layer(svgOf(host), 'marks')).sort((a, b) => a.x - b.x)[0];
+    await hover(host, r.x + r.w / 2, r.y + r.h / 2);
+    assert.deepStrictEqual(tipText(host), ['start end: Jan 5, 2026 – Jan 30, 2026', 'n: 3']);
+
+    host = new FakeNode('div');
+    BC.chart(host, spec({ type: 'band' }));
+    r = rects(layer(svgOf(host), 'marks')).sort((a, b) => a.x - b.x)[0];
+    await hover(host, r.x + r.w / 2, r.y + r.h / 2);
+    assert.deepStrictEqual(
+      tipText(host),
+      ['task: Research', 'start: Jan 5, 2026', 'end: Jan 30, 2026'],
+      'a Gantt bar is named by its task, its dates are lines, written as dates',
+    );
+  });
+
+  test('interaction.tooltip: a boxplot speaks of Q1 and the median, an outlier is an outlier, not its group', async () => {
+    BC.data(
+      'latency2',
+      [10, 20, 30, 40, 50, 60, 70, 80, 90, 900].map((ms) => ({ team: 'A', ms })),
+    );
+    const host = new FakeNode('div');
+    BC.chart(host, {
+      data: 'latency2',
+      transforms: [{ type: 'quartiles', field: 'ms', group: 'team' }],
+      scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+      marks: [
+        { type: 'boxplot', x: 'team', low: 'low', q1: 'q1', median: 'median', q3: 'q3', high: 'high' },
+        { type: 'point', x: 'team', y: 'value', r: 3 },
+      ],
+      interaction: [{ type: 'tooltip', fields: ['low', 'q1', 'median', 'q3', 'high', 'count', 'value'], labels: { median: 'Median, ms' } }],
+    });
+    const box = rects(layer(svgOf(host), 'marks'))[0];
+    await hover(host, box.x + box.w / 2, box.y + box.h / 2);
+    assert.deepStrictEqual(tipText(host), ['team: A', 'Low: 10', 'Q1: 32.5', 'Median, ms: 55', 'Q3: 77.5', 'High: 90', 'Samples: 10']);
+    const out = circles(svgOf(host))[0];
+    await hover(host, out.x, out.y);
+    assert.deepStrictEqual(tipText(host), ['team: A', 'Outlier: 900']);
+  });
+
+  test('interaction.tooltip: a field shown under a name written like code is a warning, once, until labels name it', async () => {
+    BC.data('signups', [
+      { day: '2024-09-01', signups: 200, avg7: 190, toDate: 200, total_all: 1 },
+      { day: '2024-09-02', signups: 230, avg7: 195, toDate: 430, total_all: 1 },
+    ]);
+    const spec = (tooltip) => ({
+      data: 'signups',
+      scales: { x: { type: 'time' }, y: { type: 'linear' } },
+      marks: [
+        { type: 'line', x: 'day', y: 'signups' },
+        { type: 'line', x: 'day', y: 'avg7' },
+      ],
+      interaction: [{ type: 'tooltip', ...tooltip }],
+    });
+    const warnings = (tooltip) => {
+      logged.warn.length = 0;
+      BC.chart(new FakeNode('div'), spec(tooltip));
+      return logged.warn.filter((w) => /interaction\.tooltip/.test(w));
+    };
+    assert.deepStrictEqual(warnings({}), [
+      '[blockcharts] interaction.tooltip: the card shows "avg7" under its own name; give it a name a reader knows in "labels"',
+    ]);
+    assert.deepStrictEqual(warnings({ fields: ['signups', 'avg7', 'toDate', 'total_all'] }), [
+      '[blockcharts] interaction.tooltip: the card shows "avg7", "toDate", "total_all" under their own names; give them names a reader knows in "labels"',
+    ]);
+    assert.deepStrictEqual(warnings({ labels: { avg7: '7-day average' } }), [], 'named');
+    assert.deepStrictEqual(warnings({ content: () => 'custom' }), [], 'a content function writes its own card');
+    assert.deepStrictEqual(warnings({ fields: ['signups'] }), [], 'not shown');
   });
 
   // ── tooltip: custom content ──

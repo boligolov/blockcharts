@@ -34,7 +34,7 @@
           { "type": "point", "x": "y2024", "y": "region", "r": 6, "fill": "var(--bc-label, #94a3b8)" },
           { "type": "point", "x": "y2025", "y": "region", "r": 6, "fill": "var(--bc-c0, #3a6fe4)" }
         ],
-        "interaction": [{ "type": "tooltip", "fields": ["y2024", "y2025"] }]
+        "interaction": [{ "type": "tooltip", "fields": ["y2024", "y2025"], "labels": { "y2024": "2024", "y2025": "2025" } }]
       }
     },
     {
@@ -53,7 +53,7 @@
           { "type": "rule", "x": "score", "x2": { "value": 0 }, "y": "product", "stroke": "var(--bc-c0, #3a6fe4)", "strokeWidth": 2 },
           { "type": "point", "x": "score", "y": "product", "r": 6, "fill": "var(--bc-c0, #3a6fe4)" }
         ],
-        "interaction": [{ "type": "tooltip", "fields": ["score"] }]
+        "interaction": [{ "type": "tooltip", "fields": ["score"], "labels": { "score": "NPS" } }]
       }
     }
   ]

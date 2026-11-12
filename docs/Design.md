@@ -1522,6 +1522,28 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   and 115 nameless buttons. axe-core in Chrome (heading-order, bypass, skip-link, button-name,
   label-content-name-mismatch and six more) passes on all 110 pages but for the zoom controls' "100%", named "Reset
   zoom to the full range": a word the name leaves out, and the library's (see the roadmap).
+- **A tooltip says what a reader knows, in the reader's words.** Read in Chrome over every recipe, the cards showed
+  columns made for drawing and values as they were stored: a waterfall's `value1`, a histogram's `bin0 | 140 | bin1 |
+  145`, a boxplot's `q1`, an outlier's "count 10" (its group's), `avg7` and `quarterTotal`, `y2024`, a pie's "share
+  19", "month 1", ISO dates, 785400, and `forecast – | low – | high –` on every month that has no forecast. Part of it
+  was the tooltip's: a missing value was a line of "–"; a field was shown under its column name, also where the
+  transform that made the column knew a better one; a histogram's bar had nothing to head it, as only a category or a
+  date did; a date on a line (a Gantt bar's end) was its ISO string. Now a value the row does not have (null, NaN, "")
+  has no line, and a card with nothing on it is not shown. A transform can say what a reader calls the columns it makes
+  (`TransformDef.labels`): quartiles Low, Q1, Median, Q3, High, Samples and Outlier, bin From, To and Count, funnel
+  "Of the first stage" and "Of the stage before", waterfall Amount and Running total; the tooltip's `labels` still win.
+  An outlier row no longer carries its group's count. A bar from x to x2 (or y to y2) on one number or time scale,
+  both ends among the fields shown, is headed by its range, 150–160 or Jan 5, 2026 – Jan 30, 2026, unless a category
+  names it: a category now heads a card before a date does, so a Gantt bar is its task, and its dates are lines,
+  written as dates like every field a mark puts on a time scale. The other part was the recipes': they name every
+  field now (2024, 7-day average, Quarter, $M, Plan), format it (a pie's 19%, a boxplot's ms, highlight-bar's dollars
+  and months), and do not list what the bar shows (waterfall's running total, highlight-bar's helper). dual-axis's
+  months are dates on a time scale, scatter-large's columns are a session's length and its page load, scatter-groups'
+  teams are named and its axes titled. So that a new chart does not need a reader to find it, the tooltip warns, once,
+  when it shows a field under a name written like code (a digit, a capital inside, an underscore: `avg7`,
+  `quarterTotal`, `total_all`) that no label names; the composer reports it, and a recipe with one fails test-skill,
+  as three did. SKILL.md says to name every field. A plain name ("revenue") is not warned about: the reader knows it,
+  in lower case.
 
 ## Next steps
 

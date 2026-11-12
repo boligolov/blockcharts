@@ -19,7 +19,16 @@
         "scales": { "color": { "type": "color" } },
         "guides": [{ "type": "legend", "scale": "color" }],
         "marks": [{ "type": "arc", "value": "share", "color": "browser", "innerRadius": 0.5, "label": "percent", "sort": "desc" }],
-        "interaction": [{ "type": "tooltip" }, { "type": "legend-filter" }]
+        "interaction": [
+          {
+            "type": "tooltip",
+            "heading": "browser",
+            "fields": ["share"],
+            "labels": { "share": "Share" },
+            "formats": { "share": { "maximumFractionDigits": 1, "suffix": "%" } }
+          },
+          { "type": "legend-filter" }
+        ]
       }
     }
   ]

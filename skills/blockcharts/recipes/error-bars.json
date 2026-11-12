@@ -39,7 +39,13 @@
           { "type": "rule", "x": "group", "y": "low", "y2": "high", "strokeWidth": 2 },
           { "type": "point", "x": "group", "y": "mean", "r": 5, "fill": "var(--bc-c0, #3a6fe4)" }
         ],
-        "interaction": [{ "type": "tooltip", "fields": ["mean", "low", "high"] }]
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": ["mean", "low", "high"],
+            "labels": { "mean": "Mean", "low": "Low (95%)", "high": "High (95%)" }
+          }
+        ]
       }
     },
     {
@@ -60,7 +66,12 @@
           { "type": "line", "x": "month", "y": "forecast", "stroke": "var(--bc-c0, #3a6fe4)", "dash": [5, 4] }
         ],
         "interaction": [
-          { "type": "tooltip", "fields": ["actual", "forecast", "low", "high"], "formats": { "month": { "month": "long", "year": "numeric" } } }
+          {
+            "type": "tooltip",
+            "fields": ["actual", "forecast", "low", "high"],
+            "formats": { "month": { "month": "long", "year": "numeric" } },
+            "labels": { "actual": "Actual", "forecast": "Forecast", "low": "Low (80%)", "high": "High (80%)" }
+          }
         ]
       }
     }

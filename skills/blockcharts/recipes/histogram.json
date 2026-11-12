@@ -55,14 +55,7 @@
           }
         ],
         "interaction": [
-          {
-            "type": "tooltip",
-            "fields": [
-              "bin0",
-              "bin1",
-              "count"
-            ]
-          }
+          { "type": "tooltip", "labels": { "count": "People" } }
         ]
       }
     }

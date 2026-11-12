@@ -35,7 +35,20 @@
           { "type": "boxplot", "x": "service", "low": "low", "q1": "q1", "median": "median", "q3": "q3", "high": "high" },
           { "type": "point", "x": "service", "y": "value", "r": 3.5, "fill": "#e15759" }
         ],
-        "interaction": [{ "type": "tooltip", "fields": ["service", "low", "q1", "median", "q3", "high", "count", "value"] }]
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": ["low", "q1", "median", "q3", "high", "count", "value"],
+            "formats": {
+              "low": { "maximumFractionDigits": 1, "suffix": " ms" },
+              "q1": { "maximumFractionDigits": 1, "suffix": " ms" },
+              "median": { "maximumFractionDigits": 1, "suffix": " ms" },
+              "q3": { "maximumFractionDigits": 1, "suffix": " ms" },
+              "high": { "maximumFractionDigits": 1, "suffix": " ms" },
+              "value": { "maximumFractionDigits": 1, "suffix": " ms" }
+            }
+          }
+        ]
       }
     }
   ]

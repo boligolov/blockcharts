@@ -42,7 +42,14 @@
           { "type": "line", "x": "quarter", "y": { "field": "margin", "scale": "y2" }, "stroke": "var(--bc-text, #1e293b)" },
           { "type": "point", "x": "quarter", "y": { "field": "margin", "scale": "y2" }, "r": 4, "fill": "var(--bc-text, #1e293b)" }
         ],
-        "interaction": [{ "type": "tooltip", "fields": ["line", "amount", "margin"], "formats": { "margin": "percent" } }]
+        "interaction": [
+          {
+            "type": "tooltip",
+            "fields": ["line", "amount", "margin"],
+            "formats": { "margin": "percent" },
+            "labels": { "line": "Product line", "amount": "Revenue, $M", "margin": "Operating margin" }
+          }
+        ]
       }
     },
     {
@@ -76,7 +83,8 @@
           {
             "type": "tooltip",
             "fields": ["line", "amount", "share", "quarterTotal"],
-            "formats": { "share": { "style": "percent", "maximumFractionDigits": 1 } }
+            "formats": { "share": { "style": "percent", "maximumFractionDigits": 1 } },
+            "labels": { "line": "Product line", "amount": "Revenue, $M", "share": "Share of the quarter", "quarterTotal": "Quarter, $M" }
           }
         ]
       }

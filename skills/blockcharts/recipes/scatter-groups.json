@@ -2,12 +2,12 @@
   "title": "Scatter with groups",
   "data": {
     "people": [
-      { "height": 152, "weight": 51, "group": "A" }, { "height": 158, "weight": 55, "group": "A" },
-      { "height": 163, "weight": 60, "group": "A" }, { "height": 169, "weight": 64, "group": "A" },
-      { "height": 174, "weight": 70, "group": "A" }, { "height": 181, "weight": 77, "group": "A" },
-      { "height": 155, "weight": 58, "group": "B" }, { "height": 160, "weight": 63, "group": "B" },
-      { "height": 166, "weight": 69, "group": "B" }, { "height": 172, "weight": 73, "group": "B" },
-      { "height": 178, "weight": 82, "group": "B" }, { "height": 185, "weight": 88, "group": "B" }
+      { "height": 152, "weight": 51, "group": "Team A" }, { "height": 158, "weight": 55, "group": "Team A" },
+      { "height": 163, "weight": 60, "group": "Team A" }, { "height": 169, "weight": 64, "group": "Team A" },
+      { "height": 174, "weight": 70, "group": "Team A" }, { "height": 181, "weight": 77, "group": "Team A" },
+      { "height": 155, "weight": 58, "group": "Team B" }, { "height": 160, "weight": 63, "group": "Team B" },
+      { "height": 166, "weight": 69, "group": "Team B" }, { "height": 172, "weight": 73, "group": "Team B" },
+      { "height": 178, "weight": 82, "group": "Team B" }, { "height": 185, "weight": 88, "group": "Team B" }
     ]
   },
   "charts": [
@@ -24,12 +24,12 @@
         "guides": [
           { "type": "grid", "scale": "x" },
           { "type": "grid", "scale": "y" },
-          { "type": "axis", "scale": "x" },
-          { "type": "axis", "scale": "y" },
+          { "type": "axis", "scale": "x", "title": "Height, cm" },
+          { "type": "axis", "scale": "y", "title": "Weight, kg" },
           { "type": "legend", "scale": "color" }
         ],
         "marks": [{ "type": "point", "x": "height", "y": "weight", "color": "group", "r": 4, "opacity": 0.85 }],
-        "interaction": [{ "type": "tooltip" }]
+        "interaction": [{ "type": "tooltip", "labels": { "height": "Height, cm", "weight": "Weight, kg", "group": "Team" } }]
       }
     }
   ]

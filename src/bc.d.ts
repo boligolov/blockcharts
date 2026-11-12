@@ -510,6 +510,9 @@ declare namespace BC {
     apply(table: Table, spec: TransformSpec, view?: TransformView): Table;
     /** Names of the columns `apply` adds, so validation still knows every field after the transform ran. */
     outputs?(spec: TransformSpec): string[];
+    /** What a reader calls the columns it adds ("Q1", "Count"), by their names: a tooltip shows a field under this name
+     *  unless its own `labels` names it. */
+    labels?(spec: TransformSpec): Record<string, string>;
     /** The result is a new table, not the old one plus columns (group-by, binning): after it only the `outputs` exist, and
      *  validation flags a reference to a column the transform dropped. */
     replacesColumns?: boolean;

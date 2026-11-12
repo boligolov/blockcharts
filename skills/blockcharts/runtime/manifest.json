@@ -281,8 +281,8 @@
     },
     "transform.bin": {
       "file": "blocks/transform.bin.js",
-      "bytes": 3329,
-      "version": 6,
+      "bytes": 3398,
+      "version": 7,
       "requires": [
         "lib.ticks"
       ],
@@ -604,8 +604,8 @@
     },
     "transform.funnel": {
       "file": "blocks/transform.funnel.js",
-      "bytes": 1274,
-      "version": 4,
+      "bytes": 1395,
+      "version": 5,
       "requires": [
         "lib.columns"
       ],
@@ -782,8 +782,8 @@
     },
     "transform.quartiles": {
       "file": "blocks/transform.quartiles.js",
-      "bytes": 2164,
-      "version": 4,
+      "bytes": 2260,
+      "version": 5,
       "requires": [],
       "closure": [
         "transform.quartiles"
@@ -805,7 +805,7 @@
           "doc": "true: whiskers stop at 1.5x IQR, points further out become their own \"value\" row. false: whiskers stretch to the true min/max, no outlier rows."
         }
       },
-      "doc": "The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has."
+      "doc": "The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields and `count` NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has, under the names a reader knows (Low, Q1, Median, Q3, High, Samples, Outlier)."
     },
     "transform.sankey": {
       "file": "blocks/transform.sankey.js",
@@ -984,8 +984,8 @@
     },
     "transform.waterfall": {
       "file": "blocks/transform.waterfall.js",
-      "bytes": 1749,
-      "version": 4,
+      "bytes": 1872,
+      "version": 5,
       "requires": [
         "lib.columns"
       ],
@@ -2532,8 +2532,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 9290,
-      "version": 21,
+      "bytes": 11104,
+      "version": 22,
       "requires": [
         "lib.pointer"
       ],
@@ -2552,7 +2552,7 @@
         },
         "labels": {
           "kind": "any",
-          "doc": "What to call the fields, per field: { \"median\": \"Median, ms\", \"rev\": \"Revenue\" }. Fields without one are shown under their own name."
+          "doc": "What to call the fields, per field: { \"median\": \"Median, ms\", \"rev\": \"Revenue\" }. Fields without one are shown under the name their transform gives them (Q1, Count…) or their own."
         },
         "content": {
           "kind": "any",
@@ -2574,7 +2574,7 @@
           "doc": "\"dot\" draws a small circle at the point; \"box\" highlights the whole shape (used automatically for rect marks like bar/heatmap, where a dot would land on an edge); \"auto\" picks box when the mark reports its bounds and dot otherwise; \"none\" shows the tooltip text without a marker."
         }
       },
-      "doc": "Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it)."
+      "doc": "Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A value the row does not have (null, NaN) has no line. A field is shown under its name in `labels`, else under the name the transform that made it gives it (quartiles: Q1, Median…), else under its own; the composer warns about a name written like code (avg7, quarterTotal). A bar from x to x2 (or y to y2) on one number or time scale with no category to name it, a histogram's bin, is headed by its range (140–145). A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it)."
     },
     "interaction.zoom": {
       "file": "blocks/interaction.zoom.js",

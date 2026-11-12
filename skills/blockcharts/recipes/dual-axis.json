@@ -2,10 +2,10 @@
   "title": "Two scales on one chart",
   "data": {
     "monthly": [
-      { "month": 1, "revenue": 120, "units": 3400 }, { "month": 2, "revenue": 150, "units": 3900 },
-      { "month": 3, "revenue": 130, "units": 5200 }, { "month": 4, "revenue": 180, "units": 4800 },
-      { "month": 5, "revenue": 210, "units": 6100 }, { "month": 6, "revenue": 190, "units": 7300 },
-      { "month": 7, "revenue": 260, "units": 6900 }, { "month": 8, "revenue": 240, "units": 8800 }
+      { "month": "2025-01-01", "revenue": 120, "units": 3400 }, { "month": "2025-02-01", "revenue": 150, "units": 3900 },
+      { "month": "2025-03-01", "revenue": 130, "units": 5200 }, { "month": "2025-04-01", "revenue": 180, "units": 4800 },
+      { "month": "2025-05-01", "revenue": 210, "units": 6100 }, { "month": "2025-06-01", "revenue": 190, "units": 7300 },
+      { "month": "2025-07-01", "revenue": 260, "units": 6900 }, { "month": "2025-08-01", "revenue": 240, "units": 8800 }
     ]
   },
   "charts": [
@@ -15,13 +15,13 @@
       "spec": {
         "data": "monthly",
         "scales": {
-          "x": { "type": "linear", "padding": 0.05 },
+          "x": { "type": "time", "padding": 0.05 },
           "y": { "type": "linear", "zero": true },
           "y2": { "type": "linear", "range": "height" }
         },
         "guides": [
           { "type": "grid", "scale": "y" },
-          { "type": "axis", "scale": "x" },
+          { "type": "axis", "scale": "x", "format": { "month": "short" } },
           { "type": "axis", "scale": "y" },
           { "type": "axis", "scale": "y2", "position": "right" }
         ],
@@ -29,7 +29,13 @@
           { "type": "point", "x": "month", "y": "revenue", "r": 4 },
           { "type": "point", "x": "month", "y": { "field": "units", "scale": "y2" }, "r": 3 }
         ],
-        "interaction": [{ "type": "tooltip" }]
+        "interaction": [
+          {
+            "type": "tooltip",
+            "labels": { "revenue": "Revenue", "units": "Units sold" },
+            "formats": { "month": { "month": "long", "year": "numeric" } }
+          }
+        ]
       }
     }
   ]

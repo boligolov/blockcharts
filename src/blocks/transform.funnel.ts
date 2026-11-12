@@ -19,7 +19,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'funnel',
-    version: 4,
+    version: 5,
     requires: ['lib.columns'],
     doc: "A conversion funnel: stages in row order (visits, sign-ups, trials, purchases), each drawn as a bar centered on zero so the shape narrows. Writes the bar's two ends (`<field>0` = -value/2, `<field>1` = +value/2), the share of the first stage (`rate`) and of the stage before (`stepRate`). Draw with mark.rect (x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale) and label with mark.text formatted as percent.",
     params: {
@@ -35,6 +35,10 @@
     outputs(spec) {
       const n = names(spec);
       return [n.from, n.to, n.rate, n.step];
+    },
+    labels(spec) {
+      const n = names(spec);
+      return { [n.from]: 'From', [n.to]: 'To', [n.rate]: 'Of the first stage', [n.step]: 'Of the stage before' };
     },
     apply(table, spec) {
       const n = names(spec);

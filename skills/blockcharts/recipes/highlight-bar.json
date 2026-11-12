@@ -163,7 +163,13 @@
         ],
         "interaction": [
           {
-            "type": "tooltip"
+            "type": "tooltip",
+            "fields": ["revenue"],
+            "labels": { "revenue": "Revenue" },
+            "formats": {
+              "month": { "month": "long", "year": "numeric", "timeZone": "UTC" },
+              "revenue": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 }
+            }
           }
         ]
       }

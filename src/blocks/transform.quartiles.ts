@@ -14,9 +14,9 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'quartiles',
-    version: 4,
+    version: 5,
     replacesColumns: true,
-    doc: 'The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has.',
+    doc: 'The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields and `count` NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has, under the names a reader knows (Low, Q1, Median, Q3, High, Samples, Outlier).',
     params: {
       field: {
         kind: 'field',
@@ -38,6 +38,7 @@
       const group = typeof spec.group === 'string' ? spec.group : undefined;
       return group ? [group, ...OUT_COLS] : OUT_COLS.slice();
     },
+    labels: () => ({ low: 'Low', q1: 'Q1', median: 'Median', q3: 'Q3', high: 'High', value: 'Outlier', count: 'Samples' }),
     apply(table, spec) {
       const field = spec.field as string;
       const values = table.columns[field];
@@ -136,7 +137,7 @@
           }
         }
         pushRow(keys[gi], low, q1, median, q3, high, NaN, samples.length);
-        for (const v of outliers) pushRow(keys[gi], NaN, NaN, NaN, NaN, NaN, v, samples.length);
+        for (const v of outliers) pushRow(keys[gi], NaN, NaN, NaN, NaN, NaN, v, NaN);
       }
 
       const columns: Record<string, BC.Column> = {

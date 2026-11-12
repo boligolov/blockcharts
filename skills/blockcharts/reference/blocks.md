@@ -129,7 +129,7 @@ Version 3, 5.3 KB. Group-by: one row per distinct combination of the `groupby` f
 
 ## transform.bin
 
-Version 6, 3.3 KB. Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.
+Version 7, 3.3 KB. Counts the values of `field` in equal-width bins with round edges and returns one row per bin: its start, its end and the count (`as`, default bin0 / bin1 / count). With `log` the bins are equal on a log scale (each edge a fixed ratio of the one before) and only positive values count. Empty bins are kept, so a histogram has no gaps. Bins are [start, end) except the last, which includes its end. With `group` there is a row per bin and group, for stacking or side-by-side comparison. Draw it as a rect with x = start, x2 = end and y = count.
 
 Needs: `lib.ticks`.
 
@@ -232,7 +232,7 @@ Version 3, 1.5 KB. Turns a wide table (one column per series: month, online, ret
 
 ## transform.funnel
 
-Version 4, 1.2 KB. A conversion funnel: stages in row order (visits, sign-ups, trials, purchases), each drawn as a bar centered on zero so the shape narrows. Writes the bar's two ends (`<field>0` = -value/2, `<field>1` = +value/2), the share of the first stage (`rate`) and of the stage before (`stepRate`). Draw with mark.rect (x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale) and label with mark.text formatted as percent.
+Version 5, 1.4 KB. A conversion funnel: stages in row order (visits, sign-ups, trials, purchases), each drawn as a bar centered on zero so the shape narrows. Writes the bar's two ends (`<field>0` = -value/2, `<field>1` = +value/2), the share of the first stage (`rate`) and of the stage before (`stepRate`). Draw with mark.rect (x = `<field>0`, x2 = `<field>1`, y = the stage on a band scale) and label with mark.text formatted as percent.
 
 Needs: `lib.columns`.
 
@@ -288,7 +288,7 @@ Version 3, 2.0 KB. A Marimekko (mosaic) chart: one column per `category`, as wid
 
 ## transform.quartiles
 
-Version 4, 2.1 KB. The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has.
+Version 5, 2.2 KB. The five-number summary of `field` (min/max here mean the Tukey whiskers, not the raw extremes): one row of low/q1/median/q3/high/count per distinct value of `group` (default: one row for the whole dataset). With `outliers` (default true), a sample further than 1.5x the IQR from the box is left out of the whiskers and reported as its own row instead, with `value` set and the summary fields and `count` NaN — draw the box from a rect (q1 to q3) or mark.boxplot, and the outliers from a plain mark.point reading `value`, both keyed on the same `group` field; the two kinds of row tell themselves apart by which fields are NaN, the same way a hidden category already tells a mark not to draw a row. A tooltip shows each kind of row only the fields it has, under the names a reader knows (Low, Q1, Median, Q3, High, Samples, Outlier).
 
 | Parameter | Type | Default | Notes |
 | --- | --- | --- | --- |
@@ -355,7 +355,7 @@ Needs: `lib.columns`.
 
 ## transform.waterfall
 
-Version 4, 1.7 KB. A waterfall (bridge) chart: how a starting value becomes an ending one through gains and losses. In row order, each row adds its `field` to a running total; the transform writes where each bar starts and ends (`<field>0`, `<field>1`), its kind (`step`: "increase", "decrease" or "total"), what it stands for (`amount`: the change, or the total) and its upper end (`top`, for a label above it). Rows marked by the `total` field are subtotals: their bar goes from 0 to the running total, and their own value is ignored. Draw with mark.rect (y = `<field>1`, y2 = `<field>0` on a band x), colored by `step` through a color scale.
+Version 5, 1.8 KB. A waterfall (bridge) chart: how a starting value becomes an ending one through gains and losses. In row order, each row adds its `field` to a running total; the transform writes where each bar starts and ends (`<field>0`, `<field>1`), its kind (`step`: "increase", "decrease" or "total"), what it stands for (`amount`: the change, or the total) and its upper end (`top`, for a label above it). Rows marked by the `total` field are subtotals: their bar goes from 0 to the running total, and their own value is ignored. Draw with mark.rect (y = `<field>1`, y2 = `<field>0` on a band x), colored by `step` through a color scale.
 
 Needs: `lib.columns`.
 
@@ -758,7 +758,7 @@ Version 6, 3.0 KB. Click an item of a categorical legend to hide or show that ca
 
 ## interaction.tooltip
 
-Version 21, 9.1 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it).
+Version 22, 10.8 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A value the row does not have (null, NaN) has no line. A field is shown under its name in `labels`, else under the name the transform that made it gives it (quartiles: Q1, Median…), else under its own; the composer warns about a name written like code (avg7, quarterTotal). A bar from x to x2 (or y to y2) on one number or time scale with no category to name it, a histogram's bin, is headed by its range (140–145). A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it).
 
 Needs: `lib.pointer`.
 
@@ -766,7 +766,7 @@ Needs: `lib.pointer`.
 | --- | --- | --- | --- |
 | `fields` | fields |  | Fields to show. Default: the fields the mark reads (its channels and group). |
 | `formats` | formats |  | How to write values, per field: { "revenue": { "style": "currency", "currency": "USD" }, "share": "percent", "date": "date" }. Each is a preset or an object of Intl options (see guide.axis `format`). Fields without one are written as they are (numbers to 6 significant digits). |
-| `labels` | any |  | What to call the fields, per field: { "median": "Median, ms", "rev": "Revenue" }. Fields without one are shown under their own name. |
+| `labels` | any |  | What to call the fields, per field: { "median": "Median, ms", "rev": "Revenue" }. Fields without one are shown under the name their transform gives them (Q1, Count…) or their own. |
 | `content` | any |  | Name of a function registered with BC.defineFn (or, in a spec built in JS, the function itself). It gets a TooltipDatum and returns what to show: a string (text), { html }, a DOM Node, an array of those, null/false to hide the tooltip, or undefined for the default content. { html } is set with innerHTML and is not escaped — build it from trusted strings, never straight from a row value the data may contain. |
 | `heading` | field |  | The field at the head of the card. Default: the category or date the datum stands on. Give it when that is not what names the datum, as in a calendar, where x is the week and the row is a day. |
 | `marker` | one of `auto`, `dot`, `box`, `none` | `"auto"` | "dot" draws a small circle at the point; "box" highlights the whole shape (used automatically for rect marks like bar/heatmap, where a dot would land on an edge); "auto" picks box when the mark reports its bounds and dot otherwise; "none" shows the tooltip text without a marker. |

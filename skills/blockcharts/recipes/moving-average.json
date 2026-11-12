@@ -262,21 +262,9 @@
         "interaction": [
           {
             "type": "tooltip",
-            "fields": [
-              "day",
-              "signups",
-              "avg7"
-            ],
-            "formats": {
-              "day": {
-                "weekday": "short",
-                "month": "short",
-                "day": "numeric"
-              },
-              "avg7": {
-                "maximumFractionDigits": 0
-              }
-            }
+            "fields": ["day", "signups", "avg7"],
+            "formats": { "day": { "weekday": "short", "month": "short", "day": "numeric" }, "avg7": { "maximumFractionDigits": 0 } },
+            "labels": { "signups": "Sign-ups", "avg7": "7-day average" }
           }
         ]
       }
@@ -358,26 +346,12 @@
         "interaction": [
           {
             "type": "tooltip",
-            "fields": [
-              "day",
-              "region",
-              "revenue",
-              "toDate"
-            ],
+            "fields": ["day", "region", "revenue", "toDate"],
             "formats": {
-              "revenue": {
-                "style": "currency",
-                "currency": "USD",
-                "notation": "compact",
-                "maximumFractionDigits": 1
-              },
-              "toDate": {
-                "style": "currency",
-                "currency": "USD",
-                "notation": "compact",
-                "maximumFractionDigits": 1
-              }
-            }
+              "revenue": { "style": "currency", "currency": "USD", "notation": "compact", "maximumFractionDigits": 1 },
+              "toDate": { "style": "currency", "currency": "USD", "notation": "compact", "maximumFractionDigits": 1 }
+            },
+            "labels": { "region": "Region", "revenue": "That day", "toDate": "To date" }
           }
         ]
       }

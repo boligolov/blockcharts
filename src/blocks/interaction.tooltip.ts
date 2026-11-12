@@ -6,6 +6,11 @@
   const EDGE = 12;
   const MAX_TEXT = 80;
 
+  /** A value a row does not have: it gets no line on the card. */
+  const missing = (v: unknown) => v == null || v === '' || (typeof v === 'number' && isNaN(v));
+  /** A field name as code writes it (avg7, quarterTotal, value_1), which a reader should not have to decode. */
+  const CODE_NAME = /\d|[a-z][A-Z]|_/;
+
   function format(v: unknown): string {
     if (v == null) return '–';
     if (typeof v === 'number') return isNaN(v) ? '–' : Number.isInteger(v) ? String(v) : String(+v.toPrecision(6));
@@ -28,9 +33,9 @@
   const def: BC.InteractionDef = {
     role: 'interaction',
     type: 'tooltip',
-    version: 21,
+    version: 22,
     requires: ['lib.pointer'],
-    doc: "Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it).",
+    doc: "Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A value the row does not have (null, NaN) has no line. A field is shown under its name in `labels`, else under the name the transform that made it gives it (quartiles: Q1, Median…), else under its own; the composer warns about a name written like code (avg7, quarterTotal). A bar from x to x2 (or y to y2) on one number or time scale with no category to name it, a histogram's bin, is headed by its range (140–145). A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it).",
     params: {
       fields: { kind: 'fields', doc: 'Fields to show. Default: the fields the mark reads (its channels and group).' },
       formats: {
@@ -39,7 +44,7 @@
       },
       labels: {
         kind: 'any',
-        doc: 'What to call the fields, per field: { "median": "Median, ms", "rev": "Revenue" }. Fields without one are shown under their own name.',
+        doc: 'What to call the fields, per field: { "median": "Median, ms", "rev": "Revenue" }. Fields without one are shown under the name their transform gives them (Q1, Count…) or their own.',
       },
       content: {
         kind: 'any',
@@ -75,7 +80,17 @@
         console.warn('[blockcharts] interaction.tooltip: "formats" must be an object of field name to format; ignored');
       }
       const writeDate = live.format('date');
+      // the names the transforms give the columns they make come first; the tooltip's own labels win
       const labels: Record<string, string> = {};
+      for (const t of Array.isArray(live.spec.transforms) ? live.spec.transforms : []) {
+        const made = t && (BC.get(`transform.${t.type}` as BC.BlockName) as BC.TransformDef | undefined);
+        if (!made || typeof made.labels !== 'function') continue;
+        try {
+          Object.assign(labels, made.labels(t));
+        } catch (e) {
+          // a transform whose spec is wrong has said so already
+        }
+      }
       if (spec.labels && typeof spec.labels === 'object' && !Array.isArray(spec.labels)) {
         const given = spec.labels as Record<string, unknown>;
         for (const field of Object.keys(given)) {
@@ -202,11 +217,34 @@
        *  as the card's heading rather than as a line, also when `fields` lists what else to show. */
       function headingField(mark: BC.MarkSpec): string | null {
         if (typeof spec.heading === 'string' && live.table.columns[spec.heading]) return spec.heading;
-        for (const ch of ['x', 'y']) {
+        // a category names the datum before a date does: a Gantt bar is its task, from one date to another
+        for (const input of ['category', 'date'])
+          for (const ch of ['x', 'y']) {
+            try {
+              const c = live.channel(mark, ch);
+              if (c.field && c.scale && c.scale.input === input && live.table.columns[c.field]) return c.field;
+            } catch (e) {
+              // not a channel of this mark
+            }
+          }
+        return null;
+      }
+
+      /** A bar from x to x2 (or y to y2) on one number or time scale, both ends among the fields the card shows: a
+       *  histogram's bin. Unless a category or date names the datum, the card is headed by the range and the two ends
+       *  are not lines of it. */
+      function rangeOf(mark: BC.MarkSpec, shown: string[]): { from: string; to: string; date: boolean } | null {
+        for (const [a, b] of [
+          ['x', 'x2'],
+          ['y', 'y2'],
+        ]) {
           try {
-            const c = live.channel(mark, ch);
-            if (c.field && c.scale && (c.scale.input === 'category' || c.scale.input === 'date') && live.table.columns[c.field])
-              return c.field;
+            const from = live.channel(mark, a);
+            const to = live.channel(mark, b);
+            if (!from.field || !to.field || from.field === to.field || !from.scale || from.scale !== to.scale) continue;
+            if (from.scale.input === 'category' || !live.table.columns[from.field] || !live.table.columns[to.field]) continue;
+            if (shown.indexOf(from.field) < 0 || shown.indexOf(to.field) < 0) continue;
+            return { from: from.field, to: to.field, date: from.scale.input === 'date' };
           } catch (e) {
             // not a channel of this mark
           }
@@ -263,18 +301,41 @@
       /** The lines of a datum, and the field of each. A shape that stands for several rows (Pick.rows) shows only what
        *  they have in common: a line through a quarter's total says the total, not the product of whichever row of the
        *  quarter came first. */
-      function lines(mark: BC.MarkSpec, def: BC.MarkDef, row: number, rows: number[]): { lines: [string, string][]; fields: string[] } {
+      /** How a mark writes its values: as `formats` says, else a field one of its channels puts on a time scale as a
+       *  date, not as the ISO string it was given as, else as it is. */
+      function writer(mark: BC.MarkSpec, def: BC.MarkDef): (field: string, row: number) => string {
+        const dates = new Set<string>();
+        for (const ch of Object.keys(def.channels)) {
+          try {
+            const c = live.channel(mark, ch);
+            if (c.field && c.scale && c.scale.input === 'date') dates.add(c.field);
+          } catch (e) {
+            // a channel that cannot be resolved draws nothing
+          }
+        }
+        return (field, row) =>
+          !formats[field] && dates.has(field) ? writeDate(live.table.columns[field][row]) || write(field, row) : write(field, row);
+      }
+
+      function lines(
+        mark: BC.MarkSpec,
+        def: BC.MarkDef,
+        row: number,
+        rows: number[],
+        skip: string[],
+      ): { lines: [string, string][]; fields: string[] } {
         const out: [string, string][] = [];
         const fields: string[] = [];
-        const seen = new Set<string>();
+        const seen = new Set<string>(skip);
+        const written = writer(mark, def);
         const add = (field: string) => {
           const col = live.table.columns[field];
           if (!col || seen.has(field)) return;
           seen.add(field);
-          // the summary and outlier rows of transform.quartiles do not share their fields
-          if (live.table.sparse && typeof col[row] === 'number' && isNaN(col[row] as number)) return;
-          const text = write(field, row);
-          if (rows.some((r) => write(field, r) !== text)) return;
+          // a value the row does not have (the summary and outlier rows of transform.quartiles do not share their fields)
+          if (missing(col[row])) return;
+          const text = written(field, row);
+          if (rows.some((r) => written(field, r) !== text)) return;
           out.push([labels[field] || field, text]);
           fields.push(field);
         };
@@ -306,8 +367,23 @@
         const card = pick.card;
         const same = pick.rows && pick.rows.length > 1 ? pick.rows : [pick.row];
         const named = card ? null : headingField(mark);
-        const heading = named && same.every((r) => write(named, r) === write(named, pick.row)) ? named : null;
-        const listed = card ? { lines: card.lines, fields: [] as string[] } : lines(mark, def, pick.row, same);
+        // a range heads the card when nothing else names the datum, or when it would be headed by one of its ends (a bar
+        // from one date to another); a heading given in `heading` is not replaced
+        const given = typeof spec.heading === 'string' && !!live.table.columns[spec.heading];
+        const range = card || given ? null : rangeOf(mark, only || drawn(mark, def));
+        const spans = range && (!named || named === range.from || named === range.to) ? range : null;
+        const writeEnd = card ? write : writer(mark, def);
+        const ranged =
+          spans &&
+          same.every(
+            (r) => writeEnd(spans.from, r) === writeEnd(spans.from, pick.row) && writeEnd(spans.to, r) === writeEnd(spans.to, pick.row),
+          )
+            ? spans
+            : null;
+        const heading = !spans && named && same.every((r) => write(named, r) === write(named, pick.row)) ? named : null;
+        const listed = card
+          ? { lines: card.lines, fields: [] as string[] }
+          : lines(mark, def, pick.row, same, ranged ? [ranged.from, ranged.to] : []);
         const rows = listed.lines;
         const headingLabel = heading ? labels[heading] || heading : null;
         let custom: BC.TooltipContent;
@@ -343,10 +419,11 @@
         const first = listed.fields.find((_, k) => rows[k][0] !== headingLabel);
         const swatch = card ? card.color || '' : swatchOf(mark, def, index, pick.row, only && first !== undefined ? first : null);
         if (custom === undefined) {
-          if (heading || card) {
+          if (heading || card || ranged) {
             const head = doc.createElement('div');
             head.setAttribute('class', 'bc-tooltip-heading');
             if (heading) head.setAttribute('data-bc-field', heading);
+            else if (ranged) head.setAttribute('data-bc-field', `${ranged.from} ${ranged.to}`);
             Object.assign(head.style, { display: 'flex', alignItems: 'center', gap: '7px', fontWeight: '600', marginBottom: '4px' });
             if (swatch) {
               const sw = doc.createElement('span');
@@ -378,7 +455,11 @@
             })();
             const field = heading as string;
             if (card) t.textContent = card.title;
-            else t.textContent = !formats[field] && isTime ? writeDate(col[pick.row]) || write(field, pick.row) : write(field, pick.row);
+            else if (ranged) {
+              const ends = [writeEnd(ranged.from, pick.row), writeEnd(ranged.to, pick.row)];
+              // 140–145, but Jan 5 – Jan 30
+              t.textContent = ends.join(ends.some((e) => e.indexOf(' ') >= 0) ? ' – ' : '–');
+            } else t.textContent = !formats[field] && isTime ? writeDate(col[pick.row]) || write(field, pick.row) : write(field, pick.row);
             head.appendChild(t);
             tip.appendChild(head);
           }
@@ -464,6 +545,29 @@
         const top = ay - OFFSET - h >= 0 ? ay - OFFSET - h : ay + OFFSET;
         tip.style.left = Math.max(seenLeft, left) + 'px';
         tip.style.top = Math.max(0, top) + 'px';
+      }
+
+      // a field shown under a name written like code (avg7, quarterTotal) means nothing to a reader: say so once, while
+      // the page is made (the composer reports it), with the names to give in `labels`
+      if (spec.content === undefined && live.table) {
+        const coded: string[] = [];
+        for (const mark of live.spec.marks) {
+          const d = markDef(mark);
+          if (!d || !d.pick) continue;
+          const shown = only || drawn(mark, d);
+          const head = headingField(mark);
+          const range = typeof spec.heading === 'string' ? null : rangeOf(mark, shown);
+          for (const field of shown) {
+            if (field === head || (range && (field === range.from || field === range.to))) continue;
+            if (!labels[field] && CODE_NAME.test(field) && live.table.columns[field] && coded.indexOf(field) < 0) coded.push(field);
+          }
+        }
+        if (coded.length)
+          console.warn(
+            `[blockcharts] interaction.tooltip: the card shows ${coded.map((f) => `"${f}"`).join(', ')} under ${
+              coded.length > 1 ? 'their own names; give them names' : 'its own name; give it a name'
+            } a reader knows in "labels"`,
+          );
       }
 
       // a tap shows the card and it stays after the finger lifts; a mouse press (a pan starts) puts it away

@@ -23,7 +23,7 @@
   const def: BC.TransformDef = {
     role: 'transform',
     type: 'waterfall',
-    version: 4,
+    version: 5,
     requires: ['lib.columns'],
     doc: 'A waterfall (bridge) chart: how a starting value becomes an ending one through gains and losses. In row order, each row adds its `field` to a running total; the transform writes where each bar starts and ends (`<field>0`, `<field>1`), its kind (`step`: "increase", "decrease" or "total"), what it stands for (`amount`: the change, or the total) and its upper end (`top`, for a label above it). Rows marked by the `total` field are subtotals: their bar goes from 0 to the running total, and their own value is ignored. Draw with mark.rect (y = `<field>1`, y2 = `<field>0` on a band x), colored by `step` through a color scale.',
     params: {
@@ -45,6 +45,10 @@
     outputs(spec) {
       const n = names(spec);
       return [n.start, n.end, n.kind, n.amount, n.top];
+    },
+    labels(spec) {
+      const n = names(spec);
+      return { [n.start]: 'From', [n.end]: 'Running total', [n.kind]: 'Step', [n.amount]: 'Amount', [n.top]: 'Top' };
     },
     apply(table, spec) {
       const n = names(spec);
