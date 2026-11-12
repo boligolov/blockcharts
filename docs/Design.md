@@ -1585,6 +1585,12 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   a phone shows every month that fits and keeps the last. SKILL.md says that a line and its points need one color,
   and how to draw two measures on two scales. Not fixed here: a time axis on a phone shows two labels in eight recipes
   (`plot.w / 80` ticks, and no two-month step), which is the library's (ROADMAP).
+- **A JSON example in SKILL.md is JSON.** The CSV dataset was shown as `{"csv": "date,region,amount` with real line
+  breaks inside the string and a `...` row: copied as it is, it is not JSON, and a page.json written after it stops the
+  composer at the parse. Now it is one line with `\n` between two real rows, and SKILL.md says that a JSON string
+  writes its line breaks so. test-skill reads the code spans of SKILL.md, the reference and the README: none breaks
+  over lines, every one that starts like JSON and has no `..` or `|` parses (those show a shape: `[{...}]`,
+  `"sum" | "mean"`), and the CSV example reads as three columns and two rows.
 
 ## Next steps
 

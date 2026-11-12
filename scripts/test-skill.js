@@ -8,6 +8,7 @@ const { spawnSync } = require('child_process');
 const { unzipSync } = require('fflate');
 const { buildSkill, checkSkill, packSkill, skillVersion, renderReference, listFiles, SKILL_DIR: skillDir } = require('./build-skill.js');
 const { runPage } = require('./run-page.js');
+const { parseCsv } = require('./csv.js');
 
 let passed = 0;
 let failed = 0;
@@ -167,6 +168,52 @@ test('skill: the package has everything it points to', () => {
   assert(built.files.includes('runtime/core.js') && built.files.includes('runtime/manifest.json'));
   for (const name of Object.keys(manifest.blocks))
     assert(built.files.includes(`runtime/${manifest.blocks[name].file}`), `${name} is in the package`);
+});
+
+/** The inline code spans of a Markdown text, outside its front matter and fenced blocks, with the line each starts on. */
+function codeSpans(markdown) {
+  const text = markdown.replace(/\r\n/g, '\n');
+  let fence = false;
+  let front = text.startsWith('---\n');
+  const prose = text
+    .split('\n')
+    .map((line, i) => {
+      if (front) {
+        if (i > 0 && line === '---') front = false;
+        return '';
+      }
+      if (/^\s*(```|~~~)/.test(line)) {
+        fence = !fence;
+        return '';
+      }
+      return fence ? '' : line;
+    })
+    .join('\n');
+  const spans = [];
+  for (const m of prose.matchAll(/(`+)([\s\S]*?[^`])\1(?!`)/g))
+    spans.push({ line: prose.slice(0, m.index).split('\n').length, code: m[2] });
+  return spans;
+}
+
+test('skill: a code example in the docs is on one line, and one in JSON is JSON an agent can copy', () => {
+  for (const rel of ['SKILL.md', 'reference/blocks.md', 'README.md'])
+    for (const s of codeSpans(read(rel)))
+      assert(!s.code.includes('\n'), `${rel}:${s.line}: \`${s.code}\` is broken over lines (a JSON string writes a line break as \\n)`);
+  const spans = codeSpans(read('SKILL.md'));
+  let examples = 0;
+  for (const s of spans) {
+    // `[{...}]`, `{"op": "sum" | "mean"}` and `{title, note}` show a shape, not a value to copy
+    if (!/^(\{"|\[\{"|\["|\[-?\d)/.test(s.code) || /\.\.|\s\|\s/.test(s.code)) continue;
+    assert.doesNotThrow(() => JSON.parse(s.code), `SKILL.md:${s.line}: ${s.code}`);
+    examples++;
+  }
+  assert(examples >= 30, `the JSON examples were found (${examples})`);
+  const csv = spans.find((s) => s.code.startsWith('{"csv"'));
+  assert(csv, 'SKILL.md shows a CSV dataset');
+  const { columns, warnings } = parseCsv(JSON.parse(csv.code).csv);
+  assert.deepStrictEqual(Object.keys(columns), ['date', 'region', 'amount'], 'the first line names the columns');
+  assert.deepStrictEqual(columns.amount, [1200, 2300], 'a row per line, numbers read as numbers');
+  assert.deepStrictEqual(warnings, []);
 });
 
 test('skill: the block reference is generated from the manifest and mentions every block, parameter and channel', () => {
