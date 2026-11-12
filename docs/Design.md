@@ -548,7 +548,7 @@ deterministic — a fixed date, LF); `build-skill.js --check` and a test fail wh
 from a fresh build (compared with CRLF normalized). The skill's version is in `SKILL.md` `metadata.version`
 and in `plugin.json`; a test requires them to be equal; it goes up with every change to the folder after a
 release (0.1.0 is the first). The site serves the zip as `blockcharts.online/blockcharts.skill`
-(`site-prebuild` packs it only while the skill is current). `encode-columns.js` was added to `runtime/`. The
+(`site-prebuild` packs it only while the skill is current). `encode-columns.js` was in `runtime/` from then until the production review took it out (below). The
 principles the skill is built on: `docs/spec/principles.md`.
 
 Contents: `SKILL.md` (what the agent reads: the workflow, the shape of `page.json` and of a spec, rules, what
@@ -1591,6 +1591,19 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   writes its line breaks so. test-skill reads the code spans of SKILL.md, the reference and the README: none breaks
   over lines, every one that starts like JSON and has no `..` or `|` parses (those show a shape: `[{...}]`,
   `"sum" | "mean"`), and the CSV example reads as three columns and two rows.
+- **A tool the skill names can be run.** SKILL.md told an agent that numbers of a big chart "can be given as binary
+  columns (`runtime/encode-columns.js`)", a module with no command line: run, it printed nothing. Before giving it one
+  we measured what it buys over what the composer does anyway (gzip of the JSON). 15,000 points in uint16, the
+  scatter-large recipe: 90 KB against 63. 50,000 floats with every digit: 749 KB against 647. The same rounded to one or
+  two decimals: 248 and 309 KB against 251 and 313, worse. A minute series with ISO times: 309 KB against 1,460, as a
+  dataset with a binary column was stored as it came, so its column of dates stayed plain JSON. Only float32 wins
+  (260 KB), and rounding to the digits a reader needs comes close (309) without losing anything a reader sees. So the
+  skill does not name it: SKILL.md says to give data of that size as `csvFile` and round its values, scatter-large
+  says nothing of how its points are packed, and `runtime/` no longer has the script; it stays in `scripts/` for
+  pipelines (README). The composer now wraps a dataset with binary columns in gzip when that is worth it, even with
+  `compress: true`, which gzips everything else (packed columns gain nothing from it, the text beside them does), and
+  only while its JSON and its columns' values together stay within the 64 MB a page unpacks. test-skill runs every
+  `runtime/` script SKILL.md or the skill's README names with no arguments: it must stop with a usage line.
 
 ## Next steps
 

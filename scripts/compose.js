@@ -35,7 +35,8 @@
 //   baseDir folder that csvFile paths are relative to (the command line uses the folder of the page json)
 //   compress 'auto' (default) | true | false. Datasets are stored as base64(gzip(JSON)) when that is worth it ('auto': big,
 //           at least 25% smaller, and saving more than the decoder the page then carries), always (true) or never (false).
-//           Already-encoded datasets are passed through untouched.
+//           Already-encoded datasets are passed through untouched. One with binary columns is wrapped only when that is
+//           worth it, also with true: its columns are packed already, only the text beside them (ISO dates) gains.
 //
 // Specs must be plain JSON: a function in one (a tooltip `content`, say) would be silently dropped by JSON.stringify, so it is
 // refused; register it in a script (`after`) with BC.defineFn(name, fn) and put the name in the spec.
@@ -375,20 +376,29 @@ function needsDecoding(v) {
 }
 
 function encodeDataset(name, input, mode) {
-  if (isEncoded(input) || hasBinaryColumns(input) || mode === false) return { value: input, encoded: false };
+  if (isEncoded(input) || mode === false) return { value: input, encoded: false };
+  // binary columns are packed already, so gzip pays only for the text beside them (a column of ISO dates, say, which
+  // would otherwise stay plain JSON): such a dataset is wrapped when that is worth it, whatever `mode` asks
+  const binary = hasBinaryColumns(input);
+  const optional = mode !== true || binary;
   const json = JSON.stringify(input);
-  if (mode !== true && json.length < COMPRESS_MIN_CHARS) return { value: input, encoded: false };
-  // the page unpacks no more than this, so compressed it could not be read at all: "auto" leaves it as it is
-  const bytes = Buffer.byteLength(json, 'utf8');
+  if (optional && json.length < COMPRESS_MIN_CHARS) return { value: input, encoded: false };
+  // the page unpacks no more than this, so compressed it could not be read at all: "auto" leaves it as it is. The JSON
+  // and the values of its binary columns share that limit (plainDataset)
+  let bytes = Buffer.byteLength(json, 'utf8');
+  if (binary) {
+    const plain = decodeBinaryColumns(name, input).columns;
+    for (const k of Object.keys(input.columns)) if (isBinaryColumn(input.columns[k])) bytes += plain[k].length * 8;
+  }
   if (bytes > MAX_DECODED_BYTES) {
-    if (mode === true)
+    if (!optional)
       throw new ComposeError(
         `data "${name}" is ${(bytes / 1024 / 1024).toFixed(0)} MB as JSON, and a page unpacks no more than ${MAX_DECODED_BYTES / 1024 / 1024} MB of compressed data: aggregate or decimate it first, or compose with compress "auto" to store it as it is`,
       );
     return { value: input, encoded: false };
   }
   const b64 = zlib.gzipSync(Buffer.from(json, 'utf8'), { level: 9 }).toString('base64');
-  if (mode !== true && b64.length > json.length * COMPRESS_MIN_GAIN) return { value: input, encoded: false };
+  if (optional && b64.length > json.length * COMPRESS_MIN_GAIN) return { value: input, encoded: false };
   return { value: { encoding: 'gzip+base64', data: b64 }, encoded: true };
 }
 

@@ -170,6 +170,19 @@ test('skill: the package has everything it points to', () => {
     assert(built.files.includes(`runtime/${manifest.blocks[name].file}`), `${name} is in the package`);
 });
 
+test('skill: a script the skill names is a command an agent can run, not a module to read', () => {
+  // an agent given a file name runs it; one with no command line runs, prints nothing and leaves it guessing
+  const named = new Set();
+  for (const rel of ['SKILL.md', 'README.md']) for (const [, f] of read(rel).matchAll(/runtime\/([\w.-]+\.js)\b/g)) named.add(f);
+  assert(named.has('compose.js'), 'the composer is named');
+  for (const f of named) {
+    assert(fs.existsSync(path.join(out, 'runtime', f)), `runtime/${f} is in the package`);
+    const r = spawnSync(process.execPath, [path.join(out, 'runtime', f)], { cwd: out, encoding: 'utf8' });
+    assert.notStrictEqual(r.status, 0, `runtime/${f} with no arguments stops`);
+    assert.match(r.stderr, /usage: /, `runtime/${f} with no arguments says how to run it`);
+  }
+});
+
 /** The inline code spans of a Markdown text, outside its front matter and fenced blocks, with the line each starts on. */
 function codeSpans(markdown) {
   const text = markdown.replace(/\r\n/g, '\n');

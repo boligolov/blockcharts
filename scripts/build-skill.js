@@ -137,7 +137,7 @@ function copyFile(from, to) {
 const AUTHORED = ['SKILL.md', 'README.md', '.claude-plugin/plugin.json'];
 // Generated from the repository; a test fails while the committed copy differs (`npm run skill` refreshes it).
 const GENERATED_DIRS = ['reference', 'runtime'];
-const RUNTIME_SCRIPTS = ['compose.js', 'build-manifest.js', 'fake-dom.js', 'csv.js', 'encode-columns.js'];
+const RUNTIME_SCRIPTS = ['compose.js', 'build-manifest.js', 'fake-dom.js', 'csv.js'];
 
 /**
  * Writes the generated parts of the skill: LICENSE, reference/blocks.md (from the manifest) and runtime/

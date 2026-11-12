@@ -1236,6 +1236,66 @@ test('compose: binary columns are checked and drawn like any dataset, and stored
   );
 });
 
+test('compose: a dataset of binary columns and text is compressed when that pays, and the page reads both layers', async () => {
+  const { encodeColumns } = require('./encode-columns.js');
+  const { runPage } = require('./run-page.js');
+  // a day of minutes: ISO times stay text beside the packed values, and were stored as plain JSON, 5 times the page
+  const n = 1440;
+  const t = Array.from({ length: n }, (_, i) => new Date(Date.UTC(2024, 0, 1) + i * 60000).toISOString());
+  const v = Array.from({ length: n }, (_, i) => Math.sin(i / 50) * 100 + i / 7);
+  const mixed = encodeColumns({ t, v });
+  assert.strictEqual(typeof mixed.columns.t[0], 'string');
+  const spec = {
+    data: 'm',
+    alt: 'A day',
+    scales: { x: { type: 'time' }, y: { type: 'linear' } },
+    marks: [{ type: 'line', x: 't', y: 'v' }],
+  };
+  const r = compose({ data: { m: mixed }, charts: [spec] });
+  assert.deepStrictEqual(r.diagnostics, []);
+  assert.deepStrictEqual(r.compressed, ['m'], 'the text beside the binary column is worth it');
+  const stored = storedData(r.html).m;
+  assert.strictEqual(stored.encoding, 'gzip+base64');
+  assert.deepStrictEqual(JSON.parse(zlib.gunzipSync(Buffer.from(stored.data, 'base64')).toString('utf8')), mixed, 'the columns as given');
+  const asItIs = compose({ data: { m: mixed }, charts: [spec], compress: false });
+  const size = (html) => JSON.stringify(storedData(html).m).length;
+  assert(size(r.html) < size(asItIs.html) / 2, `${size(r.html)} vs ${size(asItIs.html)}`);
+  const { handles, BC, errors } = runPage(r.html);
+  await handles[0].ready;
+  await BC.ready();
+  assert.deepStrictEqual(Array.from(handles[0].diagnostics), []);
+  assert.deepStrictEqual(errors, []);
+  assert.strictEqual(countTags(handles[0].host.children[0], 'path') > 0, true, 'it draws');
+  const a = runPage(asItIs.html);
+  await a.handles[0].ready;
+  await a.BC.ready();
+  assert.strictEqual(handles[0].host.children[0].serialize(), a.handles[0].host.children[0].serialize(), 'the same chart either way');
+
+  // numbers only: gzip of packed columns gains nothing, so they stay as they came, even when every dataset is to be compressed
+  const packed = encodeColumns({ v, w: v.map((x) => x * 3) });
+  const p = compose({
+    data: { m: packed },
+    charts: [{ ...spec, scales: { x: { type: 'linear' }, y: { type: 'linear' } }, marks: [{ type: 'line', x: 'v', y: 'w' }] }],
+    compress: true,
+  });
+  assert.deepStrictEqual(p.compressed, []);
+  assert.deepStrictEqual(storedData(p.html).m, packed);
+});
+
+test('compose: binary columns and the JSON around them share the limit a page unpacks', () => {
+  const { encodeColumns } = require('./encode-columns.js');
+  // 7.5 million zeros: 60 MB once read (8 bytes a value) and 15 MB of JSON beside them, 75 MB together. Stored as they
+  // came the page reads only the 60 MB; wrapped in gzip it would have to unpack all 75 and refuse
+  const n = 7.5e6;
+  const zeros = new Array(n).fill(0);
+  const big = { columns: { v: encodeColumns({ v: zeros }).columns.v, w: zeros } };
+  const after = '<script></script>'; // carries the dataset to the page without a chart to draw it
+  for (const compress of ['auto', true]) {
+    const r = compose({ data: { ...DATA, big }, charts: [bars()], after, compress, dryRun: false });
+    assert.deepStrictEqual(r.compressed.includes('big'), false, `compress ${compress}: left as it is, so the page can read it`);
+  }
+});
+
 test('compose: pages carry the minified code by default, and draw what the readable code draws', async () => {
   const { runPage } = require('./run-page.js');
   const page = { data: DATA, charts: [bars()] };

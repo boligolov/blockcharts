@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.33.42"
+  version: "0.33.43"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -98,7 +98,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 
 **Long series**: for a line with more than a few thousand points add `{"type": "decimate", "x": "<x field>", "y": "<y field>"}` to `transforms` (data sorted by x). It keeps the lowest and highest point of every pixel column, so the picture does not change, and redoes this at every zoom. With several series (`group`), the rows of each series must be sorted by x; the composer warns if not. Zooming into a sorted series is fast on its own; `decimate` matters for the first, fully zoomed-out view.
 
-**Very many marks**: a chart normally draws SVG elements, one per mark, which is fine up to a few thousand. For a scatter (or bars) of tens of thousands of marks add `"renderer": "canvas"` to the chart spec: it draws on one canvas and redraws about 5 times faster at 50,000 points. Everything else (zoom, brush, tooltip, legend filter, colors, dark mode) works the same; only CSS class hooks and native hover titles do not exist on a canvas. It does not help a single long line (that is one path either way): use `decimate` for those. Numeric columns of this size can be given as binary columns (`runtime/encode-columns.js`), see the recipe.
+**Very many marks**: a chart normally draws SVG elements, one per mark, which is fine up to a few thousand. For a scatter (or bars) of tens of thousands of marks add `"renderer": "canvas"` to the chart spec: it draws on one canvas and redraws about 5 times faster at 50,000 points. Everything else (zoom, brush, tooltip, legend filter, colors, dark mode) works the same; only CSS class hooks and native hover titles do not exist on a canvas. It does not help a single long line (that is one path either way): use `decimate` for those. Give data of this size as `csvFile` (the recipe packs its points to stay small; yours do not need it): the composer stores a big dataset compressed by itself. Round the values to the digits a reader needs (`12.3`, not `12.30498127`): random trailing digits are what does not compress, and they can make such a page twice as large.
 
 **Zoom**: on a page that is not in English give `zoom-controls` its `titles` (`{"reset": ..., "out": ..., "in": ...}`), what the buttons say to a mouse and a screen reader. `{"type":"zoom"}` on a time or linear x scale; add `"fit": ["y"]` so the y axis follows the visible window. Ctrl + wheel zooms, drag pans, double-click resets. `maxZoom` limits how far in (default 50x the full range; raise it for very long series).
 
@@ -188,7 +188,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | A number for every pair of two categories | `recipes/heatmap.json` |
 | Parts of a whole, as one circle | `recipes/pie.json` |
 | A very long series (tens of thousands of points and more) | `recipes/long-series.json` |
-| A scatter plot of tens of thousands of points (canvas, binary columns) | `recipes/scatter-large.json` |
+| A scatter plot of tens of thousands of points (canvas) | `recipes/scatter-large.json` |
 | Where thousands of points of two measures pile up: their density, not every point (hexbin) | `recipes/hexbin.json` |
 | Where most of thousands of points fall, as nested regions or contour lines | `recipes/contours.json` |
 | Several charts on one page | `recipes/dashboard.json` |

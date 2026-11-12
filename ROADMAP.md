@@ -13,7 +13,7 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.42): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
+Done (skill 0.33.1–0.33.43): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
 every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
@@ -25,14 +25,14 @@ tooltips in the reader's words (no "–" lines, names from the transforms, a bin
 text measured in the chart's own font (CI's Chrome suite in DejaVu Sans, a web font laid out again when it comes); E2,
 the recipes as SKILL.md advises (a line and its points in one color, two scales with a legend and titled axes, currency
 and percent on the axes, the dashboard on the composer's grid); E4, a CSV example in SKILL.md an agent can copy as it
-is.
+is; E5, no tool in the skill an agent cannot run (binary columns left to pipelines: the composer's gzip does nearly as
+well).
 
 Left, in this order:
 
 - [ ] **E3** Recipe notes are prose for the agent but are shown to readers under the charts (example pages,
       downloadable reports): backticks, "transform.stack", "NaN". Decided: a separate field for the caption a reader
       sees, so notes stay for the agent; its semantics are still to settle.
-- [ ] **E5** SKILL.md: `runtime/encode-columns.js` is named as a tool but has no CLI.
 - [ ] **E6** SKILL.md: the KPI paragraph comes before the `kpi` guide is introduced and has a sentence with no verb;
       the zoom paragraph is out of order too.
 - [ ] **E7** The trigger description: leave out charts embedded in an app's own code; a hint for "table" requests (a
