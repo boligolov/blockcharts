@@ -23,15 +23,15 @@
         "scales": { "x": { "type": "time" }, "y": { "type": "linear", "zero": true } },
         "guides": [
           { "type": "grid", "scale": "y" },
-          { "type": "axis", "scale": "x", "format": { "month": "short" } },
+          { "type": "axis", "scale": "x", "format": { "month": "short" }, "count": 12, "anchor": "end" },
           { "type": "axis", "scale": "y", "title": "Revenue", "format": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } }
         ],
         "marks": [
-          { "type": "line", "x": "month", "y": "revenue" },
-          { "type": "point", "x": "month", "y": "revenue" }
+          { "type": "line", "x": "month", "y": "revenue", "stroke": "var(--bc-c0, #3a6fe4)" },
+          { "type": "point", "x": "month", "y": "revenue", "fill": "var(--bc-c0, #3a6fe4)" }
         ],
         "interaction": [
-          { "type": "tooltip", "formats": { "month": { "month": "long", "year": "numeric" }, "revenue": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } } }
+          { "type": "tooltip", "labels": { "revenue": "Revenue" }, "formats": { "month": { "month": "long", "year": "numeric" }, "revenue": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } } }
         ]
       }
     },
@@ -53,13 +53,13 @@
         "guides": [
           { "type": "grid", "scale": "y" },
           { "type": "axis", "scale": "x" },
-          { "type": "axis", "scale": "y", "format": "compact" }
+          { "type": "axis", "scale": "y", "format": { "style": "currency", "currency": "USD", "notation": "compact" } }
         ],
         "marks": [
           { "type": "rect", "x": "region", "y": "revenue", "radius": 2 },
-          { "type": "text", "x": "region", "y": "revenue", "text": "revenue", "format": "compact", "baseline": "auto", "dy": -5 }
+          { "type": "text", "x": "region", "y": "revenue", "text": "revenue", "format": { "style": "currency", "currency": "USD", "notation": "compact", "maximumFractionDigits": 1 }, "baseline": "auto", "dy": -5 }
         ],
-        "interaction": [{ "type": "tooltip", "formats": { "revenue": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } } }]
+        "interaction": [{ "type": "tooltip", "labels": { "revenue": "Revenue" }, "formats": { "revenue": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0 } } }]
       }
     }
   ]

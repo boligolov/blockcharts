@@ -13,7 +13,7 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.40): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
+Done (skill 0.33.1–0.33.41): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
 every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
@@ -22,13 +22,12 @@ row on a phone, a treemap laid out for its plot, even gaps in a legend); D1, a c
 legend filter from the keyboard; D2, the site's text at 4.5:1 (its own colors; the charts' are below); D3, the
 headings of the site and the reports one level at a time, a skip link, copy buttons that say what they copy; E1,
 tooltips in the reader's words (no "–" lines, names from the transforms, a bin's range, a warning about code names);
-text measured in the chart's own font (CI's Chrome suite in DejaVu Sans, a web font laid out again when it comes).
+text measured in the chart's own font (CI's Chrome suite in DejaVu Sans, a web font laid out again when it comes); E2,
+the recipes as SKILL.md advises (a line and its points in one color, two scales with a legend and titled axes, currency
+and percent on the axes, the dashboard on the composer's grid).
 
 Left, in this order:
 
-- [ ] **E2** Recipes against SKILL.md's own advice: dashboard (custom css, no layout, teal points on a blue line, a
-      scatter with no axis titles), report-from-csv (same colors; the bar axis is not currency; on a phone the line has
-      only Jan/Apr), dual-axis (no legend, no axis titles), stacked-area-100 (0.0–1.0, not %).
 - [ ] **E3** Recipe notes are prose for the agent but are shown to readers under the charts (example pages,
       downloadable reports): backticks, "transform.stack", "NaN". Decided: a separate field for the caption a reader
       sees, so notes stay for the agent; its semantics are still to settle.
@@ -76,6 +75,11 @@ Found along the way:
       place.
 - [ ] Date categories on a band axis are thinned by the width of the whole label on one line, so twelve months in
       Japanese show every other month on a desk although "2024年 / 1月" on two lines would fit (guide.axis `fitWritten`).
+- [ ] A time axis on a phone shows two labels where four fit (found by E2): it asks for `plot.w / 80` ticks whatever its
+      labels say, and months step by 1, 3 or 6, so in 324 px candlestick has "Jan 24 | Jan 25" for 22 months,
+      error-bars, executive-dashboard and wide-table "Jan | Jul" for a year, lines-by-series and stacked-area-100 (before
+      its `count`) "Jan 2024 | Apr 2024" for five or six months. A count from the labels' measured width (as a band's
+      `fits`, shared with the grid), capped so a wide desk does not get ticks finer than the data, and a two-month step.
 - [ ] The browsers dashboard (in `dashboards/`, not in the repository) now stops with an error on a diverging color
       domain `[-2.1, 0, 2.1]`: the stricter domain reading of 0.33.10 caught it. Fix the dashboard or accept such domains.
 

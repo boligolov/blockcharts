@@ -1,6 +1,7 @@
 {
   "title": "Team dashboard",
-  "css": "body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px}h2{font-size:16px;margin:0 0 4px}p{margin:0 0 8px;color:#666;font-size:13px}.bc-section{margin:24px 0}",
+  "subtitle": "Support tickets · six weeks from May 6, 2024",
+  "layout": { "columns": 2 },
   "data": {
     "tickets": [
       { "week": "2024-05-06", "opened": 34, "closed": 30 },
@@ -15,24 +16,35 @@
     {
       "title": "Tickets opened",
       "note": "Two charts on one page can read the same dataset.",
+      "span": 1,
       "spec": {
         "data": "tickets",
-        "size": [640, 240],
+        "size": [560, 260],
         "scales": { "x": { "type": "time", "padding": 0.03 }, "y": { "type": "linear", "zero": true } },
         "guides": [{ "type": "grid", "scale": "y" }, { "type": "axis", "scale": "x" }, { "type": "axis", "scale": "y" }],
-        "marks": [{ "type": "line", "x": "week", "y": "opened" }, { "type": "point", "x": "week", "y": "opened", "r": 3 }],
-        "interaction": [{ "type": "tooltip" }]
+        "marks": [
+          { "type": "line", "x": "week", "y": "opened", "stroke": "var(--bc-c0, #3a6fe4)" },
+          { "type": "point", "x": "week", "y": "opened", "r": 3, "fill": "var(--bc-c0, #3a6fe4)" }
+        ],
+        "interaction": [{ "type": "tooltip", "labels": { "opened": "Opened" } }]
       }
     },
     {
       "title": "Opened against closed",
+      "note": "One dot per week.",
+      "span": 1,
       "spec": {
         "data": "tickets",
-        "size": [640, 240],
+        "size": [560, 260],
         "scales": { "x": { "type": "linear", "padding": 0.1 }, "y": { "type": "linear", "padding": 0.1 } },
-        "guides": [{ "type": "grid", "scale": "x" }, { "type": "grid", "scale": "y" }, { "type": "axis", "scale": "x" }, { "type": "axis", "scale": "y" }],
+        "guides": [
+          { "type": "grid", "scale": "x" },
+          { "type": "grid", "scale": "y" },
+          { "type": "axis", "scale": "x", "title": "Opened" },
+          { "type": "axis", "scale": "y", "title": "Closed" }
+        ],
         "marks": [{ "type": "point", "x": "opened", "y": "closed", "r": 5 }],
-        "interaction": [{ "type": "tooltip" }]
+        "interaction": [{ "type": "tooltip", "heading": "week", "fields": ["opened", "closed"], "labels": { "opened": "Opened", "closed": "Closed" }, "formats": { "week": "date" } }]
       }
     }
   ]

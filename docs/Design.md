@@ -1570,6 +1570,21 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   from a local copy) the suite failed the same way here, which Verdana's widths had not shown. Text kept from an edge is
   text that must never be clipped, measure's case, not textWidth's: names are spaced by textWidth and kept from the
   chart's edges, and from the plot's for its margin, by measure (guide.axis v20).
+- **The recipes do what SKILL.md tells an agent to do.** An agent copies a recipe before it reads the advice, so a recipe
+  that goes against it teaches the opposite. dashboard drew its page with a stylesheet of its own (a 720 px column, its
+  own type) and no grid, and report-from-csv and dashboard drew a line in the palette's first color and its points in
+  the second, teal on blue: a mark with no color of its own takes the next one. dashboard's scatter of opened against
+  closed tickets did not say which axis was which; dual-axis had two sets of dots in two colors and nothing that named
+  either, nor its axes; stacked-area-100 wrote shares as 0.0–1.0; report-from-csv's bars were in dollars and their axis
+  in plain thousands, and its five months were Jan and Apr on a phone. Now dashboard is the composer's own page on
+  `layout` (two columns, a subtitle with the period), the line and its points share a `stroke`/`fill`, and every axis
+  that would leave a reader guessing has a title. dual-axis is revenue as bars on the left and units as a line on the
+  right, both from zero, on a band of months (bars of even width, where on a time scale February is narrower) with a
+  legend: a `color` scale whose names are constants on the marks, `{"value": "Units sold", "scale": "color"}`, the
+  way a constant on a position is a value on its scale. Axes of months ask for `count: 12` with `anchor: "end"`, so
+  a phone shows every month that fits and keeps the last. SKILL.md says that a line and its points need one color,
+  and how to draw two measures on two scales. Not fixed here: a time axis on a phone shows two labels in eight recipes
+  (`plot.w / 80` ticks, and no two-month step), which is the library's (ROADMAP).
 
 ## Next steps
 

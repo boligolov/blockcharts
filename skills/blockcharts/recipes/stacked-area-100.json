@@ -29,12 +29,12 @@
         },
         "guides": [
           { "type": "grid", "scale": "y" },
-          { "type": "axis", "scale": "x" },
-          { "type": "axis", "scale": "y" },
+          { "type": "axis", "scale": "x", "count": 12, "anchor": "end" },
+          { "type": "axis", "scale": "y", "format": "percent" },
           { "type": "legend", "scale": "color", "position": "top", "title": "Source" }
         ],
         "marks": [{ "type": "area", "x": "month", "y": "visits1", "y2": "visits0", "color": "source" }],
-        "interaction": [{ "type": "tooltip", "fields": ["month", "source", "visits"] }, { "type": "legend-filter" }]
+        "interaction": [{ "type": "tooltip", "fields": ["month", "source", "visits"], "labels": { "source": "Source", "visits": "Visits" }, "formats": { "month": "month" } }, { "type": "legend-filter" }]
       }
     }
   ]

@@ -10,30 +10,39 @@
   },
   "charts": [
     {
-      "title": "Revenue (left) and units sold (right)",
-      "note": "y2 is a second linear scale. A mark chooses it with { field, scale }, and its axis goes to the right with position.",
+      "title": "Revenue and units sold by month",
+      "note": "y2 is a second linear scale. A mark chooses it with { field, scale }, and its axis goes to the right with position. Both axes are titled and start at zero, and the legend names the marks: each takes its name as a constant on the color scale.",
       "spec": {
         "data": "monthly",
+        "size": [720, 320],
         "scales": {
-          "x": { "type": "time", "padding": 0.05 },
+          "x": { "type": "band", "paddingInner": 0.3 },
           "y": { "type": "linear", "zero": true },
-          "y2": { "type": "linear", "range": "height" }
+          "y2": { "type": "linear", "zero": true, "range": "height" },
+          "color": { "type": "color" }
         },
         "guides": [
           { "type": "grid", "scale": "y" },
-          { "type": "axis", "scale": "x", "format": { "month": "short" } },
-          { "type": "axis", "scale": "y" },
-          { "type": "axis", "scale": "y2", "position": "right" }
+          { "type": "axis", "scale": "x", "format": { "month": "short" }, "anchor": "end" },
+          { "type": "axis", "scale": "y", "title": "Revenue, $K" },
+          { "type": "axis", "scale": "y2", "position": "right", "title": "Units sold", "format": "compact" },
+          { "type": "legend", "scale": "color", "position": "top" }
         ],
         "marks": [
-          { "type": "point", "x": "month", "y": "revenue", "r": 4 },
-          { "type": "point", "x": "month", "y": { "field": "units", "scale": "y2" }, "r": 3 }
+          { "type": "rect", "x": "month", "y": "revenue", "color": { "value": "Revenue", "scale": "color" }, "radius": 3 },
+          { "type": "line", "x": "month", "y": { "field": "units", "scale": "y2" }, "color": { "value": "Units sold", "scale": "color" } },
+          { "type": "point", "x": "month", "y": { "field": "units", "scale": "y2" }, "color": { "value": "Units sold", "scale": "color" }, "r": 4 }
         ],
         "interaction": [
           {
             "type": "tooltip",
+            "fields": ["revenue", "units"],
             "labels": { "revenue": "Revenue", "units": "Units sold" },
-            "formats": { "month": { "month": "long", "year": "numeric" } }
+            "formats": {
+              "month": { "month": "long", "year": "numeric" },
+              "revenue": { "style": "currency", "currency": "USD", "maximumFractionDigits": 0, "suffix": "K" },
+              "units": "integer"
+            }
           }
         ]
       }

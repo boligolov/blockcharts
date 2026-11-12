@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.33.40"
+  version: "0.33.41"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -95,6 +95,8 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 **Bars over time**: a `rect` with `x` on a `time` scale and `y` on a linear one stands at each date, as wide as most of the smallest step in the data. Give `x2` for bars that must span an exact period.
 
 **Horizontal bars**: put the band scale on `y` and the linear scale on `x` and swap the channels (`"x": "total", "y": "region"`); categories read from the top.
+
+**Two measures with different units** (revenue and units sold): a second value scale, `"y2": {"type": "linear", "zero": true, "range": "height"}`, which a mark reads with `"y": {"field": "units", "scale": "y2"}`, and its axis with `"position": "right"`. Give both scales `zero` and both axes a `title`, and name the marks in a legend: declare a `color` scale and give each mark its name as a constant on it, `"color": {"value": "Units sold", "scale": "color"}`, so the mark takes that name's color and the legend lists it. See `recipes/dual-axis.json`.
 
 **Long series**: for a line with more than a few thousand points add `{"type": "decimate", "x": "<x field>", "y": "<y field>"}` to `transforms` (data sorted by x). It keeps the lowest and highest point of every pixel column, so the picture does not change, and redoes this at every zoom. With several series (`group`), the rows of each series must be sorted by x; the composer warns if not. Zooming into a sorted series is fast on its own; `decimate` matters for the first, fully zoomed-out view.
 
@@ -219,7 +221,7 @@ Each recipe is a complete `page.json` that composes as it stands.
 
 - Use the field names that are really in the data. The composer checks them and lists the unknown ones.
 - `zero: true` on the y scale of bars and areas, otherwise the bars start at the lowest value.
-- To draw the same rows as a line and as points, use two marks (one `line`, one `point`).
+- To draw the same rows as a line and as points, use two marks (one `line`, one `point`) in one color: `stroke` on the line and the same `fill` on the points (`"var(--bc-c0, #3a6fe4)"`). Without it, the points take the next color of the palette.
 - A `band` axis thins its labels when there are many categories. With more than about 12, aggregate or filter first so the chart stays readable.
 - Eight categories or more that must be read on a phone: horizontal bars. Vertical bars lose their labels there, horizontal ones keep every label and value.
 - On an axis, `count` asks for more or fewer labels and `anchor: "end"` keeps the last one, so a December report says December. Give the grid of that scale the same `count`, or its lines miss the labels.
