@@ -1743,6 +1743,13 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   build, which reads it. npm 11 runs no dependency's install script that `allowScripts` does not list: esbuild's is
   allowed (esbuild works without it, but it is the package's own check), sharp's is denied (Astro brings it for
   images; the site has none).
+- **The composer's command line takes two file names and nothing else.** `node compose.js page.json --dry-run` wrote
+  the report into a file named `--dry-run` (one stood at the repository's root), a third argument was dropped without
+  a word, and `page.json page.json` wrote the report over its page. An argument that starts with "-" is now an
+  unknown option (exit 2 and the usage; a file of such a name goes in as `./-name`), `--help` and `-h` print the
+  usage, any count but two is the usage, and an output that is the input is refused, compared by device and inode so
+  that `./page.json`, a full path, another case on Windows or a link count too.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

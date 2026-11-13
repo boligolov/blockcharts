@@ -960,12 +960,42 @@ function compose(opts) {
 
 module.exports = { compose, readPage, nearest, ComposeError, jsonForScript, escapeText, resolveDataset, DARK_PALETTE, paletteVars };
 
+/** Whether two paths name one existing file: by device and inode, so "./a", a full path, a name in another case where the
+ *  file system ignores case, and a link all count. A file system without inodes (0) falls back on the resolved paths. */
+function sameFile(a, b) {
+  try {
+    const x = fs.statSync(a, { bigint: true });
+    const y = fs.statSync(b, { bigint: true });
+    if (x.ino === 0n || y.ino === 0n) return path.resolve(a) === path.resolve(b);
+    return x.dev === y.dev && x.ino === y.ino;
+  } catch {
+    return false;
+  }
+}
+
 // CLI: node scripts/compose.js page.json out.html
 //   page.json = { "title": "...", "data": { ... }, "charts": [ ... ] }
 if (require.main === module) {
-  const [input, output] = process.argv.slice(2);
-  if (!input || !output) {
-    console.error('usage: node scripts/compose.js <page.json> <out.html>');
+  const args = process.argv.slice(2);
+  const usage = `usage: node ${path.relative(process.cwd(), __filename)} <page.json> <out.html>`;
+  if (args.length === 1 && (args[0] === '--help' || args[0] === '-h')) {
+    console.log(usage);
+    process.exit(0);
+  }
+  // two file names and nothing else: a flag taken for the file to write would get the report ("--dry-run" once did)
+  const flag = args.find((a) => a.startsWith('-'));
+  if (flag !== undefined || args.length !== 2) {
+    if (flag !== undefined)
+      console.error(
+        `unknown option ${JSON.stringify(flag)}: the composer takes no options (a file whose name starts with "-" is ./${flag})`,
+      );
+    console.error(usage);
+    process.exit(2);
+  }
+  const [input, output] = args;
+  if (sameFile(input, output)) {
+    console.error(`${output} is ${input} itself: name another file to write the report to`);
+    console.error(usage);
     process.exit(2);
   }
   try {

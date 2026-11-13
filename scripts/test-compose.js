@@ -1560,6 +1560,57 @@ test('compose command line: a page.json is a page — it cannot run code, write 
   assert.strictEqual(bad.status, 1);
   assert.match(bad.stderr, /page\.json is not valid JSON/);
   assert.match(run(null, '[1, 2]').stderr, /must hold one object/);
+
+  // two file names and nothing else: `compose.js page.json --dry-run` wrote the report to a file named "--dry-run"
+  const json = JSON.stringify(page);
+  fs.writeFileSync(path.join(dir, 'page.json'), json);
+  fs.rmSync(path.join(dir, 'out.html'), { force: true });
+  const cli = (...args) => spawnSync(process.execPath, [path.join(__dirname, 'compose.js'), ...args], { cwd: dir, encoding: 'utf8' });
+  const files = () => fs.readdirSync(dir).sort();
+  const before = files();
+  const usage = /usage: node \S*compose\.js <page\.json> <out\.html>/;
+  for (const args of [
+    ['page.json', '--dry-run'],
+    ['page.json', 'out.html', '--dry-run'],
+    ['--out', 'out.html', 'page.json'],
+    ['page.json', '-o'],
+    ['page.json', '-'],
+    ['page.json', 'out.html', 'more.html'],
+    ['page.json'],
+    [],
+  ]) {
+    const r = cli(...args);
+    assert.strictEqual(r.status, 2, args.join(' '));
+    assert.match(r.stderr, usage, args.join(' '));
+    assert.deepStrictEqual(files(), before, `${args.join(' ')}: nothing is written`);
+  }
+  assert.match(cli('page.json', '--dry-run').stderr, /unknown option "--dry-run": the composer takes no options/);
+  assert.match(cli('page.json', '-o').stderr, /a file whose name starts with "-" is \.\/-o/);
+  for (const flag of ['--help', '-h']) {
+    const help = cli(flag);
+    assert.strictEqual(help.status, 0, flag);
+    assert.match(help.stdout, usage, flag);
+    assert.deepStrictEqual(files(), before, flag);
+  }
+
+  // the report written over the page it is made from
+  const same = [
+    ['page.json', 'page.json'],
+    ['page.json', './page.json'],
+    ['page.json', path.join(dir, 'page.json')],
+  ];
+  if (fs.existsSync(path.join(dir, 'PAGE.JSON'))) same.push(['page.json', 'PAGE.json']); // a file system that ignores case
+  for (const args of same) {
+    const r = cli(...args);
+    assert.strictEqual(r.status, 2, args.join(' '));
+    assert.match(r.stderr, /is page\.json itself: name another file to write the report to/, args.join(' '));
+    assert.strictEqual(fs.readFileSync(path.join(dir, 'page.json'), 'utf8'), json, `${args.join(' ')}: the page is kept`);
+  }
+
+  // a name that starts with "-" goes in as a path
+  const dashed = cli('page.json', './-o.html');
+  assert.strictEqual(dashed.status, 0, dashed.stderr);
+  assert(fs.existsSync(path.join(dir, '-o.html')));
 });
 
 test('compose: a chart is named for a screen reader by its card, a panel by its card and value; a nameless one is a warning', () => {
