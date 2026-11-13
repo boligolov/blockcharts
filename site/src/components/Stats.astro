@@ -8,9 +8,10 @@ interface Props {
   coreGzip: number;
   allBytes: number;
   pages: { label: string; bytes: number; blocks: number }[];
+  /** The lightest of all the example reports. */
+  lightest: { title: string; bytes: number };
 }
-const { blocks, coreBytes, coreGzip, allBytes, pages } = Astro.props;
-const smallest = Math.min(...pages.map((p) => p.bytes));
+const { blocks, coreBytes, coreGzip, allBytes, pages, lightest } = Astro.props;
 const n = (b: number) => (b / 1024).toFixed(0);
 ---
 <section class="section alt" id="numbers">
@@ -21,7 +22,7 @@ const n = (b: number) => (b / 1024).toFixed(0);
     <div class="stats">
       <div><div class="v">{blocks}</div><div class="l">blocks, one job each</div></div>
       <div><div class="v num">{n(coreGzip)}<small>KB</small></div><div class="l">the core of a report, gzipped ({kb(coreBytes)} minified)</div></div>
-      <div><div class="v num">{n(smallest)}<small>KB</small></div><div class="l">code in the smallest example report</div></div>
+      <div><div class="v num">{n(lightest.bytes)}<small>KB</small></div><div class="l">code in the lightest example report ({lightest.title})</div></div>
       <div><div class="v">0</div><div class="l">dependencies, and no network requests from a report</div></div>
     </div>
     <div class="sizes" role="list" aria-label="Code per page">

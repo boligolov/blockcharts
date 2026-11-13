@@ -1673,6 +1673,15 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   kept the column of names at 182 px: a name may now break after its role. check-site fails on a table of the site
   that is neither `stack` nor `sizes` (which folds its doc under the name); in Chrome at 360 and 390 px no table of
   the 62 pages scrolls.
+- **One "everything", one lightest report.** The landing page called the smallest of its four sample pages "the smallest
+  example report" (48 KB then) while the gallery found 39.5 KB among all of them, and the whole library weighed three
+  ways: the landing page's numbers and block map added the report's core (no checks, no decoder) to every block, the
+  gallery and the example pages the core with the decoder, and the guide's `full` kit is the core with the checks.
+  Everything is now the most a composed page can carry, the core with the decoder and every block
+  (`libraryCode` in `scripts/sizes.js`, 213.6 KB), wherever a page or a doc compares a report with it; the `full` kit
+  stays in the guide's table of kits, as what it is. The landing page's lightest report is the lightest of all
+  (gauge, 50 KB), named, as the gallery names it. The loader's size on the embedding pages is read from the release
+  like every other.
 
 ## Next steps
 

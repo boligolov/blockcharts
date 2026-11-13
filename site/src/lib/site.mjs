@@ -9,8 +9,9 @@ const require = createRequire(import.meta.url);
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const { resolveDataset, jsonForScript, escapeText } = require(path.join(repo, 'scripts', 'compose.js'));
 const { embedPages } = require(path.join(repo, 'scripts', 'site-demos.js'));
-/** gzip sizes are measured as everywhere else, the docs and the release manifest included (scripts/sizes.js). */
-const { gzipSize } = require(path.join(repo, 'scripts', 'sizes.js'));
+/** What code weighs, as the docs and the release say it (scripts/sizes.js): gzip sizes, the core of a report, everything. */
+const sizes = require(path.join(repo, 'scripts', 'sizes.js'));
+const { gzipSize } = sizes;
 
 /** The roles of blocks, in the order a page loads them. */
 export const { ROLES, scaleWords, scalesFitting } = require(path.join(repo, 'scripts', 'build-manifest.js'));
@@ -164,13 +165,9 @@ export function chartCodeOf(recipe, entry, i) {
   return codeCache.get(key);
 }
 
-/** The most a composed page can carry: the core with the data decoder and every block there is. */
-export function libraryCode() {
-  const m = minOf();
-  const core = m.core.variants && m.core.variants.composed ? m.core.variants.composed.bytes : m.core.bytes;
-  const blocks = Object.values(m.blocks).reduce((n, b) => n + b.bytes, 0);
-  return { core, blocks, count: Object.keys(m.blocks).length, bytes: core + blocks };
-}
+/** Everything: the most a composed page can carry, the core with the data decoder and every block there is. Every page
+ *  of the site that compares a report with the whole library compares it with this, and so do the docs. */
+export const libraryCode = () => sizes.libraryCode();
 
 /** The repository, for links to its files: blob/HEAD and tree/HEAD follow the default branch. */
 export const REPO = 'https://github.com/boligolov/blockcharts';
@@ -210,21 +207,13 @@ export function composeDemo() {
 }
 
 /**
- * Sizes of the code exactly as a composed page carries it (dist/min: minified, no banner): the core, with its gzip
- * size, and every block. The composer's report sizes are sums of these, so every number on a page agrees.
+ * Sizes of the code exactly as a composed page carries it (dist/min: minified, no banner): the core most reports carry
+ * (the composer has run the checks, and no dataset is stored gzipped), with its gzip size, and every block. The
+ * composer's report sizes are sums of these, so every number on a page agrees.
  */
 export function loadPageCode() {
-  const dir = path.join(repo, 'dist', 'min');
-  const m = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
-  // the core a composed report carries: the composer has run the checks, and a report without encoded data has no decoder
-  const lean = m.core.variants && m.core.variants['composed-plain'];
-  const core = fs.readFileSync(path.join(dir, lean ? lean.file : m.core.file));
-  const blocks = Object.entries(m.blocks).map(([name, b]) => ({ name, bytes: b.bytes }));
-  return {
-    core: { bytes: core.length, gzip: gzipSize(core) },
-    blocks,
-    all: core.length + blocks.reduce((n, b) => n + b.bytes, 0),
-  };
+  const core = sizes.reportCore();
+  return { core: { bytes: core.length, gzip: gzipSize(core) }, blocks: sizes.blockSizes() };
 }
 
 /**

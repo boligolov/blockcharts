@@ -59,8 +59,9 @@ const pretty = (v, indent = '') => {
 const dataTag = (data, id) => `<script type="application/json" id="${id || 'bc-data'}">\n${json(data)}\n</script>`;
 const chartTag = (spec) => `<script type="application/json" data-bc-chart>\n${pretty(spec)}\n</script>`;
 
-/** Each function returns { file, title, lead, sections: [{ h, p, html?, code?, label?, extra? }] }; `html` is live AND shown. */
-function embedPages(root) {
+/** Each function returns { file, title, lead, sections: [{ h, p, html?, code?, label?, extra? }] }; `html` is live AND shown.
+ *  `release` is the release manifest the pages load, for the sizes they name. */
+function embedPages(root, release) {
   const kit = (name) => `${root}release/kits/${name}`;
   const pages = [];
 
@@ -87,7 +88,7 @@ function embedPages(root) {
   pages.push({
     file: 'loader.html',
     title: 'Load only what the page uses',
-    lead: 'The loader is 2 KB. It reads the specs on the page, asks the core which blocks they need, and downloads just those files.',
+    lead: `The loader is ${(release.loader.bytes / 1024).toFixed(1)} KB. It reads the specs on the page, asks the core which blocks they need, and downloads just those files.`,
     sections: [
       {
         h: 'A chart through the loader',

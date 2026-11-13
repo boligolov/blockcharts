@@ -5,7 +5,7 @@ import { baseUrl, embedPages, loadRelease } from '../../lib/site.mjs';
 
 export function getStaticPaths() {
   const base = baseUrl(import.meta.env.BASE_URL);
-  return embedPages(base).map((p) => ({ params: { page: p.file.replace(/\.html$/, '') }, props: { page: p } }));
+  return embedPages(base, loadRelease()).map((p) => ({ params: { page: p.file.replace(/\.html$/, '') }, props: { page: p } }));
 }
 
 const base = baseUrl(import.meta.env.BASE_URL);

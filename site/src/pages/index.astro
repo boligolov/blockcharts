@@ -9,7 +9,7 @@ import WaysIn from '../components/WaysIn.astro';
 import Gallery from '../components/Gallery.astro';
 import BlockMap from '../components/BlockMap.astro';
 import Customize from '../components/Customize.astro';
-import { baseUrl, blocksNeeded, jsonForScript, lakeOf, loadPageCode, loadRecipes, loadRelease, loadReportSizes } from '../lib/site.mjs';
+import { baseUrl, blocksNeeded, jsonForScript, lakeOf, libraryCode, loadPageCode, loadRecipes, loadRelease, loadReportSizes } from '../lib/site.mjs';
 
 const base = baseUrl(import.meta.env.BASE_URL);
 const release = loadRelease();
@@ -32,7 +32,8 @@ const code = loadPageCode();
 const totalBlocks = code.blocks.length;
 const blockList = code.blocks;
 const blockRange: [number, number] = [Math.min(...blockList.map((b) => b.bytes)), Math.max(...blockList.map((b) => b.bytes))];
-const allBytes = code.all;
+// everything, as the gallery and every example page say it
+const library = libraryCode();
 // the block map adds up the core and the blocks of the hero report; it must say what the composer says that report carries
 const mapBytes = code.core.bytes + blockList.filter((b) => blocksOf.get('executive-dashboard').includes(b.name)).reduce((n, b) => n + b.bytes, 0);
 if (mapBytes !== sizes['executive-dashboard']) throw new Error(`the block map says ${mapBytes} bytes of code, the composed report has ${sizes['executive-dashboard']}`);
@@ -42,15 +43,18 @@ const sizePages = [
   ['report-from-csv', 'A sales report from CSV'],
   ['executive-dashboard', 'An executive dashboard, 8 charts'],
 ].map(([name, label]) => ({ label, bytes: sizes[name], blocks: blocksNeeded(recipe(name)).length }));
+// the lightest of all the example reports, as the gallery finds it, not of the four above
+const [lightName, lightBytes] = Object.entries(sizes).sort((a, b) => a[1] - b[1])[0];
+const lightest = { title: recipe(lightName).title, bytes: lightBytes };
 ---
 <Base title="blockcharts" landing version={release.version} description="Atomic charts for HTML dashboards: a page carries exactly the chart blocks it uses, nothing more. Light, customizable, and an agent skill that turns your data into one HTML report.">
   <script is:inline src={`${base}release/kits/full.js`}></script>
   <script is:inline type="application/json" id="bc-data" set:html={jsonForScript(lake)} />
 
   <Hero tiles={heroCharts.slice(0, 2)} trend={{ ...heroCharts[4], spec: { ...heroCharts[4].spec, size: [620, 250] } }} file="executive-dashboard.html" recipe="executive-dashboard" codeBytes={sizes['executive-dashboard']} blocks={blocksOf.get('executive-dashboard').length} totalBlocks={totalBlocks} coreGzip={code.core.gzip} blockRange={blockRange} />
-  <BlockMap blocks={blockList} used={blocksOf.get('executive-dashboard')} coreBytes={code.core.bytes} file="executive-dashboard.html" />
+  <BlockMap blocks={blockList} used={blocksOf.get('executive-dashboard')} coreBytes={code.core.bytes} libraryBytes={library.bytes} file="executive-dashboard.html" />
   <HowItWorks />
-  <Stats blocks={totalBlocks} coreBytes={code.core.bytes} coreGzip={code.core.gzip} allBytes={allBytes} pages={sizePages} />
+  <Stats blocks={totalBlocks} coreBytes={code.core.bytes} coreGzip={code.core.gzip} allBytes={library.bytes} pages={sizePages} lightest={lightest} />
   <Customize />
   <Principles />
   <Features />

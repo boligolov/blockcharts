@@ -1,12 +1,12 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { baseUrl, embedPages, loadRelease } from '../../lib/site.mjs';
+import { baseUrl, embedPages, kb, loadRelease } from '../../lib/site.mjs';
 
 const base = baseUrl(import.meta.env.BASE_URL);
 const release = loadRelease();
-const pages = embedPages(base);
+const pages = embedPages(base, release);
 ---
-<Base title="Embedding charts in your own page" nav="embed" version={release.version} description="Put blockcharts charts into a page of your own: one script tag, a 2 KB loader that fetches only the blocks a page uses, ES modules, themes, data and the API.">
+<Base title="Embedding charts in your own page" nav="embed" version={release.version} description={`Put blockcharts charts into a page of your own: one script tag, a ${kb(release.loader.bytes)} loader that fetches only the blocks a page uses, ES modules, themes, data and the API.`}>
   <h1>Embedding</h1>
   <p class="lead">Put charts into a page you already have. Each demo is live, and the code under it is exactly what runs.</p>
   <div class="grid">
