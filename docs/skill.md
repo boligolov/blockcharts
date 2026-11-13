@@ -3,7 +3,7 @@
 The skill is the folder [`skills/blockcharts/`](../skills/blockcharts/): `SKILL.md` (what the agent reads),
 `recipes/` (complete example pages), `reference/blocks.md` (every block, generated from the code) and
 `runtime/` (the composer with the minified core and blocks). It is self-contained — copy the folder and you
-are done. It needs Node.js 18 or later on the machine where the agent runs commands; nothing else is
+are done. It needs Node.js 22 or later on the machine where the agent runs commands; nothing else is
 installed or fetched.
 
 Agents find skills in known folders or in an uploaded package: they read each skill's `name` and

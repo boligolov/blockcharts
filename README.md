@@ -25,7 +25,7 @@ It updates by itself once auto-update is on for the marketplace (`/plugin` → *
 and upload it under *Settings → Capabilities → Skills* (skills need code execution enabled).
 
 **Any other agent that reads skill folders** — copy [`skills/blockcharts/`](skills/blockcharts/) into its
-skills folder (`~/.claude/skills/` for Claude Code). It needs Node.js 18+.
+skills folder (`~/.claude/skills/` for Claude Code). It needs Node.js 22+.
 
 Then ask — *"an HTML report of monthly revenue by region from sales.csv"*, *"a dashboard of these KPIs"*.
 Scopes and details: [docs/skill.md](docs/skill.md).
@@ -259,7 +259,7 @@ Layout, tests and releasing: [docs/development.md](docs/development.md). What is
 
 Chrome and Edge 80, Firefox 74, Safari 14.1 or later: the code is ES2020, and compact numbers (`12K`) are `Intl`'s. A
 dataset stored gzipped, which the composer does with a large one, is read with `DecompressionStream`: Firefox 113 and
-Safari 16.4 (Chrome and Edge 80); an older browser shows a message in the chart's place. The composer needs Node 18+.
+Safari 16.4 (Chrome and Edge 80); an older browser shows a message in the chart's place. The composer needs Node 22+.
 
 ## Versions
 

@@ -17,6 +17,9 @@ scripts/                build, compose, release, site and test scripts (plain No
   sizes.js                what code weighs: the one definition the site, the docs and the release use
   site-prebuild.js        what the site needs before Astro runs; check-site.js checks the built site,
                           check-site-phone.js opens it in Chrome at phone widths (npm run test:site)
+  site-demos.js           the site's embedding examples; og-image.js the link-preview image (npm run og)
+  csv.js                  CSV parsing for the composer (also shipped inside the skill)
+  encode-columns.js       binary columns for long numeric series from a pipeline
   test*.js                the test suites (below); fake-dom.js and run-page.js are their browser stand-ins
 docs/                   the documentation (an index: docs/README.md)
   spec/                   the principles (principles.md) and their CHANGELOG.md
@@ -37,7 +40,7 @@ folder straight from git, so it must be complete): `dist/` (tsc output, manifest
 
 ## Setup
 
-The library and the composer run on Node.js 18+; the site needs 22.22.1 or later, and `.node-version` (24) is what
+The library and the composer run on Node.js 22+ (`engines`); the site needs 22.22.1 or later, and `.node-version` (24) is what
 the project is developed and built on (CI, Cloudflare). The library has no runtime dependencies; the dev dependencies are
 TypeScript, esbuild (minification), fflate (the `.skill` zip and every gzip size), Prettier (formatting) and
 playwright-core (the checks in the system Chrome: `npm run test:chrome`, `npm run test:site`, `npm run og`).
@@ -63,7 +66,7 @@ line of each: `N of N passed`.
 
 | suite | what it checks |
 |---|---|
-| `test.js` (+ `test-blocks.js`, `test-data.js`) | the core and every block on a fake DOM: validation, scales, marks, guides, interactions, zoom, encoded and binary data |
+| `test.js` (+ `test-blocks.js`, `test-data.js`, `test-business.js`, `test-edges.js`) | the core and every block on a fake DOM: validation, scales, marks, guides, interactions, zoom, encoded and binary data |
 | `test-canvas.js` | the canvas renderer against a recording 2D context |
 | `test-compose.js` | the composer: block choice, validation with paths, escaping, compression, determinism, hostile input |
 | `test-csv.js` | CSV in a page: parsing, types, errors naming the dataset |

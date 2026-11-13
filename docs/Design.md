@@ -327,7 +327,7 @@ added:
   `scripts/build-manifest.js` + `scripts/compose.js` (the manifest and the page composer),
   `scripts/build-skill.js` + `skills/blockcharts/` (the agent skill), `scripts/test*.js` +
   `scripts/run-page.js` (tests, `npm test`), `scripts/page.js` (a demo page through the composer,
-  `npm run page` → `dist/page.html`), `docs/Design.md` (this file).
+  `npm run page` → `dist/page.html`; removed later, see the production review), `docs/Design.md` (this file).
 - The repository is `github.com/boligolov/blockcharts`; the first commit went to `main` on 2026-09-28.
   Before it, `.gitignore` had a stray `scripts` line that would have left the composer and every test out of
   git; it was removed.
@@ -1749,6 +1749,14 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   unknown option (exit 2 and the usage; a file of such a name goes in as `./-name`), `--help` and `-h` print the
   usage, any count but two is the usage, and an output that is the input is refused, compared by device and inode so
   that `./page.json`, a full path, another case on Windows or a link count too.
+- **No demo page of its own.** `scripts/page.js` (`npm run page` → `dist/page.html`) was the first look at the core in
+  Chrome, before there were tests in a browser or a site. Nothing read its page any more: `test-chrome.js` checks
+  composed pages in Chrome on every push, and the site's examples are what one looks at. It is gone, and with it
+  `npm run page`; every other script in `scripts/` is run by npm, CI or the site, or is required by one that is.
+  `src/index.ts`, a project template's `console.log`, compiled to a `dist/index.js` nothing loaded: gone too.
+- **Node 22 or later.** `engines` said `>=18`, and the docs had the composer on Node 18+, but 18 and 20 are past their
+  end of life (April 2025 and April 2026), CI runs only `.node-version` (24), playwright-core wants 20 and the site
+  22.22.1. `engines` is now `>=22`, the oldest line still maintained, and the README and docs/skill.md say the same.
 
 ## Next steps
 
