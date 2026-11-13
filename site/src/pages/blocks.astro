@@ -36,7 +36,7 @@ const parts = (name) => {
   <p><a href="#sizes">What each block weighs</a> · {ROLES.map((role, i) => <>{i ? ' · ' : ''}<a href={`#${role}`}>{role}</a></>)}</p>
 
   <h2 id="sizes">What each block weighs</h2>
-  <p>A report carries the core and only the blocks its charts use. <b>Source</b> is the TypeScript file with its comments and docs. <b>Minified</b> is what goes into the HTML file of a report: the weight that counts, since the file is opened as it is. <b>gzip</b> is the minified file compressed, what a CDN sends for a kit; inside one page the blocks compress better together. Sizes in KB.</p>
+  <p>A report carries the core and only the blocks its charts use. <b>Source</b> is the TypeScript file with its comments and docs. <b>Minified</b> is what goes into the HTML file of a report: the weight that counts, since the file is opened as it is. <b>gzip</b> is the minified file compressed, as a web server sends it; inside one page the blocks compress better together. Sizes in KB.</p>
 
   <h3>The core: one per page</h3>
   <div class="sizes-wrap"><table class="sizes">

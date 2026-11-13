@@ -94,7 +94,7 @@ const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha38
   </p>
 
   <h2 id="pin">Pin a version, add integrity</h2>
-  <p>Files of a version never change, so put the version in the CDN path. <code>manifest.json</code> has a SHA-384 hash for every file, ready for <code>integrity</code>. This is the real hash of the kit on this site:</p>
+  <p>Files of a version never change, so serve each version under a path of its own (<code>/blockcharts/{release.version}/</code>) and browsers can keep them for good. <code>manifest.json</code> has a SHA-384 hash for every file, ready for <code>integrity</code>. This is the real hash of the kit on this site:</p>
   <Snippet code={integrity} label="HTML" name="the script tag with its integrity" />
 
   <h2 id="limits">Limits</h2>

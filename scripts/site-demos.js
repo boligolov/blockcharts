@@ -75,7 +75,7 @@ function embedPages(root, release) {
         h: 'A chart from a kit',
         p: 'Charts mount themselves on DOMContentLoaded: every <code>script[data-bc-chart]</code> gets a <code>div.bc-chart</code> right after it. Data goes into <code>script#bc-data</code> by name, so several charts can share it.',
         html: `<script src="${kit('timeseries.js')}"></script>\n\n${dataTag({ visits: monthly })}\n\n${chartTag(lineSpec('visits', 'month', { interaction: [{ type: 'tooltip' }, { type: 'legend-filter' }] }))}`,
-        note: 'Click a legend item to hide a series. On a CDN the first line is <code>&lt;script src="https://cdn.example.com/blockcharts/0.1.0/kits/timeseries.js"&gt;&lt;/script&gt;</code>, pinned to a version.',
+        note: `Click a legend item to hide a series. On your own site the first line is <code>&lt;script src=&quot;/blockcharts/${release.version}/kits/timeseries.js&quot;&gt;&lt;/script&gt;</code>, pinned to a version.`,
       },
       {
         h: 'Which kit',
@@ -108,7 +108,7 @@ window.addEventListener('load', function () {
       {
         h: 'By hand',
         p: 'Without <code>data-auto</code> you call it yourself, for example to add blocks that a chart made later will need:',
-        code: `await BCLoader.load({\n  base: 'https://cdn.example.com/blockcharts/0.1.0/', // default: the folder of loader.js\n  blocks: ['interaction.zoom'],  // extra blocks besides the ones the page uses\n  scan: true,                    // read the specs on the page (default)\n  mount: true,                   // draw them when loaded (default)\n  integrity: true,               // put the SRI hashes of manifest.json on the script tags\n});`,
+        code: `await BCLoader.load({\n  base: '/blockcharts/${release.version}/',   // default: the folder of loader.js\n  blocks: ['interaction.zoom'],  // extra blocks besides the ones the page uses\n  scan: true,                    // read the specs on the page (default)\n  mount: true,                   // draw them when loaded (default)\n  integrity: true,               // put the SRI hashes of manifest.json on the script tags\n});`,
         label: 'JavaScript',
       },
     ],

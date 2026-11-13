@@ -18,14 +18,14 @@ const release = loadRelease();
 
     <h2>The reports</h2>
     <p>
-      A composed report contains its data and its code and loads nothing from the network: no fonts, no scripts from a CDN, no analytics.
+      A composed report contains its data and its code and loads nothing from the network: no fonts, no scripts from other servers, no analytics.
       Opening one tells no one that it was opened.
     </p>
 
-    <h2>The library from a CDN or npm</h2>
+    <h2>The library in your own pages</h2>
     <p>
-      If you load blockcharts into your own pages from a CDN, that CDN sees the requests for its files, as with any file it serves. The
-      library itself sends nothing anywhere.
+      If you load blockcharts into your own pages, its files come from wherever you serve them, and only that server sees the requests
+      for them. The library itself sends nothing anywhere.
     </p>
 
     <h2>This website</h2>

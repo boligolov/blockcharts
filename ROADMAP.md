@@ -39,8 +39,9 @@ small things (how the plugin updates, the principles' version read from their fi
 
 Left, in this order:
 
-- F5 (`npm install blockcharts` is a 404, `cdn.example.com` placeholders, blockcharts.online does not resolve) waits for
-  the release below: publishing and deploying are the owner's step.
+- F5 (`npm install blockcharts` is a 404, blockcharts.online does not resolve, no CDN) waits for the release below:
+  publishing and deploying are the owner's step. The site names no CDN until there is one (check-site fails on a page
+  that does); when it is up, the site announces it and that check goes.
 
 Found along the way:
 

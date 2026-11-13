@@ -1717,6 +1717,12 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   in `site/`. It stands at the root now (`assets.directory` "./site/dist"), so the default deploy command and the one
   for other branches (`npx wrangler versions upload`) need no `--config`; check-site reads it (JSONC) and fails when it
   does not deploy site/dist or does not serve 404.html, and wrangler's dry run reads the 272 files of the site from it.
+- **The site names no CDN until there is one.** blockcharts has none yet, and the site showed `cdn.example.com` in the
+  HTML to copy on every example page and in the kit and loader demos, and spoke of "the CDN path" and of what "a CDN
+  sends". A page now loads a kit from where the reader's own site serves it (`/blockcharts/0.1.0/kits/bar.js`, the
+  version from the release), the example pages say to put the kit's file there and link the files of a release, and
+  the privacy page speaks of the library in your own pages. check-site fails on a page that says "CDN" outside its
+  scripts (on the build before, 54 pages did); when there is a CDN, the site announces it and the check goes.
 
 ## Next steps
 

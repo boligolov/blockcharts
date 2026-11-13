@@ -63,9 +63,9 @@ const howParts = (text: string) => {
 };
 const specsOf = (e) => (e.panels ? e.panels.map((p) => ({ label: p.label, spec: p.spec })) : e.spec ? [{ spec: e.spec }] : []);
 
-// what a reader copies: the kit from a CDN, the data, and every chart of the example
+// what a reader copies: the kit where their own site serves it, the data, and every chart of the example
 const embedded = [
-  scriptTag(`https://cdn.example.com/blockcharts/${release.version}/kits/${kitName}.js`),
+  scriptTag(`/blockcharts/${release.version}/kits/${kitName}.js`),
   '',
   '<script type="application/json" id="bc-data">',
   JSON.stringify(recipe.data),
@@ -149,6 +149,7 @@ const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : emb
   <p>
     The charts above use the <code>{kitName}</code> kit ({kb(kit.js.gzip)} gzipped), the smallest one that has the blocks this example needs:
     {blocks.map((b, i) => <>{i ? ', ' : ' '}<code>{b}</code></>)}.
+    Put its file on your site (<a href={`${base}guide/#files`}>the files of a release</a>); the HTML below loads it from there.
   </p>
   <Snippet code={shown} label="HTML" name="the HTML for a page of your own" />
 

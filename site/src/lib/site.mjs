@@ -222,7 +222,7 @@ export function loadPageCode() {
 
 /**
  * What each piece weighs: the TypeScript source (with its comments and docs), the minified file a page carries,
- * and that file gzipped (what a CDN sends; inside one page the blocks compress better together). The core comes in
+ * and that file gzipped (as a web server sends it; inside one page the blocks compress better together). The core comes in
  * the variants the composer picks from (minify.js).
  */
 export function loadSizes() {
