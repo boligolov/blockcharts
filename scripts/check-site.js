@@ -138,15 +138,9 @@ function checkTables(rel, text) {
   }
   return problems;
 }
-/** What blockcharts does not have yet (ROADMAP): no page names a CDN, installs the package from npm, which is not
- *  published, or installs the plugin from its marketplace, which is to be tried first. When one is there, the site
- *  announces it, and its line here goes. */
+/** What blockcharts does not have yet (ROADMAP): no page installs the plugin from its marketplace, which is to be tried
+ *  first. When it is there, the site announces it, and its line here goes. */
 const NOT_YET = [
-  [/\bcdn\b/i, 'names a CDN, which blockcharts does not have yet (ROADMAP, Release)'],
-  [
-    /\bnpm (?:install|i|add)\s+blockcharts\b|\bfrom npm\b/i,
-    'installs blockcharts from npm, where it is not published yet (ROADMAP, Release)',
-  ],
   [
     /\/plugin (?:install|marketplace)\b|\bclaude plugin (?:install|marketplace)\b/,
     'installs the plugin, whose install is not tried yet (ROADMAP)',

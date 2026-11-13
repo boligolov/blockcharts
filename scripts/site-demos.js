@@ -59,6 +59,9 @@ const pretty = (v, indent = '') => {
 const dataTag = (data, id) => `<script type="application/json" id="${id || 'bc-data'}">\n${json(data)}\n</script>`;
 const chartTag = (spec) => `<script type="application/json" data-bc-chart>\n${pretty(spec)}\n</script>`;
 
+/** Where jsDelivr serves the files of a published version: the release/ folder of the npm package. */
+const cdnBase = (version) => `https://cdn.jsdelivr.net/npm/blockcharts@${version}/release/`;
+
 /** Each function returns { file, title, lead, sections: [{ h, p, html?, code?, label?, extra? }] }; `html` is live AND shown.
  *  `release` is the release manifest the pages load, for the sizes they name. */
 function embedPages(root, release) {
@@ -75,7 +78,7 @@ function embedPages(root, release) {
         h: 'A chart from a kit',
         p: 'Charts mount themselves on DOMContentLoaded: every <code>script[data-bc-chart]</code> gets a <code>div.bc-chart</code> right after it. Data goes into <code>script#bc-data</code> by name, so several charts can share it.',
         html: `<script src="${kit('timeseries.js')}"></script>\n\n${dataTag({ visits: monthly })}\n\n${chartTag(lineSpec('visits', 'month', { interaction: [{ type: 'tooltip' }, { type: 'legend-filter' }] }))}`,
-        note: `Click a legend item to hide a series. On your own site the first line is <code>&lt;script src=&quot;/blockcharts/${release.version}/kits/timeseries.js&quot;&gt;&lt;/script&gt;</code>, pinned to a version.`,
+        note: `Click a legend item to hide a series. From the CDN the first line is <code>&lt;script src=&quot;${cdnBase(release.version)}kits/timeseries.js&quot;&gt;&lt;/script&gt;</code>, pinned to a version; from your own site, the path you serve the file at.`,
       },
       {
         h: 'Which kit',
@@ -108,7 +111,7 @@ window.addEventListener('load', function () {
       {
         h: 'By hand',
         p: 'Without <code>data-auto</code> you call it yourself, for example to add blocks that a chart made later will need:',
-        code: `await BCLoader.load({\n  base: '/blockcharts/${release.version}/',   // default: the folder of loader.js\n  blocks: ['interaction.zoom'],  // extra blocks besides the ones the page uses\n  scan: true,                    // read the specs on the page (default)\n  mount: true,                   // draw them when loaded (default)\n  integrity: true,               // put the SRI hashes of manifest.json on the script tags\n});`,
+        code: `await BCLoader.load({\n  base: '${cdnBase(release.version)}', // default: the folder of loader.js\n  blocks: ['interaction.zoom'],  // extra blocks besides the ones the page uses\n  scan: true,                    // read the specs on the page (default)\n  mount: true,                   // draw them when loaded (default)\n  integrity: true,               // put the SRI hashes of manifest.json on the script tags\n});`,
         label: 'JavaScript',
       },
     ],
@@ -494,4 +497,4 @@ ${forms.map(([label, value, what]) => `<tr><td>${label}</td><td data-label="in t
   return pages;
 }
 
-module.exports = { embedPages, monthly, lineSpec };
+module.exports = { embedPages, monthly, lineSpec, cdnBase };

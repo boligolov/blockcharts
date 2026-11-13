@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import Snippet from '../components/Snippet.astro';
-import { baseUrl, kb, loadBlocks, loadRelease, scriptTag } from '../lib/site.mjs';
+import { baseUrl, cdnBase, kb, loadBlocks, loadRelease, scriptTag } from '../lib/site.mjs';
 
 const base = baseUrl(import.meta.env.BASE_URL);
 const release = loadRelease();
@@ -26,7 +26,9 @@ const specExample = `{
 const formatExample = `{ "style": "currency", "currency": "EUR", "maximumFractionDigits": 0 }
 { "month": "short", "year": "2-digit" }
 { "maximumFractionDigits": 1, "suffix": " kg", "locale": "de-DE" }`;
-const shell = `npm install
+const shell = `git clone https://github.com/boligolov/blockcharts.git
+cd blockcharts
+npm install
 npm run build && npm run manifest
 node scripts/compose.js skills/blockcharts/recipes/report-from-csv.json report.html`;
 const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha384, crossorigin: 'anonymous' }, true);
@@ -74,7 +76,11 @@ const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha38
   </p>
 
   <h2 id="files">Files, kits and sizes</h2>
-  <p><code>npm run release</code> writes the files below. Everything is minified.</p>
+  <p>
+    The npm package carries the files below in its <code>release/</code> folder (<code>npm install blockcharts</code>), and the jsDelivr CDN serves
+    each of them at its path there: <code>{cdnBase(release.version)}kits/basic.js</code>. In a clone of the repository <code>npm run release</code>
+    writes them. Everything is minified.
+  </p>
   <table class="stack">
     <thead><tr><th>Kit</th><th>Blocks</th><th>Size</th><th>gzip</th><th>For</th></tr></thead>
     <tbody>
@@ -94,7 +100,7 @@ const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha38
   </p>
 
   <h2 id="pin">Pin a version, add integrity</h2>
-  <p>Files of a version never change, so serve each version under a path of its own (<code>/blockcharts/{release.version}/</code>) and browsers can keep them for good. <code>manifest.json</code> has a SHA-384 hash for every file, ready for <code>integrity</code>. This is the real hash of the kit on this site:</p>
+  <p>Files of a version never change, so name the version in the path (<code>blockcharts@{release.version}</code> on the CDN, a folder of its own such as <code>/blockcharts/{release.version}/</code> on your own site) and browsers can keep them for good. <code>manifest.json</code> has a SHA-384 hash for every file, ready for <code>integrity</code>. This is the real hash of the kit on this site:</p>
   <Snippet code={integrity} label="HTML" name="the script tag with its integrity" />
 
   <h2 id="limits">Limits</h2>

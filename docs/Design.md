@@ -1732,6 +1732,14 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   Install.astro keeps it) and the skill's card shows what you ask, not `/plugin install`. `NOT_YET` in check-site.js
   fails on a page that names a CDN, installs from npm or installs the plugin; the ROADMAP items that bring each back
   say which line goes.
+- **The site names npm and the CDN again.** 0.0.1 is on npm, and its files are served by jsDelivr from the
+  package (`cdn.jsdelivr.net/npm/blockcharts@<version>/release/`, one definition: `cdnBase` in site-demos.js). The
+  "One script tag" card shows `npm install blockcharts`; the HTML to copy on every example page loads its kit from
+  the CDN, pinned to the version of the release, and says how to serve it yourself instead; the kit demo names the
+  CDN line, the loader's `base` is the CDN folder, the guide says where the package and the CDN keep the files and
+  how a version is pinned on each, and the privacy page says a CDN sees the requests for its files. The composer's
+  commands in the guide start with a clone, since the npm package carries only `release/`. `NOT_YET` keeps only
+  the plugin's install.
 
 - **One install for the library and the site.** The site had its own lockfile and `node_modules` (162 MB beside the
   root's 66), installed by a second `npm --prefix site ci` in CI, on Cloudflare and in every instruction. It is an

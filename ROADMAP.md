@@ -39,9 +39,8 @@ small things (how the plugin updates, the principles' version read from their fi
 
 Left, in this order:
 
-- F5 (`npm install blockcharts` is a 404, blockcharts.online does not resolve, no CDN) waits for the release below:
-  publishing and deploying are the owner's step. Until then the site names no CDN and does not install the package
-  from npm, and says it is an alpha (check-site fails on a page that names either; `NOT_YET` in check-site.js).
+- F5 (`npm install blockcharts` is a 404, blockcharts.online does not resolve, no CDN): done on 2026-11-13 — the site
+  is deployed, 0.0.1 is on npm and on jsDelivr and unpkg, and the site names them again; it still says it is an alpha.
 
 Found along the way:
 
@@ -87,11 +86,15 @@ Found along the way:
 
 ## Release
 
-- [ ] **`npm publish`** of 0.0.1, then check the kits through unpkg and jsDelivr. Then give the site back what waits for
-      it, each with its line of `NOT_YET` in scripts/check-site.js: `npm install blockcharts` on the landing page's "One
-      script tag" card (site/src/components/WaysIn.astro; its text says "from npm or served by your own site"), and
-      the CDN, announced, with its addresses in the HTML of the example pages and of the kit and loader demos. When the
-      release is no longer an alpha, the badge beside the name in the header goes (`.stage` in Base.astro).
+- [x] **`npm publish`** of 0.0.1 (2026-11-13, after npm's review; `0.0.0-stage` is npm's placeholder from the
+      review): the kits and the loader draw from jsDelivr and unpkg, with SRI, and the published manifest equals the
+      build. The site names npm and the CDN again (`npm install blockcharts` on the landing page's "One script tag"
+      card, jsDelivr addresses in the HTML of the example pages, the kit and loader demos and the guide).
+- [ ] When the release is no longer an alpha, the badge beside the name in the header goes (`.stage` in Base.astro).
+- [ ] Found after the release: a page script that declares a global `BC` of its own (`const BC = require('blockcharts')`
+      typed into the Node REPL or `node -e`, or `const BC = ...` in a classic `<script>`) breaks a kit — its blocks
+      call the bare name `BC`, which then means that binding, not `globalThis.BC` ("BC is not defined", or
+      "BC.define is not a function"). In a module or a CommonJS file it works. A fix is a new library version.
 - [ ] **Submit the plugin to Anthropic's directory** (see [docs/development.md](docs/development.md#listing-the-plugin-in-claudes-directory)).
       The owner's step, after the repository is public.
 

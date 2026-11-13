@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const { resolveDataset, jsonForScript, escapeText } = require(path.join(repo, 'scripts', 'compose.js'));
-const { embedPages } = require(path.join(repo, 'scripts', 'site-demos.js'));
+/** embedPages: the demo pages; cdnBase(version): where jsDelivr serves the release/ files of a published version. */
+const { embedPages, cdnBase } = require(path.join(repo, 'scripts', 'site-demos.js'));
 /** What code weighs, as the docs and the release say it (scripts/sizes.js): gzip sizes, the core of a report, everything. */
 const sizes = require(path.join(repo, 'scripts', 'sizes.js'));
 const { gzipSize } = sizes;
@@ -20,7 +21,7 @@ export const skillVersion = () => require(path.join(repo, 'scripts', 'build-skil
 /** The roles of blocks, in the order a page loads them. */
 export const { ROLES, scaleWords, scalesFitting } = require(path.join(repo, 'scripts', 'build-manifest.js'));
 
-export { jsonForScript, embedPages };
+export { jsonForScript, embedPages, cdnBase };
 export const esc = escapeText;
 export const kb = (n) => (n / 1024).toFixed(1) + ' KB';
 
