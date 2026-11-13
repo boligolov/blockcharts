@@ -1757,6 +1757,10 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
 - **Node 22 or later.** `engines` said `>=18`, and the docs had the composer on Node 18+, but 18 and 20 are past their
   end of life (April 2025 and April 2026), CI runs only `.node-version` (24), playwright-core wants 20 and the site
   22.22.1. `engines` is now `>=22`, the oldest line still maintained, and the README and docs/skill.md say the same.
+- **The library is 0.0.1.** Nothing of it was published, so its first version on npm is 0.0.1, not 0.1.0
+  (`package.json` and `VERSION` in the core, which the release build keeps equal). README names CDN files at
+  `cdn.jsdelivr.net/npm/blockcharts@0.0.1/release/…`, where jsDelivr serves each file of the package once it is
+  published. test-dist found the core's `VERSION` line by its value; it now finds it by its shape.
 
 ## Next steps
 

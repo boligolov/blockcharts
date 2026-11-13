@@ -1,6 +1,6 @@
 {
   "name": "blockcharts",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Interactive SVG and canvas charts described as JSON, assembled from independent blocks. For standalone HTML reports and for pages of your own.",
   "keywords": [
     "charts",

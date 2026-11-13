@@ -115,7 +115,7 @@ npm run release          # writes release/
 ```
 
 ```html
-<script src="https://cdn.example.com/blockcharts/0.1.0/kits/timeseries.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.1/release/kits/timeseries.js"></script>
 
 <script type="application/json" id="bc-data">{ "d": [ { "day": "2024-01-01", "v": 1200 }, { "day": "2024-02-01", "v": 3400 } ] }</script>
 <script type="application/json" data-bc-chart>
@@ -156,7 +156,7 @@ import BC from 'blockcharts';                    // the full kit, typed
 import BC from 'blockcharts/kits/basic.mjs';     // a smaller kit
 import manifest from 'blockcharts/manifest.json' with { type: 'json' };
 const BC = require('blockcharts');               // CommonJS: the same full kit
-// <script src="node_modules/blockcharts/kits/timeseries.js"> or through a CDN: unpkg / jsdelivr serve the same files
+// a <script src> names the file where it is: node_modules/blockcharts/release/kits/timeseries.js (exports are for import/require)
 ```
 
 Every kit has a `.d.mts` (and a `.d.ts` for `require`); `blockcharts/bc.d.ts` declares the global `BC` and every spec type. `npm pack` and `npm publish` build the release first (`prepack`).
@@ -164,7 +164,7 @@ Every kit has a `.d.mts` (and a `.d.ts` for `require`); `blockcharts/bc.d.ts` de
 #### 3. The loader: separate files, fetched on demand
 
 ```html
-<script src="https://cdn.example.com/blockcharts/0.1.0/loader.js" data-auto></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.1/release/loader.js" data-auto></script>
 <!-- your data and <script data-bc-chart> specs -->
 ```
 
@@ -172,7 +172,7 @@ The loader reads `manifest.json` next to it, loads the core, asks it which block
 
 ```js
 await BCLoader.load({
-  base: 'https://cdn.example.com/blockcharts/0.1.0/', // default: the folder of loader.js
+  base: 'https://cdn.jsdelivr.net/npm/blockcharts@0.0.1/release/', // default: the folder of loader.js
   blocks: ['interaction.zoom'],   // extra blocks besides the ones found in the page
   scan: true,                     // find charts on the page (default)
   mount: true,                    // mount them when loaded (default)
@@ -180,15 +180,22 @@ await BCLoader.load({
 });
 ```
 
+#### From a CDN
+
+jsDelivr and unpkg serve every file of the npm package on its own, at the path it has in the package:
+`https://cdn.jsdelivr.net/npm/blockcharts@<version>/release/<file>` (or `https://unpkg.com/blockcharts@<version>/release/<file>`),
+where `<file>` is `core.js`, `blocks/<role.type>.js`, `kits/<name>.js` or `.mjs`, `loader.js`, `manifest.json` or `bc.d.ts`.
+The loader takes the core and the blocks from the folder it came from, so it needs nothing more than its own address.
+
 #### Pinning with SRI
 
 `release/manifest.json` lists a `sha384` hash for every file, ready for the `integrity` attribute:
 
 ```html
-<script src=".../kits/basic.js" integrity="sha384-..." crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.1/release/kits/basic.js" integrity="sha384-..." crossorigin="anonymous"></script>
 ```
 
-Always pin a version in the CDN path; files of a version never change.
+Always pin an exact version in the CDN path (`@0.0.1`, not `@0` or `@latest`); files of a version never change.
 
 ## Spec anatomy
 

@@ -5,7 +5,7 @@
   // only a page with encoded data needs. They come first: the minifier inlines a constant only up to the first early return.
   const CHECKS = true;
   const DECODE = true;
-  const VERSION = '0.1.0';
+  const VERSION = '0.0.1';
   const g = globalThis as any;
 
   if (g.BC) {

@@ -87,7 +87,7 @@ Found along the way:
 
 ## Release
 
-- [ ] **`npm publish`** of 0.1.0, then check the kits through unpkg and jsDelivr. Then give the site back what waits for
+- [ ] **`npm publish`** of 0.0.1, then check the kits through unpkg and jsDelivr. Then give the site back what waits for
       it, each with its line of `NOT_YET` in scripts/check-site.js: `npm install blockcharts` on the landing page's "One
       script tag" card (site/src/components/WaysIn.astro; its text says "from npm or served by your own site"), and
       the CDN, announced, with its addresses in the HTML of the example pages and of the kit and loader demos. When the

@@ -457,7 +457,7 @@ test('core variants: smaller by what they leave out, and a switch that is missin
   // the switches must come before the first early return, or the minifier keeps the code they guard
   const late = source
     .replace('const CHECKS = true;', '')
-    .replace("const VERSION = '0.1.0';", "if (globalThis.__x) return;\n    const CHECKS = true;\n    const VERSION = '0.1.0';");
+    .replace(/const VERSION = '[^']*';/, (v) => `if (globalThis.__x) return;\n    const CHECKS = true;\n    ${v}`);
   assert(
     minify('x', coreVariant('x', late, ['CHECKS'])).length > composed.bytes + 4000,
     'a switch after a return saves nothing: the test above guards that',
