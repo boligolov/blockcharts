@@ -43,7 +43,8 @@ validates every chart on every page against that page's data, and checks what se
 - `sitemap-index.xml` comes from `@astrojs/sitemap` and lists exactly the indexable pages; `public/robots.txt` names it.
 - A composed report (`examples/<name>.report.html`) is a download: `noindex`, with its example page as canonical.
 - The link-preview image, `public/og.png` (1200×630, committed), is a screenshot of the landing hero in Chrome.
-  Make it again when the hero changes: `npm run site && npm run og`.
+  It shows the hero's sizes (the blocks of the dashboard, its code, the core), which move with the code, so make it
+  again before a deploy, and when the hero changes: `npm run site && npm run og`.
 
 All of it is checked by `scripts/check-site.js`.
 

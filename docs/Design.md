@@ -1655,6 +1655,10 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   between machines and versions of Node, which a check that must pass in CI as it does here cannot take: every gzip
   size, on the site, in the docs and in the release manifest, is now fflate's at level 9, a few per cent more than
   zlib's (basic: 42 KB against 40.5).
+- **The link preview shows today's hero.** `site/public/og.png` is a screenshot of the landing hero, committed, as
+  Cloudflare's build has no Chrome to make it. It said 21 of 42 blocks and 69.8 KB; the hero says 24 of 58 and 111.4.
+  Made again (`npm run og`). It stays a file someone makes, so site/README.md and the deploy step of the ROADMAP say
+  to make it before a deploy: its figures move with the code, as every figure the site reads from the build does.
 
 ## Next steps
 

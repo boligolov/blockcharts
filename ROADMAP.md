@@ -30,11 +30,11 @@ well); E6, the KPI and zoom paragraphs of SKILL.md say what the block is before 
 chart for its reader and `how` for the agent (the recipes' notes written from their data, a warning on a note with code);
 E7, the trigger description leaves out charts in an app's own code and says a table of figures is a heatmap with
 numbers (SKILL.md tells what to do with a table request; the heatmap recipe writes its figures); F1, the sizes and
-counts of README and the principles written by the build (`scripts/build-docs.js`, checked by test-dist).
+counts of README and the principles written by the build (`scripts/build-docs.js`, checked by test-dist); F2, the
+link preview made again (24 of 58 blocks, 111.4 KB).
 
 Left, in this order:
 
-- [ ] **F2** site/public/og.png is stale (21 of 42 blocks, 69.8 KB): `npm run og` and check it.
 - [ ] **F3** guide.astro says "A Canvas renderer … is planned"; site-demos.js says "Charts are SVG".
 - [ ] **F4** /blocks/ parameter tables cut the doc column on a phone (16 of 63 tables), also the /guide/ kit table and
       /embed/data/: stack the rows below about 600 px.
@@ -82,7 +82,8 @@ Found along the way:
 
 - [ ] **Try the plugin install from the marketplace** (`/plugin marketplace add boligolov/blockcharts`, then
       `/plugin install blockcharts@blockcharts`) in a fresh Claude Code session, now that `main` is pushed.
-- [ ] **Deploy the site** to blockcharts.online (Cloudflare, see [site/README.md](site/README.md#deploy)), so that
+- [ ] **Deploy the site** to blockcharts.online (Cloudflare, see [site/README.md](site/README.md#deploy)), after
+      `npm run og` (the link preview shows the hero's sizes), so that
       `blockcharts.online/blockcharts.skill` — the download the README and docs link to — exists.
 
 ## Release
