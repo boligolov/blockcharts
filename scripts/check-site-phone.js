@@ -24,7 +24,8 @@ function pagesOf(root, rel = '') {
   return fs.readdirSync(path.join(root, rel), { withFileTypes: true }).flatMap((e) => {
     const r = rel ? `${rel}/${e.name}` : e.name;
     if (e.isDirectory()) return r === 'release' || r === '_astro' ? [] : pagesOf(root, r);
-    return e.name === 'index.html' ? [`/${rel ? rel + '/' : ''}`] : [];
+    if (e.name === 'index.html') return [`/${rel ? rel + '/' : ''}`];
+    return !rel && e.name === '404.html' ? ['/404.html'] : [];
   });
 }
 

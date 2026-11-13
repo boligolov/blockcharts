@@ -7,7 +7,7 @@ skills/blockcharts/     the skill — the main product: SKILL.md, README.md, rec
                         LICENSE, reference/, runtime/ (generated, committed), .claude-plugin/plugin.json
 src/                    the library in TypeScript: bc.d.ts (contracts), core.ts, loader.ts,
                         blocks/<role>.<type>.ts — one file per block
-scripts/                build, compose, release, site and test scripts (plain Node, no dependencies)
+scripts/                build, compose, release, site and test scripts (plain Node; the composer needs nothing else)
   compose.js              the composer: page.json -> one HTML file (also shipped inside the skill)
   build-manifest.js       dist/manifest.json, by running every built block against a stub BC
   minify.js               dist/min/ — the minified code the composer, the skill and the release use
@@ -19,7 +19,7 @@ scripts/                build, compose, release, site and test scripts (plain No
                           check-site-phone.js opens it in Chrome at phone widths (npm run test:site)
   test*.js                the test suites (below); fake-dom.js and run-page.js are their browser stand-ins
 docs/                   the documentation (an index: docs/README.md)
-  spec/                   the principles (principles.md, v1.0) and their CHANGELOG.md
+  spec/                   the principles (principles.md) and their CHANGELOG.md
   skill.md                installing the skill
   development.md          this file
   Design.md               the design journal: every decision and why
@@ -37,7 +37,8 @@ folder straight from git, so it must be complete): `dist/` (tsc output, manifest
 ## Setup
 
 Node.js 18+ (developed on 22). The library has no runtime dependencies; the dev dependencies are
-TypeScript, esbuild (minification), fflate (the `.skill` zip) and Prettier (formatting).
+TypeScript, esbuild (minification), fflate (the `.skill` zip and every gzip size), Prettier (formatting) and
+playwright-core (the checks in the system Chrome: `npm run test:chrome`, `npm run test:site`, `npm run og`).
 
 ```sh
 npm install

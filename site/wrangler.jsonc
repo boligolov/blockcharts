@@ -8,7 +8,9 @@
   "name": "blockcharts",
   "compatibility_date": "2026-09-01",
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    // an address the site does not have gets 404.html, with the status 404
+    "not_found_handling": "404-page"
   },
   // one preview per branch; nothing in it differs from production
   "previews": {}

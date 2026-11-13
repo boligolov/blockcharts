@@ -1,6 +1,6 @@
 ---
 // The principles, docs/spec/principles.md, in six cards. Each names the section it summarizes.
-import { repoFile } from '../lib/site.mjs';
+import { principlesVersion, repoFile } from '../lib/site.mjs';
 
 const principles = [
   { ref: '§1', title: 'Exactly what the charts need, nothing more', body: 'A page carries the core and only the blocks its charts use. They are read from the specs and their declared dependencies — never listed by hand, so the list is never too long.' },
@@ -16,7 +16,7 @@ const principles = [
     <p class="kicker">The principles</p>
     <h2>Atoms first: why a report stays small</h2>
     <p class="intro">
-      <strong>blockcharts principles v1.0</strong> — how a page gets exactly the code its charts need and what follows from it, written down
+      <strong>blockcharts principles v{principlesVersion()}</strong> — how a page gets exactly the code its charts need and what follows from it, written down
       for a person writing a report, an agent writing one for them, and anyone writing a block. With the requirements every page, block and
       composer must meet.
     </p>

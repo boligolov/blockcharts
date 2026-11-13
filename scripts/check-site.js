@@ -208,7 +208,11 @@ async function checkSite(siteDir, options) {
       return;
     }
     const page = rel.replace(/(^|\/)index\.html$/, '$1');
-    if (canonical !== home + page) problems.push(`${rel}: canonical ${canonical}, not ${home + page}`);
+    // the 404 page is served at every address the site does not have: it is no page of the index and has no address
+    if (rel === '404.html') {
+      if (!/<meta name="robots" content="noindex">/.test(text)) problems.push(`${rel}: the 404 page without noindex`);
+      if (canonical) problems.push(`${rel}: the 404 page names a canonical URL (${canonical})`);
+    } else if (canonical !== home + page) problems.push(`${rel}: canonical ${canonical}, not ${home + page}`);
     else if (!/<meta name="robots" content="noindex/.test(text)) indexable.add(canonical);
     if (!/^<!doctype html>\s*<html lang="[a-z]{2}/i.test(text)) problems.push(`${rel}: no lang on <html>`);
     const title = attr(text, /<title>([^<]*)<\/title>/);
@@ -254,6 +258,12 @@ async function checkSite(siteDir, options) {
       }
     if (!checked) problems.push('blocks/index.html: no channel in the manifest says which scales it accepts');
   }
+
+  // an address the site does not have gets the site's own page, with links back in, and the host is told to serve it
+  if (!textOf.has(path.join(root, '404.html'))) problems.push('404.html is missing');
+  const wrangler = path.join(repo, 'site', 'wrangler.jsonc');
+  if (fs.existsSync(wrangler) && !/"not_found_handling":\s*"404-page"/.test(fs.readFileSync(wrangler, 'utf8')))
+    problems.push('site/wrangler.jsonc: assets.not_found_handling is not "404-page", so Cloudflare would not serve 404.html');
 
   const kitFile = path.join(root, 'release', 'kits', 'full.js');
   const kit = fs.existsSync(kitFile) ? fs.readFileSync(kitFile, 'utf8') : null;

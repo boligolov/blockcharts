@@ -1,5 +1,5 @@
 // The figures README.md and the docs quote, written from the build: what the code weighs, how many blocks and recipes
-// there are, the kits. Each stands between two comments that a rendered page does not show:
+// there are, the kits, the version of the principles. Each stands between two comments that a rendered page does not show:
 //   each a block of <!-- build:block-range -->0.4–12 KB<!-- /build -->.
 // A figure that is a table stands on lines of its own between them.
 //   node scripts/build-docs.js           rewrite them (npm run skill does it)
@@ -15,7 +15,7 @@ const { gzipSize: gzip, blockSizes, coreFile, reportCore, libraryCode } = requir
 
 const repo = path.join(__dirname, '..');
 /** The files that quote figures, from the repository's root. */
-const DOCS = ['README.md', 'docs/spec/principles.md'];
+const DOCS = ['README.md', 'docs/README.md', 'docs/spec/principles.md'];
 const MARK = /<!-- build:([\w-]+) -->([\s\S]*?)<!-- \/build -->/g;
 const recipesDir = path.join(repo, 'skills', 'blockcharts', 'recipes');
 
@@ -32,6 +32,13 @@ const PAGES = [
 
 const table = (head, rows) =>
   [`| ${head.join(' | ')} |`, `|${head.map(() => '---').join('|')}|`, ...rows.map((r) => `| ${r.join(' | ')} |`)].join('\n');
+
+/** The version of the principles, as their own first paragraph states it ("**Version 1.1.**"). */
+function principlesVersion() {
+  const m = fs.readFileSync(path.join(repo, 'docs', 'spec', 'principles.md'), 'utf8').match(/^\*\*Version (\d+\.\d+)\.\*\*/m);
+  if (!m) throw new Error('docs/spec/principles.md: no "**Version N.N.**" to read the version from');
+  return m[1];
+}
 
 /** Every figure the docs can quote, by name: a line of text, or a Markdown table. */
 function figures() {
@@ -64,6 +71,7 @@ function figures() {
       .map((n) => n.slice(role.length + 1))
       .sort();
   return {
+    'principles-version': principlesVersion(),
     blocks: String(lib.count),
     recipes: String(recipes.length),
     'block-range': `${kb1(Math.min(...sizes))}–${kb0(Math.max(...sizes))} KB`,
@@ -142,7 +150,7 @@ function buildDocs(values = figures()) {
   return changed;
 }
 
-module.exports = { figures, render, stale, checkDocs, buildDocs, DOCS };
+module.exports = { figures, render, stale, checkDocs, buildDocs, principlesVersion, DOCS };
 
 if (require.main === module) {
   try {

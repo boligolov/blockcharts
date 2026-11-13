@@ -1692,6 +1692,22 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   a CI step after the site's build) opens every page in Chrome at 320, 360 and 390 px and fails on a page wider than
   the screen, naming the element that sticks out, on a table that scrolls, and on a script error. It is not part of
   `npm run site`, which Cloudflare runs without Chrome. With the inline code unbroken it fails on /embed/kit/ at all three.
+- **The small things a reader trips on.** The plugin does not update itself: Claude Code keeps auto-update off for a
+  marketplace that is not Anthropic's until the user turns it on (`/plugin` → Marketplaces), so the install section,
+  docs/skill.md and README say where, and how to update by hand (`claude plugin update blockcharts@blockcharts`). The
+  version of the principles is read from their own first paragraph, by the build for README and docs/README and by
+  the site for its quote, so it cannot fall behind again (it said 1.0 of 1.1). The footer and README's *Versions* say
+  why the library is 0.1.0 and the skill 0.33.x: the skill's goes up with every change so that Claude Code offers it.
+  An example page's command names the recipe where it is in a checkout, and the skill's own `runtime/compose.js` for a
+  saved `page.json`; its title is "Bar chart: a live example", not "chart example". Hints say what a finger does too
+  ("point at the lines, or tap them"; zooming with Ctrl + wheel is for a computer). The canvas page says what it
+  measured: its own 21,000 points, about 190 ms against 35 in Chrome (SKILL.md's "5 times at 50,000" is the bench
+  above, and stays). The browsers are named: Chrome and Edge 80, Firefox 74, Safari 14.1 for the code (ES2020,
+  `Intl` compact numbers), Firefox 113 and Safari 16.4 for a gzipped dataset (`DecompressionStream`). README no longer
+  says the library has no dependencies but esbuild; it has none at run time, nor has the composer, and the dev
+  dependencies are listed for what they do. The site has a 404 page (`noindex`, no canonical), which Cloudflare
+  serves with the status 404 (`not_found_handling` in wrangler.jsonc); check-site fails without either, and the
+  phone check opens it.
 
 ## Next steps
 

@@ -13,6 +13,10 @@ const { embedPages } = require(path.join(repo, 'scripts', 'site-demos.js'));
 const sizes = require(path.join(repo, 'scripts', 'sizes.js'));
 const { gzipSize } = sizes;
 
+/** The version of the principles (their first paragraph) and of the skill (SKILL.md, plugin.json), as the files say. */
+export const principlesVersion = () => require(path.join(repo, 'scripts', 'build-docs.js')).principlesVersion();
+export const skillVersion = () => require(path.join(repo, 'scripts', 'build-skill.js')).skillVersion();
+
 /** The roles of blocks, in the order a page loads them. */
 export const { ROLES, scaleWords, scalesFitting } = require(path.join(repo, 'scripts', 'build-manifest.js'));
 

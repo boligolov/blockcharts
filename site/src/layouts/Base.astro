@@ -2,7 +2,7 @@
 import '../styles/site.css';
 import '../data/palette.css';
 import Logo from '../components/Logo.astro';
-import { baseUrl, jsonForScript, REPO, repoFile, SITE } from '../lib/site.mjs';
+import { baseUrl, jsonForScript, REPO, repoFile, SITE, skillVersion } from '../lib/site.mjs';
 
 interface Props {
   title: string;
@@ -13,8 +13,11 @@ interface Props {
   landing?: boolean;
   /** A page of many cards (the gallery) takes the full width of the header instead of the reading column. */
   wide?: boolean;
+  /** A page with no address of its own (the 404 page, served at any address that has none): kept out of the index, with no
+   *  canonical URL. */
+  noindex?: boolean;
 }
-const { title, nav, description, version, landing, wide } = Astro.props;
+const { title, nav, description, version, landing, wide, noindex } = Astro.props;
 const base = baseUrl(import.meta.env.BASE_URL);
 const links = [
   ['Gallery', 'examples/', 'examples'],
@@ -71,12 +74,12 @@ const jsonLd = landing
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
     <title>{full}</title>
     {description && <meta name="description" content={description} />}
-    <link rel="canonical" href={canonical} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="blockcharts" />
     <meta property="og:title" content={full} />
     {description && <meta property="og:description" content={description} />}
-    <meta property="og:url" content={canonical} />
+    {!noindex && <meta property="og:url" content={canonical} />}
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content={image} />
     <meta property="og:image:width" content="1200" />
@@ -143,8 +146,9 @@ const jsonLd = landing
           </div>
         </div>
         <p class="note">
-          blockcharts {version} · every chart on this site is drawn live by the released blocks, from the same recipes the skill ships;
-          every number about sizes is read from the release at build time.
+          The library {version}, the skill {skillVersion()}: they are versioned apart, as the skill's version goes up with every change to
+          it. Every chart on this site is drawn live by the released blocks, from the same recipes the skill ships; every number about
+          sizes is read from the release at build time.
         </p>
       </div>
     </footer>

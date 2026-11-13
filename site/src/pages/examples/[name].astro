@@ -81,7 +81,7 @@ const embedded = [
 ].join('\n').trimEnd();
 const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : embedded;
 ---
-<Base title={`${recipe.title}: chart example`} nav="examples" version={release.version} description={`${recipe.need}: live, with its ${code.blocks.length} blocks (${kb(code.bytes)} of code), the JSON and an HTML report.`}>
+<Base title={`${recipe.title}: a live example`} nav="examples" version={release.version} description={`${recipe.need}: live, with its ${code.blocks.length} blocks (${kb(code.bytes)} of code), the JSON and an HTML report.`}>
   <p class="muted crumbs"><a href={`${base}examples/`}>Gallery</a> / <a href={`${base}examples/#${kind.id}`}>{kind.title}</a> /</p>
   <h1>{recipe.title}</h1>
   <p class="lead">{recipe.need}.</p>
@@ -139,7 +139,8 @@ const shown = embedded.length > 12000 ? embedded.slice(0, 12000) + '\n…' : emb
   <h2>The JSON</h2>
   <p>
     This is the whole input. <code>data</code> holds the datasets, each chart is a <code>spec</code> that names one.
-    Compose it with <code>node scripts/compose.js {recipe.name}.json report.html</code>.
+    In a checkout of the repository: <code>node scripts/compose.js skills/blockcharts/recipes/{recipe.name}.json report.html</code>.
+    Saved as <code>page.json</code>, it composes the same with the skill's own <code>runtime/compose.js</code>.
   </p>
   <Snippet code={recipe.text} label={`${recipe.name}.json`} name={`${recipe.name}.json`} />
   <p>The report the composer makes from it is <a href={`${base}examples/${recipe.name}.report.html`}>one standalone file</a> ({kb(fileBytes)}): open it from disk, mail it, print it.</p>

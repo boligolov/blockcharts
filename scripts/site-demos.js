@@ -173,7 +173,7 @@ window.addEventListener('load', function () {
     sections: [
       {
         h: 'The handle',
-        p: 'The buttons call <code>setView</code>, <code>update</code> and <code>getView</code>. Scroll with Ctrl held, or drag, to zoom on the chart itself, then press <em>Log view</em>. Press <em>Points / lines</em> while zoomed: <code>update</code> keeps the zoom.',
+        p: 'The buttons call <code>setView</code>, <code>update</code> and <code>getView</code>. With a mouse or a trackpad, scroll with Ctrl held, or drag, to zoom on the chart itself, then press <em>Log view</em>. Press <em>Points / lines</em> while zoomed: <code>update</code> keeps the zoom.',
         html: `<script src="${kit('timeseries.js')}"></script>
 
 <div id="chart"></div>
@@ -350,7 +350,7 @@ ${chartTag(targetSpec)}`,
     [
       'gzip + base64',
       gzB64,
-      'The JSON of rows or columns, gzipped and base64-encoded. The composer does this by itself for big datasets. Needs DecompressionStream (all current browsers).',
+      'The JSON of rows or columns, gzipped and base64-encoded. The composer does this by itself for big datasets. Needs DecompressionStream: Chrome and Edge 80, Firefox 113, Safari 16.4.',
     ],
     [
       'Binary columns',
@@ -482,7 +482,7 @@ ${forms.map(([label, value, what]) => `<tr><td>${label}</td><td data-label="in t
         p: 'Both charts read one dataset and have the same spec except <code>renderer</code>. Zoom, pan, tooltip, legend filter, colors and dark mode work the same. Time the redraws on your machine:',
         html: canvasHtml(json(bigData)),
         shown: canvasHtml('{"points": {"columns": {"x": {...}, "y": {...}}}}  /* two binary columns, see "Ways to hand over data" */'),
-        note: 'Numbers depend on the machine; on the machine this page was made on the canvas redraws about 5 times faster at 50,000 points. A single long <em>line</em> is one path element either way, so it gains little from a canvas: reduce it with the <code>decimate</code> transform instead.',
+        note: 'Numbers depend on the machine; on the one this page was made on, Chrome redraws these 21,000 points 5 to 6 times faster on the canvas (about 190 ms against 35). A single long <em>line</em> is one path element either way, so it gains little from a canvas: reduce it with the <code>decimate</code> transform instead.',
       },
       {
         h: 'What is different on a canvas',

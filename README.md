@@ -18,6 +18,9 @@ light `.html` report with interactive charts that opens offline and can be email
 /plugin install blockcharts@blockcharts
 ```
 
+It updates by itself once auto-update is on for the marketplace (`/plugin` → *Marketplaces*), or by hand with
+`claude plugin update blockcharts@blockcharts`.
+
 **Claude.ai and Claude Desktop** — download **[blockcharts.skill](https://blockcharts.online/blockcharts.skill)**
 and upload it under *Settings → Capabilities → Skills* (skills need code execution enabled).
 
@@ -45,7 +48,7 @@ built-in blocks use ([an example](https://blockcharts.online/embed/block/)).
 
 ## The principles behind it
 
-[`docs/spec/principles.md`](docs/spec/principles.md) — *blockcharts principles v1.0*: how a report is built
+[`docs/spec/principles.md`](docs/spec/principles.md) — *blockcharts principles v<!-- build:principles-version -->1.1<!-- /build -->*: how a report is built
 from blocks so that a page carries exactly the code its charts need — and what follows from that.
 
 - **Exactly what the charts need, nothing more** (§1): blocks are chosen mechanically from the specs, never by hand.
@@ -235,7 +238,7 @@ SITE_BASE=/blockcharts/ npm run site   # for a site served from a subfolder (Git
 cd site && npm install && npm run dev  # develop it (run npm run build and npm run manifest in the repo root first)
 ```
 
-The site has its own `package.json`, so the library itself keeps no dependencies except esbuild for the release. `scripts/check-site.js` checks the result without a browser: every link, script and anchor resolves, and every chart spec on every page is valid against the data on that page.
+The site has its own `package.json`. The library has no runtime dependencies, nor has the composer; the dev dependencies are the tools that build and test it: TypeScript, esbuild (minifying), fflate (the `.skill` zip, gzip sizes), Prettier and playwright-core (the Chrome checks, with the system Chrome). `scripts/check-site.js` checks the result without a browser: every link, script and anchor resolves, and every chart spec on every page is valid against the data on that page.
 
 ## Development
 
@@ -254,7 +257,16 @@ Layout, tests and releasing: [docs/development.md](docs/development.md). What is
 
 ## Browser support
 
-Modern evergreen browsers. The composer needs Node 18+. Gzipped datasets use `DecompressionStream`.
+Chrome and Edge 80, Firefox 74, Safari 14.1 or later: the code is ES2020, and compact numbers (`12K`) are `Intl`'s. A
+dataset stored gzipped, which the composer does with a large one, is read with `DecompressionStream`: Firefox 113 and
+Safari 16.4 (Chrome and Edge 80); an older browser shows a message in the chart's place. The composer needs Node 18+.
+
+## Versions
+
+The skill and the library are versioned apart. The skill's version (`metadata.version` in `SKILL.md`, `version` in
+its `plugin.json`) goes up with every change to `skills/blockcharts/`, the composer and the code it carries included,
+so that Claude Code offers the update. The library's (`package.json`, the path of the CDN files, `BC.version`) goes up
+with a release of the npm package.
 
 ## License
 

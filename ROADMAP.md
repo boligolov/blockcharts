@@ -31,16 +31,14 @@ chart for its reader and `how` for the agent (the recipes' notes written from th
 E7, the trigger description leaves out charts in an app's own code and says a table of figures is a heatmap with
 numbers (SKILL.md tells what to do with a table request; the heatmap recipe writes its figures); F1, the sizes and
 counts of README and the principles written by the build (`scripts/build-docs.js`, checked by test-dist); F2, the
-link preview made again (24 of 58 blocks, 111.4 KB); F3, the site says charts can be drawn on a canvas; F4, a table of the site is a list of rows on a phone (check-site
-fails on one that is not); F6, one "everything" and one lightest report on every page; F7, no page of the site wider than a phone from 320 px
-(`npm run test:site` in CI).
+link preview made again (24 of 58 blocks, 111.4 KB); F3, the site says charts can be drawn on a canvas; F4, a table
+of the site is a list of rows on a phone (check-site fails on one that is not); F6, one "everything" and one lightest
+report on every page; F7, no page of the site wider than a phone from 320 px (`npm run test:site` in CI); F8, the
+small things (how the plugin updates, the principles' version read from their file, the two versions explained, a
+404 page, hints for a finger, the browsers named, the canvas bench as measured).
 
 Left, in this order:
 
-- [ ] **F8** Install.astro "updates itself"; principles v1.0 vs 1.1 (README, Principles.astro); the compose path in
-      [name].astro; HowItWorks "above"; mouse-only hints on phones (Hero, examples index); titles "Bar chart: chart
-      example"; no 404 page; README "no dependencies"; the canvas bench says 50,000 points where it measured 21,000;
-      0.1.0 vs 0.33.x versions unexplained; browser minimums (ES2020, DecompressionStream: Safari 16.4+, Firefox 113+).
 - F5 (`npm install blockcharts` is a 404, `cdn.example.com` placeholders, blockcharts.online does not resolve) waits for
   the release below: publishing and deploying are the owner's step.
 

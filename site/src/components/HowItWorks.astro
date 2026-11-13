@@ -45,7 +45,7 @@ const specText = ['{', Object.entries(demo.spec).map(([k, v]) => `  ${JSON.strin
       <div class="step">
         <span class="n">3 · Assemble</span>
         <h3>Only the blocks it names</h3>
-        <p>The spec above needs {demo.blocks.length} blocks: {demo.blocks.map((b, i) => <>{i ? ', ' : ''}<code>{b}</code></>)}. Only those, the core and the data go into the file.</p>
+        <p>The spec of step 1 needs {demo.blocks.length} blocks: {demo.blocks.map((b, i) => <>{i ? ', ' : ''}<code>{b}</code></>)}. Only those, the core and the data go into the file.</p>
         <pre><code>{`sales-report.html
   core + ${demo.blocks.length} blocks + data
   opens from disk, offline`}</code></pre>

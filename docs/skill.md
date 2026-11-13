@@ -13,7 +13,7 @@ skill.
 
 ## Claude Code
 
-**As a plugin** (recommended — updates arrive with `/plugin marketplace update`):
+**As a plugin** (recommended — Claude Code can keep it up to date):
 
 ```
 /plugin marketplace add boligolov/blockcharts
@@ -23,6 +23,11 @@ skill.
 The same from a shell: `claude plugin marketplace add boligolov/blockcharts`, then
 `claude plugin install blockcharts@blockcharts`. Remove it with `/plugin uninstall blockcharts@blockcharts`.
 Only a person can type `/plugin` into a session; an agent asked to install the skill runs the shell form.
+
+Updates: a marketplace other than Anthropic's own has auto-update off until you turn it on, in `/plugin` →
+*Marketplaces* → `blockcharts` → *Enable auto-update*; Claude Code then updates the plugin at the start of a
+session. Without it, update by hand: `claude plugin update blockcharts@blockcharts` from a shell, or *Update now* on the
+plugin in `/plugin` → *Installed*.
 
 **As a folder** — pick one:
 
