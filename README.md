@@ -73,7 +73,11 @@ The same blocks work without the skill.
 
 #### 1. The composer: JSON in, one HTML file out
 
+The composer is a script of this repository (the skill carries a copy), not part of the npm package: run it in a clone.
+
 ```sh
+git clone https://github.com/boligolov/blockcharts.git
+cd blockcharts
 npm install
 npm run build && npm run manifest
 node scripts/compose.js skills/blockcharts/recipes/report-from-csv.json report.html
@@ -111,7 +115,7 @@ Ready-made pages to copy live in `skills/blockcharts/recipes/`, <!-- build:recip
 #### 2. Kits: core + blocks in one file
 
 ```sh
-npm run release          # writes release/
+npm run release          # in the clone: writes release/ (the npm package ships the same files)
 ```
 
 ```html
@@ -142,14 +146,18 @@ Charts mount themselves on `DOMContentLoaded`. Or call `BC.chart(element, spec)`
 Everything in `release/` is minified (esbuild, ES2020) and stripped of the parameter docs, which a running chart never reads; `buildRelease({ minify: false })` keeps the readable code for debugging. Kits are defined in `kits.json`. A kit made for one page contains exactly the blocks that page uses:
 
 ```sh
-node scripts/build-dist.js --page page.json=report     # adds release/kits/report.js
+node scripts/build-dist.js --page page.json=report     # in the clone: adds release/kits/report.js
 ```
 
 `kits/<name>.mjs` is the same code as an ES module with `export default BC` (browsers load modules over http/https only, not `file://`).
 
 #### From npm
 
-The package ships the minified files of `release/` (kits, blocks, loader, manifest, types) and resolves them through `exports`:
+```sh
+npm install blockcharts
+```
+
+The package ships the minified files of `release/` (kits, blocks, loader, manifest, types), not the composer or the scripts, and resolves them through `exports`:
 
 ```js
 import BC from 'blockcharts';                    // the full kit, typed
