@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 44210,
-    "version": "0.0.1",
+    "bytes": 44269,
+    "version": "0.0.2",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 33122,
+        "bytes": 33181,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 30088,
+        "bytes": 30147,
         "off": [
           "CHECKS",
           "DECODE"
@@ -24,7 +24,7 @@
   "blocks": {
     "lib.columns": {
       "file": "blocks/lib.columns.js",
-      "bytes": 640,
+      "bytes": 653,
       "version": 2,
       "requires": [],
       "closure": [
@@ -34,7 +34,7 @@
     },
     "lib.curve": {
       "file": "blocks/lib.curve.js",
-      "bytes": 1195,
+      "bytes": 1208,
       "version": 2,
       "requires": [],
       "closure": [
@@ -44,7 +44,7 @@
     },
     "lib.pointer": {
       "file": "blocks/lib.pointer.js",
-      "bytes": 1420,
+      "bytes": 1433,
       "version": 2,
       "requires": [],
       "closure": [
@@ -54,7 +54,7 @@
     },
     "lib.stats": {
       "file": "blocks/lib.stats.js",
-      "bytes": 404,
+      "bytes": 417,
       "version": 1,
       "requires": [],
       "closure": [
@@ -64,7 +64,7 @@
     },
     "lib.ticks": {
       "file": "blocks/lib.ticks.js",
-      "bytes": 661,
+      "bytes": 674,
       "version": 2,
       "requires": [],
       "closure": [
@@ -74,7 +74,7 @@
     },
     "lib.view": {
       "file": "blocks/lib.view.js",
-      "bytes": 857,
+      "bytes": 870,
       "version": 2,
       "requires": [],
       "closure": [
@@ -84,7 +84,7 @@
     },
     "scale.band": {
       "file": "blocks/scale.band.js",
-      "bytes": 1259,
+      "bytes": 1272,
       "version": 5,
       "requires": [],
       "closure": [
@@ -108,7 +108,7 @@
     },
     "scale.color": {
       "file": "blocks/scale.color.js",
-      "bytes": 840,
+      "bytes": 853,
       "version": 4,
       "requires": [],
       "closure": [
@@ -120,7 +120,7 @@
     },
     "scale.linear": {
       "file": "blocks/scale.linear.js",
-      "bytes": 1611,
+      "bytes": 1623,
       "version": 9,
       "requires": [
         "lib.ticks"
@@ -152,7 +152,7 @@
     },
     "scale.log": {
       "file": "blocks/scale.log.js",
-      "bytes": 2098,
+      "bytes": 2110,
       "version": 6,
       "requires": [],
       "closure": [
@@ -171,7 +171,7 @@
     },
     "scale.sequential": {
       "file": "blocks/scale.sequential.js",
-      "bytes": 2274,
+      "bytes": 2286,
       "version": 7,
       "requires": [
         "lib.ticks"
@@ -193,7 +193,7 @@
     },
     "scale.size": {
       "file": "blocks/scale.size.js",
-      "bytes": 1585,
+      "bytes": 1597,
       "version": 6,
       "requires": [
         "lib.ticks"
@@ -215,7 +215,7 @@
     },
     "scale.time": {
       "file": "blocks/scale.time.js",
-      "bytes": 4139,
+      "bytes": 4149,
       "version": 10,
       "requires": [],
       "closure": [
@@ -239,7 +239,7 @@
     },
     "transform.aggregate": {
       "file": "blocks/transform.aggregate.js",
-      "bytes": 5440,
+      "bytes": 5452,
       "version": 3,
       "requires": [],
       "closure": [
@@ -281,7 +281,7 @@
     },
     "transform.bin": {
       "file": "blocks/transform.bin.js",
-      "bytes": 3398,
+      "bytes": 3410,
       "version": 7,
       "requires": [
         "lib.ticks"
@@ -328,7 +328,7 @@
     },
     "transform.calculate": {
       "file": "blocks/transform.calculate.js",
-      "bytes": 1450,
+      "bytes": 1463,
       "version": 3,
       "requires": [],
       "closure": [
@@ -371,7 +371,7 @@
     },
     "transform.calendar": {
       "file": "blocks/transform.calendar.js",
-      "bytes": 1771,
+      "bytes": 1782,
       "version": 3,
       "requires": [],
       "closure": [
@@ -402,7 +402,7 @@
     },
     "transform.contour": {
       "file": "blocks/transform.contour.js",
-      "bytes": 5531,
+      "bytes": 5544,
       "version": 2,
       "requires": [
         "lib.columns",
@@ -453,7 +453,7 @@
     },
     "transform.decimate": {
       "file": "blocks/transform.decimate.js",
-      "bytes": 3572,
+      "bytes": 3585,
       "version": 4,
       "requires": [],
       "closure": [
@@ -493,7 +493,7 @@
     },
     "transform.density": {
       "file": "blocks/transform.density.js",
-      "bytes": 2991,
+      "bytes": 3003,
       "version": 4,
       "requires": [
         "lib.stats"
@@ -540,7 +540,7 @@
     },
     "transform.filter": {
       "file": "blocks/transform.filter.js",
-      "bytes": 2372,
+      "bytes": 2384,
       "version": 3,
       "requires": [],
       "closure": [
@@ -577,7 +577,7 @@
     },
     "transform.fold": {
       "file": "blocks/transform.fold.js",
-      "bytes": 1544,
+      "bytes": 1557,
       "version": 3,
       "requires": [],
       "closure": [
@@ -604,7 +604,7 @@
     },
     "transform.funnel": {
       "file": "blocks/transform.funnel.js",
-      "bytes": 1395,
+      "bytes": 1407,
       "version": 5,
       "requires": [
         "lib.columns"
@@ -639,7 +639,7 @@
     },
     "transform.hexbin": {
       "file": "blocks/transform.hexbin.js",
-      "bytes": 4317,
+      "bytes": 4331,
       "version": 3,
       "requires": [
         "lib.columns"
@@ -694,7 +694,7 @@
     },
     "transform.highlight": {
       "file": "blocks/transform.highlight.js",
-      "bytes": 1443,
+      "bytes": 1456,
       "version": 2,
       "requires": [],
       "closure": [
@@ -740,7 +740,7 @@
     },
     "transform.marimekko": {
       "file": "blocks/transform.marimekko.js",
-      "bytes": 2031,
+      "bytes": 2044,
       "version": 3,
       "requires": [],
       "closure": [
@@ -782,7 +782,7 @@
     },
     "transform.quartiles": {
       "file": "blocks/transform.quartiles.js",
-      "bytes": 2260,
+      "bytes": 2273,
       "version": 5,
       "requires": [],
       "closure": [
@@ -809,7 +809,7 @@
     },
     "transform.sankey": {
       "file": "blocks/transform.sankey.js",
-      "bytes": 4199,
+      "bytes": 4211,
       "version": 3,
       "requires": [
         "lib.columns"
@@ -849,7 +849,7 @@
     },
     "transform.sort": {
       "file": "blocks/transform.sort.js",
-      "bytes": 1772,
+      "bytes": 1785,
       "version": 2,
       "requires": [],
       "closure": [
@@ -883,7 +883,7 @@
     },
     "transform.stack": {
       "file": "blocks/transform.stack.js",
-      "bytes": 2274,
+      "bytes": 2287,
       "version": 5,
       "requires": [],
       "closure": [
@@ -928,7 +928,7 @@
     },
     "transform.treemap": {
       "file": "blocks/transform.treemap.js",
-      "bytes": 3526,
+      "bytes": 3538,
       "version": 6,
       "requires": [
         "lib.columns"
@@ -984,7 +984,7 @@
     },
     "transform.waterfall": {
       "file": "blocks/transform.waterfall.js",
-      "bytes": 1872,
+      "bytes": 1884,
       "version": 5,
       "requires": [
         "lib.columns"
@@ -1033,7 +1033,7 @@
     },
     "transform.window": {
       "file": "blocks/transform.window.js",
-      "bytes": 4101,
+      "bytes": 4114,
       "version": 5,
       "requires": [],
       "closure": [
@@ -1107,7 +1107,7 @@
     },
     "mark.arc": {
       "file": "blocks/mark.arc.js",
-      "bytes": 4985,
+      "bytes": 4995,
       "version": 7,
       "requires": [],
       "closure": [
@@ -1197,7 +1197,7 @@
     },
     "mark.area": {
       "file": "blocks/mark.area.js",
-      "bytes": 2927,
+      "bytes": 2939,
       "version": 16,
       "requires": [
         "lib.curve"
@@ -1288,7 +1288,7 @@
     },
     "mark.boxplot": {
       "file": "blocks/mark.boxplot.js",
-      "bytes": 2862,
+      "bytes": 2875,
       "version": 5,
       "requires": [],
       "closure": [
@@ -1396,7 +1396,7 @@
     },
     "mark.candlestick": {
       "file": "blocks/mark.candlestick.js",
-      "bytes": 2414,
+      "bytes": 2427,
       "version": 4,
       "requires": [],
       "closure": [
@@ -1484,7 +1484,7 @@
     },
     "mark.line": {
       "file": "blocks/mark.line.js",
-      "bytes": 4522,
+      "bytes": 4533,
       "version": 23,
       "requires": [
         "lib.curve"
@@ -1575,7 +1575,7 @@
     },
     "mark.point": {
       "file": "blocks/mark.point.js",
-      "bytes": 4005,
+      "bytes": 4018,
       "version": 16,
       "requires": [],
       "closure": [
@@ -1646,7 +1646,7 @@
     },
     "mark.polygon": {
       "file": "blocks/mark.polygon.js",
-      "bytes": 2210,
+      "bytes": 2223,
       "version": 4,
       "requires": [],
       "closure": [
@@ -1718,7 +1718,7 @@
     },
     "mark.rect": {
       "file": "blocks/mark.rect.js",
-      "bytes": 4568,
+      "bytes": 4580,
       "version": 17,
       "requires": [],
       "closure": [
@@ -1813,7 +1813,7 @@
     },
     "mark.rule": {
       "file": "blocks/mark.rule.js",
-      "bytes": 3867,
+      "bytes": 3880,
       "version": 12,
       "requires": [],
       "closure": [
@@ -1893,7 +1893,7 @@
     },
     "mark.sankey": {
       "file": "blocks/mark.sankey.js",
-      "bytes": 6712,
+      "bytes": 6727,
       "version": 7,
       "requires": [],
       "closure": [
@@ -1949,7 +1949,7 @@
     },
     "mark.text": {
       "file": "blocks/mark.text.js",
-      "bytes": 5396,
+      "bytes": 5411,
       "version": 14,
       "requires": [],
       "closure": [
@@ -2098,7 +2098,7 @@
     },
     "mark.violin": {
       "file": "blocks/mark.violin.js",
-      "bytes": 3067,
+      "bytes": 3080,
       "version": 4,
       "requires": [],
       "closure": [
@@ -2176,7 +2176,7 @@
     },
     "guide.axis": {
       "file": "blocks/guide.axis.js",
-      "bytes": 11969,
+      "bytes": 11981,
       "version": 20,
       "requires": [],
       "closure": [
@@ -2249,7 +2249,7 @@
     },
     "guide.grid": {
       "file": "blocks/guide.grid.js",
-      "bytes": 574,
+      "bytes": 587,
       "version": 3,
       "requires": [],
       "closure": [
@@ -2269,7 +2269,7 @@
     },
     "guide.kpi": {
       "file": "blocks/guide.kpi.js",
-      "bytes": 5043,
+      "bytes": 5051,
       "version": 10,
       "requires": [],
       "closure": [
@@ -2365,7 +2365,7 @@
     },
     "guide.legend": {
       "file": "blocks/guide.legend.js",
-      "bytes": 6148,
+      "bytes": 6162,
       "version": 16,
       "requires": [],
       "closure": [
@@ -2402,7 +2402,7 @@
     },
     "interaction.animate": {
       "file": "blocks/interaction.animate.js",
-      "bytes": 2495,
+      "bytes": 2507,
       "version": 4,
       "requires": [],
       "closure": [
@@ -2436,7 +2436,7 @@
     },
     "interaction.brush": {
       "file": "blocks/interaction.brush.js",
-      "bytes": 3743,
+      "bytes": 3755,
       "version": 5,
       "requires": [
         "lib.pointer"
@@ -2478,7 +2478,7 @@
     },
     "interaction.crosshair": {
       "file": "blocks/interaction.crosshair.js",
-      "bytes": 2122,
+      "bytes": 2132,
       "version": 6,
       "requires": [
         "lib.pointer"
@@ -2508,7 +2508,7 @@
     },
     "interaction.legend-filter": {
       "file": "blocks/interaction.legend-filter.js",
-      "bytes": 3092,
+      "bytes": 3105,
       "version": 6,
       "requires": [],
       "closure": [
@@ -2532,7 +2532,7 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 11124,
+      "bytes": 11134,
       "version": 23,
       "requires": [
         "lib.pointer"
@@ -2578,7 +2578,7 @@
     },
     "interaction.zoom": {
       "file": "blocks/interaction.zoom.js",
-      "bytes": 2533,
+      "bytes": 2544,
       "version": 7,
       "requires": [
         "lib.pointer",
@@ -2625,7 +2625,7 @@
     },
     "interaction.zoom-controls": {
       "file": "blocks/interaction.zoom-controls.js",
-      "bytes": 2661,
+      "bytes": 2673,
       "version": 6,
       "requires": [
         "lib.view"
@@ -2676,7 +2676,7 @@
     },
     "renderer.canvas": {
       "file": "blocks/renderer.canvas.js",
-      "bytes": 6356,
+      "bytes": 6369,
       "version": 4,
       "requires": [],
       "closure": [
@@ -2686,7 +2686,7 @@
     },
     "renderer.svg": {
       "file": "blocks/renderer.svg.js",
-      "bytes": 3964,
+      "bytes": 3977,
       "version": 6,
       "requires": [],
       "closure": [

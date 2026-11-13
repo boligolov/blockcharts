@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const NS = 'http://www.w3.org/2000/svg';
   let clipSeq = 0;
   let fadeSeq = 0;
@@ -195,4 +195,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

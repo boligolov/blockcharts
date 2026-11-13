@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   /** The fields a transform reads must exist, and the columns it writes must not replace one of the data's own (except
    *  those in `keep`, which the new column stands for) nor each other: a silent overwrite changes what another mark
    *  reads. `reads` and `writes` pair the name of a parameter with the field it names; a read left undefined is not
@@ -29,4 +29,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

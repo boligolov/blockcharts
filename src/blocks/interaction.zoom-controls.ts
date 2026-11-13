@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   type View = {
     current(live: BC.LiveCtx, name: string): [number, number];
     show(live: BC.LiveCtx, name: string, d0: number, d1: number): void;
@@ -145,4 +145,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

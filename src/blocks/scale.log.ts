@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const NICE_COUNT = 6;
   const lg = Math.log10;
 
@@ -134,4 +134,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

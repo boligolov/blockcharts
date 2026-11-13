@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const MAX_DPR = 3;
   const MAX_SIDE = 16384; // browsers refuse or blank canvases beyond about this
   const DEFAULT_FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
@@ -333,4 +333,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

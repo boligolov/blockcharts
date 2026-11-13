@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const UP = 'var(--bc-good, #12a150)';
   const DOWN = 'var(--bc-bad, #e5484d)';
   const WIDTH = 0.7;
@@ -138,4 +138,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

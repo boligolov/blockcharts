@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const DAY = 86400000;
   /** 1970-01-01 was a Thursday. */
   const EPOCH_WEEKDAY = 4;
@@ -70,4 +70,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

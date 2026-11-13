@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   /** Radius per row: the `size` channel when there is one (NaN = no size, not drawn), else the constant `r`. */
   function radii(spec: BC.MarkSpec, ctx: BC.ChartCtx): (i: number) => number {
     if (spec.size !== undefined) {
@@ -265,4 +265,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const r2 = (v: number) => Math.round(v * 100) / 100;
 
   /** Tangents of a monotone cubic through the points (x ascending): the curve never overshoots a point (Fritsch–Carlson). */
@@ -97,4 +97,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

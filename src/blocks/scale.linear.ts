@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const NICE_COUNT = 6;
 
   type Ticks = {
@@ -110,4 +110,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

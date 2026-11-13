@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   /** The spread of sorted numbers for a kernel width: the standard deviation, or the interquartile range / 1.34 when that is
    *  smaller (a long tail or two humps do not widen the kernel); 0 for numbers all alike. */
   function spread(sorted: ArrayLike<number>): number {
@@ -28,4 +28,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const LABEL_SIZE = 12;
   const VALUE_SIZE = 30;
   const DELTA_SIZE = 12;
@@ -291,4 +291,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

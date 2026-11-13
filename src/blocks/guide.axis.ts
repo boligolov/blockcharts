@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const TICK = 5;
   const PAD = 4;
   /** Distance from the axis line to its labels when there are no tick marks: the labels breathe instead. */
@@ -712,4 +712,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

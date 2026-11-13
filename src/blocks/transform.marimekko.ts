@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   function fail(message: string): never {
     throw new Error('transform.marimekko: ' + message);
   }
@@ -97,4 +97,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

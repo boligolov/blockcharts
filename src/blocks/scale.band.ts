@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   function unique(sources: readonly BC.Column[]): unknown[] {
     const seen = new Set<unknown>();
     const out: unknown[] = [];
@@ -89,4 +89,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

@@ -368,8 +368,18 @@ test('skill: rebuilding replaces the package and cannot be pointed at a dangerou
   assert.throws(() => buildSkill(out, { skillDir: path.join(os.tmpdir(), 'no-skill') }), /not found/);
 });
 
+// A test that waits on a promise which never settles, or throws outside its own promise (a timer, setImmediate), ends
+// the process mid-queue without the summary: say which test it was, and fail.
+let running = null;
+process.on('exit', () => {
+  if (running === null) return;
+  console.log(`\nFAIL ${running}: never finished (it threw outside its promise, or waits on one that never settles)`);
+  process.exitCode = 1;
+});
+
 (async () => {
   for (const [name, fn] of queue) {
+    running = name;
     try {
       await fn();
       passed++;
@@ -381,5 +391,6 @@ test('skill: rebuilding replaces the package and cannot be pointed at a dangerou
       process.exitCode = 1;
     }
   }
+  running = null;
   console.log(`\n${passed} of ${passed + failed} passed`);
 })();

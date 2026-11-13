@@ -119,7 +119,7 @@ npm run release          # in the clone: writes release/ (the npm package ships 
 ```
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.1/release/kits/timeseries.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.2/release/kits/timeseries.js"></script>
 
 <script type="application/json" id="bc-data">{ "d": [ { "day": "2024-01-01", "v": 1200 }, { "day": "2024-02-01", "v": 3400 } ] }</script>
 <script type="application/json" data-bc-chart>
@@ -136,8 +136,8 @@ Charts mount themselves on `DOMContentLoaded`. Or call `BC.chart(element, spec)`
 | Kit | Blocks | Contents | Minified (gzip) |
 |---|---|---|---|
 | `basic` | 19 | Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend and tooltip, and fields calculated from the data. | 112 KB (42 KB) |
-| `timeseries` | 29 | Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables and moving averages; also the canvas renderer for very large series. | 140 KB (51 KB) |
-| `composition` | 33 | Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap, aggregation. | 148 KB (54 KB) |
+| `timeseries` | 29 | Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables and moving averages; also the canvas renderer for very large series. | 141 KB (52 KB) |
+| `composition` | 33 | Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap, aggregation. | 149 KB (54 KB) |
 | `dashboard` | 31 | Business dashboards: KPI tiles with sparklines, bars, lines and areas, waterfall, funnel, treemap, bullet and target lines, donut, with axes, grid, legend, tooltip and legend filter. | 149 KB (55 KB) |
 | `full` | 58 | Every block. | 226 KB (81 KB) |
 
@@ -172,7 +172,7 @@ Every kit has a `.d.mts` (and a `.d.ts` for `require`); `blockcharts/bc.d.ts` de
 #### 3. The loader: separate files, fetched on demand
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.1/release/loader.js" data-auto></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.2/release/loader.js" data-auto></script>
 <!-- your data and <script data-bc-chart> specs -->
 ```
 
@@ -180,7 +180,7 @@ The loader reads `manifest.json` next to it, loads the core, asks it which block
 
 ```js
 await BCLoader.load({
-  base: 'https://cdn.jsdelivr.net/npm/blockcharts@0.0.1/release/', // default: the folder of loader.js
+  base: 'https://cdn.jsdelivr.net/npm/blockcharts@0.0.2/release/', // default: the folder of loader.js
   blocks: ['interaction.zoom'],   // extra blocks besides the ones found in the page
   scan: true,                     // find charts on the page (default)
   mount: true,                    // mount them when loaded (default)
@@ -200,10 +200,10 @@ The loader takes the core and the blocks from the folder it came from, so it nee
 `release/manifest.json` lists a `sha384` hash for every file, ready for the `integrity` attribute:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.1/release/kits/basic.js" integrity="sha384-..." crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.2/release/kits/basic.js" integrity="sha384-..." crossorigin="anonymous"></script>
 ```
 
-Always pin an exact version in the CDN path (`@0.0.1`, not `@0` or `@latest`); files of a version never change.
+Always pin an exact version in the CDN path (`@0.0.2`, not `@0` or `@latest`); files of a version never change.
 
 ## Spec anatomy
 

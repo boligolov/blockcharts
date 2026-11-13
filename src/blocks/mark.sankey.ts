@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const TEXT = 'var(--bc-text, #444)';
   const NODE_WIDTH = 12;
   const LABEL_GAP = 6;
@@ -387,4 +387,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

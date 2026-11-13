@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   type Pointer = {
     toLogical(live: BC.LiveCtx, ev: MouseEvent): { x: number; y: number };
     inPlot(live: BC.LiveCtx, p: { x: number; y: number }): boolean;
@@ -138,4 +138,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

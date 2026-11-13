@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   type Check = (block: string, table: BC.Table, reads: [string, unknown][], writes: [string, string][], keep: unknown[]) => void;
   /** The fields it reads must exist and the columns it writes must not replace others: lib.columns, listed in
    *  `requires` so it is on the page. */
@@ -311,4 +311,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

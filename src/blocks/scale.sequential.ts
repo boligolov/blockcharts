@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   // viridis, five stops: perceptually even and readable on light and dark backgrounds
   const DEFAULT_RANGE = ['#440154', '#3b528b', '#21908d', '#5dc863', '#fde725'];
   const NONE = '';
@@ -119,4 +119,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

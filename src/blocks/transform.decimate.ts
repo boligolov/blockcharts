@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const MARGIN = 12; // px around the plot that are kept, as the culling in the core does
   const MAX_BUCKETS = 20000;
 
@@ -231,4 +231,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

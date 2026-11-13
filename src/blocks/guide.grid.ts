@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const def: BC.GuideDef = {
     role: 'guide',
     type: 'grid',
@@ -25,4 +25,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

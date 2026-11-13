@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const r2 = (v: number) => Math.round(v * 100) / 100;
 
   type Through = (px: number[], py: number[], curve: string, back: boolean) => string;
@@ -167,4 +167,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

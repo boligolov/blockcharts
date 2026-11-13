@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const OPS = ['count', 'sum', 'mean', 'min', 'max', 'median', 'distinct'];
   const UNITS = ['year', 'quarter', 'month', 'week', 'day', 'hour'];
   const NEEDS_FIELD = ['sum', 'mean', 'min', 'max', 'median', 'distinct'];
@@ -237,4 +237,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const r2 = (v: number) => Math.round(v * 100) / 100;
 
   interface Shape {
@@ -108,4 +108,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   type Effect = 'grow' | 'wipe' | 'pop' | 'fade';
   /** When each chart began to play in, by its host. A chart built again while it plays (its web font has come, its width
    *  changed) goes on from where it was; one built again after that (a new width, an update) does not play again. */
@@ -118,4 +118,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

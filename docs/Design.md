@@ -1769,6 +1769,21 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   (`package.json` and `VERSION` in the core, which the release build keeps equal). README names CDN files at
   `cdn.jsdelivr.net/npm/blockcharts@0.0.1/release/…`, where jsDelivr serves each file of the package once it is
   published. test-dist found the core's `VERSION` line by its value; it now finds it by its shape.
+- **0.0.2: a page's own `BC` does not break blockcharts.** Found in 0.0.1 right after it was published, by
+  `const BC = require('blockcharts')` typed into `node -e`: "BC is not defined". A `const` at the top of a classic
+  script (or of `node -e`, or of the REPL) is a global binding that is not a property of `globalThis`, and a bare
+  name in any later script means it; every block called the bare `BC` (`BC.define`, and `BC.get`, `BC.formatter`,
+  `BC.time` while drawing), so a page with its own `const BC` broke a kit, the single block files and a report. An
+  element with id="BC" is the other way to have one: a browser shows it as `window.BC`, and the core and the loader
+  took it for a runtime already loaded. Each block's function now takes the runtime as its argument,
+  `(function (BC: BC.Runtime) { … })(globalThis.BC)`, so inside a block `BC` is the runtime whatever the page calls
+  BC (the types still come from the namespace); the core keeps a runtime already loaded only when it is one (a
+  `define` function and a `version` string) and replaces anything else; the loader asks the same before it loads
+  the core. test-dist draws a recipe through a kit, the core with single blocks and a composed report after a
+  `const BC` and beside an element with id="BC", runs the loader in both, and requires the full kit under `node -e`;
+  each case failed on 0.0.1. On 0.0.1 the loader's case ended the test process before its summary (a block threw
+  in the fake browser's setImmediate, and the loader's promise was left pending): every test runner now says which
+  test never finished and fails, instead of stopping without a summary.
 
 ## Next steps
 

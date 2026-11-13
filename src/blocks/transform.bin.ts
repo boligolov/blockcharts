@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const MAX_BINS = 5000;
 
   type Ticks = {
@@ -171,4 +171,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

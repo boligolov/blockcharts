@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   /** A round step, 1, 2 or 5 × 10^n, that cuts `span` into about `count` parts. */
   function niceStep(span: number, count: number): number {
     const raw = span / Math.max(1, count);
@@ -40,4 +40,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

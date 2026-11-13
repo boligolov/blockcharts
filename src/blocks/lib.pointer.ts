@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   type Point = { x: number; y: number };
 
   /** Where a mouse or pointer event is, in the chart's own units (those of `size` and `plot`), however the page scales
@@ -96,4 +96,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

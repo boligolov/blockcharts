@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const r2 = (v: number) => Math.round(v * 100) / 100;
   /** How far from the line (px) the pointer may be and still pick it. */
   const REACH = 14;
@@ -256,4 +256,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

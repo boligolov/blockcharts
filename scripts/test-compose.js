@@ -1660,8 +1660,18 @@ test('compose: a chart is named for a screen reader by its card, a panel by its 
   assert.deepStrictEqual(tile.diagnostics, [], 'a KPI tile is named by its figure');
 });
 
+// A test that waits on a promise which never settles, or throws outside its own promise (a timer, setImmediate), ends
+// the process mid-queue without the summary: say which test it was, and fail.
+let running = null;
+process.on('exit', () => {
+  if (running === null) return;
+  console.log(`\nFAIL ${running}: never finished (it threw outside its promise, or waits on one that never settles)`);
+  process.exitCode = 1;
+});
+
 (async () => {
   for (const [name, fn] of queue) {
+    running = name;
     try {
       await fn();
       passed++;
@@ -1673,5 +1683,6 @@ test('compose: a chart is named for a screen reader by its card, a panel by its 
       process.exitCode = 1;
     }
   }
+  running = null;
   console.log(`\n${passed} of ${passed + failed} passed`);
 })();

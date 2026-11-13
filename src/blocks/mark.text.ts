@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const TEXT = 'var(--bc-text, #444)';
   const DARK = '#111';
   const LIGHT = '#fff';
@@ -295,4 +295,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

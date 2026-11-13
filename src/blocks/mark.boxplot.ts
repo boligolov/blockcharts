@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   /** The color of each row, shared by render, pick and `color` so that a tooltip shows what is drawn: '' where the
    *  scale hides it. */
   function paint(spec: BC.MarkSpec, ctx: BC.ChartCtx, index: number): (row: number) => string {
@@ -154,4 +154,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const OPS = ['+', '-', '*', '/'];
 
   function fail(message: string): never {
@@ -54,4 +54,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

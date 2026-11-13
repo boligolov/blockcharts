@@ -88,7 +88,9 @@
     const release = await manifest(base);
     const sri = (h: string | undefined) => (o.integrity && h ? h : undefined);
 
-    if (!g.BC) {
+    // a core already loaded, not merely something called BC: an element with id="BC" is window.BC in a browser
+    const prior = g.BC;
+    if (!(prior && typeof prior.define === 'function' && typeof prior.version === 'string')) {
       g.BC_CONFIG = Object.assign({}, g.BC_CONFIG, { autoMount: false });
       await script(join(base, release.core.file), sri(release.core.sha384));
     }

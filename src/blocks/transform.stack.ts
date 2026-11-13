@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   function outputNames(spec: BC.TransformSpec): [string, string] {
     const field = typeof spec.field === 'string' ? spec.field : 'value';
     const as = spec.as;
@@ -115,4 +115,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

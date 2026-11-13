@@ -409,8 +409,18 @@ test('csv on the command line: page.json and its CSV files together, and clear f
   assert.match(bad.stderr, /data "sales": row on line 2 has 3 fields, the header has 2/);
 });
 
+// A test that waits on a promise which never settles, or throws outside its own promise (a timer, setImmediate), ends
+// the process mid-queue without the summary: say which test it was, and fail.
+let running = null;
+process.on('exit', () => {
+  if (running === null) return;
+  console.log(`\nFAIL ${running}: never finished (it threw outside its promise, or waits on one that never settles)`);
+  process.exitCode = 1;
+});
+
 (async () => {
   for (const [name, fn] of queue) {
+    running = name;
     try {
       await fn();
       passed++;
@@ -422,5 +432,6 @@ test('csv on the command line: page.json and its CSV files together, and clear f
       process.exitCode = 1;
     }
   }
+  running = null;
   console.log(`\n${passed} of ${passed + failed} passed`);
 })();

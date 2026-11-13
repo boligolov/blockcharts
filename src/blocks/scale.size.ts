@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const DEFAULT_RANGE = [2, 24];
 
   type Ticks = {
@@ -104,4 +104,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

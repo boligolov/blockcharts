@@ -149,6 +149,81 @@ test('kit: require() returns BC, a browser with an element called "module" is no
   }
 });
 
+// A page's own BC: a `const BC` in an earlier classic script (or typed into node -e / the REPL) is a global binding that a
+// bare `BC` in a later script means instead of globalThis.BC; an element with id="BC" is window.BC in a browser.
+test('a page with a BC of its own (an earlier const BC, an element with id="BC") still draws: kits, single files, reports', async () => {
+  const { runPage } = require('./run-page.js');
+  const r = compose({ ...recipe('bar.json'), distDir, baseDir: path.join(repo, 'skills/blockcharts/recipes') });
+  const json = [...r.html.matchAll(/<script[^>]*application\/json[^>]*>[\s\S]*?<\/script>/g)].map((m) => m[0]).join('\n');
+  const reportCode = [...r.html.matchAll(/<script(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  const page = (scripts) => json + scripts.map((s) => `<script>${s}</script>`).join('');
+  const kit = read('kits/full.js').toString('utf8');
+  const singles = [read('core.js'), ...r.blocks.map((n) => read(release.blocks[n].file))].map(String);
+  const element = { BC: { tagName: 'DIV', id: 'BC' } };
+  const drawn = async (run) => {
+    assert.strictEqual(run.handles.length, 1);
+    await run.handles[0].ready;
+    assert.deepStrictEqual(Array.from(run.handles[0].diagnostics), []);
+    assert.deepStrictEqual(run.errors, []);
+    return run.handles[0].host.children[0].serialize();
+  };
+  const want = await drawn(runPage(r.html));
+  assert(want.length > 500, 'the report draws');
+  const cases = {
+    'a kit after const BC': () => runPage(page(['const BC = 1;', kit])),
+    'the core and single blocks after const BC': () => runPage(page(['const BC = 1;', ...singles])),
+    'a report after const BC': () => runPage(page(['const BC = 1;', ...reportCode])),
+    'a kit with an element id="BC"': () => runPage(page([kit]), undefined, element),
+    'single files with an element id="BC"': () => runPage(page(singles), undefined, element),
+    'a report with an element id="BC"': () => runPage(r.html, undefined, element),
+  };
+  for (const [name, run] of Object.entries(cases)) {
+    let got;
+    try {
+      got = await drawn(run());
+    } catch (e) {
+      assert.fail(`${name}: ${e.message}`);
+    }
+    assert.strictEqual(got, want, name);
+  }
+
+  // node -e and the REPL keep a top-level const in the global scope, like a classic script
+  const file = path.join(out, 'kits', 'full.js');
+  const node = spawnSync(process.execPath, ['-e', `const BC = require(${JSON.stringify(file)}); console.log(BC.blocks().length)`], {
+    encoding: 'utf8',
+  });
+  assert.strictEqual(node.status, 0, 'node -e: ' + node.stderr.split('\n').find((l) => /Error/.test(l)));
+  assert.strictEqual(node.stdout.trim(), String(release.kits.full.blocks.length));
+});
+
+test('loader: a page with a BC of its own (an earlier const BC, an element with id="BC") still gets the core and draws', async () => {
+  // a loader that never settles fails here, with the case named, and the tests after it still run
+  const within = async (ms, promise, what) => {
+    let timer;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise((_, no) => (timer = setTimeout(() => no(new Error(`${what}: not settled in ${ms} ms`)), ms))),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  for (const [name, before] of [
+    ['const BC', (b) => vm.runInContext('const BC = 1;', b.sandbox)],
+    ['element id="BC"', (b) => (b.sandbox.BC = { tagName: 'DIV', id: 'BC' })],
+  ]) {
+    const b = browser({ auto: true, charts: [oneChart], data: oneData });
+    before(b);
+    b.run();
+    const BC = await within(5000, b.sandbox.BCLoader.ready, name);
+    assert.strictEqual(typeof BC.chart, 'function', name);
+    assert.strictEqual(b.log.scripts[0].url, b.base + 'core.js', name + ': the core is loaded');
+    assert.strictEqual(countTags(b.body, 'svg'), 1, name + ': the chart is drawn');
+    assert(!b.log.errors, name + ': ' + JSON.stringify(b.log.errors));
+  }
+});
+
 test('kit: a page kit holds exactly what one page uses, and that page validates on it', () => {
   const k = release.kits.bar;
   assert.deepStrictEqual(k.blocks, compose({ ...recipe('bar.json'), distDir }).blocks);
@@ -673,8 +748,18 @@ test('site: wrangler.jsonc at the root deploys site/dist and serves 404.html, an
   }
 });
 
+// A test that waits on a promise which never settles, or throws outside its own promise (a timer, setImmediate), ends
+// the process mid-queue without the summary: say which test it was, and fail.
+let running = null;
+process.on('exit', () => {
+  if (running === null) return;
+  console.log(`\nFAIL ${running}: never finished (it threw outside its promise, or waits on one that never settles)`);
+  process.exitCode = 1;
+});
+
 (async () => {
   for (const [name, fn] of queue) {
+    running = name;
     try {
       await fn();
       passed++;
@@ -686,5 +771,6 @@ test('site: wrangler.jsonc at the root deploys site/dist and serves 404.html, an
       process.exitCode = 1;
     }
   }
+  running = null;
   console.log(`\n${passed} of ${passed + failed} passed`);
 })();

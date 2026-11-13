@@ -5,11 +5,15 @@
   // only a page with encoded data needs. They come first: the minifier inlines a constant only up to the first early return.
   const CHECKS = true;
   const DECODE = true;
-  const VERSION = '0.0.1';
+  const VERSION = '0.0.2';
   const g = globalThis as any;
 
-  if (g.BC) {
-    if (g.BC.version !== VERSION) console.warn(`blockcharts core ${VERSION} ignored: ${g.BC.version} is already loaded`);
+  // A runtime already here is kept. Anything else called BC is not one, and is replaced below (g.BC = runtime): an element
+  // with id="BC", which a browser also shows as window.BC, or a page's own variable. The blocks reach the runtime through
+  // globalThis.BC too (the argument of each block's function), never through a page's own binding of the name.
+  const prior = g.BC;
+  if (prior && typeof prior.define === 'function' && typeof prior.version === 'string') {
+    if (prior.version !== VERSION) console.warn(`blockcharts core ${VERSION} ignored: ${prior.version} is already loaded`);
     return;
   }
 

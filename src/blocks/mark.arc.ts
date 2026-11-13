@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const TAU = Math.PI * 2;
   const TEXT = 'var(--bc-text, #444)';
   const VALUE = 'var(--bc-kpi, var(--bc-text, #111))';
@@ -281,4 +281,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

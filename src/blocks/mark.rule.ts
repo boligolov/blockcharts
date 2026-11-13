@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const r2 = (v: number) => Math.round(v * 100) / 100;
 
   /** The segment a row draws, in px, or null. A channel on a band scale spans (a share of) the band, or is the middle
@@ -232,4 +232,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

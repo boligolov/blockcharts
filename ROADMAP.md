@@ -91,10 +91,12 @@ Found along the way:
       build. The site names npm and the CDN again (`npm install blockcharts` on the landing page's "One script tag"
       card, jsDelivr addresses in the HTML of the example pages, the kit and loader demos and the guide).
 - [ ] When the release is no longer an alpha, the badge beside the name in the header goes (`.stage` in Base.astro).
-- [ ] Found after the release: a page script that declares a global `BC` of its own (`const BC = require('blockcharts')`
-      typed into the Node REPL or `node -e`, or `const BC = ...` in a classic `<script>`) breaks a kit — its blocks
-      call the bare name `BC`, which then means that binding, not `globalThis.BC` ("BC is not defined", or
-      "BC.define is not a function"). In a module or a CommonJS file it works. A fix is a new library version.
+- [x] **0.0.2** (2026-11-13), for what 0.0.1 got wrong: a page with a `BC` of its own broke the kits and the single
+      block files. A `const BC` in an earlier classic script (also `const BC = require('blockcharts')` typed into
+      `node -e` or the REPL) is what a bare `BC` in a later script means, so the blocks called it ("BC is not
+      defined"); an element with id="BC" is window.BC, which the core and the loader took for a runtime already
+      loaded. Every block now gets the runtime as its argument, from `globalThis.BC`, and the core and the loader
+      recognize a runtime by what it is. test-dist draws a recipe through every way in with both kinds of `BC`.
 - [ ] **Submit the plugin to Anthropic's directory** (see [docs/development.md](docs/development.md#listing-the-plugin-in-claudes-directory)).
       The owner's step, after the repository is public.
 

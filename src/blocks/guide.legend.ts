@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const SWATCH = 10;
   const GAP = 6;
   const PAD = 8;
@@ -426,4 +426,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

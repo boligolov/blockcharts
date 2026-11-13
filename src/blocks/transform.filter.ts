@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const OPS = ['==', '!=', '<', '<=', '>', '>=', 'in', 'notIn', 'valid'];
   const ISO = /^\d{4}-\d{2}(-\d{2})?([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 
@@ -93,4 +93,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

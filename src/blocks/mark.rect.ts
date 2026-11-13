@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   interface Dodge {
     col: BC.Column;
     order: Map<unknown, number>;
@@ -255,4 +255,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

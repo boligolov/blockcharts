@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   type Pair = [number, number];
 
   /** Values of a continuous scale as numbers that are even on the screen, read off the scale's own mapping: how far along
@@ -72,4 +72,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

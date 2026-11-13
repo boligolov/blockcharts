@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const ATTR_SCALE = 'bc-legend-scale';
   const ATTR_INDEX = 'bc-legend-index';
   const CLASS = 'bc-legend-filter';
@@ -147,4 +147,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

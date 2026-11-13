@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const OFFSET = 12;
   /** The narrowest a card is made, however little of the chart is seen. */
   const MIN_CARD = 120;
@@ -583,4 +583,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

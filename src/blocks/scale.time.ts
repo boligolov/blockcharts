@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const S = 1000;
   const M = 60 * S;
   const H = 60 * M;
@@ -260,4 +260,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   /** Linear-interpolation quantile (the common "R-7" method: matches Excel's QUARTILE.INC / numpy's default). */
   function quantile(sorted: number[], p: number): number {
     const m = sorted.length;
@@ -155,4 +155,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   function fail(message: string): never {
     throw new Error('transform.sort: ' + message);
   }
@@ -74,4 +74,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

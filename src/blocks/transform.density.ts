@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const STEPS = 80;
   const MAX_STEPS = 1000;
   const SQRT2PI = Math.sqrt(2 * Math.PI);
@@ -167,4 +167,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);

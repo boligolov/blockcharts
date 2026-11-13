@@ -1,4 +1,4 @@
-(function () {
+(function (BC: BC.Runtime) {
   const OPS = ['cumsum', 'sum', 'mean', 'min', 'max', 'diff', 'pctChange', 'total', 'share', 'rank'];
   const WINDOWED = ['sum', 'mean', 'min', 'max'];
 
@@ -233,4 +233,4 @@
   };
 
   BC.define(def);
-})();
+})((globalThis as any).BC);
