@@ -31,12 +31,11 @@ chart for its reader and `how` for the agent (the recipes' notes written from th
 E7, the trigger description leaves out charts in an app's own code and says a table of figures is a heatmap with
 numbers (SKILL.md tells what to do with a table request; the heatmap recipe writes its figures); F1, the sizes and
 counts of README and the principles written by the build (`scripts/build-docs.js`, checked by test-dist); F2, the
-link preview made again (24 of 58 blocks, 111.4 KB); F3, the site says charts can be drawn on a canvas.
+link preview made again (24 of 58 blocks, 111.4 KB); F3, the site says charts can be drawn on a canvas; F4, a table of the site is a list of rows on a phone (check-site
+fails on one that is not).
 
 Left, in this order:
 
-- [ ] **F4** /blocks/ parameter tables cut the doc column on a phone (16 of 63 tables), also the /guide/ kit table and
-      /embed/data/: stack the rows below about 600 px.
 - [ ] **F6** "48 KB smallest report" (Stats.astro) vs 39.5 KB in the gallery; "everything" is 179.6 / 182.5 / 183 KB.
 - [ ] **F7** /embed/kit/ inline code widens the page to 526 px on a phone (site-demos.js).
 - [ ] **F8** Install.astro "updates itself"; principles v1.0 vs 1.1 (README, Principles.astro); the compose path in

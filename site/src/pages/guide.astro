@@ -75,17 +75,17 @@ const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha38
 
   <h2 id="files">Files, kits and sizes</h2>
   <p><code>npm run release</code> writes the files below. Everything is minified.</p>
-  <table>
+  <table class="stack">
     <thead><tr><th>Kit</th><th>Blocks</th><th>Size</th><th>gzip</th><th>For</th></tr></thead>
     <tbody>
-      {kits.map(([name, k]) => <tr><td><code>{name}</code></td><td>{k.blocks.length}</td><td>{kb(k.js.bytes)}</td><td>{kb(k.js.gzip)}</td><td>{k.doc}</td></tr>)}
+      {kits.map(([name, k]) => <tr><td><code>{name}</code></td><td data-label="blocks">{k.blocks.length}</td><td data-label="size">{kb(k.js.bytes)}</td><td data-label="gzip">{kb(k.js.gzip)}</td><td class="doc">{k.doc}</td></tr>)}
     </tbody>
   </table>
-  <table>
+  <table class="stack">
     <thead><tr><th>File</th><th>Size</th><th>gzip</th></tr></thead>
     <tbody>
-      <tr><td><code>core.js</code></td><td>{kb(release.core.bytes)}</td><td>{kb(release.core.gzip)}</td></tr>
-      <tr><td><code>loader.js</code></td><td>{kb(release.loader.bytes)}</td><td>{kb(release.loader.gzip)}</td></tr>
+      <tr><td><code>core.js</code></td><td data-label="size">{kb(release.core.bytes)}</td><td data-label="gzip">{kb(release.core.gzip)}</td></tr>
+      <tr><td><code>loader.js</code></td><td data-label="size">{kb(release.loader.bytes)}</td><td data-label="gzip">{kb(release.loader.gzip)}</td></tr>
     </tbody>
   </table>
   <p>

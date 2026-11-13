@@ -383,9 +383,9 @@ ${forms.map(([label, ,], i) => `  <div class="demo"><p class="muted" style="marg
         h: 'Four datasets, one result',
         p: 'All four charts below read a dataset of 2000 rows. Datasets that are encoded are decoded in the background; a chart shows a placeholder until its data is ready, and reports a clear error (naming the column) if the data is broken.',
         htmlLiveOnly: dataHtml,
-        extraAfter: `<table><thead><tr><th>Form</th><th>Size in the page</th><th>What it is</th></tr></thead><tbody>
-${forms.map(([label, value, what]) => `<tr><td>${label}</td><td>${kb(size(value))}</td><td>${what}</td></tr>`).join('\n')}
-<tr><td>Binary, v as float32</td><td>${kb(size(binary32))}</td><td>Halves the values that are not integers, keeps about 7 digits. Only when you ask for it.</td></tr>
+        extraAfter: `<table class="stack"><thead><tr><th>Form</th><th>Size in the page</th><th>What it is</th></tr></thead><tbody>
+${forms.map(([label, value, what]) => `<tr><td>${label}</td><td data-label="in the page">${kb(size(value))}</td><td class="doc">${what}</td></tr>`).join('\n')}
+<tr><td>Binary, v as float32</td><td data-label="in the page">${kb(size(binary32))}</td><td class="doc">Halves the values that are not integers, keeps about 7 digits. Only when you ask for it.</td></tr>
 </tbody></table>`,
       },
       {

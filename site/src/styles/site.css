@@ -1163,6 +1163,51 @@ th {
   font-weight: 600;
   white-space: nowrap;
 }
+/* a table of names and their docs (parameters, kits, data forms): on a phone each row is a short line of its name and
+   figures, a cell that says what it is named by its data-label, and the doc under it at full width */
+@media (max-width: 600px) {
+  table.stack {
+    display: block;
+    overflow: visible;
+  }
+  table.stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  table.stack tbody {
+    display: block;
+  }
+  table.stack tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  table.stack td {
+    display: block;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  table.stack td:empty {
+    display: none;
+  }
+  table.stack td[data-label]::before {
+    content: attr(data-label) ' ';
+    color: var(--muted);
+  }
+  table.stack td.doc {
+    flex: 1 0 100%;
+    margin-top: 2px;
+  }
+}
 .demo {
   border: 1px solid var(--line);
   border-radius: 12px;

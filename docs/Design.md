@@ -1664,6 +1664,15 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   links away. The guide now says SVG is the default, an element per mark, and that `"renderer": "canvas"` draws the
   same spec on one canvas for tens of thousands of points, linking the demo; the themes page says colors come from CSS
   variables on both.
+- **A table of the site is a list on a phone.** Tables scroll sideways in their own box, so on a phone 16 of the 63
+  tables of parameters and channels on /blocks/ hid up to 136 px of their last column, the doc, which is what a reader
+  came for; the kits of /guide/ and the data forms of /embed/data/ hid their last column too. Below 600 px a table of
+  class `stack` lays each row out as a line of its name and figures, a figure named by its cell's `data-label`
+  ("default", "scales", "gzip") and an empty cell left out, with the doc under it at full width; the header stays for
+  a screen reader. At 360 px the table of what each block weighs hid 24 px of its gzip column, as `interaction.crosshair`
+  kept the column of names at 182 px: a name may now break after its role. check-site fails on a table of the site
+  that is neither `stack` nor `sizes` (which folds its doc under the name); in Chrome at 360 and 390 px no table of
+  the 62 pages scrolls.
 
 ## Next steps
 

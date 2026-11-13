@@ -24,6 +24,11 @@ const scalesOf = (d) =>
   d.unscaled ? 'a plain field' : d.accepts ? `${scalesFitting(d.accepts, manifest).join(', ')} (one that ${scaleWords(d.accepts.output, d.accepts.input)})` : 'any';
 const total = Object.keys(manifest.blocks).length;
 const k = (n) => (n / 1024).toFixed(1);
+// a name may break after its role ("interaction." / "crosshair"), so the column of names fits a phone with the sizes beside it
+const parts = (name) => {
+  const i = name.indexOf('.');
+  return i < 0 ? [name, ''] : [name.slice(0, i + 1), name.slice(i + 1)];
+};
 ---
 <Base title="Chart blocks: parameters, channels and sizes" nav="blocks" version={release.version} description="Every blockcharts block (scales, transforms, marks, axes, legends, interactions, renderers) with its parameters, channels and size in KB, minified and gzipped.">
   <h1>Blocks</h1>
@@ -38,7 +43,7 @@ const k = (n) => (n / 1024).toFixed(1);
     <thead><tr><th>Core</th><th class="what">When</th><th class="n">Source</th><th class="n">Minified</th><th class="n">gzip</th></tr></thead>
     <tbody>
       {sizes.core.map((c) => (
-        <tr><td><code>{c.name}</code><div class="sum">{coreUse[c.name]}</div></td><td class="what">{coreUse[c.name]}</td><td class="n num">{k(c.source)}</td><td class="n num"><b>{k(c.min)}</b></td><td class="n num">{k(c.gzip)}</td></tr>
+        <tr><td><code>{parts(c.name)[0]}<wbr />{parts(c.name)[1]}</code><div class="sum">{coreUse[c.name]}</div></td><td class="what">{coreUse[c.name]}</td><td class="n num">{k(c.source)}</td><td class="n num"><b>{k(c.min)}</b></td><td class="n num">{k(c.gzip)}</td></tr>
       ))}
     </tbody>
   </table></div>
@@ -52,7 +57,7 @@ const k = (n) => (n / 1024).toFixed(1);
           <tr class="group"><th colspan="5"><a href={`#${role}`}>{role}</a></th></tr>
           {sizes.blocks.filter((b) => b.role === role).map((b) => (
             <tr>
-              <td><a href={`#${b.name}`}><code>{b.name}</code></a><div class="sum">{summary[b.name]}</div></td>
+              <td><a href={`#${b.name}`}><code>{parts(b.name)[0]}<wbr />{parts(b.name)[1]}</code></a><div class="sum">{summary[b.name]}</div></td>
               <td class="what">{summary[b.name]}{b.requires.length > 0 && <span class="muted"> Needs {b.requires.join(', ')}.</span>}</td>
               <td class="n num">{k(b.source)}</td><td class="n num"><b>{k(b.min)}</b></td><td class="n num">{k(b.gzip)}</td>
             </tr>
@@ -82,25 +87,25 @@ const k = (n) => (n / 1024).toFixed(1);
               {b.requires.length > 0 && <span class="pill">needs {b.requires.join(', ')}</span>}
             </p>
             {params.length > 0 && (
-              <table>
-                <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th></th></tr></thead>
+              <table class="stack">
+                <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th><span class="sr">What it does</span></th></tr></thead>
                 <tbody>
                   {params.map(([p, d]) => (
                     <tr>
                       <td><code>{p}</code></td>
                       <td>{kind(d)}{d.required && <> <b>required</b></>}</td>
-                      <td>{d.default !== undefined && <code>{JSON.stringify(d.default)}</code>}</td>
-                      <td>{d.doc}</td>
+                      <td data-label="default">{d.default !== undefined && <code>{JSON.stringify(d.default)}</code>}</td>
+                      <td class="doc">{d.doc}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
             {channels.length > 0 && (
-              <table>
-                <thead><tr><th>Channel</th><th></th><th>Scales</th><th></th></tr></thead>
+              <table class="stack">
+                <thead><tr><th>Channel</th><th><span class="sr">Required</span></th><th>Scales</th><th><span class="sr">What it does</span></th></tr></thead>
                 <tbody>
-                  {channels.map(([c, d]) => <tr><td><code>{c}</code></td><td>{d.required ? <b>required</b> : 'optional'}</td><td>{scalesOf(d)}</td><td>{d.doc}</td></tr>)}
+                  {channels.map(([c, d]) => <tr><td><code>{c}</code></td><td>{d.required ? <b>required</b> : 'optional'}</td><td data-label="scales">{scalesOf(d)}</td><td class="doc">{d.doc}</td></tr>)}
                 </tbody>
               </table>
             )}

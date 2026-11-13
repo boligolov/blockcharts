@@ -1,7 +1,7 @@
 // Checks the built site (site/dist) without a browser: every link and script points at a file that exists, every #anchor exists,
 // every chart spec on every page is valid against the data on that page, checked by the real core with the real kit, and
 // every page has what search engines and link previews read (title, description, canonical, image, sitemap), and its text reads
-// at 4.5:1 in both themes (the tokens of site.css, the colors of highlighted code).
+// at 4.5:1 in both themes (the tokens of site.css, the colors of highlighted code), and its tables lay out on a phone.
 //   node scripts/check-site.js [siteDir]      (default site/dist; SITE_BASE as when it was built)
 const fs = require('fs');
 const path = require('path');
@@ -127,6 +127,17 @@ function checkReading(rel, text) {
   }
   return problems;
 }
+/** A table of the site lays out on a phone: `stack` (a row is a line of its name and figures, the doc under it) or `sizes`
+ *  (the "what it does" column folds under the name). A plain table scrolls sideways and hides its last column there. */
+function checkTables(rel, text) {
+  const problems = [];
+  for (const m of withoutScripts(text).matchAll(/<table\b[^>]*>/g)) {
+    const cls = (attr1(m[0], 'class') || '').split(/\s+/);
+    if (!cls.includes('stack') && !cls.includes('sizes'))
+      problems.push(`${rel}: a table with no layout for a phone (class "stack" or "sizes")`);
+  }
+  return problems;
+}
 const attr1 = (tag, name) => {
   const m = tag.match(new RegExp(`\\b${name}="([^"]*)"`));
   return m ? unescapeHtml(m[1]) : null;
@@ -214,7 +225,7 @@ async function checkSite(siteDir, options) {
     const h1 = (text.match(/<h1[\s>]/g) || []).length;
     if (h1 !== 1) problems.push(`${rel}: ${h1} h1 headings`);
     for (const m of text.matchAll(/<img\b[^>]*>/g)) if (!/\balt="/.test(m[0])) problems.push(`${rel}: an image without alt`);
-    problems.push(...checkReading(rel, text));
+    problems.push(...checkReading(rel, text), ...checkTables(rel, text));
   };
 
   // the blocks page says, for each channel, which scales it accepts: they are worked out from what the scales declare (the
@@ -233,7 +244,7 @@ async function checkSite(siteDir, options) {
         checked++;
         const list = scalesFitting(c.accepts, manifest).join(', ');
         const row = new RegExp(
-          `<td><code>${ch}</code></td><td>(?:<b>required</b>|optional)</td><td>${list.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\(one that`,
+          `<td><code>${ch}</code></td><td>(?:<b>required</b>|optional)</td><td[^>]*>${list.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\(one that`,
         );
         const start = page.indexOf(`<div class="block" id="${name}"`);
         const next = page.indexOf('<div class="block"', start + 1);
