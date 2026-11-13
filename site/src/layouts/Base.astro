@@ -103,7 +103,7 @@ const jsonLd = landing
     <a class="skip" href="#content">Skip to content</a>
     <header class="site">
       <div class="wrap">
-        <a class="brand" href={base}><Logo /> blockcharts</a>
+        <a class="brand" href={base}><Logo /> blockcharts <span class="stage">alpha</span></a>
         <nav aria-label="Main">
           {links.map(([label, href, key]) => <a href={base + href} aria-current={key === nav ? 'page' : undefined}>{label}</a>)}
           <a href={REPO}>GitHub</a>

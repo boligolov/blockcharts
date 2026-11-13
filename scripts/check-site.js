@@ -138,10 +138,23 @@ function checkTables(rel, text) {
   }
   return problems;
 }
-/** blockcharts has no CDN yet (ROADMAP, F5): no page names one or shows an address on one. When there is one, the site
- *  says so, and this check goes. */
-function checkNoCdn(rel, text) {
-  return /\bcdn\b/i.test(withoutScripts(text)) ? [`${rel}: names a CDN, which blockcharts does not have yet (ROADMAP, F5)`] : [];
+/** What blockcharts does not have yet (ROADMAP): no page names a CDN, installs the package from npm, which is not
+ *  published, or installs the plugin from its marketplace, which is to be tried first. When one is there, the site
+ *  announces it, and its line here goes. */
+const NOT_YET = [
+  [/\bcdn\b/i, 'names a CDN, which blockcharts does not have yet (ROADMAP, Release)'],
+  [
+    /\bnpm (?:install|i|add)\s+blockcharts\b|\bfrom npm\b/i,
+    'installs blockcharts from npm, where it is not published yet (ROADMAP, Release)',
+  ],
+  [
+    /\/plugin (?:install|marketplace)\b|\bclaude plugin (?:install|marketplace)\b/,
+    'installs the plugin, whose install is not tried yet (ROADMAP)',
+  ],
+];
+function checkNotYet(rel, text) {
+  const html = withoutScripts(text);
+  return NOT_YET.filter(([re]) => re.test(html)).map(([, what]) => `${rel}: ${what}`);
 }
 /** The Cloudflare configuration at the root, where the build runs and `npx wrangler deploy` looks for it: it deploys
  *  site/dist, what npm run site makes, and serves 404.html with the status 404 for an address the site does not have. */
@@ -260,7 +273,7 @@ async function checkSite(siteDir, options) {
     const h1 = (text.match(/<h1[\s>]/g) || []).length;
     if (h1 !== 1) problems.push(`${rel}: ${h1} h1 headings`);
     for (const m of text.matchAll(/<img\b[^>]*>/g)) if (!/\balt="/.test(m[0])) problems.push(`${rel}: an image without alt`);
-    problems.push(...checkReading(rel, text), ...checkTables(rel, text), ...checkNoCdn(rel, text));
+    problems.push(...checkReading(rel, text), ...checkTables(rel, text), ...checkNotYet(rel, text));
   };
 
   // the blocks page says, for each channel, which scales it accepts: they are worked out from what the scales declare (the

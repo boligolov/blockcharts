@@ -11,7 +11,8 @@ const ways = [
     title: 'Agent skill',
     for_: 'For anyone who asks Claude for reports',
     body: 'Claude writes the JSON, the bundled composer checks it and writes the file. Nothing to learn but what you want to see.',
-    code: '/plugin install blockcharts@blockcharts', lang: 'shellscript',
+    // what you ask once it is installed; the plugin's /plugin install comes back with the Claude Code tab (ROADMAP)
+    code: 'make a report of revenue by region from sales.csv', lang: 'plaintext',
     href: '#install', more: 'Install it', featured: true,
   },
   {
@@ -24,8 +25,8 @@ const ways = [
   {
     title: 'One script tag',
     for_: 'For your own pages and apps',
-    body: `A kit is the core and a set of blocks in one file, from npm or served by your own site — ${kb(basicGzip)} gzipped for bars, lines and areas. Charts are JSON in the HTML.`,
-    code: `npm install blockcharts`, lang: 'shellscript',
+    body: `A kit is the core and a set of blocks in one file, served by your own site — ${kb(basicGzip)} gzipped for bars, lines and areas. Charts are JSON in the HTML.`,
+    code: scriptTag(`.../${version}/kits/basic.js`), lang: 'html',
     href: `${base}embed/kit/`, more: 'Try a kit',
   },
   {

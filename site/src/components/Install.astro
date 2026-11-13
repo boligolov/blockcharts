@@ -1,15 +1,17 @@
 ---
-// Installing the skill: the main product, three ways in. Every command block can be copied; the /plugin lines are
+// Installing the skill: the main product, a tab for each way in. Every command block can be copied; the /plugin lines are
 // typed into a Claude Code session by a person, the shell forms can be run by an agent too.
 import { baseUrl, repoFile, SITE } from '../lib/site.mjs';
 
 const base = baseUrl(import.meta.env.BASE_URL);
 /** `copy` names what the copy button copies, for a screen reader: "Copy the commands for …". */
 type Block = { label?: string; copy: string; lines: string[] };
-type Way = { id: string; tab: string; note: string; blocks?: Block[]; download?: boolean; after?: string };
-const ways: Way[] = [
+/** `later`: a way the site does not show yet (ROADMAP: the plugin's install is to be tried first). */
+type Way = { id: string; tab: string; note: string; blocks?: Block[]; download?: boolean; after?: string; later?: boolean };
+const all: Way[] = [
   {
     id: 'code',
+    later: true,
     tab: 'Claude Code',
     note: 'A plugin from this project’s own marketplace. To get new versions by themselves, turn on auto-update for it in /plugin → Marketplaces; or update it when you like with claude plugin update blockcharts@blockcharts.',
     blocks: [
@@ -33,6 +35,7 @@ const ways: Way[] = [
     ],
   },
 ];
+const ways = all.filter((w) => !w.later);
 ---
 <div class="install">
   <div role="tablist" aria-label="Where to install the skill">

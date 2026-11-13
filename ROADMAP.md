@@ -40,8 +40,8 @@ small things (how the plugin updates, the principles' version read from their fi
 Left, in this order:
 
 - F5 (`npm install blockcharts` is a 404, blockcharts.online does not resolve, no CDN) waits for the release below:
-  publishing and deploying are the owner's step. The site names no CDN until there is one (check-site fails on a page
-  that does); when it is up, the site announces it and that check goes.
+  publishing and deploying are the owner's step. Until then the site names no CDN and does not install the package
+  from npm, and says it is an alpha (check-site fails on a page that names either; `NOT_YET` in check-site.js).
 
 Found along the way:
 
@@ -77,14 +77,21 @@ Found along the way:
 ## The repository and the site
 
 - [ ] **Try the plugin install from the marketplace** (`/plugin marketplace add boligolov/blockcharts`, then
-      `/plugin install blockcharts@blockcharts`) in a fresh Claude Code session, now that `main` is pushed.
+      `/plugin install blockcharts@blockcharts`) in a fresh Claude Code session, now that `main` is pushed. Then give
+      the site back its Claude Code tab of the install section (`later: true` in site/src/components/Install.astro)
+      and the `/plugin install` line on the skill's card (WaysIn.astro), and drop their line of `NOT_YET` in
+      scripts/check-site.js.
 - [ ] **Deploy the site** to blockcharts.online (Cloudflare, see [site/README.md](site/README.md#deploy)), after
       `npm run og` (the link preview shows the hero's sizes), so that
       `blockcharts.online/blockcharts.skill` — the download the README and docs link to — exists.
 
 ## Release
 
-- [ ] **`npm publish`** of 0.1.0, then check the kits through unpkg and jsDelivr.
+- [ ] **`npm publish`** of 0.1.0, then check the kits through unpkg and jsDelivr. Then give the site back what waits for
+      it, each with its line of `NOT_YET` in scripts/check-site.js: `npm install blockcharts` on the landing page's "One
+      script tag" card (site/src/components/WaysIn.astro; its text says "from npm or served by your own site"), and
+      the CDN, announced, with its addresses in the HTML of the example pages and of the kit and loader demos. When the
+      release is no longer an alpha, the badge beside the name in the header goes (`.stage` in Base.astro).
 - [ ] **Submit the plugin to Anthropic's directory** (see [docs/development.md](docs/development.md#listing-the-plugin-in-claudes-directory)).
       The owner's step, after the repository is public.
 

@@ -1723,6 +1723,14 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   version from the release), the example pages say to put the kit's file there and link the files of a release, and
   the privacy page speaks of the library in your own pages. check-site fails on a page that says "CDN" outside its
   scripts (on the build before, 54 pages did); when there is a CDN, the site announces it and the check goes.
+- **The site says it is an alpha, and offers only what works.** An "alpha" badge stands beside the name in the header.
+  It made the header 54 px wider, so on a phone (up to 440 px) the header is packed tighter (gaps, a 17 px name, 34 px
+  icon buttons), which keeps the "Get the skill" button from 390 px (it needs 384); below, it is in the menu. Until
+  the package is on npm the landing page's "One script tag" card shows the script tag, not `npm install blockcharts`;
+  until the plugin's install from the marketplace is tried, the install section has no Claude Code tab (`later` in
+  Install.astro keeps it) and the skill's card shows what you ask, not `/plugin install`. `NOT_YET` in check-site.js
+  fails on a page that names a CDN, installs from npm or installs the plugin; the ROADMAP items that bring each back
+  say which line goes.
 
 ## Next steps
 

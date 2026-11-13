@@ -245,6 +245,18 @@ header.site .wrap {
   height: 26px;
   flex: none;
 }
+/* the stage of the project, beside its name, until a release says otherwise */
+.brand .stage {
+  margin-left: -3px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
 header.site nav {
   display: flex;
   gap: 22px;
@@ -362,19 +374,34 @@ header.site details.menu nav a[aria-current='page'] {
     display: block;
   }
 }
-@media (max-width: 400px) {
+/* a phone: the header packed tighter, so that the name, its badge and the button fit from 390 px (they need 384) */
+@media (max-width: 440px) {
   header.site .wrap {
-    gap: 12px;
+    gap: 8px;
   }
   .header-actions {
-    gap: 6px;
+    gap: 4px;
+  }
+  .brand {
+    gap: 7px;
+    font-size: 17px;
+  }
+  .brand .stage {
+    margin-left: -2px;
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+  button.theme,
+  header.site details.menu summary {
+    width: 34px;
+    height: 34px;
   }
 }
-/* the menu's own way to the skill, for a screen too narrow for the header's button (the header needs 358 px) */
+/* the menu's own way to the skill, for a screen too narrow for the header's button */
 header.site details.menu nav a.menu-install {
   display: none;
 }
-@media (max-width: 359px) {
+@media (max-width: 389px) {
   .header-actions > .btn-small {
     display: none;
   }
