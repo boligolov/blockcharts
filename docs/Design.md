@@ -1708,6 +1708,15 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   dependencies are listed for what they do. The site has a 404 page (`noindex`, no canonical), which Cloudflare
   serves with the status 404 (`not_found_handling` in wrangler.jsonc); check-site fails without either, and the
   phone check opens it.
+- **The site deploys with Cloudflare's own commands.** The first deploy failed twice. Told to build `site/` alone
+  (Root directory "site", `npm run build`), Cloudflare installed only the site's dependencies and stopped at "Cannot
+  find module 'esbuild'": the site is made from the library, which is built at the root. `site-prebuild.js` now looks
+  first for the root's dependencies and the built library and, without them, says what to run and how to set
+  Cloudflare up; the modules that need esbuild and fflate are loaded after that. Built from the root, the deploy then
+  ran Cloudflare's own `npx wrangler deploy`, which looks for `wrangler.jsonc` where it runs and found none: it stood
+  in `site/`. It stands at the root now (`assets.directory` "./site/dist"), so the default deploy command and the one
+  for other branches (`npx wrangler versions upload`) need no `--config`; check-site reads it (JSONC) and fails when it
+  does not deploy site/dist or does not serve 404.html, and wrangler's dry run reads the 272 files of the site from it.
 
 ## Next steps
 

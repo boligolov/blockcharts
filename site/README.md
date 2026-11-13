@@ -52,9 +52,11 @@ screen, and no table may scroll sideways (a table of the site is `stack` or `siz
 
 ## Deploy
 
-`dist/` is a plain static site. It is meant for Cloudflare Workers (`wrangler.jsonc`): build command
-`npm ci && npm --prefix site ci && npm run site` from the repository root, deploy command
-`npx wrangler deploy --config site/wrangler.jsonc`. Any static host works the same way. The site is made from the
+`dist/` is a plain static site. It is meant for Cloudflare Workers, configured by `wrangler.jsonc` at the repository's
+root, where the build runs: Root directory empty, build command `npm ci && npm --prefix site ci && npm run site`,
+deploy command `npx wrangler deploy` (for a branch that is not production, `npx wrangler versions upload`), which are
+Cloudflare's own and find the configuration there. check-site fails when it does not deploy `site/dist` or does not
+serve `404.html` for an address the site does not have. Any static host works the same way. The site is made from the
 library, so a host told to build `site/` alone (Root directory `site`, build command `npm run build`) stops at the
 first step, `scripts/site-prebuild.js`, which says what is missing and these commands.
 

@@ -27,6 +27,7 @@ site/                   blockcharts.online (Astro, its own package.json); serves
 .claude-plugin/         the Claude Code plugin marketplace (one plugin: the skill)
 .github/workflows/      ci.yml: format check, npm test, the Chrome suite and npm run site on every push and pull request
 kits.json               which blocks each kit contains
+wrangler.jsonc          Cloudflare's configuration for the site (it deploys site/dist; site/README.md, Deploy)
 LICENSE  README.md  ROADMAP.md  package.json  tsconfig.json
 ```
 

@@ -138,6 +138,32 @@ function checkTables(rel, text) {
   }
   return problems;
 }
+/** The Cloudflare configuration at the root, where the build runs and `npx wrangler deploy` looks for it: it deploys
+ *  site/dist, what npm run site makes, and serves 404.html with the status 404 for an address the site does not have. */
+function checkWrangler(file = path.join(repo, 'wrangler.jsonc')) {
+  if (!fs.existsSync(file)) return ['wrangler.jsonc is missing at the root, where Cloudflare deploys from'];
+  let config;
+  try {
+    // JSONC: comments and trailing commas out, strings kept as they are
+    const json = fs
+      .readFileSync(file, 'utf8')
+      .replace(/("(?:[^"\\]|\\.)*")|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (all, str) => str || '')
+      .replace(/("(?:[^"\\]|\\.)*")|,(\s*[}\]])/g, (all, str, close) => str || close);
+    config = JSON.parse(json);
+  } catch (e) {
+    return [`wrangler.jsonc: not JSON with comments (${e.message})`];
+  }
+  const assets = config.assets || {};
+  const problems = [];
+  const root = path.dirname(file);
+  if (typeof assets.directory !== 'string' || path.resolve(root, assets.directory) !== path.join(root, 'site', 'dist'))
+    problems.push(
+      `wrangler.jsonc: assets.directory is ${JSON.stringify(assets.directory)}, not "./site/dist", where npm run site builds the site`,
+    );
+  if (assets.not_found_handling !== '404-page')
+    problems.push('wrangler.jsonc: assets.not_found_handling is not "404-page", so Cloudflare would not serve 404.html');
+  return problems;
+}
 const attr1 = (tag, name) => {
   const m = tag.match(new RegExp(`\\b${name}="([^"]*)"`));
   return m ? unescapeHtml(m[1]) : null;
@@ -261,9 +287,7 @@ async function checkSite(siteDir, options) {
 
   // an address the site does not have gets the site's own page, with links back in, and the host is told to serve it
   if (!textOf.has(path.join(root, '404.html'))) problems.push('404.html is missing');
-  const wrangler = path.join(repo, 'site', 'wrangler.jsonc');
-  if (fs.existsSync(wrangler) && !/"not_found_handling":\s*"404-page"/.test(fs.readFileSync(wrangler, 'utf8')))
-    problems.push('site/wrangler.jsonc: assets.not_found_handling is not "404-page", so Cloudflare would not serve 404.html');
+  problems.push(...checkWrangler());
 
   const kitFile = path.join(root, 'release', 'kits', 'full.js');
   const kit = fs.existsSync(kitFile) ? fs.readFileSync(kitFile, 'utf8') : null;
@@ -348,7 +372,7 @@ async function checkSite(siteDir, options) {
   return { problems, stats };
 }
 
-module.exports = { checkSite };
+module.exports = { checkSite, checkWrangler };
 
 if (require.main === module) {
   checkSite(process.argv[2]).then((r) => {

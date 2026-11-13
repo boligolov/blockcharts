@@ -29,7 +29,7 @@ function notReady(root = repo) {
     'Build from the root:  npm ci && npm --prefix site ci && npm run site',
     '(npm run site builds the library first; before npm --prefix site run dev, run npm run build && npm run manifest.)',
     'A host builds from the root too. On Cloudflare: Root directory empty (not "site"), that build command, and the',
-    'deploy command npx wrangler deploy --config site/wrangler.jsonc (site/README.md, Deploy).',
+    'deploy command npx wrangler deploy, which reads wrangler.jsonc at the root (site/README.md, Deploy).',
   ].join('\n');
 }
 const site = path.join(repo, 'site');

@@ -644,6 +644,35 @@ test('site: built from site/ alone, the prebuild says to build from the root, no
   }
 });
 
+test('site: wrangler.jsonc at the root deploys site/dist and serves 404.html, and a config that does not is found', () => {
+  const { checkWrangler } = require('./check-site.js');
+  assert.deepStrictEqual(checkWrangler(), [], 'the configuration of the repository');
+  assert.ok(!fs.existsSync(path.join(repo, 'site', 'wrangler.jsonc')), 'one configuration, at the root');
+
+  const root = tmp();
+  const file = path.join(root, 'wrangler.jsonc');
+  const check = (text) => (fs.writeFileSync(file, text), checkWrangler(file));
+  const good = { name: 'blockcharts', assets: { directory: './site/dist', not_found_handling: '404-page' } };
+  try {
+    assert.deepStrictEqual(checkWrangler(file), ['wrangler.jsonc is missing at the root, where Cloudflare deploys from']);
+    assert.deepStrictEqual(check(JSON.stringify(good)), []);
+    // JSONC as wrangler reads it: comments of both kinds, a trailing comma, "//" inside a string
+    assert.deepStrictEqual(
+      check(
+        '// top\n{\n  "$schema": "https://example.com//x", /* why */\n  "assets": {\n    "directory": "site/dist/", // here\n' +
+          '    "not_found_handling": "404-page",\n  },\n}\n',
+      ),
+      [],
+    );
+    assert.match(check(JSON.stringify({ ...good, assets: { ...good.assets, directory: './dist' } }))[0], /assets\.directory is "\.\/dist"/);
+    assert.match(check(JSON.stringify({ ...good, assets: { directory: './site/dist' } }))[0], /not_found_handling is not "404-page"/);
+    assert.strictEqual(check(JSON.stringify({ name: 'blockcharts' })).length, 2, 'no assets at all: both are named');
+    assert.match(check('{ "assets": ')[0], /^wrangler\.jsonc: not JSON with comments/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 (async () => {
   for (const [name, fn] of queue) {
     try {
