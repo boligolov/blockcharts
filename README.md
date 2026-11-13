@@ -235,10 +235,10 @@ Custom tooltip content is a function registered in a script with `BC.defineFn(na
 ```sh
 npm run site                       # builds the library, the release and the site -> site/dist, then checks links and charts
 SITE_BASE=/blockcharts/ npm run site   # for a site served from a subfolder (GitHub Pages)
-cd site && npm install && npm run dev  # develop it (run npm run build and npm run manifest in the repo root first)
+npm run dev -w site                # develop it (run npm run build and npm run manifest first)
 ```
 
-The site has its own `package.json`. The library has no runtime dependencies, nor has the composer; the dev dependencies are the tools that build and test it: TypeScript, esbuild (minifying), fflate (the `.skill` zip, gzip sizes), Prettier and playwright-core (the Chrome checks, with the system Chrome). `scripts/check-site.js` checks the result without a browser: every link, script and anchor resolves, and every chart spec on every page is valid against the data on that page.
+The site has its own `package.json` and is an npm workspace of the root: one `npm install` at the root installs both, into one `node_modules`, from one lockfile (Node 22.22.1 or later for the site). The library has no runtime dependencies, nor has the composer; the dev dependencies are the tools that build and test it: TypeScript, esbuild (minifying), fflate (the `.skill` zip, gzip sizes), Prettier and playwright-core (the Chrome checks, with the system Chrome). `scripts/check-site.js` checks the result without a browser: every link, script and anchor resolves, and every chart spec on every page is valid against the data on that page.
 
 ## Development
 

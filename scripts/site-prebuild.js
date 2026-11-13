@@ -4,8 +4,8 @@
 //   site/src/data/reports.json           { name: bytes } of those reports, for the pages
 //   site/src/data/palette.css            the chart colors: the core's light palette and the composer's dark one
 //   site/public/blockcharts.skill        the agent skill as an uploadable zip, the download the site links to
-// Needs `npm run build && npm run manifest` first (the site scripts in package.json do it). Run from site/ alone, where
-// the root's dependencies are not installed, it says to build from the root (notReady), not that a module is missing.
+// Needs `npm run build && npm run manifest` first (the site scripts in package.json do it). Run from site/ alone, before
+// the root is installed or the library built, it says to build from the root (notReady), not that a module is missing.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -26,8 +26,9 @@ function notReady(root = repo) {
   if (!missing.length) return null;
   return [
     `The site is made from the library, which is built at the repository's root, and ${missing.join(' and ')}.`,
-    'Build from the root:  npm ci && npm --prefix site ci && npm run site',
-    '(npm run site builds the library first; before npm --prefix site run dev, run npm run build && npm run manifest.)',
+    'Build from the root:  npm ci && npm run site',
+    '(npm ci installs the site too, a workspace of the root; npm run site builds the library first; before',
+    'npm run dev -w site, run npm run build && npm run manifest.)',
     'A host builds from the root too. On Cloudflare: Root directory empty (not "site"), that build command, and the',
     'deploy command npx wrangler deploy, which reads wrangler.jsonc at the root (site/README.md, Deploy).',
   ].join('\n');

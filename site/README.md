@@ -23,12 +23,15 @@ theme on request or from the system.
 
 ## Build
 
-From the repository root, not from here: the site is made from the library.
+From the repository root, not from here: the site is made from the library. It is an npm workspace of the root, so
+the root's `npm ci` installs it too (one lockfile, `package-lock.json` at the root). Node 22.22.1 or later; the
+repository's `.node-version` (24) is what CI and Cloudflare build with.
 
 ```sh
+npm ci                                # the library's tools and the site's dependencies
 npm run site                          # the library, the release, reports, the skill zip, Astro, then scripts/check-site.js
 SITE_BASE=/blockcharts/ npm run site  # served from a subfolder
-cd site && npm run dev                # develop (run npm run build and npm run manifest in the root first)
+npm run dev -w site                   # develop (run npm run build and npm run manifest first)
 ```
 
 `scripts/site-prebuild.js` writes `public/release/`, `public/examples/`, `public/blockcharts.skill` and
@@ -53,7 +56,7 @@ screen, and no table may scroll sideways (a table of the site is `stack` or `siz
 ## Deploy
 
 `dist/` is a plain static site. It is meant for Cloudflare Workers, configured by `wrangler.jsonc` at the repository's
-root, where the build runs: Root directory empty, build command `npm ci && npm --prefix site ci && npm run site`,
+root, where the build runs: Root directory empty, build command `npm ci && npm run site`,
 deploy command `npx wrangler deploy` (for a branch that is not production, `npx wrangler versions upload`), which are
 Cloudflare's own and find the configuration there. check-site fails when it does not deploy `site/dist` or does not
 serve `404.html` for an address the site does not have. Any static host works the same way. The site is made from the

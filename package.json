@@ -58,6 +58,9 @@
   "engines": {
     "node": ">=18"
   },
+  "workspaces": [
+    "site"
+  ],
   "scripts": {
     "build": "tsc",
     "manifest": "node scripts/build-manifest.js && node scripts/minify.js",
@@ -68,7 +71,7 @@
     "release": "npm run build && npm run manifest && node scripts/build-dist.js",
     "og": "node scripts/og-image.js",
     "test:site": "node scripts/check-site-phone.js",
-    "site": "npm run build && npm run manifest && npm --prefix site run build && node scripts/check-site.js",
+    "site": "npm run build && npm run manifest && npm run build -w site && node scripts/check-site.js",
     "prepack": "npm run release",
     "format": "prettier --write \"src/**/*.ts\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs",
     "format:check": "prettier --check \"src/**/*.ts\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs"
@@ -79,5 +82,9 @@
     "playwright-core": "^1.64.1",
     "prettier": "^3.9.10",
     "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "sharp": false
   }
 }

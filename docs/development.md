@@ -23,12 +23,12 @@ docs/                   the documentation (an index: docs/README.md)
   skill.md                installing the skill
   development.md          this file
   Design.md               the design journal: every decision and why
-site/                   blockcharts.online (Astro, its own package.json); serves the skill's download
+site/                   blockcharts.online (Astro, its own package.json, a workspace of the root); serves the skill's download
 .claude-plugin/         the Claude Code plugin marketplace (one plugin: the skill)
 .github/workflows/      ci.yml: format check, npm test, the Chrome suite and npm run site on every push and pull request
 kits.json               which blocks each kit contains
 wrangler.jsonc          Cloudflare's configuration for the site (it deploys site/dist; site/README.md, Deploy)
-LICENSE  README.md  ROADMAP.md  package.json  tsconfig.json
+LICENSE  README.md  ROADMAP.md  package.json  package-lock.json (the site's too)  tsconfig.json  .node-version
 ```
 
 Built output is never committed, except the skill's generated parts (the plugin marketplace installs the
@@ -37,9 +37,13 @@ folder straight from git, so it must be complete): `dist/` (tsc output, manifest
 
 ## Setup
 
-Node.js 18+ (developed on 22). The library has no runtime dependencies; the dev dependencies are
+The library and the composer run on Node.js 18+; the site needs 22.22.1 or later, and `.node-version` (24) is what
+the project is developed and built on (CI, Cloudflare). The library has no runtime dependencies; the dev dependencies are
 TypeScript, esbuild (minification), fflate (the `.skill` zip and every gzip size), Prettier (formatting) and
 playwright-core (the checks in the system Chrome: `npm run test:chrome`, `npm run test:site`, `npm run og`).
+The site is an npm workspace of the root (`site/package.json` lists its dependencies), so one install, into one
+`node_modules`, from one lockfile, sets up both. `allowScripts` in package.json lets esbuild run its install script and
+not sharp, which comes with Astro and which the site does not use (npm 11 runs no dependency's install script unlisted).
 
 ```sh
 npm install

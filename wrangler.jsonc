@@ -1,7 +1,8 @@
 // Cloudflare Workers configuration for blockcharts.online: a static site, the Astro build in site/dist/.
 // It stands at the repository's root, where the build runs (the site is made from the library), so Cloudflare's own
 // commands find it:
-//   build command:   npm ci && npm --prefix site ci && npm run site
+//   build command:   npm ci && npm run site      (npm ci installs the site too: it is a workspace of the root)
+//   Node:            .node-version at the root, which Cloudflare's build reads as CI does
 //   deploy command:  npx wrangler deploy      (a branch that is not production: npx wrangler versions upload)
 {
   "$schema": "node_modules/wrangler/config-schema.json",

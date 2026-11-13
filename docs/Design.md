@@ -689,7 +689,8 @@ to `main` and every pull request) passed on its first run.
 
 ## The site (`site/`, `npm run site`)
 
-A static site on **Astro** (its own `site/package.json`, so the library keeps no dependencies): a live gallery
+A static site on **Astro** (its own `site/package.json`, so the library keeps no dependencies; an npm workspace of
+the root, so one install and one lockfile): a live gallery
 of every recipe (the JSON, the composed report `examples/<name>.report.html`, the HTML to embed it), demos of
 every way to embed (`scripts/site-demos.js`: one `<script>`, the loader, an ES module, the handle API with a
 custom tooltip, themes, data forms, a block of your own — the snippet shown is the code that runs), a guide
@@ -1732,6 +1733,16 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   fails on a page that names a CDN, installs from npm or installs the plugin; the ROADMAP items that bring each back
   say which line goes.
 
+- **One install for the library and the site.** The site had its own lockfile and `node_modules` (162 MB beside the
+  root's 66), installed by a second `npm --prefix site ci` in CI, on Cloudflare and in every instruction. It is an
+  npm workspace of the root now: one `npm ci`, one lockfile, one `node_modules`; the site's dependencies stay in
+  `site/package.json`, so the published package still has none. Where versions differ npm keeps both: Astro's esbuild
+  0.27 and TypeScript 5 sit inside `node_modules/astro`, beside the library's esbuild 0.28 and TypeScript 7. Resolved
+  afresh, the site's packages want Node 22.22.1 (sitemap 10; undici wanted 22.19 already, installed under 22.14 with
+  only a warning), so `site/package.json` says so, and `.node-version` (24) is the Node of CI and of Cloudflare's
+  build, which reads it. npm 11 runs no dependency's install script that `allowScripts` does not list: esbuild's is
+  allowed (esbuild works without it, but it is the package's own check), sharp's is denied (Astro brings it for
+  images; the site has none).
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

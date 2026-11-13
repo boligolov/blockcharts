@@ -624,7 +624,7 @@ test('site: built from site/ alone, the prebuild says to build from the root, no
     const said = notReady(root);
     assert.match(said, /the root's dependencies are not installed \(no esbuild, fflate/);
     assert.match(said, /the library is not built \(no dist\/manifest\.json, dist\/min\/manifest\.json\)/);
-    assert.match(said, /Build from the root: {2}npm ci && npm --prefix site ci && npm run site/);
+    assert.match(said, /Build from the root: {2}npm ci && npm run site\n/);
     assert.match(said, /Root directory empty/);
     const run = spawnSync(process.execPath, [path.join(root, 'scripts', 'site-prebuild.js')], { encoding: 'utf8' });
     assert.strictEqual(run.status, 1);

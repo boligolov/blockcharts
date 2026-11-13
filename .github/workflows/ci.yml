@@ -18,16 +18,12 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            site/package-lock.json
 
+      # the library's tools and, as the workspace site/, the site's: one lockfile at the root
       - name: Install
-        run: |
-          npm ci
-          npm --prefix site ci
+        run: npm ci
 
       - name: Format
         run: npm run format:check
