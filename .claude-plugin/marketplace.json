@@ -1,7 +1,7 @@
 {
   "name": "blockcharts",
   "owner": {
-    "name": "Alexander Lisin",
+    "name": "Aleksandr Lisin",
     "url": "https://github.com/boligolov/blockcharts"
   },
   "metadata": {
@@ -13,7 +13,7 @@
       "source": "./skills/blockcharts",
       "description": "Build interactive HTML dashboards and chart reports as one self-contained file: Claude writes a JSON description, a composer checks it against the data and ships only the chart code the page uses.",
       "author": {
-        "name": "Alexander Lisin"
+        "name": "Aleksandr Lisin"
       },
       "homepage": "https://blockcharts.online",
       "repository": "https://github.com/boligolov/blockcharts",
