@@ -4,16 +4,34 @@
 //   site/src/data/reports.json           { name: bytes } of those reports, for the pages
 //   site/src/data/palette.css            the chart colors: the core's light palette and the composer's dark one
 //   site/public/blockcharts.skill        the agent skill as an uploadable zip, the download the site links to
-// Needs `npm run build && npm run manifest` first (the site scripts in package.json do it).
+// Needs `npm run build && npm run manifest` first (the site scripts in package.json do it). Run from site/ alone, where
+// the root's dependencies are not installed, it says to build from the root (notReady), not that a module is missing.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const vm = require('vm');
-const { buildRelease } = require('./build-dist.js');
 const { compose, readPage, DARK_PALETTE, paletteVars } = require('./compose.js');
-const { checkSkill, packSkill } = require('./build-skill.js');
 
 const repo = path.join(__dirname, '..');
+
+/** null when the root has what the site is made from: its dependencies installed (esbuild minifies the release, fflate
+ *  packs the skill) and the library built. Otherwise what to run, also for a host told to build site/ alone. */
+function notReady(root = repo) {
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const deps = Object.keys(pkg.devDependencies || {}).filter((n) => !fs.existsSync(path.join(root, 'node_modules', n, 'package.json')));
+  const built = ['dist/manifest.json', 'dist/min/manifest.json'].filter((f) => !fs.existsSync(path.join(root, f)));
+  const missing = [];
+  if (deps.length) missing.push(`the root's dependencies are not installed (no ${deps.join(', ')})`);
+  if (built.length) missing.push(`the library is not built (no ${built.join(', ')})`);
+  if (!missing.length) return null;
+  return [
+    `The site is made from the library, which is built at the repository's root, and ${missing.join(' and ')}.`,
+    'Build from the root:  npm ci && npm --prefix site ci && npm run site',
+    '(npm run site builds the library first; before npm --prefix site run dev, run npm run build && npm run manifest.)',
+    'A host builds from the root too. On Cloudflare: Root directory empty (not "site"), that build command, and the',
+    'deploy command npx wrangler deploy --config site/wrangler.jsonc (site/README.md, Deploy).',
+  ].join('\n');
+}
 const site = path.join(repo, 'site');
 /** Where the site lives: canonical URLs, the sitemap, link previews. */
 const SITE = 'https://blockcharts.online';
@@ -45,8 +63,11 @@ function paletteCss(distDir) {
 
 function prebuild() {
   const distDir = path.join(repo, 'dist');
-  if (!fs.existsSync(path.join(distDir, 'manifest.json')))
-    throw new Error(`${distDir}/manifest.json not found: run npm run build and npm run manifest first`);
+  const problem = notReady();
+  if (problem) throw new Error(problem);
+  // loaded here, as they need the root's dependencies (esbuild, fflate), which notReady has just found
+  const { buildRelease } = require('./build-dist.js');
+  const { checkSkill, packSkill } = require('./build-skill.js');
   const kits = JSON.parse(fs.readFileSync(path.join(repo, 'kits.json'), 'utf8'));
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bc-site-release-'));
@@ -85,7 +106,7 @@ function prebuild() {
   }
 }
 
-module.exports = { prebuild, forDownload, SITE };
+module.exports = { prebuild, notReady, forDownload, SITE };
 
 if (require.main === module) {
   try {

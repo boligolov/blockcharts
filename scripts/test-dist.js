@@ -7,6 +7,7 @@ const vm = require('vm');
 const crypto = require('crypto');
 const assert = require('assert');
 const { pathToFileURL } = require('url');
+const { spawnSync } = require('child_process');
 const { buildRelease, ReleaseError } = require('./build-dist.js');
 const { stripDocs, coreVariant, minify } = require('./minify.js');
 const { compose } = require('./compose.js');
@@ -609,6 +610,38 @@ test("docs: a figure that is not the build's is found, one the build does not kn
   assert.deepStrictEqual(stale(current.replace(/\n/g, '\r\n'), values, 'x.md'), [], 'a checkout with CRLF is current');
   assert.deepStrictEqual(stale('<!-- build:m -->1<!-- /build -->', values, 'x.md'), ['x.md: build:m names no figure']);
   assert.throws(() => render('<!-- build:m -->1<!-- /build -->', values, 'x.md'), /x\.md: <!-- build:m --> names no figure/);
+});
+
+test('site: built from site/ alone, the prebuild says to build from the root, not that a module is missing', () => {
+  const { notReady } = require('./site-prebuild.js');
+  assert.strictEqual(notReady(), null, 'this checkout is installed and built');
+
+  // a clone where only site/ was installed (Cloudflare with Root directory "site"): the scripts, no node_modules, no dist
+  const root = tmp();
+  try {
+    fs.cpSync(path.join(repo, 'scripts'), path.join(root, 'scripts'), { recursive: true });
+    for (const f of ['package.json', 'kits.json']) fs.copyFileSync(path.join(repo, f), path.join(root, f));
+    const said = notReady(root);
+    assert.match(said, /the root's dependencies are not installed \(no esbuild, fflate/);
+    assert.match(said, /the library is not built \(no dist\/manifest\.json, dist\/min\/manifest\.json\)/);
+    assert.match(said, /Build from the root: {2}npm ci && npm --prefix site ci && npm run site/);
+    assert.match(said, /Root directory empty/);
+    const run = spawnSync(process.execPath, [path.join(root, 'scripts', 'site-prebuild.js')], { encoding: 'utf8' });
+    assert.strictEqual(run.status, 1);
+    assert.strictEqual(run.stderr.trim(), said, 'the message, not a stack of a missing module');
+    assert.ok(!fs.existsSync(path.join(root, 'site')), 'nothing is written');
+
+    // installed but not built: only the library is named
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+    for (const n of Object.keys(pkg.devDependencies)) {
+      fs.mkdirSync(path.join(root, 'node_modules', n), { recursive: true });
+      fs.writeFileSync(path.join(root, 'node_modules', n, 'package.json'), '{}');
+    }
+    assert.doesNotMatch(notReady(root), /dependencies/);
+    assert.match(notReady(root), /the library is not built/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 (async () => {

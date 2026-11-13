@@ -54,7 +54,9 @@ screen, and no table may scroll sideways (a table of the site is `stack` or `siz
 
 `dist/` is a plain static site. It is meant for Cloudflare Workers (`wrangler.jsonc`): build command
 `npm ci && npm --prefix site ci && npm run site` from the repository root, deploy command
-`npx wrangler deploy --config site/wrangler.jsonc`. Any static host works the same way.
+`npx wrangler deploy --config site/wrangler.jsonc`. Any static host works the same way. The site is made from the
+library, so a host told to build `site/` alone (Root directory `site`, build command `npm run build`) stops at the
+first step, `scripts/site-prebuild.js`, which says what is missing and these commands.
 
 ## Structure
 
