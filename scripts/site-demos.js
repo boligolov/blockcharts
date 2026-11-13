@@ -245,7 +245,7 @@ window.addEventListener('load', function () {
   pages.push({
     file: 'theme.html',
     title: 'Colors and themes',
-    lead: 'Charts are SVG and take every color from CSS variables, so one stylesheet themes them, dark mode is a media query, and print works.',
+    lead: 'Every color of a chart comes from CSS variables, on SVG and on canvas alike: one stylesheet themes them, dark mode is a media query, and print works.',
     sections: [
       {
         h: 'Three themes, one chart',

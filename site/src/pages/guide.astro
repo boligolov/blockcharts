@@ -99,7 +99,7 @@ const integrity = scriptTag('release/kits/basic.js', { integrity: basic.js.sha38
 
   <h2 id="limits">Limits</h2>
   <ul>
-    <li>Charts are SVG: made for report-sized data (up to a few thousand marks; more with the <code>decimate</code> transform). A Canvas renderer for very large data is planned.</li>
+    <li>Charts are SVG by default, an element per mark: right for report-sized data, up to a few thousand marks (a long line is one element, and <code>decimate</code> thins it). For tens of thousands of points, <code>"renderer": "canvas"</code> draws the same spec on one canvas, with zoom, tooltips and the legend filter as before: <a href={`${base}embed/canvas/`}>the two side by side</a>.</li>
     <li>Modern browsers. Gzipped datasets need <code>DecompressionStream</code>. The composer needs Node 18 or later.</li>
     <li>Custom code (a tooltip that builds its own content) is registered with <code>BC.defineFn</code> and referred to by name, so specs stay plain JSON. <a href={`${base}embed/api/`}>Example</a>.</li>
   </ul>

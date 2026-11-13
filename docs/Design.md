@@ -1659,6 +1659,11 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   Cloudflare's build has no Chrome to make it. It said 21 of 42 blocks and 69.8 KB; the hero says 24 of 58 and 111.4.
   Made again (`npm run og`). It stays a file someone makes, so site/README.md and the deploy step of the ROADMAP say
   to make it before a deploy: its figures move with the code, as every figure the site reads from the build does.
+- **The site knows the canvas renderer.** The guide's limits said charts are SVG and a canvas renderer "is planned", and
+  the themes page opened with "Charts are SVG": written before `renderer.canvas`, which the site demonstrates two
+  links away. The guide now says SVG is the default, an element per mark, and that `"renderer": "canvas"` draws the
+  same spec on one canvas for tens of thousands of points, linking the demo; the themes page says colors come from CSS
+  variables on both.
 
 ## Next steps
 
