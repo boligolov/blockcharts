@@ -32,11 +32,11 @@ E7, the trigger description leaves out charts in an app's own code and says a ta
 numbers (SKILL.md tells what to do with a table request; the heatmap recipe writes its figures); F1, the sizes and
 counts of README and the principles written by the build (`scripts/build-docs.js`, checked by test-dist); F2, the
 link preview made again (24 of 58 blocks, 111.4 KB); F3, the site says charts can be drawn on a canvas; F4, a table of the site is a list of rows on a phone (check-site
-fails on one that is not); F6, one "everything" and one lightest report on every page.
+fails on one that is not); F6, one "everything" and one lightest report on every page; F7, no page of the site wider than a phone from 320 px
+(`npm run test:site` in CI).
 
 Left, in this order:
 
-- [ ] **F7** /embed/kit/ inline code widens the page to 526 px on a phone (site-demos.js).
 - [ ] **F8** Install.astro "updates itself"; principles v1.0 vs 1.1 (README, Principles.astro); the compose path in
       [name].astro; HowItWorks "above"; mouse-only hints on phones (Hero, examples index); titles "Bar chart: chart
       example"; no 404 page; README "no dependencies"; the canvas bench says 50,000 points where it measured 21,000;

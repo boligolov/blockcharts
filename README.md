@@ -246,6 +246,7 @@ npm run test:chrome  # layout in a real browser (the system Chrome)
 npm run skill     # refresh the skill's generated parts (skills/blockcharts) and the figures this README quotes, write dist/blockcharts.skill
 npm run release   # CDN files, kits, loader -> release/ (minified)
 npm run site      # the website -> site/dist
+npm run test:site # every page of it in Chrome at phone widths
 ```
 
 Layout, tests and releasing: [docs/development.md](docs/development.md). What is left to do:

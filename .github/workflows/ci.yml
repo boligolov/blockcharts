@@ -43,3 +43,7 @@ jobs:
       # the release, the example reports, the skill download, Astro, then the link and chart checks
       - name: Site
         run: npm run site
+
+      # every page of the site in Chrome at 320, 360 and 390 px: none wider than the screen, no table that scrolls
+      - name: Site on a phone
+        run: npm run test:site

@@ -67,6 +67,7 @@
     "skill": "npm run build && npm run manifest && node scripts/build-skill.js && node scripts/build-docs.js",
     "release": "npm run build && npm run manifest && node scripts/build-dist.js",
     "og": "node scripts/og-image.js",
+    "test:site": "node scripts/check-site-phone.js",
     "site": "npm run build && npm run manifest && npm --prefix site run build && node scripts/check-site.js",
     "prepack": "npm run release",
     "format": "prettier --write \"src/**/*.ts\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs",

@@ -131,6 +131,8 @@ code {
   background: var(--code-bg);
   padding: 1px 5px;
   border-radius: 4px;
+  /* a long URL or tag in a sentence breaks rather than widen a phone's page (a pre keeps its lines and scrolls) */
+  overflow-wrap: break-word;
 }
 pre {
   background: var(--code-bg);
@@ -368,6 +370,18 @@ header.site details.menu nav a[aria-current='page'] {
     gap: 6px;
   }
 }
+/* the menu's own way to the skill, for a screen too narrow for the header's button (the header needs 358 px) */
+header.site details.menu nav a.menu-install {
+  display: none;
+}
+@media (max-width: 359px) {
+  .header-actions > .btn-small {
+    display: none;
+  }
+  header.site details.menu nav a.menu-install {
+    display: block;
+  }
+}
 
 /* ---- buttons ---- */
 .btn {
@@ -545,7 +559,7 @@ footer.site .note {
 }
 @media (max-width: 960px) {
   .hero-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 40px;
   }
   .hero {
@@ -635,6 +649,9 @@ footer.site .note {
 @media (max-width: 560px) {
   .window-bar .meta .tag.neutral {
     display: none;
+  }
+  .window-bar {
+    flex-wrap: wrap;
   }
   .window-body {
     padding: 16px 14px 8px;
@@ -1277,7 +1294,7 @@ th {
 .cols {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
 }
 .bc-section {
   margin: 0 0 24px;

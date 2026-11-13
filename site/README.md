@@ -46,7 +46,9 @@ validates every chart on every page against that page's data, and checks what se
   It shows the hero's sizes (the blocks of the dashboard, its code, the core), which move with the code, so make it
   again before a deploy, and when the hero changes: `npm run site && npm run og`.
 
-All of it is checked by `scripts/check-site.js`.
+All of it is checked by `scripts/check-site.js`. On a phone: `npm run test:site` (`scripts/check-site-phone.js`, run
+by CI, not by the build, as it needs Chrome) opens every page at 320, 360 and 390 px; none may be wider than the
+screen, and no table may scroll sideways (a table of the site is `stack` or `sizes`, which check-site enforces).
 
 ## Deploy
 

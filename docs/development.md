@@ -15,7 +15,8 @@ scripts/                build, compose, release, site and test scripts (plain No
   build-dist.js           release/ — kits, single blocks, the loader, the release manifest with SRI hashes
   build-docs.js           the figures README.md and the principles quote (sizes, counts, kits), --check
   sizes.js                what code weighs: the one definition the site, the docs and the release use
-  site-prebuild.js        what the site needs before Astro runs; check-site.js checks the built site
+  site-prebuild.js        what the site needs before Astro runs; check-site.js checks the built site,
+                          check-site-phone.js opens it in Chrome at phone widths (npm run test:site)
   test*.js                the test suites (below); fake-dom.js and run-page.js are their browser stand-ins
 docs/                   the documentation (an index: docs/README.md)
   spec/                   the principles (principles.md, v1.0) and their CHANGELOG.md
@@ -114,7 +115,8 @@ change; a CDN path always names a version.
 blockcharts.online is built by `npm run site` from the repository root: the library, the release, the
 composed example reports and the skill's download, then Astro, then `scripts/check-site.js` (links, scripts,
 anchors, and every chart on every page validated against its data). The output is `site/dist`, a plain
-static site. See [site/README.md](../site/README.md).
+static site. `npm run test:site` (also run by CI) then opens every page in the system Chrome at 320, 360 and 390
+px and fails on a page wider than the screen or a table that scrolls sideways. See [site/README.md](../site/README.md).
 
 ### Listing the plugin in Claude's directory
 

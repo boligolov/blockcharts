@@ -117,6 +117,7 @@ const jsonLd = landing
             <nav aria-label="Main, small screens">
               {links.map(([label, href, key]) => <a href={base + href} aria-current={key === nav ? 'page' : undefined}>{label}</a>)}
               <a href={REPO}>GitHub</a>
+              <a class="menu-install" href={`${base}#install`}>Get the skill</a>
             </nav>
           </details>
         </div>

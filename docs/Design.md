@@ -1682,6 +1682,16 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   stays in the guide's table of kits, as what it is. The landing page's lightest report is the lightest of all
   (gauge, 50 KB), named, as the gallery names it. The loader's size on the embedding pages is read from the release
   like every other.
+- **No page of the site is wider than a phone.** On /embed/kit/ a CDN script tag in a sentence, as inline code, made
+  the page 526 px wide at 390. Inline code now breaks where it would overflow its line (`overflow-wrap: break-word`,
+  which leaves a table's column widths as they were; a `pre` keeps its lines and scrolls). Crawling every page at
+  320 px found three more: the header (logo, theme, "Get the skill", menu) needs 358 px, so below 360 its button moves
+  into the menu; the hero's single column took the width its widest child asks (`1fr` is `minmax(auto, 1fr)`), and is
+  `minmax(0, 1fr)`; the side-by-side demos asked for 300 px columns on 288 px (`min(300px, 100%)`); and the hero
+  window's weight tag, clipped at 320, wraps under the file name. `scripts/check-site-phone.js` (`npm run test:site`,
+  a CI step after the site's build) opens every page in Chrome at 320, 360 and 390 px and fails on a page wider than
+  the screen, naming the element that sticks out, on a table that scrolls, and on a script error. It is not part of
+  `npm run site`, which Cloudflare runs without Chrome. With the inline code unbroken it fails on /embed/kit/ at all three.
 
 ## Next steps
 
