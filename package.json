@@ -64,7 +64,7 @@
     "test": "npm run build && npm run manifest && node scripts/test.js && node scripts/test-canvas.js && node scripts/test-compose.js && node scripts/test-csv.js && node scripts/test-skill.js && node scripts/test-dist.js",
     "test:chrome": "npm run build && npm run manifest && node scripts/test-chrome.js",
     "page": "npm run build && npm run manifest && node scripts/page.js",
-    "skill": "npm run build && npm run manifest && node scripts/build-skill.js",
+    "skill": "npm run build && npm run manifest && node scripts/build-skill.js && node scripts/build-docs.js",
     "release": "npm run build && npm run manifest && node scripts/build-dist.js",
     "og": "node scripts/og-image.js",
     "site": "npm run build && npm run manifest && npm --prefix site run build && node scripts/check-site.js",

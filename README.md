@@ -4,8 +4,8 @@
 
 **Atomic charts for HTML dashboards: a page carries only the chart code it needs. Nothing more.**
 
-blockcharts is a chart library cut into atoms — a scale, a bar, an axis, a tooltip, each a block of 0.4–8 KB.
-A page gets the core (about 10 KB gzipped) and exactly the blocks its own charts use, never the whole library;
+blockcharts is a chart library cut into atoms — a scale, a bar, an axis, a tooltip, each a block of <!-- build:block-range -->0.4–12 KB<!-- /build -->.
+A page gets the core (about <!-- build:core-gzip -->12 KB<!-- /build --> gzipped) and exactly the blocks its own charts use, never the whole library;
 anything can be customized, down to blocks of your own. The agent skill turns a table or a CSV file into one
 light `.html` report with interactive charts that opens offline and can be emailed.
 
@@ -31,9 +31,9 @@ Scopes and details: [docs/skill.md](docs/skill.md).
 
 Charts are drawn by small independent **blocks** (`scale.time`, `mark.rect`, `guide.axis`,
 `interaction.zoom`, …). A chart is a JSON spec that names them; the blocks a page needs are read from its
-specs, closed over their dependencies, and only those go into the page: a bar chart with a tooltip carries
-8 of the 34 blocks, 47 KB of code instead of 115; a whole executive dashboard (KPI tiles, a trend, a donut, a
-waterfall, a funnel, animated) carries 20. Nobody lists blocks by hand, so the list is never too long.
+specs, closed over their dependencies, and only those go into the page: a bar chart with labels and a tooltip
+carries <!-- build:bar -->10 of the 58 blocks, 71 KB of code instead of 214<!-- /build -->; a whole executive dashboard
+(KPI tiles, a trend, a donut, a waterfall, a funnel, animated) carries <!-- build:dashboard-blocks -->24<!-- /build -->. Nobody lists blocks by hand, so the list is never too long.
 
 The agent never writes chart code. It writes the JSON, and a composer bundled with the skill checks every
 chart against the real data, reports each mistake with its place in the JSON, and only then writes the page.
@@ -97,13 +97,13 @@ node scripts/compose.js skills/blockcharts/recipes/report-from-csv.json report.h
 }
 ```
 
-The composer works out which blocks the charts need, checks every spec against the data (unknown field, wrong scale type, ... each reported with its path in the JSON), builds each chart once in a sandbox to catch anything that only shows up when drawing, and writes the page. The same input always gives the same bytes. It writes nothing until every chart is valid. Because it has already checked everything, the page carries a lighter core without the checks (`BC.validate`, `BC.needs`), and without the data decoder unless a dataset is stored gzipped: about 8 KB less per report. The kits for your own pages keep the full core.
+The composer works out which blocks the charts need, checks every spec against the data (unknown field, wrong scale type, ... each reported with its path in the JSON), builds each chart once in a sandbox to catch anything that only shows up when drawing, and writes the page. The same input always gives the same bytes. It writes nothing until every chart is valid. Because it has already checked everything, the page carries a lighter core without the checks (`BC.validate`, `BC.needs`), and without the data decoder unless a dataset is stored gzipped: about <!-- build:core-saving -->14 KB<!-- /build --> less per report. The kits for your own pages keep the full core.
 
 Datasets can be rows, `{"columns": {...}}`, `{"csv": "text"}`, or `{"csvFile": "orders.csv"}` (next to `page.json`). Large datasets are stored gzipped automatically. For long numeric series from a pipeline, `scripts/encode-columns.js` stores columns as raw typed values (`{"columns": {"t": {"dtype": "float64", "encoding": "gzip+base64", "data": "..."}}}`), never lossy unless you ask for `float32`. Against the gzip a page gets anyway this saves about a third on small integers and a seventh on floats with every digit, and nothing on values rounded to a few decimals; `float32` takes floats to about a third.
 
 A dashboard is the same file with a grid: `"layout": {"columns": 4}` and a `span` per chart (KPI tiles `span: 1`, a trend `span: 3`); `title` and `subtitle` head the page. Every chart sits in a card; on a phone the cards stack.
 
-Ready-made pages to copy live in `skills/blockcharts/recipes/`: an executive dashboard (KPI tiles in a grid), waterfall, funnel, bullet, treemap, bar, stacked and grouped bars, dot plot, boxplot, lines with zoom, a slope chart, a moving average and running totals, scatter, a hexbin and density contours of thousands of points, bubbles, dual axis, 100% stacked area, histogram, heatmap, pie, long series, and a CSV report with aggregation and currency formatting.
+Ready-made pages to copy live in `skills/blockcharts/recipes/`, <!-- build:recipes -->48<!-- /build --> of them, among them an executive dashboard (KPI tiles in a grid), waterfall, funnel, bullet, treemap, bar, stacked and grouped bars, dot plot, boxplot, lines with zoom, a slope chart, a moving average and running totals, scatter, a hexbin and density contours of thousands of points, bubbles, dual axis, 100% stacked area, histogram, heatmap, pie, long series, and a CSV report with aggregation and currency formatting.
 
 #### 2. Kits: core + blocks in one file
 
@@ -124,13 +124,17 @@ npm run release          # writes release/
 
 Charts mount themselves on `DOMContentLoaded`. Or call `BC.chart(element, spec)` yourself and keep the returned handle (`setView`, `getView`, `update`, `destroy`, `ready`).
 
-| Kit | Contents | Minified (gzip) |
-| --- | --- | --- |
-| `basic` | bars, lines, points, areas, text; linear/time/band/color scales; axis, grid, legend, tooltip | 60 KB (21 KB gzip) |
-| `dashboard` | KPI tiles, bars, lines, areas, donut, waterfall, funnel, treemap, target lines, legend filter | 80 KB (28 KB) |
-| `timeseries` | lines, areas; zoom, brush, zoom buttons, legend filter, decimate, aggregate, stack; canvas | 81 KB (28 KB) |
-| `composition` | stacked bars/areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap | 86 KB (30 KB) |
-| `full` | every block | 110 KB (37 KB) |
+<!-- build:kits -->
+
+| Kit | Blocks | Contents | Minified (gzip) |
+|---|---|---|---|
+| `basic` | 19 | Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend and tooltip, and fields calculated from the data. | 112 KB (42 KB) |
+| `timeseries` | 29 | Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables and moving averages; also the canvas renderer for very large series. | 140 KB (51 KB) |
+| `composition` | 33 | Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap, aggregation. | 148 KB (54 KB) |
+| `dashboard` | 31 | Business dashboards: KPI tiles with sparklines, bars, lines and areas, waterfall, funnel, treemap, bullet and target lines, donut, with axes, grid, legend, tooltip and legend filter. | 149 KB (55 KB) |
+| `full` | 58 | Every block. | 226 KB (81 KB) |
+
+<!-- /build -->
 
 Everything in `release/` is minified (esbuild, ES2020) and stripped of the parameter docs, which a running chart never reads; `buildRelease({ minify: false })` keeps the readable code for debugging. Kits are defined in `kits.json`. A kit made for one page contains exactly the blocks that page uses:
 
@@ -201,15 +205,21 @@ Scales are declared once and named. Marks read data through channels (`"x": "reg
 
 ## Blocks
 
+The <!-- build:blocks -->58<!-- /build --> blocks, by role:
+
+<!-- build:roles -->
+
 | Role | Blocks |
-| --- | --- |
+|---|---|
 | lib | `columns`, `curve`, `pointer`, `stats`, `ticks`, `view` (code other blocks share; a spec never names it) |
-| scale | `linear`, `log`, `time`, `band`, `color`, `sequential`, `size` |
-| transform | `stack`, `bin`, `decimate`, `aggregate`, `quartiles`, `waterfall`, `funnel`, `treemap`, `window`, `fold`, `filter`, `sort`, `calculate`, `highlight`, `calendar`, `marimekko`, `density`, `hexbin`, `contour`, `sankey` |
-| mark | `point`, `line`, `rect`, `area`, `text`, `arc`, `boxplot`, `rule`, `sankey`, `candlestick`, `violin`, `polygon` |
-| guide | `axis`, `grid`, `legend`, `kpi` |
-| interaction | `zoom`, `zoom-controls`, `tooltip`, `crosshair`, `legend-filter`, `brush`, `animate` |
-| renderer | `svg`, `canvas` |
+| scale | `band`, `color`, `linear`, `log`, `sequential`, `size`, `time` |
+| transform | `aggregate`, `bin`, `calculate`, `calendar`, `contour`, `decimate`, `density`, `filter`, `fold`, `funnel`, `hexbin`, `highlight`, `marimekko`, `quartiles`, `sankey`, `sort`, `stack`, `treemap`, `waterfall`, `window` |
+| mark | `arc`, `area`, `boxplot`, `candlestick`, `line`, `point`, `polygon`, `rect`, `rule`, `sankey`, `text`, `violin` |
+| guide | `axis`, `grid`, `kpi`, `legend` |
+| interaction | `animate`, `brush`, `crosshair`, `legend-filter`, `tooltip`, `zoom`, `zoom-controls` |
+| renderer | `canvas`, `svg` |
+
+<!-- /build -->
 
 Every parameter of every block is documented in [`skills/blockcharts/reference/blocks.md`](skills/blockcharts/reference/blocks.md) (generated from the code by `npm run skill`).
 
@@ -233,7 +243,7 @@ The site has its own `package.json`, so the library itself keeps no dependencies
 npm install
 npm test          # build, manifest, then core/blocks, canvas, composer, CSV, skill and release tests
 npm run test:chrome  # layout in a real browser (the system Chrome)
-npm run skill     # refresh the skill's generated parts (skills/blockcharts), write dist/blockcharts.skill
+npm run skill     # refresh the skill's generated parts (skills/blockcharts) and the figures this README quotes, write dist/blockcharts.skill
 npm run release   # CDN files, kits, loader -> release/ (minified)
 npm run site      # the website -> site/dist
 ```

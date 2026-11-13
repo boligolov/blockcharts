@@ -10,9 +10,9 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const zlib = require('zlib');
 const { byRoleThenName } = require('./build-manifest.js');
 const { shrink, MinifyError } = require('./minify.js');
+const { gzipSize } = require('./sizes.js');
 
 const repo = path.join(__dirname, '..');
 const NAME = /^[a-z][a-z0-9-]*$/;
@@ -23,7 +23,7 @@ class ReleaseError extends Error {}
 const CJS_EXPORT = "if (typeof module === 'object' && module && typeof module.exports === 'object') module.exports = globalThis.BC;\n";
 
 const sri = (buf) => 'sha384-' + crypto.createHash('sha384').update(buf).digest('base64');
-const describe = (file, buf) => ({ file, bytes: buf.length, gzip: zlib.gzipSync(buf, { level: 9 }).length, sha384: sri(buf) });
+const describe = (file, buf) => ({ file, bytes: buf.length, gzip: gzipSize(buf), sha384: sri(buf) });
 
 function checkOutDir(outDir) {
   const rel = path.relative(repo, outDir);

@@ -29,12 +29,11 @@ is; E5, no tool in the skill an agent cannot run (binary columns left to pipelin
 well); E6, the KPI and zoom paragraphs of SKILL.md say what the block is before how to size it; E3, a note under a
 chart for its reader and `how` for the agent (the recipes' notes written from their data, a warning on a note with code);
 E7, the trigger description leaves out charts in an app's own code and says a table of figures is a heatmap with
-numbers (SKILL.md tells what to do with a table request; the heatmap recipe writes its figures).
+numbers (SKILL.md tells what to do with a table request; the heatmap recipe writes its figures); F1, the sizes and
+counts of README and the principles written by the build (`scripts/build-docs.js`, checked by test-dist).
 
 Left, in this order:
 
-- [ ] **F1** README and docs/spec/principles.md: every size and count is stale (34 vs 58 blocks, kits 60 → 86.7 KB …).
-      Generate them or link /blocks/#sizes.
 - [ ] **F2** site/public/og.png is stale (21 of 42 blocks, 69.8 KB): `npm run og` and check it.
 - [ ] **F3** guide.astro says "A Canvas renderer … is planned"; site-demos.js says "Charts are SVG".
 - [ ] **F4** /blocks/ parameter tables cut the doc column on a phone (16 of 63 tables), also the /guide/ kit table and
@@ -201,7 +200,8 @@ the labels inside the charts, and it is no native speaker).
 - `main` is the default branch; larger work goes on a branch and is merged by the owner.
 - Run `npm test` before every commit and read the last line of every suite: **a pipe (`| tail`) hides the
   exit code**.
-- A change to `src/` or the composer is followed by `npm run skill`; a change to `skills/blockcharts/` bumps
+- A change to `src/` or the composer is followed by `npm run skill` (it also rewrites the sizes and counts README.md
+  and the principles quote); a change to `skills/blockcharts/` bumps
   the skill's version (`SKILL.md` `metadata.version` and `plugin.json`).
 - A new block comes with a recipe that uses it and tests that include hostile and boundary input; a new
   check is proven by breaking the code once and seeing the test fail.

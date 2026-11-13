@@ -12,6 +12,7 @@ const { stripDocs, coreVariant, minify } = require('./minify.js');
 const { compose } = require('./compose.js');
 const { El, createDocument } = require('./fake-dom.js');
 const { countTags } = require('./run-page.js');
+const { figures, render, stale, checkDocs, DOCS } = require('./build-docs.js');
 
 let passed = 0;
 let failed = 0;
@@ -584,13 +585,30 @@ test('blocks: no block names another; marks and interactions meet through what t
   assert.deepStrictEqual(namesIn('mark.line', "if (m.type === 'line') n++; BC.get('lib.curve');", all), []);
 });
 
-test('README: the table of blocks lists every block there is, and only those', () => {
-  const readme = fs.readFileSync(path.join(repo, 'README.md'), 'utf8');
+test('docs: README and the principles quote the figures of this build (run npm run skill)', () => {
+  const values = figures();
+  assert.deepStrictEqual(checkDocs(values), []);
+  // every figure is quoted somewhere, and the table of blocks names each block once
+  const text = DOCS.map((f) => fs.readFileSync(path.join(repo, f), 'utf8')).join('\n');
+  for (const key of Object.keys(values)) assert(text.includes(`<!-- build:${key} -->`), `no doc quotes ${key}`);
   const listed = [];
-  for (const m of readme.matchAll(/^\| (lib|scale|transform|mark|guide|interaction|renderer) \| (.+) \|$/gm)) {
+  for (const m of values.roles.matchAll(/^\| (\w+) \| (.+) \|$/gm))
     for (const t of m[2].matchAll(/`([\w-]+)`/g)) listed.push(m[1] + '.' + t[1]);
-  }
-  assert.deepStrictEqual(listed.slice().sort(), Object.keys(manifest.blocks).sort());
+  assert.deepStrictEqual(listed.sort(), Object.keys(manifest.blocks).sort());
+  assert.match(values.core, /^\d+ KB minified, about \d+ KB gzipped$/);
+});
+
+test("docs: a figure that is not the build's is found, one the build does not know stops the rewrite", () => {
+  const values = { n: '58', t: '| a | b |\n|---|---|\n| 1 | 2 |' };
+  const current = 'blocks: <!-- build:n -->58<!-- /build -->.\n\n<!-- build:t -->\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n<!-- /build -->\n';
+  assert.deepStrictEqual(stale(current, values, 'x.md'), []);
+  assert.strictEqual(render(current, values, 'x.md'), current);
+  assert.deepStrictEqual(stale(current.replace('>58<', '>34<'), values, 'x.md'), ["x.md: build:n is not the build's"]);
+  assert.deepStrictEqual(stale(current.replace('| 1 | 2 |', '| 1 | 3 |'), values, 'x.md'), ["x.md: build:t is not the build's"]);
+  assert.strictEqual(render(current.replace('>58<', '>34<'), values, 'x.md'), current, 'the rewrite puts it back');
+  assert.deepStrictEqual(stale(current.replace(/\n/g, '\r\n'), values, 'x.md'), [], 'a checkout with CRLF is current');
+  assert.deepStrictEqual(stale('<!-- build:m -->1<!-- /build -->', values, 'x.md'), ['x.md: build:m names no figure']);
+  assert.throws(() => render('<!-- build:m -->1<!-- /build -->', values, 'x.md'), /x\.md: <!-- build:m --> names no figure/);
 });
 
 (async () => {

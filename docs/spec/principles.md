@@ -12,21 +12,25 @@ The words MUST, SHOULD and MAY in §12 are used as in RFC 2119. Changes are list
 
 A charting library is usually one bundle: every chart type, every interaction, every option, loaded by
 every page that draws a single bar chart. blockcharts turns that around. The page carries the **core**
-(26 KB minified, about 10 KB gzipped: data loading, validation, the drawing pipeline) and **only the blocks
-its charts use**, each between 0.4 and 8 KB. A chart without zoom carries no zoom; a page without a
-pie carries no arcs.
+(data loading and the drawing pipeline: in a composed report <!-- build:core -->29 KB minified, about 12 KB gzipped<!-- /build -->,
+as the composer has run the checks, §7) and **only the blocks its charts use**, each of
+<!-- build:block-range -->0.4–12 KB<!-- /build -->. A chart without zoom carries no zoom; a page without a pie carries no arcs.
 
 What a chart uses is not chosen by anyone: it is read from the spec (`BC.needs(spec)`) and closed over the
 blocks' declared dependencies (`closure` in the manifest). Nobody lists blocks by hand, so no list can be
 too long or too short. Sizes below are minified code, measured on the example pages:
 
+<!-- build:pages -->
+
 | page | blocks | code in the page |
 |---|---|---|
-| a pie chart | 6 | 44.8 KB |
-| a bar chart with labels and a tooltip | 8 | 47.1 KB |
-| monthly totals and a ranking from raw CSV rows | 12 | 59.7 KB |
-| an executive dashboard: KPI tiles, a trend, a donut, a waterfall and a funnel, animated | 20 | 74.8 KB |
-| everything blockcharts has | 34 | 115.3 KB |
+| a pie chart | 7 | 60.2 KB |
+| a bar chart with labels and a tooltip | 10 | 70.9 KB |
+| monthly totals and a ranking from raw CSV rows | 15 | 89.8 KB |
+| an executive dashboard: KPI tiles, a trend, a donut, a waterfall and a funnel, animated | 24 | 111.4 KB |
+| everything blockcharts has | 58 | 213.6 KB |
+
+<!-- /build -->
 
 Blocks are shared across the page: five charts with axes carry `guide.axis` once. The same rule holds
 however the code arrives (§11): a composed report inlines exactly its blocks, the loader fetches exactly
@@ -151,7 +155,7 @@ The same built blocks serve three uses; which one is a question of hosting, not 
 |---|---|---|
 | **composer** | exactly the page's blocks and data, inlined into one file | reports, dashboards, anything shared as a file |
 | **kit** | core and a chosen set of blocks in one script, from a CDN or `npm` | your own pages and apps |
-| **loader** | a 2 KB script that fetches only the blocks the page's charts need | sites with many different charts |
+| **loader** | a <!-- build:loader -->2 KB<!-- /build --> script that fetches only the blocks the page's charts need | sites with many different charts |
 
 Files of a released version never change; the release manifest carries an SRI hash for each, so a page
 can pin exactly the code it trusts.

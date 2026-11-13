@@ -9,6 +9,8 @@ const require = createRequire(import.meta.url);
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const { resolveDataset, jsonForScript, escapeText } = require(path.join(repo, 'scripts', 'compose.js'));
 const { embedPages } = require(path.join(repo, 'scripts', 'site-demos.js'));
+/** gzip sizes are measured as everywhere else, the docs and the release manifest included (scripts/sizes.js). */
+const { gzipSize } = require(path.join(repo, 'scripts', 'sizes.js'));
 
 /** The roles of blocks, in the order a page loads them. */
 export const { ROLES, scaleWords, scalesFitting } = require(path.join(repo, 'scripts', 'build-manifest.js'));
@@ -212,7 +214,6 @@ export function composeDemo() {
  * size, and every block. The composer's report sizes are sums of these, so every number on a page agrees.
  */
 export function loadPageCode() {
-  const zlib = require('node:zlib');
   const dir = path.join(repo, 'dist', 'min');
   const m = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
   // the core a composed report carries: the composer has run the checks, and a report without encoded data has no decoder
@@ -220,7 +221,7 @@ export function loadPageCode() {
   const core = fs.readFileSync(path.join(dir, lean ? lean.file : m.core.file));
   const blocks = Object.entries(m.blocks).map(([name, b]) => ({ name, bytes: b.bytes }));
   return {
-    core: { bytes: core.length, gzip: zlib.gzipSync(core, { level: 9 }).length },
+    core: { bytes: core.length, gzip: gzipSize(core) },
     blocks,
     all: core.length + blocks.reduce((n, b) => n + b.bytes, 0),
   };
@@ -232,12 +233,11 @@ export function loadPageCode() {
  * the variants the composer picks from (minify.js).
  */
 export function loadSizes() {
-  const zlib = require('node:zlib');
   const dir = path.join(repo, 'dist', 'min');
   const m = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
   const sizes = (file, src) => {
     const min = fs.readFileSync(path.join(dir, file));
-    return { source: fs.statSync(path.join(repo, 'src', src)).size, min: min.length, gzip: zlib.gzipSync(min, { level: 9 }).length };
+    return { source: fs.statSync(path.join(repo, 'src', src)).size, min: min.length, gzip: gzipSize(min) };
   };
   const core = [{ name: 'core', ...sizes(m.core.file, 'core.ts') }];
   for (const [name, v] of Object.entries(m.core.variants || {}))

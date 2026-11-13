@@ -13,6 +13,8 @@ scripts/                build, compose, release, site and test scripts (plain No
   minify.js               dist/min/ — the minified code the composer, the skill and the release use
   build-skill.js          the skill's generated parts, dist/blockcharts.skill, --check
   build-dist.js           release/ — kits, single blocks, the loader, the release manifest with SRI hashes
+  build-docs.js           the figures README.md and the principles quote (sizes, counts, kits), --check
+  sizes.js                what code weighs: the one definition the site, the docs and the release use
   site-prebuild.js        what the site needs before Astro runs; check-site.js checks the built site
   test*.js                the test suites (below); fake-dom.js and run-page.js are their browser stand-ins
 docs/                   the documentation (an index: docs/README.md)
@@ -59,7 +61,7 @@ line of each: `N of N passed`.
 | `test-compose.js` | the composer: block choice, validation with paths, escaping, compression, determinism, hostile input |
 | `test-csv.js` | CSV in a page: parsing, types, errors naming the dataset |
 | `test-skill.js` | the skill: front matter, the committed folder equals a fresh build, every recipe composes and draws with the packaged runtime, the recipes use every block, the plugin and marketplace, `claude plugin validate`, the `.skill` zip |
-| `test-dist.js` | the release: manifest sizes and SRI hashes, determinism, kits, the loader, minified code drawing the same as the source |
+| `test-dist.js` | the release: manifest sizes and SRI hashes, determinism, kits, the loader, minified code drawing the same as the source; the figures README and the principles quote |
 
 The fake DOM cannot see layout: `getBoundingClientRect` and `getComputedStyle` are stubs. Anything about
 positions, overlays or two interactions sharing the chart's host element is checked in a real browser too:
@@ -85,7 +87,11 @@ node scripts/build-skill.js --check   # exit 1 if the committed folder differs f
 ```
 
 So after any change to `src/`, to the composer, or to the root `LICENSE`, run `npm run skill` and commit
-what it changes.
+what it changes. It also rewrites the figures that README.md and `docs/spec/principles.md` quote (what the core,
+the blocks, the kits and four example pages weigh, how many blocks and recipes there are): each stands between
+`<!-- build:name -->` and `<!-- /build -->`, and `test-dist.js` fails while one is not the build's
+(`node scripts/build-docs.js --check`). A size that says gzip is fflate's at level 9 everywhere, the same bytes on
+every machine.
 
 ## Releasing
 

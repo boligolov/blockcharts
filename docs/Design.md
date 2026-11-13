@@ -1642,6 +1642,19 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   34 of 34. The React, Vue, Recharts and Django requests did not trigger either description, so leaving them out
   states a boundary the old text already kept on these requests; a sortable table of 300 invoices and a Markdown
   table did not trigger the new one.
+- **The docs quote the build's figures.** README and §1 of the principles were written at 34 blocks: a block of
+  0.4–8 KB, a core of 10 KB gzipped, a bar chart at 47 KB, kits of 60–110 KB. At 58 blocks it is 0.4–12, 12, 71 and
+  112–226: every figure was off, and the site, which reads its own from the build, said otherwise on every page. A
+  link to the site instead would have left the README without the one argument it makes in numbers. So each figure
+  stands between `<!-- build:name -->` and `<!-- /build -->`, which neither GitHub nor npm shows, and
+  `scripts/build-docs.js` writes it from the build: the block range, the core of a report, what four example pages
+  and everything weigh, the kits (their own words from kits.json), the blocks by role, the number of recipes, the
+  loader. `npm run skill`, which every change to the code is followed by, runs it, and test-dist fails while a
+  figure is not the build's or the build has one no doc quotes. What "everything" weighs and how a core is chosen
+  are defined once (`scripts/sizes.js`), for the docs and the site. gzip sizes were zlib's, whose bytes can differ
+  between machines and versions of Node, which a check that must pass in CI as it does here cannot take: every gzip
+  size, on the site, in the docs and in the release manifest, is now fflate's at level 9, a few per cent more than
+  zlib's (basic: 42 KB against 40.5).
 
 ## Next steps
 
