@@ -13,7 +13,7 @@
     {
       "title": "Visits by weekday and time of day",
       "note": "Evenings are the busiest from Monday to Thursday, Wednesday evening most of all; on Friday, noon is the busiest.",
-      "how": "Two band scales make the grid, a sequential scale turns the number into a color. A cell without a row stays empty.",
+      "how": "Two band scales make the grid, a sequential scale turns the number into a color, and a text mark writes the number in every cell: its `on` is the field of the cell's color, so a figure turns light on a dark cell. With the numbers it reads as a table of figures as well as a picture. A cell without a row stays empty.",
       "spec": {
         "data": "activity",
         "size": [640, 300],
@@ -27,7 +27,10 @@
           { "type": "axis", "scale": "y" },
           { "type": "legend", "scale": "color" }
         ],
-        "marks": [{ "type": "rect", "x": "day", "y": "period", "color": "visits" }],
+        "marks": [
+          { "type": "rect", "x": "day", "y": "period", "color": "visits" },
+          { "type": "text", "x": "day", "y": "period", "text": "visits", "on": "visits" }
+        ],
         "interaction": [{ "type": "tooltip" }]
       }
     }

@@ -13,7 +13,7 @@ A strict review before release, on 2026-11-10 at skill 0.33.0 (commit 924b85f): 
 every recipe looked at in Chrome on a desk and a phone. 64 findings in six groups, fixed in this order, one commit and
 one note in [docs/Design.md](docs/Design.md#the-production-review) each.
 
-Done (skill 0.33.1–0.33.45): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
+Done (skill 0.33.1–0.33.46): A, safety (5); B, silent wrong results in validation and data (21); C1–C20, layout
 and interaction (end labels, zoomed picks, step lines, bars on a time axis, a target's label, CJK breaks, Sankey, legends,
 vertical axis names, tooltip cards, the edge dot, the real-Chrome suite `npm run test:chrome`, text the same size in
 every card, a waterfall's figures on a phone, a Marimekko's column names, hexbins inside the plot, a Gantt's first
@@ -27,12 +27,12 @@ the recipes as SKILL.md advises (a line and its points in one color, two scales 
 and percent on the axes, the dashboard on the composer's grid); E4, a CSV example in SKILL.md an agent can copy as it
 is; E5, no tool in the skill an agent cannot run (binary columns left to pipelines: the composer's gzip does nearly as
 well); E6, the KPI and zoom paragraphs of SKILL.md say what the block is before how to size it; E3, a note under a
-chart for its reader and `how` for the agent (the recipes' notes written from their data, a warning on a note with code).
+chart for its reader and `how` for the agent (the recipes' notes written from their data, a warning on a note with code);
+E7, the trigger description leaves out charts in an app's own code and says a table of figures is a heatmap with
+numbers (SKILL.md tells what to do with a table request; the heatmap recipe writes its figures).
 
 Left, in this order:
 
-- [ ] **E7** The trigger description: leave out charts embedded in an app's own code; a hint for "table" requests (a
-      heatmap with text).
 - [ ] **F1** README and docs/spec/principles.md: every size and count is stale (34 vs 58 blocks, kits 60 → 86.7 KB …).
       Generate them or link /blocks/#sizes.
 - [ ] **F2** site/public/og.png is stale (21 of 42 blocks, 69.8 KB): `npm run og` and check it.

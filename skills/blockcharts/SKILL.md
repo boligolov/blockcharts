@@ -1,9 +1,9 @@
 ---
 name: blockcharts
-description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
+description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared; a table of figures in such a page is a heatmap with the number written in every cell. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for charts inside an app's own code (a React or Vue component, a page of an existing web app), PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.33.45"
+  version: "0.33.46"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -81,6 +81,8 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 **Density contours**: the same thousands of points as regions nested like the rings of a map. `{"type": "contour", "x": "km", "y": "minutes", "shares": [0.25, 0.5, 0.75, 0.95], "extent": [[0, null], [0, null]]}` outlines the regions holding a quarter, half, three quarters and 95% of the points (or `"levels": 8` at even steps of the density); `extent` cuts them where a value cannot go, here below 0. It replaces the rows with the points of the outlines, under the names of `x` and `y`, with `level` (1 the outermost), `ring`, and `share` (of the points inside). Draw it with `{"type": "polygon", "x": "km", "y": "minutes", "group": "level", "ring": "ring", "color": "share"}` on a sequential color, `"filled": false` for contour lines, and give the tooltip `"fields": ["share"]` with the `percent` format. The points themselves cannot be drawn on the same chart, as its one table holds the outlines. See `recipes/contours.json`.
 
 **Coloring by a number** (heatmap, colored dots): declare `"color": {"type": "sequential"}` (optionally `"range": ["#hex", "#hex", ...]`, hex colors only; 0 is a real value with a color, `null` is not drawn), give a `rect` or `point` mark `"color": "<numeric field>"`, and add the legend. A row with no number gets no color and is not drawn. For counts where a few cells hold most of them, `"exponent": 0.5` gives the small values more of the colors.
+
+**A table of figures**: there is no table block. Figures by two categories (regions by quarter, products by month) are a heatmap with the figure written in every cell: the `rect` colored by the value as above, and over it `{"type": "text", "x": "quarter", "y": "region", "text": "revenue", "on": "revenue"}` with a `format`, which turns each figure light or dark with its cell. More than about six columns do not fit a phone: give such an entry `"minWidth": 560`. A ranking, one figure per item, is horizontal bars with the value on each bar (`recipes/top-n.json`). A list of rows (every invoice, every column of a CSV) is not something the page can hold: tell the user, and give the list in the reply if they need it, rather than writing HTML into the page. See `recipes/heatmap.json`.
 
 **Pie and donut**: `mark.arc` with `"value": "<numeric field>"` and `"color": "<category field>"`. It needs no x or y scale, only the color scale (and its legend). `innerRadius` makes a donut, `label: "percent"` writes percentages, `sort: "desc"` puts the biggest slice first. Use it for a handful of parts of one whole; prefer bars for more than about six categories.
 
@@ -185,7 +187,7 @@ Look up any block, parameter or channel in `reference/blocks.md`. It is generate
 | How values are spread in each category, with the shape a box plot hides (two humps, a tail) | `recipes/violin.json` |
 | How values are spread across many categories or periods (a month each), compared at a glance (ridgeline) | `recipes/ridgeline.json` |
 | Every sample of a few categories as a dot, without overlaps: deals, salaries, response times (beeswarm) | `recipes/beeswarm.json` |
-| A number for every pair of two categories | `recipes/heatmap.json` |
+| A number for every pair of two categories; a table of figures, each cell colored by its value | `recipes/heatmap.json` |
 | Parts of a whole, as one circle | `recipes/pie.json` |
 | A very long series (tens of thousands of points and more) | `recipes/long-series.json` |
 | A scatter plot of tens of thousands of points (canvas) | `recipes/scatter-large.json` |
@@ -232,4 +234,4 @@ Each recipe is a complete `page.json` that composes as it stands.
 
 ## What you cannot do here
 
-Custom drawing code, animations, maps and network data sources are outside this tool. If the user needs a tooltip with custom content, that is a small function registered by a developer with `BC.defineFn` and referenced by name (`"content": "name"`); tell the user instead of writing it.
+Custom drawing code, animations, maps, a plain table of rows and network data sources are outside this tool. If the user needs a tooltip with custom content, that is a small function registered by a developer with `BC.defineFn` and referenced by name (`"content": "name"`); tell the user instead of writing it.

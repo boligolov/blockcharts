@@ -1626,6 +1626,22 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   already for readers, stayed. A note with code in it (backticks, a block's name, `NaN`, a brace, a JSON key) is a
   warning that names the piece and says where it goes: 130 notes of the two dashboards in English, Chinese, Japanese
   and Korean raise none, and every recipe composes with no warning, so a recipe whose note slips back fails the tests.
+- **The trigger description says where the skill stops and what a table is here.** It listed what the skill is not
+  for (PNG, plotting-library code, text charts, live data) but not charts that belong in an app's own code, a React or
+  Vue component or a page of an existing web app, which a standalone page with no JavaScript of the agent's cannot
+  serve; and a request for a table found nothing, as there is no table block. The description now leaves those charts
+  out and says that a table of figures in such a page is a heatmap with the number written in every cell. SKILL.md
+  says what to do with a table request: figures by two categories are that heatmap (a `text` mark with `on` on the
+  cell's color, `minWidth` past about six columns), a ranking is bars with their values, and a list of rows is not
+  something the page holds, which the agent tells the user instead of writing HTML; the heatmap recipe writes its
+  figures (5 columns fit a phone at 11 px, light on the dark cells in both themes). Measured with skill-creator's
+  trigger method (a command holding the description, `claude -p`, triggered when the first tool call reads it; its
+  `run_eval.py` waits on pipes with `select()`, which Windows does not have, so a Node port ran it) on 8 requests that
+  should trigger and 9 that should not, twice each, with the user's other skills installed: the old description 32 of
+  34, missing both times "a table of these I can email to the team, with the big numbers standing out", the new one
+  34 of 34. The React, Vue, Recharts and Django requests did not trigger either description, so leaving them out
+  states a boundary the old text already kept on these requests; a sortable table of 300 invoices and a Markdown
+  table did not trigger the new one.
 
 ## Next steps
 
