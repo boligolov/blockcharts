@@ -151,9 +151,126 @@ window.addEventListener('load', function () {
       },
       {
         h: 'In a component',
-        p: 'A component draws in its mount hook and cleans up in its unmount hook. <code>destroy()</code> removes the listeners and the elements the chart made; <code>update(spec)</code> redraws with a new spec and keeps the zoom.',
+        p: `A component draws in its mount hook and cleans up in its unmount hook. <code>destroy()</code> removes the listeners and the elements the chart made; <code>update(spec)</code> redraws with a new spec and keeps the zoom. For React, Vue, Svelte and Angular that component is written already: <a href="${root}embed/frameworks/">the wrappers</a>.`,
         code: `import BC from 'blockcharts/kits/basic.mjs';\n\nexport function mountChart(element, rows, spec) {\n  BC.data('rows', rows);            // last call for a name wins\n  const chart = BC.chart(element, { ...spec, data: 'rows' });\n  return {\n    update: (next) => chart.update({ ...next, data: 'rows' }),\n    destroy: () => chart.destroy(),\n  };\n}`,
         label: 'JavaScript',
+      },
+    ],
+  });
+
+  // ── 3b. the framework wrappers ──
+  // the spec of the snippets below: short, as an app keeps it next to its component
+  const appSpec = `const spec = {
+  scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+  guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+  marks: [{ type: 'rect', x: 'region', y: 'total' }],
+};`;
+  const indent = (s, by) => s.replace(/\n/g, '\n' + by);
+  // the module page's chart without a dataset name (the element is given its rows) and with clicks
+  const elementSpec = { ...moduleSpec, size: [720, 260], interaction: moduleSpec.interaction.concat([{ type: 'click' }]) };
+  delete elementSpec.data;
+  pages.push({
+    file: 'frameworks.html',
+    title: 'React, Vue, Svelte and <block-chart>',
+    description:
+      'blockcharts charts as components: wrappers for React, Vue 3 and Svelte, and a custom element for Angular or any page, with clicks on the data and server rendering.',
+    lead: 'Each wrapper is a subpath of the npm package with no blocks of its own: it draws with the kit your app imports once, so the app carries only the blocks it chose. React, Vue and Svelte are optional peer dependencies; the custom element needs no framework.',
+    sections: [
+      {
+        h: 'Any framework, or none: the custom element',
+        p: "Importing <code>blockcharts/element</code> defines <code>&lt;block-chart&gt;</code>. Give it a spec and the chart's own rows as properties (or the spec as JSON in a <code>spec</code> attribute) and listen for <code>bc-click</code>. Click a bar:",
+        html: `<block-chart id="regions"></block-chart>
+<pre class="out" id="picked">Click a bar.</pre>
+
+<script type="module">
+  import '${kit('basic.mjs')}';
+  import '${root}release/frameworks/element.mjs';
+
+  const chart = document.getElementById('regions');
+  chart.spec = ${indent(pretty(elementSpec), '  ')};
+  chart.data = ${json(sales)};
+  chart.addEventListener('bc-click', (e) => {
+    document.getElementById('picked').textContent = JSON.stringify(e.detail.values);
+  });
+</script>`,
+        note: 'In an app the two imports are <code>blockcharts/kits/basic.mjs</code> and <code>blockcharts/element</code>. The element has no shadow DOM, so your <code>--bc-*</code> variables and <code>.bc-*</code> styles reach the chart.',
+      },
+      {
+        h: 'React',
+        p: '<code>onClick</code> gets the clicked row and adds <code>{"type": "click"}</code> to the spec when it has none. The ref has <code>setView</code>, <code>getView</code> and <code>chart</code>, the chart as drawn now. React 18 and later; on a server the component renders an empty <code>&lt;div&gt;</code>.',
+        code: `import 'blockcharts/kits/basic.mjs'; // once, before a chart mounts
+import { useRef } from 'react';
+import { BlockChart } from 'blockcharts/react';
+
+${appSpec}
+
+export function Regions({ rows, onPick }) {
+  const chart = useRef(null); // chart.current.setView('x', null)
+  return <BlockChart ref={chart} spec={spec} data={rows} onClick={(d) => onPick(d.values.region)} />;
+}`,
+        label: 'React',
+        lang: 'jsx',
+      },
+      {
+        h: 'Vue 3',
+        p: '<code>@click</code> is a click on the data, with the row. A reactive spec may be changed in place: the chart follows it. Vue 3.3 and later.',
+        code: `<script setup>
+import 'blockcharts/kits/basic.mjs';
+import { BlockChart } from 'blockcharts/vue';
+
+defineProps(['rows']);
+const emit = defineEmits(['pick']);
+${appSpec}
+</script>
+
+<template>
+  <BlockChart :spec="spec" :data="rows" @click="(d) => emit('pick', d.values.region)" />
+</template>`,
+        label: 'Vue',
+        lang: 'vue',
+      },
+      {
+        h: 'Svelte',
+        p: 'An action, plain JavaScript: nothing has to compile it, and it works in Svelte 4 and 5.',
+        code: `<script>
+  import 'blockcharts/kits/basic.mjs';
+  import { blockchart } from 'blockcharts/svelte';
+
+  let { rows, onpick } = $props();
+  ${indent(appSpec, '  ')}
+</script>
+
+<div use:blockchart={{ spec, data: rows, onClick: (d) => onpick(d.values.region) }}></div>`,
+        label: 'Svelte',
+        lang: 'svelte',
+      },
+      {
+        h: 'Angular',
+        p: 'Angular sets properties on custom elements and listens to their events, so <code>&lt;block-chart&gt;</code> is the component; <code>CUSTOM_ELEMENTS_SCHEMA</code> lets the template use it.',
+        code: `import 'blockcharts/kits/basic.mjs';
+import 'blockcharts/element';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, input, output } from '@angular/core';
+
+@Component({
+  selector: 'app-regions',
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  template: \`<block-chart [spec]="spec" [data]="rows()" (bc-click)="pick.emit($event.detail.values.region)"></block-chart>\`,
+})
+export class RegionsComponent {
+  rows = input.required<object[]>();
+  pick = output<string>();
+  spec = {
+    scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+    marks: [{ type: 'rect', x: 'region', y: 'total' }],
+    interaction: [{ type: 'click' }],
+  };
+}`,
+        label: 'TypeScript',
+        lang: 'typescript',
+      },
+      {
+        h: 'What every wrapper does',
+        p: "The chart is drawn again only when the spec changes in content or <code>data</code> is a new array: rendering the same spec again costs nothing, and rows changed in place are not seen, so give a new array. The rows are kept in the data lake under a name of the chart's own and taken away with it; without <code>data</code>, the spec's <code>data</code> names a dataset given to <code>BC.data</code>, which several charts can share. A page with no kit gets a message in the chart's place, not an exception. Types come with every wrapper.",
       },
     ],
   });
@@ -229,6 +346,102 @@ window.addEventListener('load', function () {
       {
         h: 'What the handle offers',
         p: '<code>host</code>, <code>spec</code> and <code>diagnostics</code> are read-only; <code>ready</code> resolves after the first draw (a dataset that is still being decoded delays it); <code>update(spec, { resetView })</code>, <code>setView(scale, domain | null)</code>, <code>getView()</code> and <code>destroy()</code> do the work. Register functions with <code>BC.defineFn(name, fn)</code> and refer to them by name from the spec, which is how a JSON spec gets custom code without carrying any.',
+      },
+    ],
+  });
+
+  // ── 4b. clicks ──
+  const REGIONS = ['North', 'South', 'East', 'West'];
+  const next = rng(11);
+  const orders = [];
+  REGIONS.forEach((region, i) => {
+    let level = 40 + i * 9;
+    for (const month of MONTHS) {
+      level = Math.round(level * (0.88 + next() * 0.3));
+      orders.push({ month, region, orders: level });
+    }
+  });
+  const totals = REGIONS.map((region) => ({
+    region,
+    orders: orders.filter((r) => r.region === region).reduce((a, r) => a + r.orders, 0),
+  }));
+  const clickBars = {
+    data: 'totals',
+    size: [720, 240],
+    scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+    guides: [
+      { type: 'grid', scale: 'y' },
+      { type: 'axis', scale: 'x' },
+      { type: 'axis', scale: 'y', title: 'Orders, first half' },
+    ],
+    marks: [{ type: 'rect', x: 'region', y: 'orders', radius: 3 }],
+    interaction: [{ type: 'tooltip' }, { type: 'click' }],
+  };
+  const clickLine = {
+    data: 'picked',
+    size: [720, 220],
+    scales: { x: { type: 'time' }, y: { type: 'linear', zero: true } },
+    guides: [
+      { type: 'grid', scale: 'y' },
+      { type: 'axis', scale: 'x', format: 'month' },
+      { type: 'axis', scale: 'y' },
+    ],
+    marks: [
+      { type: 'line', x: 'month', y: 'orders' },
+      { type: 'point', x: 'month', y: 'orders', fill: 'var(--bc-c0, #3a6fe4)' },
+    ],
+    interaction: [{ type: 'tooltip' }],
+  };
+  pages.push({
+    file: 'clicks.html',
+    title: 'Clicks on the data',
+    description:
+      'Make a chart clickable: a click on a bar, a point or a slice sends a bc-click event with the row, and your code opens a page, filters another chart or shows details.',
+    lead: 'With <code>{"type": "click"}</code> among the interactions, a click on a bar, a point, a slice or a cell sends a <code>bc-click</code> event with its row. What happens next is your code: open a page, filter another chart, show the details.',
+    sections: [
+      {
+        h: 'One chart picks what another shows',
+        p: 'Click a bar: the line below shows that region by month. The event bubbles, so one listener on the document serves every chart of the page.',
+        html: `<script src="${kit('basic.js')}"></script>
+
+${dataTag({ totals, orders })}
+
+${chartTag(clickBars)}
+
+<div id="detail"></div>
+<pre class="out" id="clicked">Click a bar.</pre>
+
+<script>
+  var lake = JSON.parse(document.getElementById('bc-data').textContent);
+  var spec = ${indent(pretty(clickLine), '  ').trimStart()};
+  function region(name) {
+    BC.data('picked', lake.orders.filter(function (r) { return r.region === name; }));
+    spec.title = name + ', orders by month';
+    return spec;
+  }
+  var detail = BC.chart(document.getElementById('detail'), region('North'));
+
+  document.addEventListener('bc-click', function (e) {
+    var row = e.detail.values;              // { region: 'South', orders: 312 }
+    detail.update(region(row.region));
+    document.getElementById('clicked').textContent = JSON.stringify(row) + (e.detail.event.shiftKey ? ', with Shift' : '');
+  });
+</script>`,
+        note: 'A drag (a pan, a brush) is not a click, a double click sends one, and a click on a legend item stays the legend filter\'s. Over what can be clicked the pointer is a hand; <code>{"type": "click", "cursor": false}</code> keeps it as it is.',
+      },
+      {
+        h: 'What the event carries',
+        p: "<code>values</code> is the row with every column, not only the ones the mark reads. <code>row</code> is its index in the chart's table (<code>table</code>, after the transforms) and <code>rows</code> every row a shape stands for (a line, a hexbin). <code>mark</code> and <code>markIndex</code> say which mark of the spec was hit, <code>x</code> and <code>y</code> where it is in the chart, and <code>event</code> is the browser's click, with its modifier keys. What a click hits is what the tooltip shows there. In TypeScript the event is typed by <code>bc.d.ts</code>.",
+        code: `chart.host.addEventListener('bc-click', (e) => {
+  // e: CustomEvent<BC.ClickDetail>
+  const { values, row, rows, mark, markIndex, x, y, table, event } = e.detail;
+  if (event.metaKey || event.ctrlKey) window.open('/regions/' + encodeURIComponent(String(values.region)));
+});`,
+        label: 'JavaScript',
+      },
+      {
+        h: 'Not in a report file',
+        p: `A report made by the composer from a <code>page.json</code> has no script of yours to receive the event, so there the block is a warning. In React, Vue and Svelte the wrappers take an <code>onClick</code> instead: <a href="${root}embed/frameworks/">the wrappers</a>.`,
       },
     ],
   });

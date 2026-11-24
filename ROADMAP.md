@@ -105,6 +105,8 @@ Found along the way:
       the legend filter's keys are the model (a canvas chart has none either, see above).
 - [ ] **The wrappers on React 18 and Svelte 4.** They use only APIs those have, but test-frameworks runs React 19,
       Vue 3.5 and Svelte 5.
+- [x] **The site** (2026-11-25): Embedding has "Clicks on the data" (a bar picks what a line shows) and "React, Vue,
+      Svelte and <block-chart>" (the element live, the other wrappers and Angular as code); the guide has the schema.
 - [ ] **Submit the plugin to Anthropic's directory** (see [docs/development.md](docs/development.md#listing-the-plugin-in-claudes-directory)).
       The owner's step, after the repository is public.
 

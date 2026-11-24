@@ -14,7 +14,7 @@ const REPLACE = {
   'light-plus': { '#098658': '#008053', '#e50000': '#e10000', '#ee0000': '#e10000', '#267f99': '#1e7993', '#d16969': '#b45051' },
   'dark-plus': { '#000080': '#4b7ff6', '#646695': '#7e81b2', '#808080': '#858585' },
 };
-const LANGS = ['json', 'jsonc', 'html', 'javascript', 'css', 'shellscript'];
+const LANGS = ['json', 'jsonc', 'html', 'javascript', 'css', 'shellscript', 'jsx', 'typescript', 'vue', 'svelte'];
 const ALIASES = { js: 'javascript', sh: 'shellscript', bash: 'shellscript', text: 'plaintext' };
 
 let highlighter;

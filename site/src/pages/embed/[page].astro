@@ -27,7 +27,7 @@ const of = (h: string) => `“${h.replace(/<[^>]+>/g, '')}”`;
       {s.extraAfter && <Fragment set:html={s.extraAfter} />}
       {s.note && <p class="muted" set:html={s.note} />}
       {s.html && <Snippet code={s.shown || s.html} label="HTML" name={`the HTML of ${of(s.h)}`} />}
-      {s.code && <Snippet code={s.code} label={s.label} name={`the code of ${of(s.h)}`} />}
+      {s.code && <Snippet code={s.code} label={s.label} lang={s.lang} name={`the code of ${of(s.h)}`} />}
     </>
   ))}
 </Base>
