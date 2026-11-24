@@ -3,6 +3,8 @@
 //   kits/<name>.js, kits/<name>.mjs  core + a chosen set of blocks in ONE file (classic script / ES module)
 //   loader.js                        loads core + needed blocks from separate files: BCLoader.load()
 //   bc.d.ts                          types
+//   schema/chart.schema.json, schema/page.schema.json   JSON Schemas of a chart spec and of a page.json (build-schema.js)
+//   frameworks/<name>.mjs, .d.mts    the wrappers (React, Vue, Svelte, the <block-chart> element) over the page's runtime
 //   manifest.json                    versions, dependencies, sizes and SRI hashes of all of the above
 // Kits come from kits.json; a page can get its own kit with --page (exactly the blocks its charts use).
 // Same input, same bytes: no dates, no absolute paths, fixed order.
@@ -13,11 +15,17 @@ const crypto = require('crypto');
 const { byRoleThenName } = require('./build-manifest.js');
 const { shrink, MinifyError } = require('./minify.js');
 const { gzipSize } = require('./sizes.js');
+const { schemaFiles, SchemaError } = require('./build-schema.js');
 
 const repo = path.join(__dirname, '..');
 const NAME = /^[a-z][a-z0-9-]*$/;
 
 class ReleaseError extends Error {}
+
+/** The framework wrappers (src/frameworks, built by tsconfig.frameworks.json), with the controller they share. */
+const FRAMEWORKS = ['controller', 'element', 'react', 'svelte', 'vue'];
+/** Where a wrapper's types find the BC namespace: bc.d.ts one folder up, whatever path tsc wrote. */
+const BC_REFERENCE = '/// <reference path="../bc.d.ts" />';
 
 /** The end of a kit's .js: under Node (require) the kit returns the runtime it put in the global scope. */
 const CJS_EXPORT = "if (typeof module === 'object' && module && typeof module.exports === 'object') module.exports = globalThis.BC;\n";
@@ -81,9 +89,11 @@ function buildRelease(options) {
 
   // a release is rebuilt from scratch: only the folders and files it owns are removed
   fs.mkdirSync(outDir, { recursive: true });
-  for (const sub of ['blocks', 'kits']) fs.rmSync(path.join(outDir, sub), { recursive: true, force: true });
+  for (const sub of ['blocks', 'kits', 'schema', 'frameworks']) fs.rmSync(path.join(outDir, sub), { recursive: true, force: true });
   fs.mkdirSync(path.join(outDir, 'blocks'));
   fs.mkdirSync(path.join(outDir, 'kits'));
+  fs.mkdirSync(path.join(outDir, 'schema'));
+  fs.mkdirSync(path.join(outDir, 'frameworks'));
   const put = (file, buf) => {
     fs.writeFileSync(path.join(outDir, file), buf);
     return describe(file, buf);
@@ -102,6 +112,28 @@ function buildRelease(options) {
   release.loader = put('loader.js', licence(script('loader.js')));
   const types = options.typesFile || path.join(repo, 'src', 'bc.d.ts');
   release.types = put('bc.d.ts', fs.readFileSync(types));
+  let schemas;
+  try {
+    schemas = schemaFiles(manifest);
+  } catch (e) {
+    throw e instanceof SchemaError ? new ReleaseError(e.message) : e;
+  }
+  release.schemas = {};
+  for (const file of Object.keys(schemas)) release.schemas[path.basename(file, '.schema.json')] = put(file, Buffer.from(schemas[file]));
+
+  // the wrappers as tsc wrote them (readable ES modules: an app's bundler minifies), with a banner and one way to the types
+  release.frameworks = {};
+  for (const name of FRAMEWORKS) {
+    const at = (ext) => path.join(distDir, 'frameworks', name + ext);
+    if (!fs.existsSync(at('.mjs')) || !fs.existsSync(at('.d.mts')))
+      throw new ReleaseError(`frameworks/${name}.mjs is not built: run npm run build (it compiles tsconfig.frameworks.json too)`);
+    const js = fs.readFileSync(at('.mjs'), 'utf8').replace(/^\/\/\/ <reference [^\n]*\n/gm, '');
+    const dts = fs.readFileSync(at('.d.mts'), 'utf8').replace(/^\/\/\/ <reference path="[^"]*bc\.d\.ts"[^\n]*\n/gm, '');
+    release.frameworks[name] = {
+      mjs: put(`frameworks/${name}.mjs`, Buffer.from(`/*! blockcharts ${version} | MIT License */\n` + js)),
+      dts: put(`frameworks/${name}.d.mts`, Buffer.from(BC_REFERENCE + '\n' + dts)),
+    };
+  }
 
   for (const name of Object.keys(kits).sort()) {
     const blocks = kitBlocks(name, kits[name], manifest);

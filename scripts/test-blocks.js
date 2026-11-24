@@ -2595,6 +2595,214 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert(!('class' in old.attrs), 'the class is gone again');
   });
 
+  // ── interaction.click ──
+  /** A host that records the events a chart sends from it. */
+  const clickHost = () => {
+    const host = new FakeNode('div');
+    host.sent = [];
+    host.dispatchEvent = (ev) => {
+      host.sent.push(ev);
+      return true;
+    };
+    return host;
+  };
+  const clickAt = (host, x, y, extra) => {
+    host.children[0].fire('pointerdown', { clientX: x, clientY: y, button: 0, ...extra });
+    host.children[0].fire('click', { clientX: x, clientY: y, detail: 1, ...extra });
+  };
+  const clickSpec = (extra, click) => ({ ...barSpec(), interaction: [{ type: 'click', ...click }], ...extra });
+
+  test('interaction.click: a bar sends bc-click with its row, from the host, bubbling; the gap, above it and outside send nothing', async () => {
+    const host = clickHost();
+    const h = BC.chart(host, clickSpec());
+    assert.deepStrictEqual(h.diagnostics, []);
+    const bars = rects(layer(svgOf(host), 'marks'));
+    clickAt(host, bars[1].x + bars[1].w / 2, bars[1].y + bars[1].h / 2);
+    assert.strictEqual(host.sent.length, 1);
+    const ev = host.sent[0];
+    assert.strictEqual(ev.type, 'bc-click');
+    assert.strictEqual(ev.bubbles, true, 'one listener on the page hears every chart');
+    const d = ev.detail;
+    assert.strictEqual(d.row, 1);
+    assert.deepStrictEqual(d.rows, [1]);
+    assert.deepStrictEqual(d.values, { k: 'b', v: 6 });
+    assert.strictEqual(d.markIndex, 0);
+    assert.strictEqual(d.mark.type, 'rect');
+    assert.strictEqual(d.table.length, 4);
+    assert.strictEqual(d.event.clientX, bars[1].x + bars[1].w / 2, "the browser's own event");
+    assert(isFinite(d.x) && isFinite(d.y));
+    clickAt(host, bars[1].x + bars[1].w + 6, bars[1].y + bars[1].h / 2);
+    clickAt(host, bars[3].x + 1, bars[3].y - 20);
+    clickAt(host, 2, 2);
+    assert.strictEqual(host.sent.length, 1, 'nothing for the gap between bars, above a bar or outside the plot');
+  });
+
+  test('interaction.click: what it hits is what the tooltip shows: a dot within its slack, a line along its length', async () => {
+    const host = clickHost();
+    BC.chart(host, { ...ptSpec([]), interaction: [{ type: 'click' }] });
+    const [c0, c1] = circles(svgOf(host));
+    clickAt(host, c1.x + 3, c1.y - 2);
+    assert.deepStrictEqual(
+      host.sent.map((e) => e.detail.values),
+      [{ a: 2, b: 4, g: 'B' }],
+    );
+    clickAt(host, c0.x + 40, c0.y + 40);
+    assert.strictEqual(host.sent.length, 1, 'far from every dot');
+
+    const lines = clickHost();
+    BC.chart(lines, { ...lineSpec(), interaction: [{ type: 'click' }, { type: 'tooltip' }] });
+    const path = layer(svgOf(lines), 'marks').match(/<path d="M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)/);
+    const [x0, y0, x1, y1] = path.slice(1).map(Number);
+    clickAt(lines, (x0 * 3 + x1) / 4, (y0 * 3 + y1) / 4);
+    assert.strictEqual(lines.sent.length, 1, 'between two vertices, on the line');
+    assert(['2024-01-01', '2024-02-01'].includes(lines.sent[0].detail.values.t), JSON.stringify(lines.sent[0].detail.values));
+  });
+
+  test('interaction.click: a drag is not a click, nor is the second click of a double click; a click with no press before it is', async () => {
+    const host = clickHost();
+    BC.chart(host, clickSpec());
+    const b = rects(layer(svgOf(host), 'marks'))[3];
+    const cx = b.x + b.w / 2;
+    const cy = b.y + b.h / 2;
+    const root = host.children[0];
+    root.fire('pointerdown', { clientX: cx - 30, clientY: cy, button: 0 });
+    root.fire('click', { clientX: cx, clientY: cy, detail: 1 });
+    assert.strictEqual(host.sent.length, 0, 'a pan or a brush that ends on a bar');
+    root.fire('pointerdown', { clientX: cx - 3, clientY: cy + 2, button: 0 });
+    root.fire('click', { clientX: cx, clientY: cy, detail: 1 });
+    assert.strictEqual(host.sent.length, 1, 'a hand that shook a little');
+    root.fire('pointerdown', { clientX: cx, clientY: cy, button: 0 });
+    root.fire('click', { clientX: cx, clientY: cy, detail: 2 });
+    assert.strictEqual(host.sent.length, 1, 'the second click of a double click (a zoom reset) is not another click');
+    root.fire('click', { clientX: cx, clientY: cy, detail: 1 });
+    assert.strictEqual(host.sent.length, 2, 'a click from the keyboard or a script has no press before it');
+    assert.strictEqual(host.sent[1].detail.row, 3);
+  });
+
+  test("interaction.click: a legend item is the legend filter's, not a click on the data", async () => {
+    const host = clickHost();
+    BC.chart(host, { ...filterSpec(), interaction: [{ type: 'legend-filter' }, { type: 'click' }] });
+    const before = dots(host);
+    const [c0] = circles(svgOf(host));
+    // a legend item over the plot's edge, where a dot is too: the item wins
+    host.children[0].fire('pointerdown', { clientX: c0.x, clientY: c0.y, button: 0 });
+    host.children[0].fire('click', { clientX: c0.x, clientY: c0.y, detail: 1, target: legendItem(0) });
+    await flush();
+    assert.notStrictEqual(dots(host), before, 'the legend filter took it');
+    assert.strictEqual(host.sent.length, 0);
+    // a mark is written with data-bc-mark / data-bc-row, and its layer with data-bc-layer: none of them is a control
+    const mark = {
+      parentNode: { attributes: [{ name: 'data-bc-layer', value: 'marks' }], parentNode: null },
+      attributes: [
+        { name: 'data-bc-mark', value: '0' },
+        { name: 'data-bc-row', value: '0' },
+      ],
+    };
+    const [d0] = circles(svgOf(host));
+    host.children[0].fire('click', { clientX: d0.x, clientY: d0.y, detail: 1, target: mark });
+    assert.strictEqual(host.sent.length, 1);
+  });
+
+  test("interaction.click: a hand over what can be clicked, the zoom's grab back after it, none with cursor false", async () => {
+    const host = clickHost();
+    const h = BC.chart(host, { ...ptSpec([]), interaction: [{ type: 'zoom' }, { type: 'click' }] });
+    const root = host.children[0];
+    const [c0] = circles(svgOf(host));
+    assert.strictEqual(root.style.cursor, 'grab');
+    await hover(host, c0.x, c0.y);
+    assert.strictEqual(root.style.cursor, 'pointer');
+    await hover(host, c0.x + 40, c0.y + 40);
+    assert.strictEqual(root.style.cursor, 'grab', "the zoom's cursor comes back");
+    await hover(host, c0.x, c0.y);
+    root.fire('pointerdown', { clientX: c0.x, clientY: c0.y, button: 0, buttons: 1 });
+    assert.strictEqual(root.style.cursor, 'grabbing', 'a press starts a pan');
+    await hover(host, c0.x + 5, c0.y, { buttons: 1 });
+    assert.strictEqual(root.style.cursor, 'grabbing', "dragging keeps the pan's cursor");
+    root.fire('pointerup', {});
+    await hover(host, c0.x, c0.y);
+    assert.strictEqual(root.style.cursor, 'pointer');
+    h.destroy();
+    assert.strictEqual(root.style.cursor, '', 'destroy leaves no cursor behind');
+
+    const plain = clickHost();
+    BC.chart(plain, { ...ptSpec([]), interaction: [{ type: 'click', cursor: false }] });
+    await hover(plain, c0.x, c0.y);
+    assert(!plain.children[0].style.cursor, 'cursor: false leaves it alone');
+    clickAt(plain, c0.x, c0.y);
+    assert.strictEqual(plain.sent.length, 1, 'and still clicks');
+  });
+
+  test('interaction.click: an update attaches it once, destroy removes it; hostile input is harmless', async () => {
+    const host = clickHost();
+    const h = BC.chart(host, clickSpec());
+    h.update(clickSpec());
+    const root = host.children[0];
+    assert.strictEqual((root.listeners.click || []).length, 1, 'one listener after an update');
+    const b = rects(layer(svgOf(host), 'marks'))[0];
+    clickAt(host, b.x + 1, b.y + b.h - 1);
+    assert.strictEqual(host.sent.length, 1, 'one event per click');
+    h.destroy();
+    assert.strictEqual((root.listeners.click || []).length, 0);
+    assert.strictEqual((root.listeners.pointerdown || []).length, 0);
+
+    // no coordinates, a target of nothing, a mark whose pick throws, no CustomEvent: no exception, no event
+    const odd = clickHost();
+    BC.chart(odd, clickSpec());
+    odd.children[0].fire('click', {});
+    odd.children[0].fire('click', { clientX: NaN, clientY: 'x', detail: 'x', target: {} });
+    assert.strictEqual(odd.sent.length, 0);
+    const realPick = BC.get('mark.rect').pick;
+    BC.get('mark.rect').pick = () => {
+      throw new Error('boom');
+    };
+    try {
+      const ob = rects(layer(svgOf(odd), 'marks'))[1];
+      clickAt(odd, ob.x + 1, ob.y + 1);
+      assert.strictEqual(odd.sent.length, 0, 'a mark that fails to pick is passed over');
+    } finally {
+      BC.get('mark.rect').pick = realPick;
+    }
+    const saved = globalThis.CustomEvent;
+    globalThis.CustomEvent = undefined;
+    try {
+      const ob = rects(layer(svgOf(odd), 'marks'))[1];
+      clickAt(odd, ob.x + 1, ob.y + ob.h - 1);
+      assert.strictEqual(odd.sent.length, 0, 'a world without CustomEvent (a server) sends nothing and does not throw');
+    } finally {
+      globalThis.CustomEvent = saved;
+    }
+
+    // params are checked like any block's
+    const said = BC.validate(clickSpec({}, { cursor: 'yes', cursr: true }));
+    assert(
+      said.some((d) => d.level === 'error' && d.path === 'interaction[0].cursor'),
+      JSON.stringify(said),
+    );
+    assert(said.some((d) => d.level === 'warn' && d.path === 'interaction[0].cursr' && /did you mean "cursor"/.test(d.message)));
+    assert.deepStrictEqual(BC.get('interaction.click').events, ['bc-click']);
+  });
+
+  test('BC.data(name, null) takes a dataset away, also one still decoding', async () => {
+    BC.data('gone', [{ a: 1 }]);
+    assert.deepStrictEqual(
+      BC.validate({ data: 'gone', marks: [], guides: [{ type: 'grid' }] }).filter((d) => d.path === 'data'),
+      [],
+    );
+    BC.data('gone', null);
+    assert(
+      BC.validate({ data: 'gone', marks: [], guides: [{ type: 'grid' }] }).some((d) => d.path === 'data'),
+      'unknown again',
+    );
+    BC.data('gone', { encoding: 'base64', data: Buffer.from(JSON.stringify([{ a: 1 }])).toString('base64') });
+    BC.data('gone', null);
+    await BC.ready();
+    assert(
+      BC.validate({ data: 'gone', marks: [], guides: [{ type: 'grid' }] }).some((d) => d.path === 'data'),
+      'a decode that ends later does not bring it back',
+    );
+    assert.throws(() => BC.data('gone', undefined), 'undefined is still a mistake, not a removal');
+  });
+
   /** The first element under `node` (itself included) that `test` says yes to. */
   const findNode = (node, test) => {
     if (test(node)) return node;

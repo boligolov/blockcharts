@@ -3,7 +3,7 @@ name: blockcharts
 description: Build a standalone HTML page with interactive charts — a business dashboard or a chart report (KPI tiles with sparklines, bars, stacked and grouped bars, lines, areas, waterfall, funnel, bullet, treemap, scatter, pie, heatmap, histogram, boxplot, dual axis; zoom, tooltips, legend filter) — from tabular data given inline or as a CSV file. Use when the user wants a chart, a report or a dashboard as one self-contained .html file that opens offline and can be emailed or shared; a table of figures in such a page is a heatmap with the number written in every cell. You write a JSON description; a composer checks it against the real data and produces the page with only the chart code it uses. You never write JavaScript. Not for charts inside an app's own code (a React or Vue component, a page of an existing web app), PNG images, plotting-library code (matplotlib, pandas), charts in plain text, or live data from a server.
 license: MIT
 metadata:
-  version: "0.33.50"
+  version: "0.34.0"
 compatibility: Needs Node.js 18 or later to run the bundled composer (runtime/compose.js, no dependencies, no network).
 ---
 
@@ -234,4 +234,4 @@ Each recipe is a complete `page.json` that composes as it stands.
 
 ## What you cannot do here
 
-Custom drawing code, animations, maps, a plain table of rows and network data sources are outside this tool. If the user needs a tooltip with custom content, that is a small function registered by a developer with `BC.defineFn` and referenced by name (`"content": "name"`); tell the user instead of writing it.
+Custom drawing code, animations, maps, a plain table of rows and network data sources are outside this tool. A click on a bar that does something (opens a link, filters another chart) needs a script of the page, which a report made from `page.json` does not have: `interaction.click` only sends an event to such a script, so leave it out. If the user needs a tooltip with custom content, that is a small function registered by a developer with `BC.defineFn` and referenced by name (`"content": "name"`); tell the user instead of writing it.

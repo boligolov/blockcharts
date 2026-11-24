@@ -28,13 +28,18 @@ jobs:
       - name: Format
         run: npm run format:check
 
-      # builds, then six suites; also fails while skills/blockcharts differs from a fresh build
+      # builds, then seven suites; also fails while skills/blockcharts differs from a fresh build
       - name: Test
         run: npm test
 
       # layout in a real browser (the runner's Google Chrome): where a card lands, what sticks out of a phone screen
       - name: Layout in Chrome
         run: node scripts/test-chrome.js
+
+      # blockcharts/react, /vue, /svelte, /element: bundled with the real frameworks and run in Chrome, rendered on a
+      # server, their types compiled against code an app would write
+      - name: Frameworks in Chrome
+        run: node scripts/test-frameworks.js
 
       # the release, the example reports, the skill download, Astro, then the link and chart checks
       - name: Site

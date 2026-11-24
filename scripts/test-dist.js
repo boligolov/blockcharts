@@ -55,6 +55,11 @@ test('release: every part is a file of its own, and the manifest describes each 
     listed.add(k.dts.file);
     listed.add(k.cts.file);
   }
+  for (const sc of Object.values(release.schemas)) listed.add(sc.file);
+  for (const fw of Object.values(release.frameworks)) {
+    listed.add(fw.mjs.file);
+    listed.add(fw.dts.file);
+  }
   assert.deepStrictEqual(
     files(out).map((f) => f.split(path.sep).join('/')),
     Array.from(listed).sort(),
@@ -66,6 +71,8 @@ test('release: every part is a file of its own, and the manifest describes each 
     release.types,
     ...Object.values(release.blocks),
     ...Object.values(release.kits).flatMap((k) => [k.js, k.mjs, k.dts, k.cts]),
+    ...Object.values(release.schemas),
+    ...Object.values(release.frameworks).flatMap((fw) => [fw.mjs, fw.dts]),
   ];
   for (const e of entries) {
     const buf = read(e.file);
@@ -77,6 +84,25 @@ test('release: every part is a file of its own, and the manifest describes each 
   assert.deepStrictEqual(JSON.parse(read('manifest.json').toString()), release, 'the file says what the function returned');
   assert.strictEqual(release.blocks['mark.line'].closure.join(), manifest.blocks['mark.line'].closure.join());
   assert(!('params' in release.blocks['mark.line']), 'the manifest a browser downloads stays small');
+  assert.deepStrictEqual(Object.keys(release.schemas).sort(), ['chart', 'page']);
+  assert.strictEqual(release.schemas.chart.file, 'schema/chart.schema.json');
+  const pkg = JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8'));
+  assert.strictEqual(pkg.exports['./schema/*'], './release/schema/*', 'blockcharts/schema/chart.schema.json resolves');
+  // blockcharts/react, /vue, /svelte, /element: each an ES module with its types, the frameworks optional peers
+  for (const name of ['react', 'vue', 'svelte', 'element']) {
+    assert.deepStrictEqual(pkg.exports['./' + name], {
+      types: `./release/${release.frameworks[name].dts.file}`,
+      default: `./release/${release.frameworks[name].mjs.file}`,
+    });
+    const dts = read(release.frameworks[name].dts.file).toString();
+    assert(dts.startsWith('/// <reference path="../bc.d.ts" />\n'), `${name}.d.mts finds the BC types next to it`);
+    assert.strictEqual(dts.split('<reference path=').length, 2, `${name}.d.mts names bc.d.ts once`);
+    const js = read(release.frameworks[name].mjs.file).toString();
+    assert(js.startsWith(`/*! blockcharts ${release.version} | MIT License */`), name);
+    assert(!/<reference/.test(js), `${name}.mjs: no triple-slash line left in the code`);
+    assert(!/^\s*(import|export)\b[^\n]*['"][^'"]*(kits\/|blockcharts['"])/m.test(js), `${name}.mjs imports no kit: the app chose one`);
+  }
+  for (const peer of ['react', 'vue']) assert.deepStrictEqual(pkg.peerDependenciesMeta[peer], { optional: true }, peer);
 });
 
 test('release: the same input gives the same bytes, and a rebuild removes what no longer belongs', () => {
@@ -697,7 +723,7 @@ test('site: built from site/ alone, the prebuild says to build from the root, no
     fs.cpSync(path.join(repo, 'scripts'), path.join(root, 'scripts'), { recursive: true });
     for (const f of ['package.json', 'kits.json']) fs.copyFileSync(path.join(repo, f), path.join(root, f));
     const said = notReady(root);
-    assert.match(said, /the root's dependencies are not installed \(no esbuild, fflate/);
+    assert.match(said, /the root's dependencies are not installed \(no [^)]*\besbuild, fflate\b/);
     assert.match(said, /the library is not built \(no dist\/manifest\.json, dist\/min\/manifest\.json\)/);
     assert.match(said, /Build from the root: {2}npm ci && npm run site\n/);
     assert.match(said, /Root directory empty/);

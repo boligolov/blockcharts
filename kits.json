@@ -1,6 +1,6 @@
 {
   "basic": {
-    "doc": "Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend and tooltip, and fields calculated from the data.",
+    "doc": "Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend, tooltip and click events, and fields calculated from the data.",
     "blocks": [
       "scale.linear",
       "scale.log",
@@ -16,12 +16,13 @@
       "guide.axis",
       "guide.grid",
       "guide.legend",
+      "interaction.click",
       "interaction.tooltip",
       "renderer.svg"
     ]
   },
   "timeseries": {
-    "doc": "Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables and moving averages; also the canvas renderer for very large series.",
+    "doc": "Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables, moving averages and click events; also the canvas renderer for very large series.",
     "blocks": [
       "scale.linear",
       "scale.log",
@@ -33,6 +34,7 @@
       "guide.axis",
       "guide.grid",
       "guide.legend",
+      "interaction.click",
       "interaction.tooltip",
       "interaction.zoom",
       "interaction.brush",
@@ -51,7 +53,7 @@
     ]
   },
   "composition": {
-    "doc": "Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap, aggregation.",
+    "doc": "Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap, aggregation, click events.",
     "blocks": [
       "scale.linear",
       "scale.time",
@@ -67,6 +69,7 @@
       "guide.axis",
       "guide.grid",
       "guide.legend",
+      "interaction.click",
       "interaction.tooltip",
       "interaction.legend-filter",
       "transform.stack",
@@ -85,7 +88,7 @@
     ]
   },
   "dashboard": {
-    "doc": "Business dashboards: KPI tiles with sparklines, bars, lines and areas, waterfall, funnel, treemap, bullet and target lines, donut, with axes, grid, legend, tooltip and legend filter.",
+    "doc": "Business dashboards: KPI tiles with sparklines, bars, lines and areas, waterfall, funnel, treemap, bullet and target lines, donut, with axes, grid, legend, tooltip, legend filter and click events.",
     "blocks": [
       "scale.linear",
       "scale.time",
@@ -111,6 +114,7 @@
       "guide.grid",
       "guide.legend",
       "guide.kpi",
+      "interaction.click",
       "interaction.tooltip",
       "interaction.legend-filter",
       "renderer.svg"

@@ -42,7 +42,8 @@
 // Specs must be plain JSON: a function in one (a tooltip `content`, say) would be silently dropped by JSON.stringify, so it is
 // refused; register it in a script (`after`) with BC.defineFn(name, fn) and put the name in the spec.
 //
-// The command line reads a page: title, subtitle, lang, layout, css, defaultCss, compress, data and charts (PAGE_KEYS). The
+// The command line reads a page: title, subtitle, lang, layout, css, defaultCss, compress, data and charts (PAGE_KEYS), and
+// reads past a "$schema" (release/schema/page.schema.json, for an editor). The
 // rest is for a program that calls compose(): it says where the code comes from (distDir), puts raw HTML and scripts on the
 // page (before, after, include) or writes a page that has errors (allowErrors), so a page.json someone sent cannot run code
 // on the machine that composes it, nor get past the checks. Any other key is an error, with the key it looks like.
@@ -74,6 +75,8 @@ const ENTRY_API_KEYS = ['noteHtml'];
 
 const PAGE_KEYS = ['title', 'subtitle', 'lang', 'layout', 'css', 'defaultCss', 'compress', 'data', 'charts'];
 const API_KEYS = ['before', 'after', 'include', 'distDir', 'allowErrors', 'dryRun', 'drawTimeout', 'baseDir'];
+/** What a page may also say, and the composer reads past: the JSON Schema an editor checks it against. */
+const SCHEMA_KEY = '$schema';
 
 /** The known name a mistyped one was meant to be: the same but for case, or at most two letters off. */
 function nearest(name, known) {
@@ -95,9 +98,10 @@ function nearest(name, known) {
   return best;
 }
 
-/** An error for the first key of `obj` that is not one of `known`, saying which one it looks like. */
-function unknownKeys(obj, known, where) {
-  const stray = Object.keys(obj).find((k) => !known.includes(k));
+/** An error for the first key of `obj` that is not one of `known` (nor of `also`, keys it takes without listing them),
+ *  saying which one it looks like. */
+function unknownKeys(obj, known, where, also = []) {
+  const stray = Object.keys(obj).find((k) => !known.includes(k) && !also.includes(k));
   if (stray === undefined) return;
   const near = nearest(stray, known);
   throw new ComposeError(
@@ -126,7 +130,7 @@ function readPage(file) {
     throw new ComposeError(
       `${file}: "${own}" is an option for a program that calls compose(), not a key of a page. A page has ${PAGE_KEYS.map((k) => `"${k}"`).join(', ')}`,
     );
-  unknownKeys(page, PAGE_KEYS, file);
+  unknownKeys(page, PAGE_KEYS, file, [SCHEMA_KEY]);
   if (Array.isArray(page.charts))
     page.charts.forEach((c, i) => {
       const raw = c && typeof c === 'object' && ENTRY_API_KEYS.find((k) => c[k] !== undefined);
@@ -528,7 +532,7 @@ function transformFacet(entry, BC) {
 
 function compose(opts) {
   const options = opts || {};
-  unknownKeys(options, PAGE_KEYS.concat(API_KEYS), 'compose()');
+  unknownKeys(options, PAGE_KEYS.concat(API_KEYS), 'compose()', [SCHEMA_KEY]);
   // next to manifest.json (a packaged skill) or in the repo's dist folder
   const distDir = path.resolve(
     options.distDir ||
@@ -699,6 +703,19 @@ function compose(opts) {
   charts.forEach(({ spec, index: i }) => {
     for (const d of plain(Array.from(BC.validate(spec))))
       diagnostics.push({ ...d, chart: i, path: `charts[${i}].${d.path}`.replace(/\.$/, '') });
+    // an interaction that only tells a script of the page (InteractionDef.events) does nothing on a page with no script
+    if (!options.after && Array.isArray(spec.interaction))
+      spec.interaction.forEach((s, k) => {
+        const said = s && typeof s.type === 'string' && manifest.blocks[`interaction.${s.type}`];
+        // once per chart entry, not once per panel of a facet
+        if (said && said.events && !diagnostics.some((d) => d.path === `charts[${i}].interaction[${k}]` && d.level === 'warn'))
+          diagnostics.push({
+            level: 'warn',
+            chart: i,
+            path: `charts[${i}].interaction[${k}]`,
+            message: `"${s.type}" sends ${said.events.join(', ')} to a script of the page, and a report made from page.json has none: nothing would happen on a click. Leave it out, or compose the page from a program that adds a script ("after")`,
+          });
+      });
   });
   const drawTimeout = typeof options.drawTimeout === 'number' && options.drawTimeout > 0 ? options.drawTimeout : 10000;
   sandbox.document = createDocument();
@@ -958,7 +975,20 @@ function compose(opts) {
   return { html, blocks: blockNames, bytes, diagnostics, unusedData, compressed, core, entries: shown };
 }
 
-module.exports = { compose, readPage, nearest, ComposeError, jsonForScript, escapeText, resolveDataset, DARK_PALETTE, paletteVars };
+module.exports = {
+  compose,
+  readPage,
+  nearest,
+  ComposeError,
+  PAGE_KEYS,
+  ENTRY_KEYS,
+  ENTRY_API_KEYS,
+  jsonForScript,
+  escapeText,
+  resolveDataset,
+  DARK_PALETTE,
+  paletteVars,
+};
 
 /** Whether two paths name one existing file: by device and inode, so "./a", a full path, a name in another case where the
  *  file system ignores case, and a link all count. A file system without inodes (0) falls back on the resolved paths. */

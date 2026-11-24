@@ -1,19 +1,19 @@
 {
   "core": {
     "file": "core.js",
-    "bytes": 44269,
-    "version": "0.0.2",
+    "bytes": 44338,
+    "version": "0.0.3",
     "variants": {
       "composed": {
         "file": "core.composed.js",
-        "bytes": 33181,
+        "bytes": 33235,
         "off": [
           "CHECKS"
         ]
       },
       "composed-plain": {
         "file": "core.composed-plain.js",
-        "bytes": 30147,
+        "bytes": 30206,
         "off": [
           "CHECKS",
           "DECODE"
@@ -44,13 +44,13 @@
     },
     "lib.pointer": {
       "file": "blocks/lib.pointer.js",
-      "bytes": 1433,
-      "version": 2,
+      "bytes": 1697,
+      "version": 3,
       "requires": [],
       "closure": [
         "lib.pointer"
       ],
-      "doc": "The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point, margin)` tells whether such a point is on the plot (or within `margin` of it). `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it."
+      "doc": "The pointer over a chart, shared by the tooltip, the crosshair, clicks, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point, margin)` tells whether such a point is on the plot (or within `margin` of it). `pickAt(live, point)` is the datum under that point: the nearest any mark finds (`MarkDef.pick`), the mark drawn later winning a tie, with the mark, its def and its index; null for none. `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it."
     },
     "lib.stats": {
       "file": "blocks/lib.stats.js",
@@ -2476,6 +2476,29 @@
       },
       "doc": "Drag a rectangle over the plot to zoom to it: on the scales in `scales` (default x) the view becomes the selected range, on a category (band) scale the categories under the selection. Shift + drag by default, so it does not fight with the pan of interaction.zoom; Escape cancels while dragging, double-click resets. A drag shorter than `minSize` px is not a selection."
     },
+    "interaction.click": {
+      "file": "blocks/interaction.click.js",
+      "bytes": 1435,
+      "version": 1,
+      "requires": [
+        "lib.pointer"
+      ],
+      "closure": [
+        "lib.pointer",
+        "interaction.click"
+      ],
+      "events": [
+        "bc-click"
+      ],
+      "params": {
+        "cursor": {
+          "kind": "boolean",
+          "default": true,
+          "doc": "A hand cursor over what can be clicked."
+        }
+      },
+      "doc": "Clicks on the data, for a script of the page: a click or a tap on a bar, a dot, a slice, a line sends a `bc-click` event from the chart's element. It bubbles, and `event.detail` has the row: `row`, `rows`, `values` (every column of the row), `mark`, `markIndex`, `x`, `y`, `table`, and the browser's own `event` (modifier keys). What it hits is what the tooltip shows there. A drag (a pan, a brush) is not a click, a double click sends one, and a legend item stays the legend filter's. A report made from JSON alone has no script to listen: this is for pages and apps with code of their own."
+    },
     "interaction.crosshair": {
       "file": "blocks/interaction.crosshair.js",
       "bytes": 2132,
@@ -2532,8 +2555,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 11134,
-      "version": 23,
+      "bytes": 10928,
+      "version": 24,
       "requires": [
         "lib.pointer"
       ],

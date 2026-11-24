@@ -22,7 +22,7 @@ Charts are described in JSON, drawn in SVG or on a canvas, and every part can be
 One script tag, and a chart described in JSON where it should appear:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.2/release/kits/basic.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.3/release/kits/basic.js"></script>
 
 <script type="application/json" id="bc-data">
   { "sales": [ { "region": "North", "total": 42 }, { "region": "South", "total": 58 }, { "region": "East", "total": 31 } ] }
@@ -52,7 +52,7 @@ const chart = BC.chart(document.getElementById('chart'), spec); // update, setVi
 ## Why blockcharts
 
 - **Only the code your charts use.** The blocks a page needs are read from its specs and closed over their
-  dependencies: a bar chart with labels and a tooltip carries <!-- build:bar -->10 of the 58 blocks, 71 KB of code instead of 214<!-- /build -->; a whole
+  dependencies: a bar chart with labels and a tooltip carries <!-- build:bar -->10 of the 59 blocks, 71 KB of code instead of 216<!-- /build -->; a whole
   executive dashboard (KPI tiles, a trend, a donut, a waterfall, a funnel, animated) carries <!-- build:dashboard-blocks -->24<!-- /build -->. Nobody lists
   blocks by hand, so the list is never too long.
 - **Charts are data, checked before they are drawn.** A chart is a plain JSON spec, not code. It is checked against
@@ -85,7 +85,8 @@ Every kind is live in the [gallery](https://blockcharts.online/examples/), with 
 | --- | --- |
 | Charts in your own page, one `<script>` | a **kit**: the core and a set of blocks in one file |
 | Each page to fetch only what it uses | the **loader**: `loader.js`, the core and single block files |
-| A bundler or a framework component | the **npm package**: `import BC from 'blockcharts'` |
+| A bundler | the **npm package**: `import BC from 'blockcharts'` |
+| A component in React, Vue or Svelte, or a custom element | the **wrappers**: `blockcharts/react`, `/vue`, `/svelte`, `/element` |
 | One report file, nothing to host | the **composer**: JSON and data in, one HTML file out |
 
 ### Kits
@@ -97,11 +98,11 @@ A kit is the core and a set of blocks in one file: a classic script (`kits/<name
 
 | Kit | Blocks | Contents | Minified (gzip) |
 |---|---|---|---|
-| `basic` | 19 | Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend and tooltip, and fields calculated from the data. | 112 KB (42 KB) |
-| `timeseries` | 29 | Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables and moving averages; also the canvas renderer for very large series. | 141 KB (52 KB) |
-| `composition` | 33 | Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap, aggregation. | 149 KB (54 KB) |
-| `dashboard` | 31 | Business dashboards: KPI tiles with sparklines, bars, lines and areas, waterfall, funnel, treemap, bullet and target lines, donut, with axes, grid, legend, tooltip and legend filter. | 149 KB (55 KB) |
-| `full` | 58 | Every block. | 226 KB (81 KB) |
+| `basic` | 20 | Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend, tooltip and click events, and fields calculated from the data. | 114 KB (43 KB) |
+| `timeseries` | 30 | Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables, moving averages and click events; also the canvas renderer for very large series. | 142 KB (52 KB) |
+| `composition` | 34 | Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap, aggregation, click events. | 150 KB (55 KB) |
+| `dashboard` | 32 | Business dashboards: KPI tiles with sparklines, bars, lines and areas, waterfall, funnel, treemap, bullet and target lines, donut, with axes, grid, legend, tooltip, legend filter and click events. | 151 KB (56 KB) |
+| `full` | 59 | Every block. | 228 KB (82 KB) |
 
 <!-- /build -->
 
@@ -111,7 +112,7 @@ Charts mount themselves on `DOMContentLoaded`; or call `BC.chart(element, spec)`
 ### The loader
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.2/release/loader.js" data-auto></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.3/release/loader.js" data-auto></script>
 <!-- your data and <script data-bc-chart> specs -->
 ```
 
@@ -120,7 +121,7 @@ only those (with their dependencies) and draws. By hand:
 
 ```js
 await BCLoader.load({
-  base: 'https://cdn.jsdelivr.net/npm/blockcharts@0.0.2/release/', // default: the folder of loader.js
+  base: 'https://cdn.jsdelivr.net/npm/blockcharts@0.0.3/release/', // default: the folder of loader.js
   blocks: ['interaction.zoom'],   // extra blocks besides the ones found in the page
   scan: true,                     // find charts on the page (default)
   mount: true,                    // draw them when loaded (default)
@@ -141,20 +142,79 @@ import manifest from 'blockcharts/manifest.json' with { type: 'json' };
 const BC = require('blockcharts');               // CommonJS: the same full kit
 ```
 
-The package carries the built files: kits, single blocks, the loader, the manifest and the types. Every kit has a
+The package carries the built files: kits, single blocks, the loader, the manifest, the types, the JSON Schemas and
+the framework wrappers. Every kit has a
 `.d.mts` (and a `.d.ts` for `require`); `blockcharts/bc.d.ts` declares the global `BC` and every spec type. A
 `<script src>` names the file where it is: `node_modules/blockcharts/release/kits/basic.js`.
+
+### React, Vue, Svelte and `<block-chart>`
+
+A wrapper is a subpath of the package with no blocks of its own: it draws with the kit the app imported once, so the
+app carries only the blocks it chose.
+
+```jsx
+import 'blockcharts/kits/basic.mjs'; // once, before a chart mounts
+import { BlockChart } from 'blockcharts/react';
+
+<BlockChart spec={spec} data={rows} onClick={(d) => openRegion(d.values.region)} />;
+```
+
+```vue
+<script setup>
+import 'blockcharts/kits/basic.mjs';
+import { BlockChart } from 'blockcharts/vue';
+</script>
+
+<template>
+  <BlockChart :spec="spec" :data="rows" @click="(d) => openRegion(d.values.region)" />
+</template>
+```
+
+```svelte
+<script>
+  import 'blockcharts/kits/basic.mjs';
+  import { blockchart } from 'blockcharts/svelte';
+</script>
+
+<div use:blockchart={{ spec, data: rows, onClick: (d) => openRegion(d.values.region) }}></div>
+```
+
+```js
+// Angular (with CUSTOM_ELEMENTS_SCHEMA), Lit, Solid or a plain page
+import 'blockcharts/kits/basic.mjs';
+import 'blockcharts/element'; // defines <block-chart>
+
+const el = document.createElement('block-chart');
+el.spec = spec; // or <block-chart spec='{"data": "sales", ...}'>
+el.data = rows;
+el.addEventListener('bc-click', (e) => openRegion(e.detail.values.region)); // with {"type": "click"} in the spec
+```
+
+- `spec` is a chart spec. `data` is the chart's own rows, `{"columns": {...}}` or an encoded dataset, kept under a
+  name of its own while the chart lives and taken away after; left out, the spec's `data` names a dataset given to
+  `BC.data`.
+- The chart is drawn again only when the spec changes in content or `data` is a new array or object. Rendering the
+  same spec again costs nothing, and rows changed in place are not seen: give a new array.
+- `onClick` (`@click` in Vue) gets the clicked row ([Clicks](#clicks)) and adds `{"type": "click"}` to the spec when it
+  has none; the kit must have that block (all of them do).
+- The React ref and the Vue component's ref have `chart` (the handle: `diagnostics`, `getView`), `setView` and
+  `getView`; `<block-chart>` has `el.chart`.
+- On a server a component renders an empty `<div>`, and the chart is drawn after mount. Without a kit on the page the
+  chart's place says which one to import, and the app goes on.
+- React 18 and later, Vue 3.3 and later, Svelte 4 and 5 (the action is plain JavaScript): optional peer
+  dependencies. The custom element needs no framework.
 
 ### CDN and integrity
 
 jsDelivr and unpkg serve every file of the package at its path in it:
 `https://cdn.jsdelivr.net/npm/blockcharts@<version>/release/<file>` (or `https://unpkg.com/blockcharts@<version>/release/<file>`),
-where `<file>` is `core.js`, `blocks/<role.type>.js`, `kits/<name>.js` or `.mjs`, `loader.js`, `manifest.json` or
-`bc.d.ts`. Pin an exact version (`@0.0.2`, not `@0` or `@latest`): files of a version never change, and
-`manifest.json` lists a `sha384` hash of every file for the `integrity` attribute:
+where `<file>` is `core.js`, `blocks/<role.type>.js`, `kits/<name>.js` or `.mjs`, `loader.js`, `manifest.json`,
+`bc.d.ts`, `schema/chart.schema.json` or `schema/page.schema.json`. Pin an exact version (`@0.0.3`, not `@0` or
+`@latest`): files of a version never change, and `manifest.json` lists a `sha384` hash of every file for the
+`integrity` attribute:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.2/release/kits/basic.js" integrity="sha384-..." crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.3/release/kits/basic.js" integrity="sha384-..." crossorigin="anonymous"></script>
 ```
 
 ### The composer: one standalone report
@@ -220,9 +280,50 @@ the scale named `x`). Guides attach to scales, not to marks, and several scales 
 A block is named by its `type`, so `{"type": "rect"}` is `mark.rect`. Custom tooltip content is a function registered
 with `BC.defineFn(name, fn)` and named in the spec (`"content": "name"`), so specs stay plain JSON.
 
+### Clicks
+
+`{"type": "click"}` among the interactions makes the data clickable: a click or a tap on a bar, a point, a slice or a
+cell sends `bc-click` from the chart's element. It bubbles, so one listener can serve every chart of a page:
+
+```js
+document.addEventListener('bc-click', (e) => {
+  const { values, row, mark, event } = e.detail; // values: { region: 'North', total: 42 }
+  if (event.metaKey || event.ctrlKey) window.open('/regions/' + values.region);
+});
+```
+
+`values` is the row with every column, not only the ones the mark reads; `row` is its index in the chart's table
+(`table`), and `rows` every row a shape stands for (a line, a hexbin). `mark` and `markIndex` say which mark was hit,
+`x` and `y` where it is in the chart, and `event` is the browser's click with its modifier keys. What a click hits is
+what the tooltip shows there. A drag (a pan, a brush) is not a click, a double click sends one, a click on a legend
+item stays the legend filter's, and the pointer is a hand over what can be clicked (`"cursor": false` keeps it as
+it is). In TypeScript the event is typed: `HTMLElementEventMap['bc-click']` is `CustomEvent<BC.ClickDetail>`.
+
+A report made by the composer has no script of its own to receive the event, so there the block is a warning.
+
+### JSON Schema
+
+A spec and a `page.json` have a JSON Schema each, made from the blocks themselves: every block, parameter, channel
+and value it may take, with its documentation. Name it in the file, and an editor completes keys and block types,
+explains each on hover, and underlines a mistake while you type:
+
+```json
+{
+  "$schema": "https://cdn.jsdelivr.net/npm/blockcharts@0.0.3/release/schema/page.schema.json",
+  "title": "Sales",
+  "data": { "sales": [ { "region": "North", "total": 42 } ] },
+  "charts": [ { "spec": { "data": "sales", "marks": [ { "type": "rect", "x": "region", "y": "total" } ] } } ]
+}
+```
+
+A chart spec on its own takes `schema/chart.schema.json`. The core and the composer accept the `$schema` key and
+ignore it. Both schemas are draft-07, also in the package (`blockcharts/schema/chart.schema.json`) for a validator
+such as Ajv. They catch what has no data behind it (an unknown block or key, a wrong value); a field missing from
+the data is caught only by `BC.validate` and the composer, which read the data.
+
 ## Blocks
 
-The <!-- build:blocks -->58<!-- /build --> blocks, by role:
+The <!-- build:blocks -->59<!-- /build --> blocks, by role:
 
 <!-- build:roles -->
 
@@ -233,7 +334,7 @@ The <!-- build:blocks -->58<!-- /build --> blocks, by role:
 | transform | `aggregate`, `bin`, `calculate`, `calendar`, `contour`, `decimate`, `density`, `filter`, `fold`, `funnel`, `hexbin`, `highlight`, `marimekko`, `quartiles`, `sankey`, `sort`, `stack`, `treemap`, `waterfall`, `window` |
 | mark | `arc`, `area`, `boxplot`, `candlestick`, `line`, `point`, `polygon`, `rect`, `rule`, `sankey`, `text`, `violin` |
 | guide | `axis`, `grid`, `kpi`, `legend` |
-| interaction | `animate`, `brush`, `crosshair`, `legend-filter`, `tooltip`, `zoom`, `zoom-controls` |
+| interaction | `animate`, `brush`, `click`, `crosshair`, `legend-filter`, `tooltip`, `zoom`, `zoom-controls` |
 | renderer | `canvas`, `svg` |
 
 <!-- /build -->

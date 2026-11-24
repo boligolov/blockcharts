@@ -61,6 +61,8 @@ declare namespace BC {
   }
 
   interface ChartSpec {
+    /** The JSON Schema the spec follows (release/schema/chart.schema.json), for an editor; the chart ignores it. */
+    $schema?: string;
     id?: string;
     /** Key in the data lake. */
     data: string;
@@ -139,6 +141,25 @@ declare namespace BC {
     x: number;
     y: number;
     table: Table;
+  }
+
+  /** What interaction.click sends with its `bc-click` event (`event.detail`), from the chart's element, for a click or a tap
+   *  on the data: the datum the tooltip shows there. */
+  interface ClickDetail {
+    /** Row of the table (after the transforms) that was clicked. */
+    row: number;
+    /** Every row the shape stands for (see Pick.rows); just `row` for most shapes. */
+    rows: number[];
+    /** Every column of that row, not only the ones the mark reads. */
+    values: Record<string, unknown>;
+    mark: MarkSpec;
+    markIndex: number;
+    /** Anchor of the datum, in display-list px. */
+    x: number;
+    y: number;
+    table: Table;
+    /** The browser's click: modifier keys, the button, where on the page. */
+    event: MouseEvent;
   }
 
   /** What a tooltip `content` function may return. A string is inserted as text. `{ html }` is inserted as markup
@@ -613,6 +634,9 @@ declare namespace BC {
 
   interface InteractionDef extends BlockBase {
     role: 'interaction';
+    /** DOM events it sends from the chart's element (`host`, they bubble) for a script of the page: "bc-click". Listed in the
+     *  manifest; a page the composer makes from JSON alone has no script to listen, and gets a warning. */
+    events?: readonly string[];
     /** For an overlay that sits in a corner of the chart: which one, and how far along its edge from the end of the chart.
      *  Read at layout, so what is drawn along that edge can keep clear of it. */
     corner?(spec: InteractionSpec, ctx: ChartCtx): { edge: 'top' | 'bottom'; side: 'left' | 'right'; width: number } | null;
@@ -706,8 +730,9 @@ declare namespace BC {
 
     /** Add/replace a dataset in the data lake (the page's #bc-data is loaded on mount). Rows and columns are
      *  available at once; an EncodedDataset is decoded in the background (a failure is reported by the charts
-     *  that use it, and by console.error). A malformed plain dataset throws. */
-    data(name: string, input: DatasetInput): void;
+     *  that use it, and by console.error). A malformed plain dataset throws. `null` removes the dataset (a decode still
+     *  running for it is dropped); a chart already drawn from it keeps its drawing until it is built again. */
+    data(name: string, input: DatasetInput | null): void;
     /** Resolves when every dataset that was being decoded has settled. Never rejects. */
     ready(): Promise<void>;
     /** Register a function that specs can refer to by name (e.g. tooltip `content: "myTip"`), because JSON
@@ -752,6 +777,8 @@ declare namespace BC {
     closure: BlockName[];
     params?: Record<string, ParamDef>;
     channels?: Record<string, ChannelDef>;
+    /** InteractionDef.events */
+    events?: string[];
     doc?: string;
   }
 
@@ -762,3 +789,9 @@ declare namespace BC {
 }
 
 declare const BC: BC.Runtime;
+
+/** The events a chart sends from its element, typed for addEventListener. */
+interface HTMLElementEventMap {
+  /** interaction.click: a click on the data of a chart. It bubbles, so one listener on the page hears every chart. */
+  'bc-click': CustomEvent<BC.ClickDetail>;
+}

@@ -78,6 +78,17 @@ function buildManifest(distDir) {
       )
         fail(`channel "${ch}" of ${name}: accepts must be { output: one of ${OUTPUTS.join(', ')}, input: a list of ${INPUTS.join(', ')} }`);
     }
+    // the DOM events an interaction sends to the page's script: names a listener can be written for, never a browser's own
+    if (
+      def.events !== undefined &&
+      !(
+        def.role === 'interaction' &&
+        Array.isArray(def.events) &&
+        def.events.length &&
+        def.events.every((e) => /^bc-[a-z]+(-[a-z]+)*$/.test(e))
+      )
+    )
+      fail(`${name}: events are said by an interaction, as a list of names like "bc-click"`);
     blocks[name] = {
       file: `blocks/${file}`,
       bytes: Buffer.byteLength(src),
@@ -85,6 +96,7 @@ function buildManifest(distDir) {
       requires: plain(def.requires) || [],
       closure: [],
       ...(def.role === 'scale' ? { output: def.output, input: def.input } : {}),
+      ...(def.events ? { events: plain(def.events) } : {}),
       params: plain(def.params),
       channels: plain(def.channels),
       doc: def.doc,

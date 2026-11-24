@@ -334,8 +334,13 @@ test('skill: the recipes together use every block, so the documentation of each 
     const page = JSON.parse(fs.readFileSync(path.join(skillDir, 'recipes', f), 'utf8'));
     for (const b of packagedCompose.compose(page).blocks) used.add(b);
   }
-  const unused = Object.keys(manifest.blocks).filter((b) => !used.has(b));
+  // a block that only tells a script of the page (InteractionDef.events) has nobody to tell in a report: no recipe uses it,
+  // and the composer warns where a page does
+  const forScripts = Object.keys(manifest.blocks).filter((b) => manifest.blocks[b].events);
+  const unused = Object.keys(manifest.blocks).filter((b) => !used.has(b) && !forScripts.includes(b));
   assert.deepStrictEqual(unused, [], 'add a recipe (or a feature to one) for: ' + unused.join(', '));
+  for (const b of forScripts) assert(!used.has(b), `${b} is for a page with a script; a recipe would draw a chart that does nothing`);
+  assert.deepStrictEqual(forScripts, ['interaction.click']);
 });
 
 test('skill: the packaged runtime works with nothing from the repo around it', () => {

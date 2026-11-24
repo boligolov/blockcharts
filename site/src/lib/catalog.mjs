@@ -72,6 +72,7 @@ export const BLOCK_SUMMARY = {
   'interaction.crosshair': 'A line that follows the pointer across all series.',
   'interaction.legend-filter': 'Click a legend item to hide or show its series.',
   'interaction.animate': 'Draws the chart in once, when it first appears.',
+  'interaction.click': "A click on the data sends the row to the page's code, as a bc-click event.",
   'renderer.svg': 'Draws into SVG: sharp, selectable, prints well. The default.',
   'renderer.canvas': 'Draws into a canvas, for tens of thousands of points.',
 };

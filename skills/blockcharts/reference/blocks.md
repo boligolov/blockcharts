@@ -9,7 +9,7 @@ Generated from the code by `scripts/build-skill.js`; do not edit. A chart spec r
 - **interaction**: zoom, tooltip (`interaction`).
 - **renderer**: draws the picture; `svg` is the default and needs no mention.
 
-58 blocks: `lib.columns`, `lib.curve`, `lib.pointer`, `lib.stats`, `lib.ticks`, `lib.view`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.contour`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.hexbin`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sankey`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.polygon`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
+59 blocks: `lib.columns`, `lib.curve`, `lib.pointer`, `lib.stats`, `lib.ticks`, `lib.view`, `scale.band`, `scale.color`, `scale.linear`, `scale.log`, `scale.sequential`, `scale.size`, `scale.time`, `transform.aggregate`, `transform.bin`, `transform.calculate`, `transform.calendar`, `transform.contour`, `transform.decimate`, `transform.density`, `transform.filter`, `transform.fold`, `transform.funnel`, `transform.hexbin`, `transform.highlight`, `transform.marimekko`, `transform.quartiles`, `transform.sankey`, `transform.sort`, `transform.stack`, `transform.treemap`, `transform.waterfall`, `transform.window`, `mark.arc`, `mark.area`, `mark.boxplot`, `mark.candlestick`, `mark.line`, `mark.point`, `mark.polygon`, `mark.rect`, `mark.rule`, `mark.sankey`, `mark.text`, `mark.violin`, `guide.axis`, `guide.grid`, `guide.kpi`, `guide.legend`, `interaction.animate`, `interaction.brush`, `interaction.click`, `interaction.crosshair`, `interaction.legend-filter`, `interaction.tooltip`, `interaction.zoom`, `interaction.zoom-controls`, `renderer.canvas`, `renderer.svg`.
 
 ## Keys every spec has
 
@@ -39,7 +39,7 @@ Version 2, 1.2 KB. The path of a line through points, shared by mark.line and ma
 
 ## lib.pointer
 
-Version 2, 1.4 KB. The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point, margin)` tells whether such a point is on the plot (or within `margin` of it). `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it.
+Version 3, 1.7 KB. The pointer over a chart, shared by the tooltip, the crosshair, clicks, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point, margin)` tells whether such a point is on the plot (or within `margin` of it). `pickAt(live, point)` is the datum under that point: the nearest any mark finds (`MarkDef.pick`), the mark drawn later winning a tie, with the mark, its def and its index; null for none. `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it.
 
 ## lib.stats
 
@@ -735,6 +735,16 @@ Needs: `lib.pointer`.
 | `fit` | list |  | Scales to refit to the selected window (usually ["y"]). |
 | `minSize` | number | `6` | Smallest selection, in px, along each selected axis. |
 
+## interaction.click
+
+Version 1, 1.4 KB. Clicks on the data, for a script of the page: a click or a tap on a bar, a dot, a slice, a line sends a `bc-click` event from the chart's element. It bubbles, and `event.detail` has the row: `row`, `rows`, `values` (every column of the row), `mark`, `markIndex`, `x`, `y`, `table`, and the browser's own `event` (modifier keys). What it hits is what the tooltip shows there. A drag (a pan, a brush) is not a click, a double click sends one, and a legend item stays the legend filter's. A report made from JSON alone has no script to listen: this is for pages and apps with code of their own.
+
+Needs: `lib.pointer`.
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `cursor` | boolean | `true` | A hand cursor over what can be clicked. |
+
 ## interaction.crosshair
 
 Version 6, 2.1 KB. A vertical line across the plot that follows the pointer, so the reader can read a date off several series at once. It snaps to the nearest datum of a line or area (or of every mark, with `snap: "all"`); `snap: "off"` follows the pointer freely. On a touch screen it follows a tap and the sliding finger, and stays until the reader touches somewhere else. Works with or without the tooltip.
@@ -758,7 +768,7 @@ Version 6, 3.0 KB. Click an item of a categorical legend to hide or show that ca
 
 ## interaction.tooltip
 
-Version 23, 10.9 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A value the row does not have (null, NaN) has no line. A field is shown under its name in `labels`, else under the name the transform that made it gives it (quartiles: Q1, Median…), else under its own; the composer warns about a name written like code (avg7, quarterTotal). A bar from x to x2 (or y to y2) on one number or time scale with no category to name it, a histogram's bin, is headed by its range (140–145). A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it).
+Version 24, 10.7 KB. Shows the datum under the pointer: a marker plus a card with the fields behind it — the category or date as its heading, then one line per value. Every mark finds its own datum (MarkDef.pick); the closest one wins. The default content is written with textContent only; `content` replaces it with what a function returns. On a touch screen a tap shows the card and sliding the finger moves it along the data; it stays after the finger lifts, until the reader touches somewhere else. For a vertical line that follows the pointer, add interaction.crosshair. A value the row does not have (null, NaN) has no line. A field is shown under its name in `labels`, else under the name the transform that made it gives it (quartiles: Q1, Median…), else under its own; the composer warns about a name written like code (avg7, quarterTotal). A bar from x to x2 (or y to y2) on one number or time scale with no category to name it, a histogram's bin, is headed by its range (140–145). A shape that stands for several rows (a line through a total repeated on each row of its quarter) shows only the fields they share. The dot by the heading has the color of the first value on the card: the color of the shape under the pointer, or, when `fields` puts first a value only another mark draws, of that mark (the card of a bullet chart has its bar's color over the bands behind it).
 
 Needs: `lib.pointer`.
 

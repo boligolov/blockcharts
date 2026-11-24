@@ -1785,6 +1785,52 @@ blocker and about seventy problems, each with a repro. The fixes, in the order t
   in the fake browser's setImmediate, and the loader's promise was left pending): every test runner now says which
   test never finished and fails, instead of stopping without a summary.
 
+## A schema, clicks and the frameworks (2026-11-25)
+
+Three things an app needs that a report does not: an editor that knows the spec, a click on the data, and a chart as
+a component. They are 0.0.3.
+
+- **The JSON Schemas are made from the blocks.** `scripts/build-schema.js` writes `schema/chart.schema.json` and
+  `schema/page.schema.json` (draft-07, what VS Code reads) from the manifest: one definition per block with its
+  parameters, channels and docs, a `type` enum per role, and an `if`/`then` per type, so a mistake in a rect is
+  reported against the rect's own definition and not as "matches none of 59". Parameter kinds map to JSON types; a
+  kind the schema does not know stops the release, so a new kind cannot ship without one. Descriptions stand on the
+  properties only and the shared definitions (`channel`, `format`) carry `$comment`: VS Code shows the innermost
+  description on hover, and "a field of the dataset" over every channel said nothing. `$schema` is a key of the spec
+  and of the page that the core and the composer accept and ignore. test-schema compiles both in Ajv's strict mode,
+  validates every recipe, compares the keys with `SPEC_KEYS`, `PAGE_KEYS` and `ENTRY_KEYS` and the format presets
+  with `BC.formatter`, and gives 17 broken specs and 17 broken pages to the schema and to `BC.validate` or the
+  composer: each refuses each, at the same path. What has data behind it (a field the dataset lacks) only the core
+  can say.
+- **A click is a block.** `interaction.click` sends `bc-click` from the chart's element, bubbling, with the row
+  (`values`, `row`, `rows`, `mark`, `markIndex`, `x`, `y`, `table`, the browser's `event`). The core still knows no
+  block: what to pick under the pointer is the tooltip's code, moved to `lib.pointer` as `pickAt` so both use it.
+  A drag is not a click (the press is remembered, 4 px of slop), the second click of a double click is not one, a
+  legend item is the legend filter's (a primitive with data of its own), and the hand cursor is set only where
+  something can be clicked and given back only if it is still the click's. There is no `href` parameter: a URL in
+  a spec would be a `javascript:` link waiting to happen, and what a click does is the page's to decide.
+  An interaction now declares the events it sends (`events: ['bc-click']`, in the manifest): the composer warns
+  when a report built from JSON alone has one (no script would listen), and test-skill keeps such blocks out of the
+  recipes without naming them.
+- **`BC.data(name, null)` takes a dataset away**, also one still decoding: a wrapper's own dataset must not outlive
+  its chart.
+- **The wrappers are subpaths with no blocks**: `blockcharts/react`, `/vue`, `/svelte`, `/element`, compiled by
+  `tsconfig.frameworks.json` into readable ES modules with their types. They draw with `globalThis.BC`, the kit the
+  app imported, because a wrapper that brought its own would put a second runtime, with its own registry, beside
+  the app's, and every app would carry every block. One controller does the work for all four: the chart's own
+  `data` goes to the lake under a private name, `onClick` adds `{"type": "click"}` when the spec lacks it, and the
+  chart is drawn again only when the spec differs in content (functions by identity) or `data` is another object.
+  React and Vue give a new spec object at every render, so comparing by identity would redraw on every keystroke of
+  the app; comparing rows by content would cost as much as drawing. On a server the components render an empty
+  `<div>`; without a kit the chart's place says which to import. `<block-chart>` has no shadow DOM, so the page's
+  `--bc-*` variables and `.bc-*` classes reach it; it takes its spec as a property or as JSON in an attribute, draws
+  once for properties set in one turn, takes over properties a framework set before the element was defined, and
+  is drawn again when moved. test-frameworks bundles each wrapper with the real framework (esbuild) and runs it in
+  Chrome, React in StrictMode: one chart, no redraw for an equal spec, a redraw for new rows and a new title, the
+  app gets the clicked row, and after unmount no chart and no dataset is left. It also renders React and Vue on a
+  server and compiles code an app would write, and code it must not, against the release's types. They run on
+  React 19, Vue 3.5 and Svelte 5; React 18 and Svelte 4 have the same APIs but are not in CI.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

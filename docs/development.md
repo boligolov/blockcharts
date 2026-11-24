@@ -6,13 +6,15 @@
 skills/blockcharts/     the skill — the main product: SKILL.md, README.md, recipes/ (written by hand),
                         LICENSE, reference/, runtime/ (generated, committed), .claude-plugin/plugin.json
 src/                    the library in TypeScript: bc.d.ts (contracts), core.ts, loader.ts,
-                        blocks/<role>.<type>.ts — one file per block
+                        blocks/<role>.<type>.ts — one file per block,
+                        frameworks/*.mts — the React, Vue and Svelte wrappers and <block-chart> (tsconfig.frameworks.json)
 scripts/                build, compose, release, site and test scripts (plain Node; the composer needs nothing else)
   compose.js              the composer: page.json -> one HTML file (also shipped inside the skill)
   build-manifest.js       dist/manifest.json, by running every built block against a stub BC
   minify.js               dist/min/ — the minified code the composer, the skill and the release use
   build-skill.js          the skill's generated parts, dist/blockcharts.skill, --check
-  build-dist.js           release/ — kits, single blocks, the loader, the release manifest with SRI hashes
+  build-dist.js           release/ — kits, single blocks, the loader, the schemas, the wrappers, the manifest with SRI hashes
+  build-schema.js         the JSON Schemas of a chart spec and of a page.json, made from the manifest
   build-docs.js           the figures README.md and the principles quote (sizes, counts, kits), --check
   sizes.js                what code weighs: the one definition the site, the docs and the release use
   site-prebuild.js        what the site needs before Astro runs; check-site.js checks the built site,
@@ -28,10 +30,10 @@ docs/                   the documentation (an index: docs/README.md)
   Design.md               the design journal: every decision and why
 site/                   blockcharts.online (Astro, its own package.json, a workspace of the root); serves the skill's download
 .claude-plugin/         the Claude Code plugin marketplace (one plugin: the skill)
-.github/workflows/      ci.yml: format check, npm test, the Chrome suite and npm run site on every push and pull request
+.github/workflows/      ci.yml: format check, npm test, the Chrome suites and npm run site on every push and pull request
 kits.json               which blocks each kit contains
 wrangler.jsonc          Cloudflare's configuration for the site (it deploys site/dist; site/README.md, Deploy)
-LICENSE  README.md  ROADMAP.md  package.json  package-lock.json (the site's too)  tsconfig.json  .node-version
+LICENSE  README.md  ROADMAP.md  package.json  package-lock.json (the site's too)  tsconfig*.json  .node-version
 ```
 
 Built output is never committed, except the skill's generated parts (the plugin marketplace installs the
@@ -42,8 +44,10 @@ folder straight from git, so it must be complete): `dist/` (tsc output, manifest
 
 The library and the composer run on Node.js 22+ (`engines`); the site needs 22.22.1 or later, and `.node-version` (24) is what
 the project is developed and built on (CI, Cloudflare). The library has no runtime dependencies; the dev dependencies are
-TypeScript, esbuild (minification), fflate (the `.skill` zip and every gzip size), Prettier (formatting) and
-playwright-core (the checks in the system Chrome: `npm run test:chrome`, `npm run test:site`, `npm run og`).
+TypeScript, esbuild (minification), fflate (the `.skill` zip and every gzip size), Prettier (formatting),
+playwright-core (the checks in the system Chrome: `npm run test:chrome`, `npm run test:frameworks`, `npm run test:site`,
+`npm run og`), Ajv (the schemas' test) and React, React DOM, Vue and Svelte, which the wrappers are tested with; for
+an app that uses a wrapper, its framework is an optional peer dependency.
 The site is an npm workspace of the root (`site/package.json` lists its dependencies), so one install, into one
 `node_modules`, from one lockfile, sets up both. `allowScripts` in package.json lets esbuild run its install script and
 not sharp, which comes with Astro and which the site does not use (npm 11 runs no dependency's install script unlisted).
@@ -61,7 +65,7 @@ would change. Generated code and the skill's runtime copy are not formatted.
 
 ## Tests
 
-`npm test` builds (`tsc`), makes the manifest and the minified code, then runs six suites. Read the last
+`npm test` builds (`tsc`, also for `tsconfig.frameworks.json`), makes the manifest and the minified code, then runs seven suites. Read the last
 line of each: `N of N passed`.
 
 | suite | what it checks |
@@ -71,15 +75,19 @@ line of each: `N of N passed`.
 | `test-compose.js` | the composer: block choice, validation with paths, escaping, compression, determinism, hostile input |
 | `test-csv.js` | CSV in a page: parsing, types, errors naming the dataset |
 | `test-skill.js` | the skill: front matter, the committed folder equals a fresh build, every recipe composes and draws with the packaged runtime, the recipes use every block, the plugin and marketplace, `claude plugin validate`, the `.skill` zip |
-| `test-dist.js` | the release: manifest sizes and SRI hashes, determinism, kits, the loader, minified code drawing the same as the source; the figures README and the principles quote |
+| `test-dist.js` | the release: manifest sizes and SRI hashes, determinism, kits, the loader, the wrappers' files and exports, minified code drawing the same as the source; the figures README and the principles quote |
+| `test-schema.js` | the JSON Schemas: strict Ajv, every recipe valid, the keys and presets the core and the composer know, broken specs and pages refused by the schema and by the core or the composer at the same path |
 
 The fake DOM cannot see layout: `getBoundingClientRect` and `getComputedStyle` are stubs. Anything about
 positions, overlays or two interactions sharing the chart's host element is checked in a real browser too:
 `npm run test:chrome` (`scripts/test-chrome.js`, also run by CI) composes pages, opens them in the system
-Chrome through playwright-core and measures where things land, at phone and desk widths.
+Chrome through playwright-core and measures where things land, at phone and desk widths. `npm run test:frameworks`
+(`scripts/test-frameworks.js`, also run by CI) bundles each wrapper of the release with its real framework, runs it in
+Chrome (React in StrictMode), clicks a bar, renders React and Vue on a server and compiles an app's code against the types.
 
 A new block needs a recipe (or a feature in one) that uses it — `test-skill.js` fails otherwise — and a
-test proving each new check can fail. On the site a new block needs its line in `BLOCK_SUMMARY` and a new
+test proving each new check can fail. An interaction that sends events to a script of the page (it declares
+`events`, as `interaction.click` does) is the exception: a report has no such script, so no recipe may use it. On the site a new block needs its line in `BLOCK_SUMMARY` and a new
 recipe its kind in `GALLERY` (both in `site/src/lib/catalog.mjs`): `npm run site` stops without them.
 
 Code that two blocks would both carry goes into a lib block (`src/blocks/lib.*.ts`). A block lists it in

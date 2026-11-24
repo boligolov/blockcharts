@@ -14,6 +14,25 @@
     return p.x >= b.x - margin && p.x <= b.x + b.w + margin && p.y >= b.y - margin && p.y <= b.y + b.h + margin;
   }
 
+  /** What is under a point in the chart's own units: the nearest datum any mark finds there (MarkDef.pick, each mark within
+   *  its own reach), a later mark winning a tie as it is drawn on top; null for none. What the tooltip shows and a click
+   *  hits is the same datum. */
+  function pickAt(live: BC.LiveCtx, p: Point): { pick: BC.Pick; mark: BC.MarkSpec; def: BC.MarkDef; index: number } | null {
+    let best: { pick: BC.Pick; mark: BC.MarkSpec; def: BC.MarkDef; index: number } | null = null;
+    live.spec.marks.forEach((mark, i) => {
+      const def = BC.get(`mark.${mark.type}` as BC.BlockName) as BC.MarkDef | undefined;
+      if (!def || !def.pick) return;
+      let pick: BC.Pick | null = null;
+      try {
+        pick = def.pick(mark, live, i, p.x, p.y);
+      } catch (e) {
+        return;
+      }
+      if (pick && isFinite(pick.dist) && (!best || pick.dist <= best.pick.dist)) best = { pick, mark, def, index: i };
+    });
+    return best;
+  }
+
   function nextFrame(fn: () => void): void {
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => fn());
     else setTimeout(fn, 0);
@@ -90,9 +109,9 @@
   const def: BC.LibDef = {
     role: 'lib',
     type: 'pointer',
-    version: 2,
-    doc: 'The pointer over a chart, shared by the tooltip, the crosshair, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point, margin)` tells whether such a point is on the plot (or within `margin` of it). `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it.',
-    exports: { toLogical, inPlot, follow },
+    version: 3,
+    doc: 'The pointer over a chart, shared by the tooltip, the crosshair, clicks, zoom and brush. `toLogical(live, event)` turns the position of a mouse or pointer event into the units of the chart, however the page scales it, and `inPlot(live, point, margin)` tells whether such a point is on the plot (or within `margin` of it). `pickAt(live, point)` is the datum under that point: the nearest any mark finds (`MarkDef.pick`), the mark drawn later winning a tie, with the mark, its def and its index; null for none. `follow(live, show, hide, keepOnPress)` calls `show(event)` at most once a frame while the pointer is over the chart, and `hide()` when it leaves, drags, scrolls or a finger touches outside the chart; on a touch screen a tap is the hover and stays after the finger lifts. A spec never names it.',
+    exports: { toLogical, inPlot, pickAt, follow },
   };
 
   BC.define(def);

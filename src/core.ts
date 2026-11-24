@@ -5,7 +5,7 @@
   // only a page with encoded data needs. They come first: the minifier inlines a constant only up to the first early return.
   const CHECKS = true;
   const DECODE = true;
-  const VERSION = '0.0.2';
+  const VERSION = '0.0.3';
   const g = globalThis as any;
 
   // A runtime already here is kept. Anything else called BC is not one, and is replaced below (g.BC = runtime): an element
@@ -287,7 +287,14 @@
       : undefined
   )!;
 
-  function data(name: string, input: BC.DatasetInput): void {
+  function data(name: string, input: BC.DatasetInput | null): void {
+    // null takes the dataset away (a component that is gone): a decode still running for it is dropped when it ends
+    if (input === null) {
+      lake.delete(name);
+      pending.delete(name);
+      failed.delete(name);
+      return;
+    }
     if (isEncoded(input) || hasBinaryColumns(input)) {
       if (!DECODE)
         throw new Error(`dataset "${name}" is encoded, and this page was composed without the code that decodes data: compose it again`);
@@ -395,9 +402,10 @@
 
   // ───────────────────────── validation ─────────────────────────
 
-  /** The keys of a chart spec (BC.ChartSpec). */
+  /** The keys of a chart spec (BC.ChartSpec), and `$schema`, which an editor reads and the chart does not. */
   const SPEC_KEYS = CHECKS
     ? [
+        '$schema',
         'id',
         'data',
         'transforms',
