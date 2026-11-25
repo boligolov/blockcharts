@@ -31,6 +31,7 @@ docs/                   the documentation (an index: docs/README.md)
 site/                   blockcharts.online (Astro, its own package.json, a workspace of the root); serves the skill's download
 test/apps/              six apps made by the real toolchains (Vite + React, Vite + Vue, SvelteKit, Next.js, Angular CLI,
                         plain JavaScript), with their own package.json and lockfile, not a workspace: npm run test:apps
+test/bench/             the same charts drawn by blockcharts and seven other libraries, timed in Chrome: npm run bench
 .claude-plugin/         the Claude Code plugin marketplace (one plugin: the skill)
 .github/workflows/      ci.yml: format check, npm test, the Chrome suites and npm run site on every push and pull request;
                         apps.yml: npm run test:apps, when the library, the scripts or the apps change
@@ -49,9 +50,10 @@ The library and the composer run on Node.js 22+ (`engines`); the site needs 22.2
 the project is developed and built on (CI, Cloudflare). The library has no runtime dependencies; the dev dependencies are
 TypeScript, esbuild (minification), fflate (the `.skill` zip and every gzip size), Prettier (formatting),
 playwright-core (the checks in the system Chrome: `npm run test:chrome`, `npm run test:frameworks`, `npm run test:site`,
-`npm run test:apps`, `npm run og`), Ajv (the schemas' test) and React, React DOM, Vue and Svelte, which the wrappers
+`npm run test:apps`, `npm run bench`, `npm run og`), Ajv (the schemas' test) and React, React DOM, Vue and Svelte, which the wrappers
 are tested with; for an app that uses a wrapper, its framework is an optional peer dependency. The toolchains of
-`test/apps` (Vite, SvelteKit, Next.js, Angular CLI) are that folder's own (`npm ci --prefix test/apps`).
+`test/apps` (Vite, SvelteKit, Next.js, Angular CLI) are that folder's own (`npm ci --prefix test/apps`), and so are
+the libraries `npm run bench` compares blockcharts with (`npm ci --prefix test/bench`).
 The site is an npm workspace of the root (`site/package.json` lists its dependencies), so one install, into one
 `node_modules`, from one lockfile, sets up both. `allowScripts` in package.json lets esbuild run its install script and
 not sharp, which comes with Astro and which the site does not use (npm 11 runs no dependency's install script unlisted).
@@ -100,6 +102,13 @@ for SvelteKit and Next.js the server's HTML is checked too. Then each draws ever
 times that), mounted, given new data and unmounted three times, and the run prints what each phase takes, the heap
 and the DOM of the charts, and what is left after: a dataset a component made, a DOM node, an event listener, or heap
 that grows with every cycle by more than a chart's share fails it. See [test/apps/README.md](../test/apps/README.md).
+
+`npm run bench` (`scripts/bench.js`, after `npm ci --prefix test/bench`) is not a test: it times blockcharts against
+Chart.js, ECharts, uPlot, Observable Plot, Recharts, ApexCharts and Plotly drawing the same charts (bars and a line,
+with axes and a tooltip) in Chrome, 1, 20 and 355 of them, in rounds of shuffled runs (`--runs=100`), and prints the
+medians and quartiles of the time to a painted frame, the main thread's time, the heap, the DOM and the gzipped JS.
+`--cpu=4` slows the CPU down as DevTools does. Run it on a quiet machine; the figures the site may quote are in
+[test/bench/README.md](../test/bench/README.md), with the machine they were measured on.
 
 A new block needs a recipe (or a feature in one) that uses it — `test-skill.js` fails otherwise — and a
 test proving each new check can fail. An interaction that sends events to a script of the page (it declares

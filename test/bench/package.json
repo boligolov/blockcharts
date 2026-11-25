@@ -1,0 +1,20 @@
+{
+  "name": "blockcharts-bench",
+  "private": true,
+  "type": "module",
+  "description": "Other chart libraries drawing the same charts as blockcharts, for the comparison npm run bench makes: run it from the root",
+  "engines": {
+    "node": ">=22.22.1"
+  },
+  "devDependencies": {
+    "@observablehq/plot": "0.6.19",
+    "apexcharts": "8.9.1",
+    "chart.js": "4.6.2",
+    "echarts": "6.1.0",
+    "plotly.js-dist-min": "4.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "recharts": "3.11.1",
+    "uplot": "1.6.32"
+  }
+}

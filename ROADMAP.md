@@ -111,6 +111,9 @@ Found along the way:
       Vite + Vue single-file components, SvelteKit, Next.js App Router, Angular CLI, plain JavaScript) on the packed
       tarball, checks three charts on a page in each, on the build and on the dev server, and measures every chart of
       every recipe in each; its own CI workflow (`apps.yml`).
+- [x] **A bench against other libraries** (2026-11-25): `npm run bench` times blockcharts, Chart.js, ECharts, uPlot,
+      Observable Plot, Recharts, ApexCharts and Plotly drawing the same charts (test/bench/README.md has 100 rounds).
+- [ ] **New data, hover and long series in the bench.** It measures only the first drawing of simple charts.
 - [x] **The site** (2026-11-25): Embedding has "Clicks on the data" (a bar picks what a line shows) and "React, Vue,
       Svelte and <block-chart>" (the element live, the other wrappers and Angular as code); the guide has the schema.
 - [ ] **Submit the plugin to Anthropic's directory** (see [docs/development.md](docs/development.md#listing-the-plugin-in-claudes-directory)).

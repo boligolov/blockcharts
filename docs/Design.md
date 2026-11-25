@@ -1874,6 +1874,36 @@ made as those tools make them, and `scripts/test-apps.js` (`npm run test:apps`) 
   not one of React's), so the test waits for the text rather than reading it at once; SvelteKit 3 takes its
   configuration in `vite.config.js` and refuses a `svelte.config.js`; `next dev` writes an `AGENTS.md` into the app.
 
+## Compared with other libraries (2026-11-25)
+
+Is "355 charts in 0.7 s" worth saying? Not alone: nobody draws 355 charts, and a number without the others' numbers
+says nothing. `npm run bench` (`scripts/bench.js`, `test/bench`) draws the same charts in blockcharts and seven other
+libraries (bars over 12 categories and a line of 200 points, alternating, 360 × 200, axes and a tooltip, no animation)
+in Chrome: 1, 20 and 355 of them, each run in a fresh page, the clock stopped when the frame showing them is painted.
+
+- **Method.** Each page is a production bundle (esbuild, minified); blockcharts is the basic kit of the release the
+  script builds, the others are pinned in `test/bench/package.json`. Runs go in rounds, every library at every count
+  once per round in a shuffled order, so that what the machine does meanwhile falls on all alike; the table gives the
+  median and the quartiles. Every run must draw all its charts with nothing in the console, and the first round leaves
+  a screenshot of each library's 20 charts. The first version waited two frames after drawing, which put up to a
+  frame of idle time into every figure; the clock now stops at a task posted from the next frame's
+  `requestAnimationFrame`, after that frame has been painted, and the main thread's busy time (CDP) matches it.
+- **What 100 rounds found** (Windows laptop, i7-11800H, Chrome 157; the tables are in test/bench/README.md): at 20 and
+  355 charts blockcharts is on a par with Observable Plot and 1.5 to 10 times faster than Chart.js, ECharts,
+  ApexCharts, Plotly and Recharts; uPlot is about twice as fast. Per chart: 0.95 ms among 355, 2.4 ms among 20, 26 ms
+  for a page's only chart. With the CPU slowed four times every figure grows four to five times and the order stays.
+  The heap the charts hold is the least after uPlot's (7.6 MB for 355; Chart.js 35, ECharts 40, Recharts 236).
+- **The first chart.** A page's only chart costs 26 ms (uPlot 13, Plot 19, Chart.js 34). A trace shows where: the
+  browser loads the system font for the first text on the page (5–6 ms, paid by every library that draws text, Plot
+  in its layout, blockcharts when it measures), and blockcharts makes its first `Intl.NumberFormat` (Plot formats
+  with d3-format) and compiles a larger script. `BC.chart` itself returns in 2 ms; the second chart on the page is
+  drawn and painted in about 6 ms in a trace (Plot about 4).
+- **What may be claimed.** Not "1 ms a chart": it holds only among hundreds of simple charts on a fast machine; for a
+  dashboard it is 2.4 ms, for the recipes 2 to 2.7 ms. What holds: about 2 ms a chart on a laptop, a dashboard of 20
+  in under 50 ms, "on a par with Observable Plot, 1.5 to 10 times faster than Chart.js, ECharts, ApexCharts, Plotly
+  and Recharts on the same charts", the heap and the size, always with a link to the bench and its machine. Not
+  measured: new data, interaction, long series (where uPlot and the canvas libraries are made to win).
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,

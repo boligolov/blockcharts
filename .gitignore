@@ -35,3 +35,6 @@ dist
 /test/apps/*/.angular
 /test/apps/next/AGENTS.md
 /test/apps/next/next-env.d.ts
+# the libraries of npm run bench, the pages it bundles and what it measures
+/test/bench/node_modules
+/test/bench/out
