@@ -22,7 +22,7 @@ Charts are described in JSON, drawn in SVG or on a canvas, and every part can be
 One script tag, and a chart described in JSON where it should appear:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.3/release/kits/basic.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.4/release/kits/basic.js"></script>
 
 <script type="application/json" id="bc-data">
   { "sales": [ { "region": "North", "total": 42 }, { "region": "South", "total": 58 }, { "region": "East", "total": 31 } ] }
@@ -112,7 +112,7 @@ Charts mount themselves on `DOMContentLoaded`; or call `BC.chart(element, spec)`
 ### The loader
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.3/release/loader.js" data-auto></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.4/release/loader.js" data-auto></script>
 <!-- your data and <script data-bc-chart> specs -->
 ```
 
@@ -121,7 +121,7 @@ only those (with their dependencies) and draws. By hand:
 
 ```js
 await BCLoader.load({
-  base: 'https://cdn.jsdelivr.net/npm/blockcharts@0.0.3/release/', // default: the folder of loader.js
+  base: 'https://cdn.jsdelivr.net/npm/blockcharts@0.0.4/release/', // default: the folder of loader.js
   blocks: ['interaction.zoom'],   // extra blocks besides the ones found in the page
   scan: true,                     // find charts on the page (default)
   mount: true,                    // draw them when loaded (default)
@@ -209,12 +209,12 @@ el.addEventListener('bc-click', (e) => openRegion(e.detail.values.region)); // w
 jsDelivr and unpkg serve every file of the package at its path in it:
 `https://cdn.jsdelivr.net/npm/blockcharts@<version>/release/<file>` (or `https://unpkg.com/blockcharts@<version>/release/<file>`),
 where `<file>` is `core.js`, `blocks/<role.type>.js`, `kits/<name>.js` or `.mjs`, `loader.js`, `manifest.json`,
-`bc.d.ts`, `schema/chart.schema.json` or `schema/page.schema.json`. Pin an exact version (`@0.0.3`, not `@0` or
+`bc.d.ts`, `schema/chart.schema.json` or `schema/page.schema.json`. Pin an exact version (`@0.0.4`, not `@0` or
 `@latest`): files of a version never change, and `manifest.json` lists a `sha384` hash of every file for the
 `integrity` attribute:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.3/release/kits/basic.js" integrity="sha384-..." crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.4/release/kits/basic.js" integrity="sha384-..." crossorigin="anonymous"></script>
 ```
 
 ### The composer: one standalone report
@@ -309,7 +309,7 @@ explains each on hover, and underlines a mistake while you type:
 
 ```json
 {
-  "$schema": "https://cdn.jsdelivr.net/npm/blockcharts@0.0.3/release/schema/page.schema.json",
+  "$schema": "https://cdn.jsdelivr.net/npm/blockcharts@0.0.4/release/schema/page.schema.json",
   "title": "Sales",
   "data": { "sales": [ { "region": "North", "total": 42 } ] },
   "charts": [ { "spec": { "data": "sales", "marks": [ { "type": "rect", "x": "region", "y": "total" } ] } } ]

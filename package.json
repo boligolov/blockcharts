@@ -1,6 +1,6 @@
 {
   "name": "blockcharts",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Interactive SVG and canvas charts described as JSON, assembled from independent blocks. For standalone HTML reports and for pages of your own.",
   "keywords": [
     "charts",
@@ -96,6 +96,7 @@
     "test": "npm run build && npm run manifest && node scripts/test.js && node scripts/test-canvas.js && node scripts/test-compose.js && node scripts/test-csv.js && node scripts/test-skill.js && node scripts/test-dist.js && node scripts/test-schema.js",
     "test:chrome": "npm run build && npm run manifest && node scripts/test-chrome.js",
     "test:frameworks": "npm run build && npm run manifest && node scripts/test-frameworks.js",
+    "test:apps": "node scripts/test-apps.js",
     "skill": "npm run build && npm run manifest && node scripts/build-skill.js && node scripts/build-docs.js",
     "release": "npm run build && npm run manifest && node scripts/build-dist.js",
     "og": "node scripts/og-image.js",
@@ -104,8 +105,8 @@
     "dev": "npm run build && npm run manifest && npm run dev -w site",
     "serve": "npm run site && npm run preview -w site",
     "prepack": "npm run release",
-    "format": "prettier --write \"src/**/*.{ts,mts}\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs",
-    "format:check": "prettier --check \"src/**/*.{ts,mts}\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs"
+    "format": "prettier --write \"src/**/*.{ts,mts}\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs \"test/apps/**/*.{js,jsx,mjs,ts,vue}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,mts}\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs \"test/apps/**/*.{js,jsx,mjs,ts,vue}\""
   },
   "devDependencies": {
     "@types/react": "^19.3.1",

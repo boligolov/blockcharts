@@ -11,3 +11,9 @@ site/.astro
 site/dist
 site/public
 site/src/data
+test/apps/out
+test/apps/*/build
+test/apps/*/out
+test/apps/*/.next
+test/apps/*/.svelte-kit
+test/apps/*/.angular

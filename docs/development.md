@@ -29,8 +29,11 @@ docs/                   the documentation (an index: docs/README.md)
   development.md          this file
   Design.md               the design journal: every decision and why
 site/                   blockcharts.online (Astro, its own package.json, a workspace of the root); serves the skill's download
+test/apps/              six apps made by the real toolchains (Vite + React, Vite + Vue, SvelteKit, Next.js, Angular CLI,
+                        plain JavaScript), with their own package.json and lockfile, not a workspace: npm run test:apps
 .claude-plugin/         the Claude Code plugin marketplace (one plugin: the skill)
-.github/workflows/      ci.yml: format check, npm test, the Chrome suites and npm run site on every push and pull request
+.github/workflows/      ci.yml: format check, npm test, the Chrome suites and npm run site on every push and pull request;
+                        apps.yml: npm run test:apps, when the library, the scripts or the apps change
 kits.json               which blocks each kit contains
 wrangler.jsonc          Cloudflare's configuration for the site (it deploys site/dist; site/README.md, Deploy)
 LICENSE  README.md  ROADMAP.md  package.json  package-lock.json (the site's too)  tsconfig*.json  .node-version
@@ -46,8 +49,9 @@ The library and the composer run on Node.js 22+ (`engines`); the site needs 22.2
 the project is developed and built on (CI, Cloudflare). The library has no runtime dependencies; the dev dependencies are
 TypeScript, esbuild (minification), fflate (the `.skill` zip and every gzip size), Prettier (formatting),
 playwright-core (the checks in the system Chrome: `npm run test:chrome`, `npm run test:frameworks`, `npm run test:site`,
-`npm run og`), Ajv (the schemas' test) and React, React DOM, Vue and Svelte, which the wrappers are tested with; for
-an app that uses a wrapper, its framework is an optional peer dependency.
+`npm run test:apps`, `npm run og`), Ajv (the schemas' test) and React, React DOM, Vue and Svelte, which the wrappers
+are tested with; for an app that uses a wrapper, its framework is an optional peer dependency. The toolchains of
+`test/apps` (Vite, SvelteKit, Next.js, Angular CLI) are that folder's own (`npm ci --prefix test/apps`).
 The site is an npm workspace of the root (`site/package.json` lists its dependencies), so one install, into one
 `node_modules`, from one lockfile, sets up both. `allowScripts` in package.json lets esbuild run its install script and
 not sharp, which comes with Astro and which the site does not use (npm 11 runs no dependency's install script unlisted).
@@ -83,7 +87,19 @@ positions, overlays or two interactions sharing the chart's host element is chec
 `npm run test:chrome` (`scripts/test-chrome.js`, also run by CI) composes pages, opens them in the system
 Chrome through playwright-core and measures where things land, at phone and desk widths. `npm run test:frameworks`
 (`scripts/test-frameworks.js`, also run by CI) bundles each wrapper of the release with its real framework, runs it in
-Chrome (React in StrictMode), clicks a bar, renders React and Vue on a server and compiles an app's code against the types.
+Chrome (React in StrictMode), clicks a bar, puts three charts on one page (two sharing a dataset of the app: each
+click reaches its own chart, one chart redrawn or taken away leaves the others as they were), renders React and Vue on
+a server and compiles an app's code against the types.
+
+`npm run test:apps` (`scripts/test-apps.js`, after `npm ci --prefix test/apps`) goes further, with the toolchains an
+app is really made with: the tarball `npm pack` makes, unpacked into `test/apps/node_modules`, used by six apps
+(Vite + React, Vite + Vue single-file components, SvelteKit prerendered, Next.js App Router rendered on the server,
+Angular CLI with `<block-chart>`, plain JavaScript). Each is built for production by its own CLI and run on its dev
+server, and checked in Chrome on the same page of three charts, with nothing in the console (hydration included);
+for SvelteKit and Next.js the server's HTML is checked too. Then each draws every chart of every recipe (71, and five
+times that), mounted, given new data and unmounted three times, and the run prints what each phase takes, the heap
+and the DOM of the charts, and what is left after: a dataset a component made, a DOM node, an event listener, or heap
+that grows with every cycle by more than a chart's share fails it. See [test/apps/README.md](../test/apps/README.md).
 
 A new block needs a recipe (or a feature in one) that uses it — `test-skill.js` fails otherwise — and a
 test proving each new check can fail. An interaction that sends events to a script of the page (it declares

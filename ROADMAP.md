@@ -97,14 +97,20 @@ Found along the way:
       defined"); an element with id="BC" is window.BC, which the core and the loader took for a runtime already
       loaded. Every block now gets the runtime as its argument, from `globalThis.BC`, and the core and the loader
       recognize a runtime by what it is. test-dist draws a recipe through every way in with both kinds of `BC`.
-- [ ] **`npm publish` of 0.0.3**: the JSON Schemas (`schema/chart.schema.json`, `schema/page.schema.json`), the block
+- [x] **`npm publish` of 0.0.3**: the JSON Schemas (`schema/chart.schema.json`, `schema/page.schema.json`), the block
       `interaction.click` with the `bc-click` event, and the wrappers `blockcharts/react`, `/vue`, `/svelte` and
-      `/element` (docs/Design.md, "A schema, clicks and the frameworks"). The owner's step (2FA). Until then the
-      `$schema` address in the README answers 404.
+      `/element` (docs/Design.md, "A schema, clicks and the frameworks").
+- [ ] **`npm publish` of 0.0.4**: a row an app types with an interface is a row (`BC.Row`), found by the Angular app
+      of `npm run test:apps` (docs/Design.md, "Apps made with the real toolchains"). The owner's step (2FA). Until
+      then the README's and the site's CDN addresses, pinned to 0.0.4, answer 404: publish before the site goes out.
 - [ ] **Clicks from the keyboard.** A mark cannot take the focus, so a click on the data needs a mouse or a finger;
       the legend filter's keys are the model (a canvas chart has none either, see above).
 - [ ] **The wrappers on React 18 and Svelte 4.** They use only APIs those have, but test-frameworks runs React 19,
       Vue 3.5 and Svelte 5.
+- [x] **Real apps** (2026-11-25): `npm run test:apps` builds six apps with their own toolchains (Vite + React,
+      Vite + Vue single-file components, SvelteKit, Next.js App Router, Angular CLI, plain JavaScript) on the packed
+      tarball, checks three charts on a page in each, on the build and on the dev server, and measures every chart of
+      every recipe in each; its own CI workflow (`apps.yml`).
 - [x] **The site** (2026-11-25): Embedding has "Clicks on the data" (a bar picks what a line shows) and "React, Vue,
       Svelte and <block-chart>" (the element live, the other wrappers and Angular as code); the guide has the schema.
 - [ ] **Submit the plugin to Anthropic's directory** (see [docs/development.md](docs/development.md#listing-the-plugin-in-claudes-directory)).

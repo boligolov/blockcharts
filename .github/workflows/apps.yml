@@ -1,0 +1,56 @@
+# blockcharts in apps made with the real toolchains (test/apps): Vite with React and with Vue, SvelteKit, Next.js,
+# Angular CLI and plain JavaScript, each built for production and run on its dev server, checked in Chrome; then every
+# chart of every recipe drawn by each and measured (the table goes to the job's summary). A workflow of its own: the
+# apps have their own lockfile, and the run takes minutes, so ci.yml does not wait for it.
+name: Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'test/apps/**'
+      - 'skills/blockcharts/recipes/**'
+      - 'kits.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/apps.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'test/apps/**'
+      - 'skills/blockcharts/recipes/**'
+      - 'kits.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/apps.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            test/apps/package-lock.json
+
+      # the library's tools (to build and pack it), then the apps' toolchains
+      - name: Install
+        run: npm ci && npm ci --prefix test/apps
+
+      # npm pack (its prepack builds the release) unpacked into test/apps/node_modules; each app built by its own CLI and
+      # checked in the runner's Google Chrome, on its build and on its dev server; then measured
+      - name: Apps in Chrome
+        run: npm run test:apps

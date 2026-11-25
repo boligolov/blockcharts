@@ -281,6 +281,13 @@ test('types: code an app writes compiles against the release, and wrong props do
       `el.addEventListener('bc-click', (e) => e.detail.values);`,
       `// @ts-expect-error data is rows, columns or an encoded dataset`,
       `el.data = 'rows';`,
+      `// rows an app describes with an interface (no index signature) are rows, in a prop and in the element`,
+      `interface Sale { region: string; total: number }`,
+      `declare const sales: Sale[];`,
+      `export const typed = <BlockChart spec={spec} data={sales} />;`,
+      `el.data = sales;`,
+      `// @ts-expect-error numbers are not rows`,
+      `el.data = [1, 2];`,
     ].join('\n'),
   );
   fs.writeFileSync(
@@ -393,6 +400,101 @@ createApp({ render: () => h(BlockChart, { spec: s.spec, data: s.rows }) }).mount
 window.t = { shorter: () => { s.spec.size[1] = 140; return nextTick(); } };`,
 };
 
+// ───── several charts on one page: chart a with its own rows, b and c drawing one dataset the app gave to BC.data ─────
+
+const multiSource = `${specSource}
+BC.data('shared', [{ k: 'Q1', v: 10 }, { k: 'Q2', v: 14 }, { k: 'Q3', v: 9 }, { k: 'Q4', v: 17 }, { k: 'Q5', v: 12 }]);
+const sharedSpec = (title, click) => ({ ...spec(title, click), data: 'shared' });
+const pick = (name) => (d) => window.clicks.push(name + ':' + d.values.k);`;
+
+Object.assign(APPS, {
+  'react-multi': () => `
+import '${kit}';
+import { createElement as h, Fragment, StrictMode, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
+import { BlockChart } from '${slash(path.join(rel, 'frameworks', 'react.mjs'))}';
+${multiSource}
+let set;
+function App() {
+  const [s, setS] = useState({ rows: ROWS3, title: 'Sales', b: true, show: true });
+  set = setS;
+  if (!s.show) return null;
+  return h(Fragment, null,
+    h('div', { 'data-chart': 'a' }, h(BlockChart, { spec: spec(s.title), data: s.rows, onClick: pick('a') })),
+    s.b ? h('div', { 'data-chart': 'b' }, h(BlockChart, { spec: sharedSpec('B'), onClick: pick('b') })) : null,
+    h('div', { 'data-chart': 'c' }, h(BlockChart, { spec: sharedSpec('C'), onClick: pick('c') })));
+}
+createRoot(document.getElementById('app')).render(h(StrictMode, null, h(App)));
+window.t = { update: (patch) => flushSync(() => set((s) => ({ ...s, ...patch }))) };`,
+  'vue-multi': () => `
+import '${kit}';
+import { createApp, h, reactive, nextTick } from 'vue';
+import { BlockChart } from '${slash(path.join(rel, 'frameworks', 'vue.mjs'))}';
+${multiSource}
+const s = reactive({ rows: ROWS3, title: 'Sales', b: true, show: true });
+createApp({
+  render: () =>
+    s.show
+      ? [
+          h('div', { 'data-chart': 'a' }, [h(BlockChart, { spec: spec(s.title), data: s.rows, onClick: pick('a') })]),
+          s.b ? h('div', { 'data-chart': 'b' }, [h(BlockChart, { spec: sharedSpec('B'), onClick: pick('b') })]) : null,
+          h('div', { 'data-chart': 'c' }, [h(BlockChart, { spec: sharedSpec('C'), onClick: pick('c') })]),
+        ]
+      : null,
+}).mount('#app');
+window.t = { update: (patch) => { Object.assign(s, patch); return nextTick(); } };`,
+  'svelte-multi': () => `
+import '${kit}';
+import { mount, flushSync } from 'svelte';
+import App from './App.svelte.js';
+${multiSource}
+const api = {};
+mount(App, { target: document.getElementById('app'), props: { api, spec, sharedSpec, pick, rows: ROWS3 } });
+window.t = { update: (patch) => { api.update(patch); flushSync(); } };`,
+  'element-multi': () => `
+import '${kit}';
+import '${slash(path.join(rel, 'frameworks', 'element.mjs'))}';
+${multiSource}
+const app = document.getElementById('app');
+const make = (name, chartSpec, data) => {
+  const box = document.createElement('div');
+  box.dataset.chart = name;
+  const el = document.createElement('block-chart');
+  el.spec = chartSpec;
+  if (data) el.data = data;
+  el.addEventListener('bc-click', (e) => pick(name)(e.detail));
+  box.appendChild(el);
+  app.appendChild(box);
+  return el;
+};
+const a = make('a', spec('Sales', true), ROWS3);
+make('b', sharedSpec('B', true));
+make('c', sharedSpec('C', true));
+window.t = {
+  update: async (patch) => {
+    if (patch.rows) a.data = patch.rows;
+    if ('title' in patch) a.spec = spec(patch.title, true);
+    if (patch.b === false) app.querySelector('[data-chart="b"]').remove();
+    if (patch.show === false) app.textContent = '';
+    await Promise.resolve();
+  },
+};`,
+});
+
+const SVELTE_MULTI = `<script>
+  import { blockchart } from '${slash(path.join(rel, 'frameworks', 'svelte.mjs'))}';
+  let { api, spec, sharedSpec, pick, rows } = $props();
+  let s = $state.raw({ rows, title: 'Sales', b: true, show: true });
+  api.update = (patch) => (s = { ...s, ...patch });
+</script>
+{#if s.show}
+  <div data-chart="a" use:blockchart={{ spec: spec(s.title), data: s.rows, onClick: pick('a') }}></div>
+  {#if s.b}<div data-chart="b" use:blockchart={{ spec: sharedSpec('B'), onClick: pick('b') }}></div>{/if}
+  <div data-chart="c" use:blockchart={{ spec: sharedSpec('C'), onClick: pick('c') }}></div>
+{/if}
+`;
+
 const SVELTE_APP = `<script>
   import { blockchart } from '${slash(path.join(rel, 'frameworks', 'svelte.mjs'))}';
   let { api, spec, rows, onClick } = $props();
@@ -406,12 +508,10 @@ const SVELTE_APP = `<script>
 async function appPage(name) {
   const at = path.join(dir, 'apps', name);
   fs.mkdirSync(at, { recursive: true });
-  if (name === 'svelte') {
+  const component = { svelte: SVELTE_APP, 'svelte-multi': SVELTE_MULTI }[name];
+  if (component) {
     const { compile } = require(require.resolve('svelte/compiler', { paths: [dir] }));
-    fs.writeFileSync(
-      path.join(at, 'App.svelte.js'),
-      compile(SVELTE_APP, { generate: 'client', dev: true, filename: 'App.svelte' }).js.code,
-    );
+    fs.writeFileSync(path.join(at, 'App.svelte.js'), compile(component, { generate: 'client', dev: true, filename: 'App.svelte' }).js.code);
   }
   fs.writeFileSync(path.join(at, 'entry.mjs'), APPS[name]());
   const built = await esbuild.build({
@@ -490,6 +590,77 @@ for (const name of ['react', 'vue', 'svelte', 'element']) {
       await p.evaluate(() => window.t.update({ show: false }));
       await p.waitForFunction(() => !document.querySelector('#app svg'));
       assert.deepStrictEqual(await own(), [], 'every dataset it made is gone');
+      assert.deepStrictEqual(p.errors, []);
+    } finally {
+      await p.close();
+    }
+  });
+}
+
+for (const name of ['react', 'vue', 'svelte', 'element']) {
+  test(`${name} in Chrome: three charts, two from one dataset of the app; each its own clicks and redraws, one taken away alone`, async () => {
+    const p = await open(`${name}-multi`);
+    try {
+      const marks = (n) => `#app [data-chart="${n}"] [data-bc-layer="marks"]`;
+      await p.waitForFunction(() => document.querySelectorAll('#app [data-chart] [data-bc-layer="marks"]').length === 3);
+      const barsOf = (n) => p.evaluate((sel) => document.querySelectorAll(`${sel} rect`).length, marks(n));
+      assert.deepStrictEqual([await barsOf('a'), await barsOf('b'), await barsOf('c')], [3, 5, 5], 'a its own rows, b and c the shared');
+      // b and c marked: a chart built again is a new <svg>, without the mark
+      await p.evaluate(() => {
+        for (const n of ['b', 'c'])
+          document.querySelector(`#app [data-chart="${n}"] [data-bc-layer="marks"]`).ownerSVGElement.dataset.kept = n;
+      });
+      const kept = () => p.evaluate(() => [...document.querySelectorAll('#app svg[data-kept]')].map((s) => s.dataset.kept).join(','));
+      const click = async (n, i) => {
+        const box = await p.evaluate(
+          ([sel, i]) => {
+            const r = document.querySelectorAll(`${sel} rect`)[i];
+            r.scrollIntoView({ block: 'center' });
+            const b = r.getBoundingClientRect();
+            return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+          },
+          [marks(n), i],
+        );
+        await p.mouse.move(box.x, box.y);
+        await p.mouse.click(box.x, box.y);
+      };
+      await click('a', 1);
+      await click('c', 3);
+      await click('b', 0);
+      assert.deepStrictEqual(
+        await p.evaluate(() => window.clicks),
+        ['a:South', 'c:Q4', 'b:Q1'],
+        "each click reaches its own chart's handler",
+      );
+
+      await p.evaluate((rows) => window.t.update({ rows }), ROWS4);
+      await p.waitForFunction((sel) => document.querySelectorAll(`${sel} rect`).length === 4, marks('a'));
+      assert.strictEqual(await kept(), 'b,c', 'new rows for a: b and c are not built again');
+      await p.evaluate(() => window.t.update({ title: 'Revenue' }));
+      await p.waitForFunction(() => document.querySelector('#app [data-chart="a"]').textContent.includes('Revenue'));
+      assert.strictEqual(await kept(), 'b,c', 'a new title for a: b and c are not built again');
+
+      await p.evaluate(() => window.t.update({ b: false }));
+      await p.waitForFunction(() => !document.querySelector('#app [data-chart="b"]'));
+      assert.strictEqual(await charts(p), 2);
+      assert.strictEqual(await kept(), 'c', 'b taken away: c stays as it was');
+      await click('c', 0);
+      assert.strictEqual(await p.evaluate(() => window.clicks.at(-1)), 'c:Q1', 'and still takes clicks');
+
+      const inLake = (n) =>
+        p.evaluate((n) => !BC.validate({ data: n, marks: [] }).some((d) => /is not in the data lake/.test(d.message)), n);
+      const own = () =>
+        p.evaluate(
+          () =>
+            [...Array(30).keys()].filter(
+              (n) => !BC.validate({ data: 'bc:own:' + n, marks: [] }).some((d) => /is not in the data lake/.test(d.message)),
+            ).length,
+        );
+      assert.strictEqual(await own(), 1, "chart a's own dataset, and no other");
+      await p.evaluate(() => window.t.update({ show: false }));
+      await p.waitForFunction(() => !document.querySelector('#app svg'));
+      assert.strictEqual(await own(), 0, 'every dataset a chart made is gone');
+      assert.strictEqual(await inLake('shared'), true, "the app's dataset stays: the app gave it, the app takes it away");
       assert.deepStrictEqual(p.errors, []);
     } finally {
       await p.close();

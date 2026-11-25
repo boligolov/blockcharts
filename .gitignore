@@ -23,3 +23,15 @@ dist
 
 # Claude Code personal settings
 .claude/settings.local.json
+
+# the apps of npm run test:apps: their tools, builds and caches (next dev writes AGENTS.md), and the measures
+/test/apps/node_modules
+/test/apps/*/node_modules
+/test/apps/out
+/test/apps/*/build
+/test/apps/*/out
+/test/apps/*/.next
+/test/apps/*/.svelte-kit
+/test/apps/*/.angular
+/test/apps/next/AGENTS.md
+/test/apps/next/next-env.d.ts

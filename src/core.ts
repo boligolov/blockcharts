@@ -5,7 +5,7 @@
   // only a page with encoded data needs. They come first: the minifier inlines a constant only up to the first early return.
   const CHECKS = true;
   const DECODE = true;
-  const VERSION = '0.0.3';
+  const VERSION = '0.0.4';
   const g = globalThis as any;
 
   // A runtime already here is kept. Anything else called BC is not one, and is replaced below (g.BC = runtime): an element

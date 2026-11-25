@@ -19,7 +19,10 @@
 declare namespace BC {
   // ───────────────────────── data lake ─────────────────────────
 
-  type Row = Record<string, unknown>;
+  /** A row of a dataset: an object of fields. `any`, not `unknown`, so that rows an app describes with an interface
+   *  (`interface Sale { region: string }`, which has no index signature) are rows too; the core reads every value as
+   *  unknown all the same. A number, a string or null is not a row. */
+  type Row = Record<string, any>;
   /** Numeric fields load as Float64Array, not boxed numbers — fewer GC pauses on
    *  scans/domain inference, and the same shape the future Canvas renderer needs. */
   type Column = ArrayLike<unknown> | Float64Array;

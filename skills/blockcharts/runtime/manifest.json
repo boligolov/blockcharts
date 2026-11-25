@@ -2,7 +2,7 @@
   "core": {
     "file": "core.js",
     "bytes": 44338,
-    "version": "0.0.3",
+    "version": "0.0.4",
     "variants": {
       "composed": {
         "file": "core.composed.js",

@@ -1831,6 +1831,49 @@ a component. They are 0.0.3.
   server and compiles code an app would write, and code it must not, against the release's types. They run on
   React 19, Vue 3.5 and Svelte 5; React 18 and Svelte 4 have the same APIs but are not in CI.
 
+## Apps made with the real toolchains (2026-11-25)
+
+test-frameworks bundles each wrapper with esbuild; an app is made with Vite, Next.js, SvelteKit or the Angular CLI,
+which resolve `exports`, split code, render on a server and hydrate in their own ways. `test/apps` holds six apps
+made as those tools make them, and `scripts/test-apps.js` (`npm run test:apps`) runs them.
+
+- **The package is the tarball.** `npm pack` (its prepack builds the release), unpacked into
+  `test/apps/node_modules/blockcharts` as npm installs a package with no dependencies: a file left out of `files`, a
+  wrong `exports` path or a type file that does not resolve fails here as it would for a user. The apps are a
+  package of their own, with their own lockfile, not a workspace of the root: Next.js and the Angular CLI are hundreds
+  of megabytes the library and the site never need, and TypeScript is pinned at 6.0 there for Angular.
+- **One page, the same in every app** (`test/apps/shared`): chart a with its own rows, charts b and c drawing one
+  dataset the app gave to `BC.data`. A click on each must reach that chart's handler; new rows and a new title for
+  a must leave the drawings of b and c the same elements; taking b away must leave c as it was and still clickable;
+  hiding all must leave no drawing and no dataset a component made, and the app's own dataset in the lake. The
+  console must say nothing, so a hydration mismatch fails it. It runs on the production build and on the dev server
+  (React in StrictMode there, Next.js in its dev mode), and the server's HTML of SvelteKit and Next.js must have the
+  three charts' elements, empty: a kit and a wrapper imported in a component render on the server without a DOM.
+  test-frameworks has the same page with esbuild, so CI on every push covers several charts too.
+- **Every chart, measured.** The fixture is every chart the composer makes from every recipe (71, a facet's panels
+  each), its dataset given to the chart as its own data, as a component is given its rows; `?copies=5` makes it 355.
+  Each app mounts them, gives them all new data (new arrays, so each is built again) and unmounts them, three times;
+  the phases are timed in the page (a click, then frames until every chart is as asked) and by Chrome's own
+  `TaskDuration`. A leak fails the run three ways: a dataset a component made still in the lake, DOM nodes or event
+  listeners more than before, or a heap that grows by more than 16 KB per chart with every cycle. A chart drawn holds
+  60 to 90 KB; the first cycles warm up (compiled code, caches) by a few hundred KB whatever the number of charts,
+  which is 4 KB a chart at 71 and 0.6 KB at 355, and fades over eight cycles. Each check was seen to fail on a package
+  broken on purpose: datasets never taken out of the lake (the lake check, on both pages), destroyed controllers kept
+  in a global list (427 nodes left).
+- **What the measures say** (Windows, Chrome, production builds; two runs): 71 charts mount in 160 to 270 ms in
+  every app, new data for all of them takes 150 to 180 ms, unmounting a few ms; 355 charts take 0.7 to 0.9 s, about
+  2 ms a chart, and 21 MB of heap. A wrapper costs nothing that shows: the components and plain `BC.chart` are within
+  15 % of each other, and which is fastest changes from run to run. The time is the charts' own (building and laying
+  out each one), on the main thread: CPU time equals wall time. What a page loads differs by the framework: 73 KB gzip
+  for the full kit alone, 99 with Vue, 110 with SvelteKit, 119 with Angular, 140 with React, 205 with Next.js.
+- **What the apps found.** A row an app types with an interface (`interface Sale { region: string }`) was not a
+  `BC.Row` (`Record<string, unknown>`: an interface has no index signature), so `BC.data(name, sales)` and
+  `<BlockChart data={sales}>` did not compile in a strict TypeScript app; Angular's strict build said so first.
+  `BC.Row` is `Record<string, any>` now (still no number, string or null), and the types test of test-frameworks has
+  such a row. Library 0.0.4. Also: React renders the state a `bc-click` handler sets on its own schedule (the event is
+  not one of React's), so the test waits for the text rather than reading it at once; SvelteKit 3 takes its
+  configuration in `vite.config.js` and refuses a `svelte.config.js`; `next dev` writes an `AGENTS.md` into the app.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,
