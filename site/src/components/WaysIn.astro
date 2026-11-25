@@ -1,5 +1,6 @@
 ---
-// The four ways in. The skill is the main one; the other three are the same built files for people who write pages.
+// The four ways in. An app is the main one (npm and a ready component); a page of your own takes a kit or the loader; a
+// report file comes from the agent skill, or from the same composer run by a script.
 import Highlight from './Highlight.astro';
 import { baseUrl, kb, scriptTag } from '../lib/site.mjs';
 
@@ -8,24 +9,16 @@ const { basicGzip, loaderBytes, version } = Astro.props;
 const base = baseUrl(import.meta.env.BASE_URL);
 const ways = [
   {
-    title: 'Agent skill',
-    for_: 'For anyone who asks Claude for reports',
-    body: 'Claude writes the JSON, the bundled composer checks it and writes the file. Nothing to learn but what you want to see.',
-    // what you ask once it is installed; the plugin's /plugin install comes back with the Claude Code tab (ROADMAP)
-    code: 'make a report of revenue by region from sales.csv', lang: 'plaintext',
-    href: '#install', more: 'Install it', featured: true,
-  },
-  {
-    title: 'Composer',
-    for_: 'For scripts, pipelines, CI',
-    body: 'The same composer from the command line: a page.json with data and charts in, one checked HTML file out. Plain Node, no dependencies.',
-    code: 'node compose.js page.json report.html', lang: 'shellscript',
-    href: `${base}guide/#composer`, more: 'The composer',
+    title: 'Components',
+    for_: 'For apps in React, Vue, Svelte, Angular',
+    body: 'Install from npm, import a kit once, and use a ready component: BlockChart for React and Vue, an action for Svelte, the <block-chart> element for Angular and any page. Clicks come back with the row.',
+    code: "import { BlockChart } from 'blockcharts/react';", lang: 'javascript',
+    href: '#start', more: 'Get started', featured: true,
   },
   {
     title: 'One script tag',
-    for_: 'For your own pages and apps',
-    body: `A kit is the core and a set of blocks in one file, from npm, a CDN or your own site — ${kb(basicGzip)} gzipped for bars, lines and areas. Charts are JSON in the HTML, or components in React, Vue and Svelte.`,
+    for_: 'For your own pages',
+    body: `A kit is the core and a set of blocks in one file, from npm, a CDN or your own site — ${kb(basicGzip)} gzipped for bars, lines and areas. Charts are JSON in the HTML.`,
     code: 'npm install blockcharts', lang: 'shellscript',
     href: `${base}embed/kit/`, more: 'Try a kit',
   },
@@ -36,13 +29,21 @@ const ways = [
     code: scriptTag(`.../${version}/loader.js`, { 'data-auto': true }), lang: 'html',
     href: `${base}embed/loader/`, more: 'Try the loader',
   },
+  {
+    title: 'Agent skill',
+    for_: 'For report files, from a table',
+    body: 'Claude writes the JSON, the bundled composer checks it against the data and writes one HTML file that opens anywhere. The same composer runs from a script or CI.',
+    // what you ask once it is installed; the plugin's /plugin install comes back with the Claude Code tab (ROADMAP)
+    code: 'make a report of revenue by region from sales.csv', lang: 'plaintext',
+    href: '#install', more: 'Get the skill',
+  },
 ];
 ---
 <section class="section alt" id="ways-in">
   <div class="wrap">
     <p class="kicker">Four ways in</p>
     <h2>One set of blocks, however you ship it</h2>
-    <p class="intro">The skill is the quickest way to a report. The same built blocks also go into your own pages — pick by where the charts will live.</p>
+    <p class="intro">In an app, install from npm and use a component. In a page of your own, one script tag. For a report file to send around, the agent skill — pick by where the charts will live.</p>
     <div class="cards four">
       {ways.map((w) => (
         <div class={w.featured ? 'tile featured' : 'tile'}>

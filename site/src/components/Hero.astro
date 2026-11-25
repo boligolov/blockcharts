@@ -15,16 +15,17 @@ const base = baseUrl(import.meta.env.BASE_URL);
       <h1>Only the chart code your page needs. <em>Nothing more.</em></h1>
       <p class="pitch">
         blockcharts is a chart library cut into atoms: a scale, a bar, an axis, a tooltip — each one a tiny block. A page carries exactly
-        the blocks its charts use, never the whole library. Ask Claude for a dashboard and get one light HTML file that opens anywhere, offline.
+        the blocks its charts use, never the whole library. Install it from npm and drop a ready component into React, Vue, Svelte or
+        Angular — or ask Claude for a dashboard as one HTML file.
       </p>
       <div class="ctas">
-        <a class="btn btn-primary" href="#install">Get the skill</a>
-        <a class="btn btn-secondary" href="#blocks-inside">What is inside</a>
+        <a class="btn btn-primary" href="#start">Get started with npm</a>
+        <a class="btn btn-secondary" href="#install">Get the Claude skill</a>
       </div>
       <ul class="facts">
+        <li>Components for React, Vue, Svelte, Angular</li>
         <li>Core {kb(coreGzip)} gzipped</li>
         <li>Blocks {(blockRange[0] / 1024).toFixed(1)}–{(blockRange[1] / 1024).toFixed(0)} KB each</li>
-        <li>Customizable down to your own block</li>
         <li>Free, MIT license</li>
       </ul>
     </div>

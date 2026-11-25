@@ -62,6 +62,132 @@ const chartTag = (spec) => `<script type="application/json" data-bc-chart>\n${pr
 /** Where jsDelivr serves the files of a published version: the release/ folder of the npm package. */
 const cdnBase = (version) => `https://cdn.jsdelivr.net/npm/blockcharts@${version}/release/`;
 
+const indent = (s, by) => s.replace(/\n/g, '\n' + by);
+
+// ── the framework wrappers as an app uses them: the embed page and the landing page show the same code ──
+// the spec of the snippets: short, as an app keeps it next to its component
+const appSpec = `const spec = {
+  scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+  guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+  marks: [{ type: 'rect', x: 'region', y: 'total' }],
+};`;
+/** Each wrapper in an app: `name` for a tab, `label` for a snippet, `lang` for the highlighter. */
+const FRAMEWORKS = [
+  {
+    id: 'react',
+    name: 'React',
+    label: 'React',
+    lang: 'jsx',
+    code: `import 'blockcharts/kits/basic.mjs'; // once, before a chart mounts
+import { useRef } from 'react';
+import { BlockChart } from 'blockcharts/react';
+
+${appSpec}
+
+export function Regions({ rows, onPick }) {
+  const chart = useRef(null); // chart.current.setView('x', null)
+  return (
+    <BlockChart
+      ref={chart}
+      spec={spec}
+      data={rows}
+      onClick={(d) => onPick(d.values.region)}
+    />
+  );
+}`,
+  },
+  {
+    id: 'vue',
+    name: 'Vue',
+    label: 'Vue',
+    lang: 'vue',
+    code: `<script setup>
+import 'blockcharts/kits/basic.mjs';
+import { BlockChart } from 'blockcharts/vue';
+
+defineProps(['rows']);
+const emit = defineEmits(['pick']);
+${appSpec}
+</script>
+
+<template>
+  <BlockChart
+    :spec="spec"
+    :data="rows"
+    @click="(d) => emit('pick', d.values.region)"
+  />
+</template>`,
+  },
+  {
+    id: 'svelte',
+    name: 'Svelte',
+    label: 'Svelte',
+    lang: 'svelte',
+    code: `<script>
+  import 'blockcharts/kits/basic.mjs';
+  import { blockchart } from 'blockcharts/svelte';
+
+  let { rows, onpick } = $props();
+  ${indent(appSpec, '  ')}
+  const onClick = (d) => onpick(d.values.region);
+</script>
+
+<div use:blockchart={{ spec, data: rows, onClick }}></div>`,
+  },
+  {
+    id: 'angular',
+    name: 'Angular',
+    label: 'TypeScript',
+    lang: 'typescript',
+    code: `import 'blockcharts/kits/basic.mjs';
+import 'blockcharts/element';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, input, output } from '@angular/core';
+
+@Component({
+  selector: 'app-regions',
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  template: \`
+    <block-chart [spec]="spec" [data]="rows()"
+      (bc-click)="pick.emit($event.detail.values.region)"></block-chart>
+  \`,
+})
+export class RegionsComponent {
+  rows = input.required<object[]>();
+  pick = output<string>();
+  spec = {
+    scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+    marks: [{ type: 'rect', x: 'region', y: 'total' }],
+    interaction: [{ type: 'click' }],
+  };
+}`,
+  },
+];
+// no framework: the runtime itself, as the module page shows it (the landing page's last tab)
+FRAMEWORKS.push({
+  id: 'js',
+  name: 'JavaScript',
+  label: 'JavaScript',
+  lang: 'javascript',
+  code: `import BC from 'blockcharts/kits/basic.mjs';
+
+${appSpec}
+
+BC.data('sales', rows); // named: several charts can share it
+const chart = BC.chart(document.getElementById('chart'), {
+  ...spec,
+  data: 'sales',
+  interaction: [{ type: 'click' }],
+});
+chart.host.addEventListener('bc-click', (e) => {
+  openRegion(e.detail.values.region); // the clicked row
+});`,
+});
+/** A wrapper's code as a section of an embed page. */
+const framework = (id) => {
+  const { code, label, lang } = FRAMEWORKS.find((f) => f.id === id);
+  return { code, label, lang };
+};
+
 /** Each function returns { file, title, lead, sections: [{ h, p, html?, code?, label?, extra? }] }; `html` is live AND shown.
  *  `release` is the release manifest the pages load, for the sizes they name. */
 function embedPages(root, release) {
@@ -159,13 +285,6 @@ window.addEventListener('load', function () {
   });
 
   // ── 3b. the framework wrappers ──
-  // the spec of the snippets below: short, as an app keeps it next to its component
-  const appSpec = `const spec = {
-  scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-  guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
-  marks: [{ type: 'rect', x: 'region', y: 'total' }],
-};`;
-  const indent = (s, by) => s.replace(/\n/g, '\n' + by);
   // the module page's chart without a dataset name (the element is given its rows) and with clicks
   const elementSpec = { ...moduleSpec, size: [720, 260], interaction: moduleSpec.interaction.concat([{ type: 'click' }]) };
   delete elementSpec.data;
@@ -198,75 +317,22 @@ window.addEventListener('load', function () {
       {
         h: 'React',
         p: '<code>onClick</code> gets the clicked row and adds <code>{"type": "click"}</code> to the spec when it has none. The ref has <code>setView</code>, <code>getView</code> and <code>chart</code>, the chart as drawn now. React 18 and later; on a server the component renders an empty <code>&lt;div&gt;</code>.',
-        code: `import 'blockcharts/kits/basic.mjs'; // once, before a chart mounts
-import { useRef } from 'react';
-import { BlockChart } from 'blockcharts/react';
-
-${appSpec}
-
-export function Regions({ rows, onPick }) {
-  const chart = useRef(null); // chart.current.setView('x', null)
-  return <BlockChart ref={chart} spec={spec} data={rows} onClick={(d) => onPick(d.values.region)} />;
-}`,
-        label: 'React',
-        lang: 'jsx',
+        ...framework('react'),
       },
       {
         h: 'Vue 3',
         p: '<code>@click</code> is a click on the data, with the row. A reactive spec may be changed in place: the chart follows it. Vue 3.3 and later.',
-        code: `<script setup>
-import 'blockcharts/kits/basic.mjs';
-import { BlockChart } from 'blockcharts/vue';
-
-defineProps(['rows']);
-const emit = defineEmits(['pick']);
-${appSpec}
-</script>
-
-<template>
-  <BlockChart :spec="spec" :data="rows" @click="(d) => emit('pick', d.values.region)" />
-</template>`,
-        label: 'Vue',
-        lang: 'vue',
+        ...framework('vue'),
       },
       {
         h: 'Svelte',
         p: 'An action, plain JavaScript: nothing has to compile it, and it works in Svelte 4 and 5.',
-        code: `<script>
-  import 'blockcharts/kits/basic.mjs';
-  import { blockchart } from 'blockcharts/svelte';
-
-  let { rows, onpick } = $props();
-  ${indent(appSpec, '  ')}
-</script>
-
-<div use:blockchart={{ spec, data: rows, onClick: (d) => onpick(d.values.region) }}></div>`,
-        label: 'Svelte',
-        lang: 'svelte',
+        ...framework('svelte'),
       },
       {
         h: 'Angular',
         p: 'Angular sets properties on custom elements and listens to their events, so <code>&lt;block-chart&gt;</code> is the component; <code>CUSTOM_ELEMENTS_SCHEMA</code> lets the template use it.',
-        code: `import 'blockcharts/kits/basic.mjs';
-import 'blockcharts/element';
-import { Component, CUSTOM_ELEMENTS_SCHEMA, input, output } from '@angular/core';
-
-@Component({
-  selector: 'app-regions',
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  template: \`<block-chart [spec]="spec" [data]="rows()" (bc-click)="pick.emit($event.detail.values.region)"></block-chart>\`,
-})
-export class RegionsComponent {
-  rows = input.required<object[]>();
-  pick = output<string>();
-  spec = {
-    scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-    marks: [{ type: 'rect', x: 'region', y: 'total' }],
-    interaction: [{ type: 'click' }],
-  };
-}`,
-        label: 'TypeScript',
-        lang: 'typescript',
+        ...framework('angular'),
       },
       {
         h: 'What every wrapper does',
@@ -710,4 +776,4 @@ ${forms.map(([label, value, what]) => `<tr><td>${label}</td><td data-label="in t
   return pages;
 }
 
-module.exports = { embedPages, monthly, lineSpec, cdnBase };
+module.exports = { embedPages, monthly, lineSpec, cdnBase, FRAMEWORKS };

@@ -1,6 +1,7 @@
 # blockcharts.online
 
-The website: a landing page for the skill (the main product) and a developer section — a gallery of every
+The website: a landing page for the library — npm and the ready components for React, Vue, Svelte and Angular first,
+the agent skill for report files second — and a developer section: a gallery of every
 recipe, grouped by kind of chart and each with the blocks it is built from and what they weigh, the ways to embed charts in your own pages, the guide and the block reference. Built with
 [Astro](https://astro.build): plain HTML and CSS at build time, no framework runtime in the browser. Same
 section structure as asciicharts.online (hero with install, principles, features, ways in, numbers, gallery),

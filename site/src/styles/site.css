@@ -397,7 +397,7 @@ header.site details.menu nav a[aria-current='page'] {
     height: 34px;
   }
 }
-/* the menu's own way to the skill, for a screen too narrow for the header's button */
+/* the menu's own way to getting started, for a screen too narrow for the header's button */
 header.site details.menu nav a.menu-install {
   display: none;
 }
@@ -806,9 +806,26 @@ footer.site .note {
   color: var(--muted);
   font-size: 15px;
 }
+/* get started: the npm command over the steps, and the links under them */
+.start > div > .code {
+  position: relative;
+  margin: 0 0 28px;
+}
+.start > div > .code pre {
+  padding-right: 76px;
+}
+.start > div > .code .copy {
+  bottom: 6px;
+}
+.start .more-links {
+  margin: 4px 0 0;
+  font-weight: 600;
+  line-height: 1.9;
+}
 @media (max-width: 960px) {
   .install-grid {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): a line of code scrolls in its box instead of widening the page */
+    grid-template-columns: minmax(0, 1fr);
     gap: 32px;
   }
 }

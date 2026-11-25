@@ -1,0 +1,45 @@
+---
+// Getting started in an app, the main way in: npm, a kit imported once, a ready component or BC.chart. The code in the
+// tabs is the embed page's (FRAMEWORKS in scripts/site-demos.js), so the two never disagree.
+import Highlight from './Highlight.astro';
+import { baseUrl, FRAMEWORKS } from '../lib/site.mjs';
+
+const base = baseUrl(import.meta.env.BASE_URL);
+---
+<section class="section" id="start">
+  <div class="wrap install-grid start">
+    <div>
+      <p class="kicker">Get started</p>
+      <h2>One package, any framework or none</h2>
+      <p class="intro">Ready components for React, Vue and Svelte, a custom element for Angular and any page, and the same charts from plain JavaScript with <code>BC.chart</code>.</p>
+      <div class="code">
+        <pre><code>npm install blockcharts</code></pre>
+        <button class="copy" type="button" data-copy="npm install blockcharts" aria-label="Copy the npm install command">Copy</button>
+      </div>
+      <ol class="steps">
+        <li><b>Install the package</b><span>Typed for TypeScript, no dependencies; React, Vue and Svelte are optional peers.</span></li>
+        <li><b>Import a kit once</b><span><code>blockcharts/kits/basic.mjs</code> for bars, lines and areas, or another kit: the only chart code your app carries.</span></li>
+        <li><b>Drop in a component</b><span>Give it a JSON spec and your rows, or call <code>BC.chart(element, spec)</code> yourself. A click on a bar comes back to your code with its row; on a server a component renders an empty element and draws in the browser.</span></li>
+      </ol>
+      <p class="more-links">
+        <a href={`${base}embed/frameworks/`}>All the components, one of them live →</a><br />
+        <a href={`${base}embed/clicks/`}>Clicks on the data →</a>
+      </p>
+    </div>
+    <div class="install">
+      <div role="tablist" aria-label="Framework">
+        {FRAMEWORKS.map((f, i) => (
+          <button role="tab" type="button" id={`tab-${f.id}`} aria-controls={`panel-${f.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{f.name}</button>
+        ))}
+      </div>
+      {FRAMEWORKS.map((f, i) => (
+        <div role="tabpanel" id={`panel-${f.id}`} aria-labelledby={`tab-${f.id}`} hidden={i !== 0}>
+          <div class="code">
+            <Highlight code={f.code} lang={f.lang} />
+            <button class="copy" type="button" aria-label={`Copy the ${f.name} example`}>Copy</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
