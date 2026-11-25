@@ -32,8 +32,12 @@ repository's `.node-version` (24) is what CI and Cloudflare build with.
 npm ci                                # the library's tools and the site's dependencies
 npm run site                          # the library, the release, reports, the skill zip, Astro, then scripts/check-site.js
 SITE_BASE=/blockcharts/ npm run site  # served from a subfolder
-npm run dev -w site                   # develop (run npm run build and npm run manifest first)
+npm run dev                           # the library, then Astro's dev server with live reload: http://localhost:4321/
+npm run serve                         # npm run site, then site/dist served as it deploys: http://localhost:4321/
 ```
+
+`npm run dev` rebuilds a page when its source changes; a change to the library (`src/`) or to the recipes needs the
+command again, as the release and the reports are made once, before Astro starts.
 
 `scripts/site-prebuild.js` writes `public/release/`, `public/examples/`, `public/blockcharts.skill` and
 `src/data/reports.json` (all ignored by git). `scripts/check-site.js` then checks every link, script and anchor,

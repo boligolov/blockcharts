@@ -133,7 +133,9 @@ blockcharts.online is built by `npm run site` from the repository root: the libr
 composed example reports and the skill's download, then Astro, then `scripts/check-site.js` (links, scripts,
 anchors, and every chart on every page validated against its data). The output is `site/dist`, a plain
 static site. `npm run test:site` (also run by CI) then opens every page in the system Chrome at 320, 360 and 390
-px and fails on a page wider than the screen or a table that scrolls sideways. See [site/README.md](../site/README.md).
+px and fails on a page wider than the screen or a table that scrolls sideways. To look at it locally, `npm run dev`
+builds the library and starts Astro's dev server with live reload, and `npm run serve` builds the site as above and
+serves `site/dist`; both at http://localhost:4321/. See [site/README.md](../site/README.md).
 
 ### Listing the plugin in Claude's directory
 

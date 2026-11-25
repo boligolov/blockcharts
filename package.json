@@ -101,6 +101,8 @@
     "og": "node scripts/og-image.js",
     "test:site": "node scripts/check-site-phone.js",
     "site": "npm run build && npm run manifest && npm run build -w site && node scripts/check-site.js",
+    "dev": "npm run build && npm run manifest && npm run dev -w site",
+    "serve": "npm run site && npm run preview -w site",
     "prepack": "npm run release",
     "format": "prettier --write \"src/**/*.{ts,mts}\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs",
     "format:check": "prettier --check \"src/**/*.{ts,mts}\" \"scripts/**/*.js\" \"site/src/**/*.{mjs,css}\" site/astro.config.mjs"

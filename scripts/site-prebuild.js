@@ -27,8 +27,8 @@ function notReady(root = repo) {
   return [
     `The site is made from the library, which is built at the repository's root, and ${missing.join(' and ')}.`,
     'Build from the root:  npm ci && npm run site',
-    '(npm ci installs the site too, a workspace of the root; npm run site builds the library first; before',
-    'npm run dev -w site, run npm run build && npm run manifest.)',
+    '(npm ci installs the site too, a workspace of the root; npm run site builds the library first, and so do',
+    'npm run dev, the site with live reload, and npm run serve, the built site.)',
     'A host builds from the root too. On Cloudflare: Root directory empty (not "site"), that build command, and the',
     'deploy command npx wrangler deploy, which reads wrangler.jsonc at the root (site/README.md, Deploy).',
   ].join('\n');
