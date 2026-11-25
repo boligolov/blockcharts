@@ -1890,16 +1890,17 @@ in Chrome: 1, 20 and 355 of them, each run in a fresh page, the clock stopped wh
   `requestAnimationFrame`, after that frame has been painted, and the main thread's busy time (CDP) matches it.
 - **What 100 rounds found** (Windows laptop, i7-11800H, Chrome 157; the tables are in test/bench/README.md): at 20 and
   355 charts blockcharts is on a par with Observable Plot and 1.5 to 10 times faster than Chart.js, ECharts,
-  ApexCharts, Plotly and Recharts; uPlot is about twice as fast. Per chart: 0.95 ms among 355, 2.4 ms among 20, 26 ms
+  ApexCharts, Plotly and Recharts; uPlot is about twice as fast. Per chart: 0.93 ms among 355, 2.3 ms among 20, 26 ms
   for a page's only chart. With the CPU slowed four times every figure grows four to five times and the order stays.
-  The heap the charts hold is the least after uPlot's (7.6 MB for 355; Chart.js 35, ECharts 40, Recharts 236).
+  The heap the charts hold is the least after uPlot's (7.6 MB for 355; Chart.js 35, ECharts 40, Recharts 236). A second
+  run of 100 rounds, the one test/bench/results.json keeps, gave the same figures within 3 %.
 - **The first chart.** A page's only chart costs 26 ms (uPlot 13, Plot 19, Chart.js 34). A trace shows where: the
   browser loads the system font for the first text on the page (5–6 ms, paid by every library that draws text, Plot
   in its layout, blockcharts when it measures), and blockcharts makes its first `Intl.NumberFormat` (Plot formats
   with d3-format) and compiles a larger script. `BC.chart` itself returns in 2 ms; the second chart on the page is
   drawn and painted in about 6 ms in a trace (Plot about 4).
 - **What may be claimed.** Not "1 ms a chart": it holds only among hundreds of simple charts on a fast machine; for a
-  dashboard it is 2.4 ms, for the recipes 2 to 2.7 ms. What holds: about 2 ms a chart on a laptop, a dashboard of 20
+  dashboard it is 2.3 ms, for the recipes 2 to 2.7 ms. What holds: about 2 ms a chart on a laptop, a dashboard of 20
   in under 50 ms, "on a par with Observable Plot, 1.5 to 10 times faster than Chart.js, ECharts, ApexCharts, Plotly
   and Recharts on the same charts", the heap and the size, always with a link to the bench and its machine. Not
   measured: new data, interaction, long series (where uPlot and the canvas libraries are made to win).

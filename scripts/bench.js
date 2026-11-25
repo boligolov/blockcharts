@@ -12,11 +12,15 @@
 //
 // Run: npm ci --prefix test/bench, then npm run bench
 //   node scripts/bench.js [blockcharts chartjs echarts uplot plot recharts apexcharts plotly] [--runs=30] [--n=1,20,355]
-//                         [--cpu=4] [--seed=1]
+//                         [--cpu=4] [--seed=1] [--save]
+//   node scripts/bench.js --resave [--cpu=4]
 // --cpu slows Chrome's CPU down that many times (as DevTools does), roughly a phone. The table (medians and quartiles)
 // is printed, written to test/bench/out/results.md and the job summary on GitHub Actions; every run, with the machine,
 // Chrome and the versions, to test/bench/out/results.json; a screenshot of each library's 20 charts to test/bench/out/shots
 // (results-cpu4.md, results-cpu4.json and shots-cpu4 with --cpu=4).
+// --save also writes the medians, quartiles and every run's time to test/bench/results.json (results-cpu4.json): the
+// figures in the repository, which the site's /benchmarks/ page shows. --resave writes them from the last run's
+// out/results.json without measuring again.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -35,16 +39,17 @@ const option = (name, fallback) => {
   return a ? a.slice(name.length + 3) : fallback;
 };
 
-/** Each library: the package whose version the table names, and its name there. */
+/** Each library: the package whose version the table names, its name there, what it draws in, and how its page sets it
+ *  up beyond the charts every page draws (test/bench/<library>.js). */
 const LIBS = {
-  blockcharts: { pkg: null, name: 'blockcharts' },
-  chartjs: { pkg: 'chart.js', name: 'Chart.js' },
-  echarts: { pkg: 'echarts', name: 'ECharts' },
-  uplot: { pkg: 'uplot', name: 'uPlot' },
-  plot: { pkg: '@observablehq/plot', name: 'Observable Plot' },
-  recharts: { pkg: 'recharts', name: 'Recharts' },
-  apexcharts: { pkg: 'apexcharts', name: 'ApexCharts' },
-  plotly: { pkg: 'plotly.js-dist-min', name: 'Plotly' },
+  blockcharts: { pkg: null, name: 'blockcharts', draws: 'SVG', setup: 'the basic kit; each chart’s rows given to the lake' },
+  chartjs: { pkg: 'chart.js', name: 'Chart.js', draws: 'canvas', setup: 'chart.js/auto; not responsive' },
+  echarts: { pkg: 'echarts', name: 'ECharts', draws: 'canvas', setup: 'only the modules these charts use; the tooltip on the axis' },
+  uplot: { pkg: 'uplot', name: 'uPlot', draws: 'canvas', setup: 'its stylesheet; no tooltip in uPlot, its cursor stays on' },
+  plot: { pkg: '@observablehq/plot', name: 'Observable Plot', draws: 'SVG', setup: 'tip: true; it orders the bars by name' },
+  recharts: { pkg: 'recharts', name: 'Recharts', draws: 'SVG', setup: 'React 19, all the charts in one root' },
+  apexcharts: { pkg: 'apexcharts', name: 'ApexCharts', draws: 'SVG', setup: 'toolbar and zoom off' },
+  plotly: { pkg: 'plotly.js-dist-min', name: 'Plotly', draws: 'SVG', setup: 'the mode bar off' },
 };
 const chosen = args.filter((a) => !a.startsWith('--'));
 for (const a of chosen) if (!LIBS[a]) throw new Error(`no library "${a}" (${Object.keys(LIBS).join(', ')})`);
@@ -186,6 +191,29 @@ function table(summary, meta) {
   return lines.join('\n');
 }
 
+/** What the repository keeps of a run: the machine and versions, and for each library at each n its medians, quartiles
+ *  and every run's time (a tenth of a ms), not the rest of each run. One result a line, so a new run diffs readably. */
+function snapshot({ meta, summary, runs: all }) {
+  const results = summary.map((s) => ({
+    ...s,
+    samples: all.filter((r) => r.lib === s.lib && r.n === s.n).map((r) => Math.round(r.ms * 10) / 10),
+  }));
+  const libraries = Object.fromEntries(
+    Object.keys(meta.versions).map((l) => [l, { name: LIBS[l].name, draws: LIBS[l].draws, setup: LIBS[l].setup }]),
+  );
+  const lines = results.map((r) => '  ' + JSON.stringify(r));
+  return ['{', ` "meta": ${JSON.stringify({ ...meta, libraries })},`, ' "results": [', lines.join(',\n'), ' ]', '}', ''].join('\n');
+}
+const saved = path.join(benchDir, `results${suffix}.json`);
+
+if (args.includes('--resave')) {
+  const last = path.join(outDir, `results${suffix}.json`);
+  if (!fs.existsSync(last)) throw new Error(`no ${path.relative(repo, last)}: run the bench first`);
+  fs.writeFileSync(saved, snapshot(JSON.parse(fs.readFileSync(last, 'utf8'))));
+  console.log(`written: ${path.relative(repo, saved)}`);
+  process.exit(0);
+}
+
 (async () => {
   const started = Date.now();
   const kits = JSON.parse(fs.readFileSync(path.join(repo, 'kits.json'), 'utf8'));
@@ -269,6 +297,7 @@ function table(summary, meta) {
     console.log('\n' + md);
     fs.writeFileSync(path.join(outDir, `results${suffix}.md`), md + '\n');
     fs.writeFileSync(path.join(outDir, `results${suffix}.json`), JSON.stringify({ meta, summary, runs: results }, null, 1));
+    if (args.includes('--save')) fs.writeFileSync(saved, snapshot({ meta, summary, runs: results }));
     if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## blockcharts and other libraries\n${md}\n`);
   } finally {
     await browser.close();

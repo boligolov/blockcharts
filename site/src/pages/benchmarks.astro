@@ -1,0 +1,327 @@
+---
+// The bench (npm run bench): blockcharts and seven other libraries drawing the same charts, every figure read from the
+// results the repository keeps (test/bench/results.json, results-cpu4.json). A claim the figures stop supporting stops
+// the build, so the page cannot say more than the bench measured.
+import Base from '../layouts/Base.astro';
+import Snippet from '../components/Snippet.astro';
+import { baseUrl, jsonForScript, loadBench, loadRelease, REPO, repoFile, repoTree } from '../lib/site.mjs';
+
+const base = baseUrl(import.meta.env.BASE_URL);
+const release = loadRelease();
+const { desk, cpu4, charts } = loadBench();
+
+interface Result {
+  lib: string;
+  n: number;
+  ms: { median: number; q1: number; q3: number };
+  cpu: number;
+  heap: number;
+  nodes: number;
+  samples: number[];
+}
+interface Snapshot {
+  meta: {
+    date: string;
+    runs: number;
+    cpu: number;
+    chrome: string;
+    machine: { cpu: string; cores: number; ram: number; os: string };
+    versions: Record<string, string>;
+    gzip: Record<string, number>;
+    libraries: Record<string, { name: string; draws: string; setup: string }>;
+  };
+  results: Result[];
+}
+const D = desk as Snapshot;
+const C = cpu4 as Snapshot;
+const libs = D.meta.libraries;
+const ids = Object.keys(libs);
+const BC = 'blockcharts';
+/** The libraries blockcharts is said to be faster than, and the two it is not. */
+const RIVALS = ['chartjs', 'echarts', 'apexcharts', 'plotly', 'recharts'];
+
+function of(snap: Snapshot, n: number, lib: string): Result {
+  const r = snap.results.find((x) => x.n === n && x.lib === lib);
+  if (!r) throw new Error(`test/bench: no result for ${lib} at ${n} charts${snap.meta.cpu > 1 ? ', CPU slowed' : ''} (node scripts/bench.js --save)`);
+  return r;
+}
+const ranked = (snap: Snapshot, n: number) => ids.map((l) => of(snap, n, l)).sort((a, b) => a.ms.median - b.ms.median);
+const ratio = (snap: Snapshot, n: number, lib: string) => of(snap, n, lib).ms.median / of(snap, n, BC).ms.median;
+const name = (lib: string) => libs[lib].name;
+
+// what the page says, checked against the figures
+const ratios = [20, 355].flatMap((n) => RIVALS.map((l) => ratio(D, n, l)));
+const [lo, hi] = [Math.min(...ratios), Math.max(...ratios)];
+if (lo <= 1.1) throw new Error(`the page says blockcharts is faster than ${RIVALS.join(', ')}; at 20 or 355 charts one is within ${lo.toFixed(2)}×`);
+const plotRatios = [20, 355].map((n) => ratio(D, n, 'plot'));
+if (plotRatios.some((r) => r < 0.85 || r > 1.15)) throw new Error(`the page says Observable Plot is on a par: ${plotRatios.map((r) => r.toFixed(2)).join(', ')}×`);
+const uplotRatio = Math.max(...[20, 355].map((n) => ratio(D, n, 'uplot')));
+if (uplotRatio > 0.8) throw new Error(`the page says uPlot is faster: ${uplotRatio.toFixed(2)}×`);
+const heapRank = ranked(D, 355).sort((a, b) => a.heap - b.heap).map((r) => r.lib);
+if (heapRank.indexOf(BC) > 1) throw new Error(`the page says blockcharts holds the least heap but uPlot's: it is ${heapRank.indexOf(BC) + 1}th`);
+const soonest = ranked(D, 1).slice(0, 3).map((r) => r.lib).sort().join();
+if (soonest !== 'blockcharts,plot,uplot') throw new Error(`the page says only Plot and uPlot draw a page's only chart sooner: ${soonest}`);
+for (const l of RIVALS) if (ratio(C, 20, l) <= 1) throw new Error(`the page says blockcharts stays ahead of ${l} with the CPU slowed`);
+const slowdowns = ids.map((l) => of(C, 20, l).ms.median / of(D, 20, l).ms.median);
+/** How far the middle half of the runs at 20 charts reaches from the median, at most, in percent. */
+const steady = Math.max(...ids.map((l) => of(D, 20, l)).map((r) => Math.max(r.ms.median - r.ms.q1, r.ms.q3 - r.ms.median) / r.ms.median)) * 100;
+const gzipRank = ids.slice().sort((a, b) => D.meta.gzip[a] - D.meta.gzip[b]);
+if (gzipRank.indexOf(BC) > 1) throw new Error(`the page says blockcharts' bundle is the smallest but uPlot's: it is ${gzipRank.indexOf(BC) + 1}th`);
+
+const fmt = (x: number, digits = 0) => x.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const ms = (x: number) => fmt(x, x < 100 ? 1 : 0);
+const mb = (bytes: number) => fmt(bytes / 1048576, 1);
+const kbz = (bytes: number) => fmt(bytes / 1024, 0);
+
+const bc20 = of(D, 20, BC);
+const bc355 = of(D, 355, BC);
+const bc1 = of(D, 1, BC);
+/** The machine as people name it: no (R) and (TM), and Windows by its name (Node says Windows_NT 10.0 for 10 and 11). */
+const machine = (s: Snapshot) => {
+  const m = s.meta.machine;
+  const win = /^Windows_NT 10\.0\.(\d+)/.exec(m.os);
+  const os = win ? `Windows ${+win[1] >= 22000 ? 11 : 10} (build ${win[1]})` : m.os.replace('Darwin', 'macOS (Darwin)');
+  return `${m.cpu.replace(/\((R|TM)\)/g, '')}, ${m.ram} GB of memory, ${os}, Chrome ${s.meta.chrome}`;
+};
+
+// the charts' data: one dataset a chart, the libraries in the order of the chart (fastest first)
+const timeRows = (snap: Snapshot, n: number) =>
+  ranked(snap, n).map((r) => ({ library: name(r.lib), who: r.lib === BC ? 'blockcharts' : 'other', ms: +r.ms.median.toFixed(1) }));
+const lake = {
+  t20: timeRows(D, 20),
+  t355: timeRows(D, 355),
+  t1: timeRows(D, 1),
+  c20: timeRows(C, 20),
+  heap: ranked(D, 355)
+    .sort((a, b) => a.heap - b.heap)
+    .map((r) => ({ library: name(r.lib), who: r.lib === BC ? 'blockcharts' : 'other', mb: +(r.heap / 1048576).toFixed(1) })),
+  gzip: gzipRank.map((l) => ({ library: name(l), who: l === BC ? 'blockcharts' : 'other', kb: Math.round(D.meta.gzip[l] / 1024) })),
+  runs: ranked(D, 20).flatMap((r) => r.samples.map((v) => ({ library: name(r.lib), ms: v }))),
+  'bench-bar': charts.barRows(0),
+  'bench-line': charts.lineRows(1),
+};
+
+/** Horizontal bars, blockcharts in the first color of the palette and the others in a gray of it, the value at the end. */
+function bars(data: string, field: string, unit: string, digits: number) {
+  const format = { maximumFractionDigits: digits, suffix: ` ${unit}` };
+  return {
+    data,
+    size: [720, 300],
+    padding: { right: 84 },
+    scales: {
+      y: { type: 'band' },
+      x: { type: 'linear', zero: true, nice: true },
+      c: { type: 'color', domain: ['blockcharts', 'other'], range: ['var(--bc-c0)', 'var(--bc-c5)'] },
+    },
+    guides: [
+      { type: 'grid', scale: 'x' },
+      { type: 'axis', scale: 'y' },
+      { type: 'axis', scale: 'x', format: { maximumFractionDigits: 0 } },
+    ],
+    marks: [
+      { type: 'rect', y: 'library', x: field, radius: 2, color: { field: 'who', scale: 'c' } },
+      { type: 'text', y: 'library', x: field, text: field, format, anchor: 'start', dx: 6 },
+    ],
+    interaction: [{ type: 'tooltip', fields: ['library', field], labels: { library: 'Library', [field]: unit === 'ms' ? 'Time' : unit }, formats: { [field]: format } }],
+  };
+}
+const msOf = { maximumFractionDigits: 1, suffix: ' ms' };
+const spread = {
+  data: 'runs',
+  size: [720, 320],
+  transforms: [{ type: 'quartiles', field: 'ms', group: 'library' }],
+  scales: { y: { type: 'band' }, x: { type: 'linear', zero: true, nice: true } },
+  guides: [
+    { type: 'grid', scale: 'x' },
+    { type: 'axis', scale: 'y' },
+    { type: 'axis', scale: 'x', format: { maximumFractionDigits: 0, suffix: ' ms' } },
+  ],
+  marks: [
+    { type: 'rule', y: 'library', x: 'low', x2: 'high' },
+    { type: 'rect', y: 'library', x: 'q1', x2: 'q3', radius: 2, fill: 'var(--bc-c0)', opacity: 0.45 },
+    { type: 'rule', y: 'library', x: 'median', strokeWidth: 2 },
+    { type: 'point', y: 'library', x: 'value', r: 2.5, fill: 'var(--bc-c5)' },
+  ],
+  interaction: [{ type: 'tooltip', formats: { low: msOf, q1: msOf, median: msOf, q3: msOf, high: msOf, value: msOf } }],
+};
+const sample = { bar: { ...charts.SPEC.bar, data: 'bench-bar' }, line: { ...charts.SPEC.line, data: 'bench-line' } };
+/** The spec a key a line, written as people write JSON by hand: a space after a colon and a comma, inside braces. */
+const oneLine = (v: unknown) =>
+  JSON.stringify(v)
+    .replace(/":/g, '": ')
+    .replace(/,(?=["{[\d])/g, ', ')
+    .replace(/\{"/g, '{ "')
+    .replace(/\}/g, ' }');
+const specShown = ['{', Object.entries(charts.SPEC.bar).map(([k, v]) => `  "${k}": ${oneLine(v)}`).join(',\n'), '}'].join('\n');
+
+const tables = [
+  { title: 'A dashboard: 20 charts', snap: D, n: 20 },
+  { title: '355 charts', snap: D, n: 355 },
+  { title: 'One chart', snap: D, n: 1 },
+  { title: '20 charts, the CPU slowed four times', snap: C, n: 20 },
+  { title: 'One chart, the CPU slowed four times', snap: C, n: 1 },
+];
+const shell = `git clone ${REPO}.git
+cd blockcharts
+npm ci                          # the library's tools
+npm ci --prefix test/bench      # the other libraries, at the versions measured here
+npm run bench -- --runs=100     # 1, 20 and 355 charts; about 35 minutes
+node scripts/bench.js --runs=100 --cpu=4 --n=1,20    # the CPU slowed four times`;
+---
+<Base
+  title="Benchmarks: blockcharts and other chart libraries"
+  nav="benchmarks"
+  version={release.version}
+  description={`blockcharts, Chart.js, ECharts, uPlot, Observable Plot, Recharts, ApexCharts and Plotly drawing the same charts in Chrome: the times, the memory, how it is measured and how to run it.`}
+>
+  <script is:inline src={`${base}release/kits/full.js`}></script>
+  <script is:inline type="application/json" id="bc-data" set:html={jsonForScript(lake)} />
+
+  <h1>Benchmarks</h1>
+  <p class="lead">
+    The same charts drawn by blockcharts and seven other chart libraries, timed in Chrome: {D.meta.runs} runs of every library at every count. The code
+    is in the repository, so you can run it on your own machine.
+  </p>
+
+  <div class="stats bench-stats">
+    <div><div class="v num">{fmt(bc20.ms.median)}<small>ms</small></div><div class="l">to draw and paint a dashboard of 20 charts ({fmt(bc20.ms.median / 20, 1)} ms a chart)</div></div>
+    <div><div class="v num">{fmt(lo, 1)}–{fmt(hi)}<small>×</small></div><div class="l">faster than Chart.js, ECharts, ApexCharts, Plotly and Recharts at 20 and 355 charts</div></div>
+    <div><div class="v num">{mb(bc355.heap)}<small>MB</small></div><div class="l">of memory for 355 charts; Chart.js {mb(of(D, 355, 'chartjs').heap)}, ECharts {mb(of(D, 355, 'echarts').heap)}</div></div>
+    <div><div class="v num">{kbz(D.meta.gzip[BC])}<small>KB</small></div><div class="l">of JavaScript on the page, gzipped, with the basic kit</div></div>
+  </div>
+  <p>
+    Not the fastest of all: uPlot, a library made for time series on canvas, draws these charts about twice as fast, and Observable Plot is on a par.
+    blockcharts draws SVG, an element per bar, with the CSS and accessibility that come with it, and is still ahead of the canvas libraries Chart.js
+    and ECharts.
+  </p>
+  <p class="muted">
+    Measured on {D.meta.date}: {machine(D)}. A slower machine takes longer for every library, and the order hardly changes (see the slowed CPU below).
+  </p>
+
+  <h2 id="dashboard">A dashboard: 20 charts</h2>
+  <p>
+    The time from the first chart's code to the frame that shows all 20, painted. blockcharts takes {ms(bc20.ms.median)} ms, {fmt(bc20.ms.median / 20, 1)} ms a
+    chart; the median of {D.meta.runs} runs.
+  </p>
+  <div class="demo"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(bars('t20', 'ms', 'ms', 1))} /></div>
+
+  <h2 id="many">355 charts</h2>
+  <p>
+    As many charts as every example of the gallery five times over. A chart among many costs less: {fmt(bc355.ms.median / 355, 2)} ms each, as what a page
+    does once is shared.
+  </p>
+  <div class="demo"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(bars('t355', 'ms', 'ms', 0))} /></div>
+
+  <h2 id="one">A page's only chart</h2>
+  <p>
+    The first chart pays for what a page does once. The browser loads the system font for the first text it draws (5 to 6 ms in a trace, for every
+    library), and blockcharts makes its first number formatter (<code>Intl.NumberFormat</code>) and compiles its code. Observable Plot and uPlot start
+    sooner; from the second chart on, the order is the one above.
+  </p>
+  <div class="demo"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(bars('t1', 'ms', 'ms', 1))} /></div>
+
+  <h2 id="slow-cpu">On a slower CPU</h2>
+  <p>
+    The same 20 charts with Chrome's CPU slowed four times, as DevTools does it: roughly a mid-range phone. Every library takes longer ({fmt(Math.min(...slowdowns), 1)} to {fmt(Math.max(...slowdowns), 1)} times), and blockcharts stays ahead of the same five. blockcharts:
+    {ms(of(C, 20, BC).ms.median)} ms.
+  </p>
+  <div class="demo"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(bars('c20', 'ms', 'ms', 0))} /></div>
+
+  <h2 id="spread">Every run</h2>
+  <p>
+    The {D.meta.runs} runs of each library at 20 charts: the box holds the middle half of them, the line across it is the median, the whiskers reach the
+    rest and a dot is a run far from them. The figures are steady: the middle half of every library's runs is within
+    {fmt(Math.ceil(steady))} % of its median.
+  </p>
+  <div class="demo"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(spread)} /></div>
+
+  <h2 id="memory">Memory and code</h2>
+  <p>The memory the 355 charts hold after a garbage collection, and the JavaScript each page loads, gzipped.</p>
+  <div class="demo"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(bars('heap', 'mb', 'MB', 1))} /></div>
+  <div class="demo"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(bars('gzip', 'kb', 'KB', 0))} /></div>
+
+  <h2 id="figures">All the figures</h2>
+  <p>
+    Medians of {D.meta.runs} runs. <b>Quartiles</b>: half of the runs fall between them. <b>× blockcharts</b>: the time against blockcharts' at the same
+    count. <b>Main thread</b>: the time Chrome's main thread was busy meanwhile. <b>Memory</b> and <b>DOM nodes</b>: what the charts hold.
+  </p>
+  {tables.map((t) => (
+    <details class="bench-figures">
+      <summary>{t.title}</summary>
+      <table class="stack">
+        <thead><tr><th>Library</th><th>Time, ms</th><th>Quartiles</th><th>A chart, ms</th><th>× blockcharts</th><th>Main thread, ms</th><th>Memory, MB</th><th>DOM nodes</th></tr></thead>
+        <tbody>
+          {ranked(t.snap, t.n).map((r) => (
+            <tr class={r.lib === BC ? 'bench-us' : undefined}>
+              <td>{name(r.lib)}</td>
+              <td data-label="time">{ms(r.ms.median)} ms</td>
+              <td data-label="quartiles">{ms(r.ms.q1)}–{ms(r.ms.q3)}</td>
+              <td data-label="a chart">{fmt(r.ms.median / t.n, 2)}</td>
+              <td data-label="× blockcharts">{fmt(ratio(t.snap, t.n, r.lib), 1)}</td>
+              <td data-label="main thread">{ms(r.cpu)}</td>
+              <td data-label="memory">{mb(r.heap)} MB</td>
+              <td data-label="DOM nodes">{fmt(r.nodes)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  ))}
+
+  <h2 id="drawn">What every library draws</h2>
+  <p>
+    Bars over 12 categories and a line of 200 points, alternating, each {charts.W} × {charts.H} px, with two axes and a tooltip, no animation and no
+    legend. Here are the two, drawn live by blockcharts from the spec and the rows the bench uses:
+  </p>
+  <div class="demo bench-pair">
+    <script is:inline type="application/json" data-bc-chart set:html={jsonForScript(sample.bar)} />
+    <script is:inline type="application/json" data-bc-chart set:html={jsonForScript(sample.line)} />
+  </div>
+  <Snippet code={specShown} label="the bar chart's spec" name="the bar chart's spec" />
+  <p>Each library draws them as its own documentation says to, with what it needs to show the same things:</p>
+  <table class="stack">
+    <thead><tr><th>Library</th><th>Version</th><th>Draws in</th><th>Set up</th><th>JS, KB gzip</th></tr></thead>
+    <tbody>
+      {ids.map((l) => (
+        <tr class={l === BC ? 'bench-us' : undefined}>
+          <td><a href={repoFile(`test/bench/${l}.js`)}>{name(l)}</a></td>
+          <td data-label="version">{D.meta.versions[l]}</td>
+          <td data-label="draws in">{libs[l].draws}</td>
+          <td class="doc">{libs[l].setup}</td>
+          <td data-label="KB gzip">{kbz(D.meta.gzip[l])}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h2 id="method">How it is measured</h2>
+  <ul>
+    <li><b>A production build.</b> Each library's page is bundled by esbuild as an app is built for production: minified, with <code>NODE_ENV=production</code>. blockcharts is the basic kit of the release; the others are the versions pinned in the bench's <code>package.json</code>.</li>
+    <li><b>A fresh page for every run.</b> The library is loaded and the memory collected; the empty cells are laid out. Then the clock starts, each chart is drawn (a library that returns a promise, as ApexCharts and Plotly do, is awaited), and the clock stops once the next frame has been rendered: a library that draws in an animation frame of its own has drawn by then.</li>
+    <li><b>Rounds, in a shuffled order.</b> Each round runs every library at every count once, in an order shuffled for that round, so that whatever else the machine does falls on all of them alike. The page shows the median of the rounds.</li>
+    <li><b>Checked.</b> A run counts only if every chart was drawn (an SVG or a canvas in each cell) and nothing was said in the console. A screenshot of each library's 20 charts shows that they drew the same thing.</li>
+    <li><b>Memory and DOM</b> are measured after a garbage collection, through the Chrome DevTools Protocol, as what the charts hold.</li>
+  </ul>
+
+  <h2 id="limits">What these figures do not say</h2>
+  <ul>
+    <li>They time the first drawing only: not new data, not hovering or zooming, not long series of tens of thousands of points, where uPlot and the canvas libraries are made to be fast. blockcharts draws those on a canvas too (<a href={`${base}embed/canvas/`}>the canvas renderer</a>), but the bench does not measure it yet.</li>
+    <li>They are simple charts. A chart of the gallery (facets, heatmaps, treemaps, cards) takes 2 to 3 ms in an app.</li>
+    <li>One machine. Another one gives other milliseconds; the ratios between the libraries move less.</li>
+    <li>Each library is set up to show the same things, not to look the same: its own colors, fonts and tick marks.</li>
+  </ul>
+
+  <h2 id="run">Run it yourself</h2>
+  <p>
+    The bench is <a href={repoTree('test/bench')}><code>test/bench</code></a> (one page per library, and the charts in <code>charts.cjs</code>) and
+    <a href={repoFile('scripts/bench.js')}><code>scripts/bench.js</code></a>, which builds the pages, runs them in your Chrome and prints the tables. It
+    needs Node.js 22 and Chrome.
+  </p>
+  <Snippet code={shell} label="shell" name="the commands that run the bench" />
+  <p>
+    The figures on this page are <a href={repoFile('test/bench/results.json')}><code>test/bench/results.json</code></a> and
+    <a href={repoFile('test/bench/results-cpu4.json')}><code>results-cpu4.json</code></a>, every run included; <code>--save</code> writes them. The
+    method and the options are in <a href={repoFile('test/bench/README.md')}>the bench's README</a>.
+  </p>
+
+</Base>

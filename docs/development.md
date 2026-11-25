@@ -107,8 +107,10 @@ that grows with every cycle by more than a chart's share fails it. See [test/app
 Chart.js, ECharts, uPlot, Observable Plot, Recharts, ApexCharts and Plotly drawing the same charts (bars and a line,
 with axes and a tooltip) in Chrome, 1, 20 and 355 of them, in rounds of shuffled runs (`--runs=100`), and prints the
 medians and quartiles of the time to a painted frame, the main thread's time, the heap, the DOM and the gzipped JS.
-`--cpu=4` slows the CPU down as DevTools does. Run it on a quiet machine; the figures the site may quote are in
-[test/bench/README.md](../test/bench/README.md), with the machine they were measured on.
+`--cpu=4` slows the CPU down as DevTools does. Run it on a quiet machine. `--save` keeps the figures in
+`test/bench/results.json` (and `results-cpu4.json`), which the site's `/benchmarks/` page shows; the page checks
+what it says against them, so a run that no longer supports it stops `npm run site`. See
+[test/bench/README.md](../test/bench/README.md).
 
 A new block needs a recipe (or a feature in one) that uses it — `test-skill.js` fails otherwise — and a
 test proving each new check can fail. An interaction that sends events to a script of the page (it declares

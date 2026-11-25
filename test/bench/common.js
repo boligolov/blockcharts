@@ -1,11 +1,9 @@
 // The same charts in every library: bars over 12 categories and a line of 200 points, alternating, each 360 × 200 with
 // two axes and a tooltip, no animation, no legend. window.run(n) lays out n empty cells, then starts the clock, draws a
 // chart into each (awaiting what the library returns) and stops it once the frame that shows them has been painted.
-export const W = 360;
-export const H = 200;
-const CATS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-export const barRows = (i) => CATS.map((k, j) => ({ k, v: 20 + ((i * 7 + j * 13) % 50) }));
-export const lineRows = (i) => Array.from({ length: 200 }, (_, j) => ({ x: j, y: 50 + 30 * Math.sin((j + i) / 15) + ((j * i) % 7) }));
+import { W, H, barRows, lineRows } from './charts.cjs';
+
+export { W, H };
 
 /** After the next frame's rendering: a task posted from requestAnimationFrame runs once that frame has been painted.
  *  A library that draws in its own requestAnimationFrame callback (asked for while drawing) has drawn by then too. */

@@ -52,6 +52,17 @@ export function loadReportSizes() {
   return JSON.parse(fs.readFileSync(path.join(repo, 'site', 'src', 'data', 'reports.json'), 'utf8'));
 }
 
+/** The bench's figures as the repository keeps them (node scripts/bench.js --save): test/bench/results.json, and with
+ *  the CPU slowed four times results-cpu4.json; and the charts every library draws (test/bench/charts.cjs). */
+export function loadBench() {
+  const results = (file) => JSON.parse(read('test', 'bench', file));
+  return {
+    desk: results('results.json'),
+    cpu4: results('results-cpu4.json'),
+    charts: require(path.join(repo, 'test', 'bench', 'charts.cjs')),
+  };
+}
+
 export function loadRecipes() {
   const dir = path.join(repo, 'skills', 'blockcharts', 'recipes');
   const need = {};

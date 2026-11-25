@@ -5,7 +5,7 @@ test: it fails only when a library does not draw all its charts or says somethin
 
 ## What is drawn
 
-Every library draws the same thing (`common.js`): bars over 12 categories and a line of 200 points, alternating, each
+Every library draws the same thing (the rows and their size in `charts.cjs`, the clock in `common.js`): bars over 12 categories and a line of 200 points, alternating, each
 360 × 200 px, with two axes and a tooltip, no animation and no legend. One chart, 20 (a dashboard), and 355 (as many
 as every recipe of the skill five times over, what `npm run test:apps` draws).
 
@@ -21,6 +21,7 @@ as every recipe of the skill five times over, what `npm run test:apps` draws).
 | `plotly.js` | Plotly (`plotly.js-dist-min`) | SVG | mode bar off |
 
 The versions are pinned in `package.json`; blockcharts is the release `scripts/bench.js` builds from the repository.
+Its spec of the two charts is in `charts.cjs` too, which the site reads to show them.
 
 ## How it is measured
 
@@ -47,11 +48,19 @@ npm run bench                                        # from the root: builds, th
 node scripts/bench.js --runs=100                     # once built (npm run build && npm run manifest)
 node scripts/bench.js --runs=100 --cpu=4 --n=1,20    # the CPU slowed four times
 node scripts/bench.js blockcharts chartjs --n=20     # some libraries, one count
+node scripts/bench.js --runs=100 --save              # and keep the figures in the repository
 ```
 
 The table is printed and written to `out/results.md`, every run to `out/results.json` (with the machine, Chrome and
 the versions), the pages to `out/pages`, a screenshot of each library's 20 charts to `out/shots` (to see that each
 drew what the others did). Run it on a quiet machine, plugged in, with nothing else busy.
+
+`--save` also writes `results.json` (`results-cpu4.json` with `--cpu=4`) in this folder: the machine, Chrome, the
+versions, and for each library at each count the medians, the quartiles and every run's time. Those two files are the
+figures the repository keeps, and what the site's [benchmarks page](https://blockcharts.online/benchmarks/) shows;
+the site will not build when they stop supporting what the page says (blockcharts faster than Chart.js, ECharts,
+ApexCharts, Plotly and Recharts, on a par with Observable Plot, slower than uPlot). `--resave` writes them again from
+the last run in `out/`, without measuring.
 
 ## Results
 
@@ -63,40 +72,40 @@ drew what the others did). Run it on a quiet machine, plugged in, with nothing e
 
 | library | version | drawn and painted, ms (median) | quartiles | per chart, ms | × blockcharts | main thread, ms | heap, MB | DOM nodes | JS, KB gzip |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| uPlot | 1.6.32 | 13.4 | 12.2–13.9 | 13.35 | 0.5 | 14.3 | 0.2 | 12 | 24 |
-| Observable Plot | 0.6.19 | 19.4 | 17.8–20.4 | 19.35 | 0.7 | 21.0 | 0.5 | 78 | 94 |
-| blockcharts | 0.0.4 | 26.4 | 25.2–27.8 | 26.40 | 1.0 | 28.1 | 0.4 | 57 | 43 |
-| Chart.js | 4.6.2 | 33.7 | 31.6–35.6 | 33.75 | 1.3 | 33.9 | 0.6 | 2 | 71 |
-| ECharts | 6.1.0 | 34.8 | 32.8–37.0 | 34.75 | 1.3 | 35.8 | 0.9 | 5 | 176 |
-| Plotly | 4.3.0 | 36.8 | 35.7–39.0 | 36.80 | 1.4 | 38.0 | 0.9 | 172 | 1,447 |
-| ApexCharts | 8.9.1 | 40.6 | 37.8–42.7 | 40.65 | 1.5 | 42.1 | 1.0 | 144 | 289 |
-| Recharts | 3.11.1 | 52.3 | 49.7–55.3 | 52.25 | 2.0 | 54.2 | 2.1 | 154 | 193 |
+| uPlot | 1.6.32 | 13.3 | 12.2–14.1 | 13.30 | 0.5 | 14.3 | 0.2 | 12 | 24 |
+| Observable Plot | 0.6.19 | 19.3 | 17.9–20.0 | 19.30 | 0.7 | 20.9 | 0.5 | 78 | 94 |
+| blockcharts | 0.0.4 | 26.1 | 24.4–27.6 | 26.10 | 1.0 | 27.8 | 0.4 | 57 | 43 |
+| Chart.js | 4.6.2 | 33.3 | 30.8–35.0 | 33.30 | 1.3 | 33.7 | 0.6 | 2 | 71 |
+| ECharts | 6.1.0 | 34.1 | 32.1–36.0 | 34.15 | 1.3 | 35.2 | 0.9 | 5 | 176 |
+| Plotly | 4.3.0 | 35.5 | 34.9–36.5 | 35.55 | 1.4 | 36.8 | 0.9 | 172 | 1,447 |
+| ApexCharts | 8.9.1 | 40.1 | 37.1–42.0 | 40.10 | 1.5 | 41.6 | 1.0 | 144 | 289 |
+| Recharts | 3.11.1 | 51.4 | 49.0–54.5 | 51.40 | 2.0 | 53.3 | 2.1 | 154 | 193 |
 
 #### 20 charts
 
 | library | version | drawn and painted, ms (median) | quartiles | per chart, ms | × blockcharts | main thread, ms | heap, MB | DOM nodes | JS, KB gzip |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| uPlot | 1.6.32 | 26.6 | 24.4–27.6 | 1.33 | 0.6 | 27.6 | 0.9 | 240 | 24 |
-| Observable Plot | 0.6.19 | 46.2 | 44.5–48.9 | 2.31 | 1.0 | 48.4 | 1.6 | 1,166 | 94 |
-| blockcharts | 0.0.4 | 47.6 | 44.8–50.0 | 2.38 | 1.0 | 50.0 | 1.2 | 871 | 43 |
-| Chart.js | 4.6.2 | 77.6 | 73.4–81.2 | 3.88 | 1.6 | 77.1 | 3.0 | 40 | 71 |
-| ECharts | 6.1.0 | 94.5 | 90.0–99.7 | 4.73 | 2.0 | 95.5 | 4.2 | 81 | 176 |
-| ApexCharts | 8.9.1 | 138 | 130–144 | 6.90 | 2.9 | 140 | 3.9 | 2,328 | 289 |
-| Plotly | 4.3.0 | 150 | 146–154 | 7.48 | 3.1 | 151 | 3.8 | 3,012 | 1,447 |
-| Recharts | 3.11.1 | 213 | 203–222 | 10.63 | 4.5 | 214 | 15.9 | 2,483 | 193 |
+| uPlot | 1.6.32 | 26.0 | 23.9–27.4 | 1.30 | 0.6 | 27.0 | 0.9 | 240 | 24 |
+| Observable Plot | 0.6.19 | 45.5 | 43.3–47.8 | 2.28 | 1.0 | 48.1 | 1.6 | 1,166 | 94 |
+| blockcharts | 0.0.4 | 46.5 | 43.1–49.1 | 2.32 | 1.0 | 48.8 | 1.2 | 871 | 43 |
+| Chart.js | 4.6.2 | 75.6 | 71.1–79.8 | 3.78 | 1.6 | 74.9 | 3.0 | 40 | 71 |
+| ECharts | 6.1.0 | 92.2 | 87.1–97.4 | 4.61 | 2.0 | 93.0 | 4.2 | 81 | 176 |
+| ApexCharts | 8.9.1 | 136 | 126–142 | 6.80 | 2.9 | 138 | 3.9 | 2,328 | 289 |
+| Plotly | 4.3.0 | 145 | 141–152 | 7.24 | 3.1 | 147 | 3.8 | 3,012 | 1,447 |
+| Recharts | 3.11.1 | 211 | 201–220 | 10.57 | 4.6 | 213 | 15.9 | 2,483 | 193 |
 
 #### 355 charts
 
 | library | version | drawn and painted, ms (median) | quartiles | per chart, ms | × blockcharts | main thread, ms | heap, MB | DOM nodes | JS, KB gzip |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| uPlot | 1.6.32 | 173 | 165–181 | 0.49 | 0.5 | 171 | 6.8 | 4,260 | 24 |
-| Observable Plot | 0.6.19 | 329 | 319–338 | 0.93 | 1.0 | 339 | 10.1 | 20,760 | 94 |
-| blockcharts | 0.0.4 | 336 | 325–346 | 0.95 | 1.0 | 347 | 7.6 | 15,456 | 43 |
-| Chart.js | 4.6.2 | 509 | 497–523 | 1.43 | 1.5 | 504 | 35.1 | 710 | 71 |
-| ECharts | 6.1.0 | 707 | 694–730 | 1.99 | 2.1 | 705 | 40.0 | 1,421 | 176 |
-| Plotly | 4.3.0 | 1,961 | 1,918–2,023 | 5.52 | 5.8 | 1,970 | 29.9 | 53,449 | 1,447 |
-| Recharts | 3.11.1 | 2,193 | 2,164–2,257 | 6.18 | 6.5 | 2,207 | 236.2 | 44,050 | 193 |
-| ApexCharts | 8.9.1 | 3,361 | 3,300–3,463 | 9.47 | 10.0 | 3,383 | 33.0 | 41,285 | 289 |
+| uPlot | 1.6.32 | 172 | 163–178 | 0.48 | 0.5 | 171 | 6.8 | 4,260 | 24 |
+| Observable Plot | 0.6.19 | 323 | 310–335 | 0.91 | 1.0 | 333 | 10.1 | 20,760 | 94 |
+| blockcharts | 0.0.4 | 329 | 314–340 | 0.93 | 1.0 | 338 | 7.6 | 15,456 | 43 |
+| Chart.js | 4.6.2 | 502 | 486–517 | 1.41 | 1.5 | 498 | 35.1 | 710 | 71 |
+| ECharts | 6.1.0 | 691 | 674–722 | 1.95 | 2.1 | 688 | 40.0 | 1,421 | 176 |
+| Plotly | 4.3.0 | 1,884 | 1,859–2,018 | 5.31 | 5.7 | 1,894 | 29.9 | 53,449 | 1,447 |
+| Recharts | 3.11.1 | 2,121 | 2,089–2,171 | 5.98 | 6.5 | 2,135 | 236.2 | 44,050 | 193 |
+| ApexCharts | 8.9.1 | 3,259 | 3,200–3,398 | 9.18 | 9.9 | 3,282 | 33.0 | 41,285 | 289 |
 
 ### The CPU slowed four times (roughly a phone)
 
@@ -130,13 +139,13 @@ drew what the others did). Run it on a quiet machine, plugged in, with nothing e
 
 ### What they say
 
-- **Per chart**: about 1 ms for a chart among hundreds (0.95 ms at 355), about 2.4 ms for one of 20, 26 ms for the only
+- **Per chart**: about 1 ms for a chart among hundreds (0.93 ms at 355), about 2.3 ms for one of 20, 26 ms for the only
   chart of a page. The first chart pays for what a page does once: the browser loads the system font for the first
   text (5–6 ms in a trace, for every library: Plot pays it in its layout, blockcharts when it measures text), and
   blockcharts makes its first `Intl.NumberFormat` and compiles its script. The second chart of a page is drawn and
   painted in about 6 ms in a trace (Plot: about 4).
 - **Against the others**, at 20 and 355 charts: on a par with Observable Plot; faster than Chart.js (1.5–1.6×),
-  ECharts (2–2.1×), ApexCharts (2.9–10×), Plotly (3.1–5.8×) and Recharts (4.5–6.5×); uPlot is about twice as fast.
+  ECharts (2–2.1×), ApexCharts (2.9–9.9×), Plotly (3.1–5.7×) and Recharts (4.6–6.5×); uPlot is about twice as fast.
   For a page's only chart, Plot and uPlot are faster, the others 1.3–2× slower. The ratios hold with the CPU slowed
   four times, where every time grows four to five times.
 - **Memory and size**: the least heap after uPlot (7.6 MB for 355 charts; Chart.js 35, ECharts 40, Recharts 236) and

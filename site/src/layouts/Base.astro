@@ -6,7 +6,7 @@ import { baseUrl, jsonForScript, REPO, repoFile, SITE, skillVersion } from '../l
 
 interface Props {
   title: string;
-  nav?: 'home' | 'examples' | 'embed' | 'guide' | 'blocks';
+  nav?: 'home' | 'examples' | 'embed' | 'guide' | 'blocks' | 'benchmarks';
   description?: string;
   version?: string;
   /** The landing page lays out its own full-width sections; the other pages sit in one column. */
@@ -24,6 +24,7 @@ const links = [
   ['Embedding', 'embed/', 'embed'],
   ['Guide', 'guide/', 'guide'],
   ['Blocks', 'blocks/', 'blocks'],
+  ['Benchmarks', 'benchmarks/', 'benchmarks'],
 ];
 const full = title === 'blockcharts' ? 'blockcharts — only the chart code your page needs' : `${title} · blockcharts`;
 const canonical = new URL(Astro.url.pathname, SITE).href;
@@ -138,6 +139,7 @@ const jsonLd = landing
             <a href={`${base}embed/`}>Embedding</a>
             <a href={`${base}guide/`}>Guide</a>
             <a href={`${base}blocks/`}>Blocks</a>
+            <a href={`${base}benchmarks/`}>Benchmarks</a>
             <a href={repoFile('docs/spec/principles.md')}>Principles</a>
             <a href={repoFile('docs/skill.md')}>Installing the skill</a>
             <a href={REPO}>GitHub</a>

@@ -113,6 +113,8 @@ Found along the way:
       every recipe in each; its own CI workflow (`apps.yml`).
 - [x] **A bench against other libraries** (2026-11-25): `npm run bench` times blockcharts, Chart.js, ECharts, uPlot,
       Observable Plot, Recharts, ApexCharts and Plotly drawing the same charts (test/bench/README.md has 100 rounds).
+- [x] **The benchmarks page** (2026-11-25): `/benchmarks/` shows the bench's figures (`test/bench/results.json`), drawn by
+      blockcharts, with the method and how to run it; the build stops when the figures no longer support what it says.
 - [ ] **New data, hover and long series in the bench.** It measures only the first drawing of simple charts.
 - [x] **The site** (2026-11-25): Embedding has "Clicks on the data" (a bar picks what a line shows) and "React, Vue,
       Svelte and <block-chart>" (the element live, the other wrappers and Angular as code); the guide has the schema.

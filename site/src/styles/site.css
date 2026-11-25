@@ -2116,3 +2116,37 @@ pre.astro-code {
     grid-template-columns: repeat(min(var(--bc-facet-cols, 2), 2), minmax(0, 1fr));
   }
 }
+
+/* the benchmarks page: the figures in tiles, the two charts every library draws side by side, the tables folded */
+.bench-stats {
+  margin: 24px 0 16px;
+}
+.bench-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 700px) {
+  .bench-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+details.bench-figures {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 14px;
+  margin: 8px 0;
+  background: var(--surface);
+}
+details.bench-figures summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-weight: 600;
+}
+details.bench-figures[open] summary {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+tr.bench-us td {
+  font-weight: 600;
+}
