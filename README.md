@@ -4,22 +4,55 @@
 [![CI](https://github.com/boligolov/blockcharts/actions/workflows/ci.yml/badge.svg)](https://github.com/boligolov/blockcharts/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2563eb)](LICENSE)
 
-**Atomic charts for HTML dashboards: a page carries only the chart code it needs. Nothing more.**
+**Atomic charts for apps, pages and reports: each carries only the chart code it needs. Nothing more.**
 
 blockcharts is a chart library cut into atoms — a scale, a bar, an axis, a tooltip, each a block of <!-- build:block-range -->0.4–12 KB<!-- /build -->.
-A page gets the core (about <!-- build:core-gzip -->12 KB<!-- /build --> gzipped) and exactly the blocks its own charts use, never the whole library.
+Wherever the charts go, they bring the core (about <!-- build:core-gzip -->12 KB<!-- /build --> gzipped) and the blocks they use, never the whole library.
 Charts are described in JSON, drawn in SVG or on a canvas, and every part can be customized, down to blocks of your own.
 
-**[Website](https://blockcharts.online)** · **[Gallery](https://blockcharts.online/examples/)** · **[Guide](https://blockcharts.online/guide/)** · **[Blocks](https://blockcharts.online/blocks/)** · [Principles](docs/spec/principles.md)
+One chart spec goes anywhere: a ready component in a React, Vue, Svelte or Angular app, one `<script>` in a page of
+your own, or a standalone HTML report that opens from disk, made by a script or by Claude with the blockcharts skill.
+
+**[Website](https://blockcharts.online)** · **[Gallery](https://blockcharts.online/examples/)** · **[Guide](https://blockcharts.online/guide/)** · **[Blocks](https://blockcharts.online/blocks/)** · **[Benchmarks](https://blockcharts.online/benchmarks/)** · [Principles](docs/spec/principles.md)
 
 [![An executive dashboard made with blockcharts: KPI tiles with sparklines, revenue against plan, revenue by channel, a waterfall and a checkout funnel](https://raw.githubusercontent.com/boligolov/blockcharts/main/docs/images/executive-dashboard.png)](https://blockcharts.online/examples/executive-dashboard/)
 
-*KPI tiles, a trend against plan, a donut, a waterfall and a funnel: one standalone HTML file,
+*KPI tiles, a trend against plan, a donut, a waterfall and a funnel,
 [live in the gallery](https://blockcharts.online/examples/executive-dashboard/).*
 
 ## Quick start
 
-One script tag, and a chart described in JSON where it should appear:
+In an app: install the package, import a kit once (the blocks your app carries) and use a component.
+
+```sh
+npm install blockcharts
+```
+
+```jsx
+import 'blockcharts/kits/basic.mjs'; // once, before a chart mounts
+import { BlockChart } from 'blockcharts/react';
+
+const spec = {
+  scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+  guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+  marks: [{ type: 'rect', x: 'region', y: 'total' }],
+  interaction: [{ type: 'tooltip' }],
+};
+
+// rows: [{ region: 'North', total: 42 }, { region: 'South', total: 58 }, …]
+export const Regions = ({ rows }) => <BlockChart spec={spec} data={rows} />;
+```
+
+Vue, Svelte and Angular have theirs ([below](#react-vue-svelte-and-block-chart)). Without a framework:
+
+```js
+import BC from 'blockcharts/kits/basic.mjs';
+
+BC.data('sales', rows); // named: several charts can share it
+const chart = BC.chart(document.getElementById('chart'), { ...spec, data: 'sales' }); // update, setView, getView, destroy, ready
+```
+
+In a page of your own, with no build: one script tag, and the chart in JSON where it should appear.
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.5/release/kits/basic.js"></script>
@@ -36,35 +69,31 @@ One script tag, and a chart described in JSON where it should appear:
 </script>
 ```
 
-Charts draw themselves when the page loads. With a bundler or a framework:
-
-```sh
-npm install blockcharts
-```
-
-```js
-import BC from 'blockcharts';
-
-BC.data('sales', rows);
-const chart = BC.chart(document.getElementById('chart'), spec); // update, setView, getView, destroy, ready
-```
+Charts draw themselves when the page loads. And a report to send around, one HTML file that opens anywhere, comes
+from [the composer](#the-composer-one-standalone-report), or from Claude with
+[the blockcharts skill](#for-ai-agents-the-blockcharts-skill).
 
 ## Why blockcharts
 
-- **Only the code your charts use.** The blocks a page needs are read from its specs and closed over their
+- **Only the code your charts use.** An app imports a [kit](#kits), the core and the blocks for a kind of chart. The
+  loader and the composer go further and read the blocks a page needs from its specs, closed over their
   dependencies: a bar chart with labels and a tooltip carries <!-- build:bar -->10 of the 59 blocks, 71 KB of code instead of 216<!-- /build -->; a whole
   executive dashboard (KPI tiles, a trend, a donut, a waterfall, a funnel, animated) carries <!-- build:dashboard-blocks -->24<!-- /build -->. Nobody lists
   blocks by hand, so the list is never too long.
-- **Charts are data, checked before they are drawn.** A chart is a plain JSON spec, not code. It is checked against
-  the real data, and every mistake comes back with its place in the JSON.
-- **One file that opens anywhere.** The composer turns JSON and data into a single HTML report that opens from disk,
-  offline, can be emailed or printed, and loads nothing from the network. The same input always gives the same bytes.
+- **One chart, wherever it lives.** The same JSON spec draws in a component of a React, Vue, Svelte or Angular app
+  (rendered on a server too: the chart is drawn in the browser), in a page with one script tag, and in a report
+  file that opens from disk, offline, can be emailed or printed, and loads nothing from the network. The components
+  are tested in real apps, each built by its own tools: Vite, SvelteKit, Next.js and the Angular CLI.
+- **Charts are data, checked before they are drawn.** A chart is a plain JSON spec, not code. Its
+  [JSON Schema](#json-schema) lets an editor complete and check it as you type; it is checked against the real data,
+  and every mistake comes back with its place in the JSON.
 - **Customizable at every level.** Block parameters (formats, locales, axes, tooltips), CSS variables and classes
   (brand colors, dark mode, print), your own set of blocks, functions by name (`BC.defineFn`), and blocks of your
   own — a small script calling `BC.define`, the same contract the built-in blocks use
   ([an example](https://blockcharts.online/embed/block/)).
-- **Heavy data stays light.** A canvas renderer for tens of thousands of points, decimation, aggregation, and large
-  datasets stored gzipped in the page.
+- **Fast, and light with heavy data.** A canvas renderer for tens of thousands of points, decimation, aggregation,
+  and large datasets stored gzipped in a report. [The benchmarks](https://blockcharts.online/benchmarks/) time it
+  against Chart.js, ECharts, uPlot, Observable Plot, Recharts, ApexCharts and Plotly drawing the same charts.
 - **No dependencies.** Plain ES2020 in every modern browser, typed for TypeScript, MIT-licensed.
 
 What it is built on: [the blockcharts principles](docs/spec/principles.md), v<!-- build:principles-version -->1.1<!-- /build -->.
@@ -83,51 +112,11 @@ Every kind is live in the [gallery](https://blockcharts.online/examples/), with 
 
 | You want | Use |
 | --- | --- |
+| Charts in a React, Vue, Svelte or Angular app | the **npm package** and its **components**: `blockcharts/react`, `/vue`, `/svelte`, `/element` |
+| Charts in an app with no framework, from a bundler | the **npm package**: `import BC from 'blockcharts/kits/basic.mjs'`, `BC.chart` |
 | Charts in your own page, one `<script>` | a **kit**: the core and a set of blocks in one file |
 | Each page to fetch only what it uses | the **loader**: `loader.js`, the core and single block files |
-| A bundler | the **npm package**: `import BC from 'blockcharts'` |
-| A component in React, Vue or Svelte, or a custom element | the **wrappers**: `blockcharts/react`, `/vue`, `/svelte`, `/element` |
-| One report file, nothing to host | the **composer**: JSON and data in, one HTML file out |
-
-### Kits
-
-A kit is the core and a set of blocks in one file: a classic script (`kits/<name>.js`) or an ES module
-(`kits/<name>.mjs`, `export default BC`; browsers load modules over http and https only, not from `file://`).
-
-<!-- build:kits -->
-
-| Kit | Blocks | Contents | Minified (gzip) |
-|---|---|---|---|
-| `basic` | 20 | Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend, tooltip and click events, and fields calculated from the data. | 114 KB (43 KB) |
-| `timeseries` | 30 | Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables, moving averages and click events; also the canvas renderer for very large series. | 142 KB (52 KB) |
-| `composition` | 34 | Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap, aggregation, click events. | 150 KB (55 KB) |
-| `dashboard` | 32 | Business dashboards: KPI tiles with sparklines, bars, lines and areas, waterfall, funnel, treemap, bullet and target lines, donut, with axes, grid, legend, tooltip, legend filter and click events. | 151 KB (56 KB) |
-| `full` | 59 | Every block. | 228 KB (82 KB) |
-
-<!-- /build -->
-
-Everything is minified (esbuild, ES2020) and stripped of the parameter docs, which a running chart never reads.
-Charts mount themselves on `DOMContentLoaded`; or call `BC.chart(element, spec)` and keep the handle.
-
-### The loader
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.5/release/loader.js" data-auto></script>
-<!-- your data and <script data-bc-chart> specs -->
-```
-
-The loader reads `manifest.json` next to it, loads the core, asks it which blocks the charts on the page need, loads
-only those (with their dependencies) and draws. By hand:
-
-```js
-await BCLoader.load({
-  base: 'https://cdn.jsdelivr.net/npm/blockcharts@0.0.5/release/', // default: the folder of loader.js
-  blocks: ['interaction.zoom'],   // extra blocks besides the ones found in the page
-  scan: true,                     // find charts on the page (default)
-  mount: true,                    // draw them when loaded (default)
-  integrity: true,                // put the manifest's SRI hashes on the script tags
-});
-```
+| One report file, nothing to host | the **composer**: JSON and data in, one HTML file out (the Claude skill runs it for you) |
 
 ### npm
 
@@ -204,6 +193,47 @@ el.addEventListener('bc-click', (e) => openRegion(e.detail.values.region)); // w
 - React 18 and later, Vue 3.3 and later, Svelte 4 and 5 (the action is plain JavaScript): optional peer
   dependencies. The custom element needs no framework.
 
+### Kits
+
+A kit is the core and a set of blocks in one file: a classic script (`kits/<name>.js`) or an ES module
+(`kits/<name>.mjs`, `export default BC`; browsers load modules over http and https only, not from `file://`). An app
+imports one from the package, a page loads one with a script tag.
+
+<!-- build:kits -->
+
+| Kit | Blocks | Contents | Minified (gzip) |
+|---|---|---|---|
+| `basic` | 20 | Bars, lines, points and areas on linear, log, time and band scales, with axes, grid, legend, tooltip and click events, and fields calculated from the data. | 114 KB (43 KB) |
+| `timeseries` | 30 | Long series over time: lines and areas with zoom, brush, legend filter, decimation, aggregation, wide tables, moving averages and click events; also the canvas renderer for very large series. | 142 KB (52 KB) |
+| `composition` | 34 | Parts of a whole and distributions: stacked bars and areas, pie, heatmap, histogram, boxplot, waterfall, funnel, treemap, aggregation, click events. | 150 KB (55 KB) |
+| `dashboard` | 32 | Business dashboards: KPI tiles with sparklines, bars, lines and areas, waterfall, funnel, treemap, bullet and target lines, donut, with axes, grid, legend, tooltip, legend filter and click events. | 151 KB (56 KB) |
+| `full` | 59 | Every block. | 228 KB (82 KB) |
+
+<!-- /build -->
+
+Everything is minified (esbuild, ES2020) and stripped of the parameter docs, which a running chart never reads.
+Charts mount themselves on `DOMContentLoaded`; or call `BC.chart(element, spec)` and keep the handle.
+
+### The loader
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/blockcharts@0.0.5/release/loader.js" data-auto></script>
+<!-- your data and <script data-bc-chart> specs -->
+```
+
+The loader reads `manifest.json` next to it, loads the core, asks it which blocks the charts on the page need, loads
+only those (with their dependencies) and draws. By hand:
+
+```js
+await BCLoader.load({
+  base: 'https://cdn.jsdelivr.net/npm/blockcharts@0.0.5/release/', // default: the folder of loader.js
+  blocks: ['interaction.zoom'],   // extra blocks besides the ones found in the page
+  scan: true,                     // find charts on the page (default)
+  mount: true,                    // draw them when loaded (default)
+  integrity: true,                // put the manifest's SRI hashes on the script tags
+});
+```
+
 ### CDN and integrity
 
 jsDelivr and unpkg serve every file of the package at its path in it:
@@ -254,7 +284,7 @@ The composer works out which blocks the charts need, checks every spec against t
 scale type, … each reported with its path in the JSON), draws each chart once in a sandbox to catch what only shows
 up when drawing, and writes the page; nothing is written until every chart is valid. Having checked everything, the
 page carries a lighter core, without the checks and, unless a dataset is stored gzipped, without the data decoder:
-about <!-- build:core-saving -->14 KB<!-- /build --> less per report.
+about <!-- build:core-saving -->14 KB<!-- /build --> less per report. The same input always gives the same bytes.
 
 Datasets can be rows, `{"columns": {...}}`, `{"csv": "text"}`, or `{"csvFile": "orders.csv"}` (next to `page.json`);
 large ones are stored gzipped automatically. A dashboard is the same file with a grid: `"layout": {"columns": 4}` and
@@ -352,10 +382,13 @@ Safari 16.4 (Chrome and Edge 80); an older browser shows a message in the chart'
 
 ```sh
 npm install
-npm test             # build, then the core, blocks, canvas, composer, CSV, skill and release tests
-npm run test:chrome  # layout in a real browser (the system Chrome)
-npm run release      # kits, single blocks and the loader -> release/
-npm run skill        # the skill's generated parts and the figures this README quotes
+npm test                # build, then the core, blocks, canvas, composer, CSV, skill and release tests
+npm run test:chrome     # layout in a real browser (the system Chrome)
+npm run test:frameworks # the components with React, Vue and Svelte, in Chrome
+npm run test:apps       # six real apps, each built by its own tools (npm ci --prefix test/apps first)
+npm run bench           # blockcharts and seven other libraries, timed (npm ci --prefix test/bench first)
+npm run release         # kits, single blocks and the loader -> release/
+npm run skill           # the skill's generated parts and the figures this README quotes
 ```
 
 Layout, tests, the website and releasing: [docs/development.md](docs/development.md). What is left to do:
