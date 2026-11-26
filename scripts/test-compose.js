@@ -1137,6 +1137,8 @@ test('compose: a page is readable without any CSS from the caller, and the calle
   assert(base.html.includes('--bc-c0:#3a6fe4') && base.html.includes('prefers-color-scheme:dark'), 'chart theme variables, light and dark');
   assert(base.html.includes('font:14px/1.5 Inter,ui-sans-serif,system-ui'), "typography: the reader's UI font, no web font to fetch");
   assert(base.html.includes('font-variant-numeric:tabular-nums'), 'figures line up');
+  // a page that starts to scroll once its charts are drawn would narrow under them, and draw them all again
+  assert(base.html.includes('@media (min-width:721px){html{scrollbar-gutter:stable}}'), "the scrollbar's room is kept from the start");
 
   const extra = compose({ data: DATA, charts: [bars()], css: '.mine{color:red}' });
   assert.strictEqual(styles(extra.html).length, 1, 'still one <style>');

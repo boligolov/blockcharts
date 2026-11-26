@@ -198,6 +198,11 @@ const defaultCss = (light) =>
     '--bc-text:#d9e0ea;--bc-label:#8a96a8;--bc-axis:#3a4452;--bc-grid:#212a35;--bc-tooltip-bg:#1b2330;--bc-kpi:#f3f6fa;--bc-good:#3dc57f;--bc-bad:#ff6b6f;',
     paletteVars(DARK_PALETTE) + '}}',
     '*{box-sizing:border-box}',
+    // the scrollbar's room is kept from the start: a page that only scrolls once its charts are drawn would otherwise narrow
+    // under them, and every chart drawn before then would be laid out again (12 of the 16 of a dashboard 1000 px wide).
+    // Not in the phone layout: a phone's scrollbar takes no room, one column outgrows the screen with its first chart or
+    // two, and a headless Chrome with hidden scrollbars (the layout tests) would still keep the room, narrowing a phone
+    '@media (min-width:721px){html{scrollbar-gutter:stable}}',
     'body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased}',
     ':lang(ja){font-family:Inter,"Hiragino Sans","Yu Gothic UI","Yu Gothic",Meiryo,"Noto Sans CJK JP",sans-serif}',
     ':lang(ko){font-family:Inter,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans CJK KR",sans-serif}',

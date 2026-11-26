@@ -700,6 +700,27 @@ module.exports = function ({ test, FakeNode, svgOf, count, axisStarts, logged, f
     assert.strictEqual(tipOf(host).style.display, 'none', 'left of where the line starts');
   });
 
+  test('interaction.tooltip: a chart without dates makes no date formatter, drawn or hovered', async () => {
+    // the first Intl formatter of a page costs ~10 ms (its locale data): a third of a page's only chart. A language no other
+    // test speaks, so that a formatter made earlier and kept cannot hide one made here.
+    const Real = Intl.DateTimeFormat;
+    const made = [];
+    Intl.DateTimeFormat = function (...args) {
+      made.push(String(args[0]));
+      return new Real(...args);
+    };
+    try {
+      const host = new FakeNode('div');
+      BC.chart(host, tipSpec({ locale: 'is' }));
+      const [c0] = circles(svgOf(host));
+      await hover(host, c0.x + 2, c0.y - 1);
+      assert.deepStrictEqual(tipText(host), ['a: 1', 'b: 2', 'g: A']);
+    } finally {
+      Intl.DateTimeFormat = Real;
+    }
+    assert.deepStrictEqual(made, [], 'no Intl.DateTimeFormat was made');
+  });
+
   test('interaction.tooltip: the closest mark wins, later marks win ties', async () => {
     const host = new FakeNode('div');
     BC.chart(host, {

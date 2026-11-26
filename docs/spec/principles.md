@@ -25,9 +25,9 @@ too long or too short. Sizes below are minified code, measured on the example pa
 | page | blocks | code in the page |
 |---|---|---|
 | a pie chart | 7 | 60.5 KB |
-| a bar chart with labels and a tooltip | 10 | 71.2 KB |
-| monthly totals and a ranking from raw CSV rows | 15 | 90.1 KB |
-| an executive dashboard: KPI tiles, a trend, a donut, a waterfall and a funnel, animated | 24 | 111.8 KB |
+| a bar chart with labels and a tooltip | 10 | 71.3 KB |
+| monthly totals and a ranking from raw CSV rows | 15 | 90.2 KB |
+| an executive dashboard: KPI tiles, a trend, a donut, a waterfall and a funnel, animated | 24 | 111.9 KB |
 | everything blockcharts has | 59 | 215.9 KB |
 
 <!-- /build -->

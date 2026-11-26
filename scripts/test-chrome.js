@@ -40,8 +40,10 @@ async function open(page, width, height = 900, font = null) {
   await p.waitForTimeout(150);
   return p;
 }
-/** How far the page reaches past the screen sideways (0 when it does not scroll). */
-const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+/** How far the page reaches past the screen sideways (0 when it does not scroll). Narrower content is no scroll: a report
+ *  keeps the scrollbar's room on a wide screen, and a headless Chrome, whose scrollbars are hidden, still keeps that room
+ *  without taking it out of clientWidth. */
+const overflow = (p) => p.evaluate(() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth));
 const rectOf = (p, selector) =>
   p.evaluate((s) => {
     const r = document.querySelector(s).getBoundingClientRect();

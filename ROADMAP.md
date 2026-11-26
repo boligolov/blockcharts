@@ -100,9 +100,11 @@ Found along the way:
 - [x] **`npm publish` of 0.0.3**: the JSON Schemas (`schema/chart.schema.json`, `schema/page.schema.json`), the block
       `interaction.click` with the `bc-click` event, and the wrappers `blockcharts/react`, `/vue`, `/svelte` and
       `/element` (docs/Design.md, "A schema, clicks and the frameworks").
-- [ ] **`npm publish` of 0.0.4**: a row an app types with an interface is a row (`BC.Row`), found by the Angular app
-      of `npm run test:apps` (docs/Design.md, "Apps made with the real toolchains"). The owner's step (2FA). Until
-      then the README's and the site's CDN addresses, pinned to 0.0.4, answer 404: publish before the site goes out.
+- [x] **`npm publish` of 0.0.4**: a row an app types with an interface is a row (`BC.Row`), found by the Angular app
+      of `npm run test:apps` (docs/Design.md, "Apps made with the real toolchains").
+- [ ] **`npm publish` of 0.0.5**: a page's only chart a third faster, and no report drawn twice when it starts to
+      scroll (docs/Design.md, "A performance pass"). The owner's step (2FA). Until then the README's and the site's CDN
+      addresses, pinned to 0.0.5, answer 404: publish before the site goes out.
 - [ ] **Clicks from the keyboard.** A mark cannot take the focus, so a click on the data needs a mouse or a finger;
       the legend filter's keys are the model (a canvas chart has none either, see above).
 - [ ] **The wrappers on React 18 and Svelte 4.** They use only APIs those have, but test-frameworks runs React 19,

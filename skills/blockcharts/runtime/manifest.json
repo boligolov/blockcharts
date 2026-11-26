@@ -2,7 +2,7 @@
   "core": {
     "file": "core.js",
     "bytes": 44338,
-    "version": "0.0.4",
+    "version": "0.0.5",
     "variants": {
       "composed": {
         "file": "core.composed.js",
@@ -2555,8 +2555,8 @@
     },
     "interaction.tooltip": {
       "file": "blocks/interaction.tooltip.js",
-      "bytes": 10928,
-      "version": 24,
+      "bytes": 10957,
+      "version": 25,
       "requires": [
         "lib.pointer"
       ],

@@ -1905,6 +1905,34 @@ in Chrome: 1, 20 and 355 of them, each run in a fresh page, the clock stopped wh
   and Recharts on the same charts", the heap and the size, always with a link to the bench and its machine. Not
   measured: new data, interaction, long series (where uPlot and the canvas libraries are made to win).
 
+## A performance pass (2026-11-26)
+
+CPU profiles (CDP, an unminified build) of the bench's page at 1, 20 and 355 charts and of composed recipes, then A/B runs
+alternating in one browser, since figures from two sessions on one laptop drifted by 10 %. Library 0.0.5.
+
+- **The first chart paid for a date formatter it never used.** "Its first `Intl.NumberFormat`" (above) was the
+  tooltip's: `interaction.tooltip` made its date formatter when attached, and the first `Intl` formatter of a page
+  costs about 10 ms (its locale data), a third of a page's only chart. It is made when a card first writes a date.
+  A/B on the bench's page: 1 chart 27.9 → 17.6 ms, 20 charts 49.9 → 39.3, 355 charts 346 → 329. A chart with a time
+  axis or a formatted figure still makes one, for itself.
+- **A report that starts to scroll was drawn twice.** Classic scrollbars (Windows, Linux) take room: a composed page
+  that only scrolls once its charts are drawn narrowed under them, and each chart drawn before that was laid out again
+  by its ResizeObserver; the executive dashboard 1000 px wide drew 28 times for 16 charts. The default stylesheet keeps
+  the scrollbar's room (`scrollbar-gutter: stable`) above the phone layout (721 px and wider), where a phone's
+  scrollbar takes none and one column outgrows the screen with its first chart or two. In a headless Chrome whose
+  scrollbars are hidden the room is still kept, without being taken out of `clientWidth`: test-chrome's measure of a
+  page scrolling sideways counts only content wider than the page.
+- **Left as it is: a layout per chart.** A chart reads its host's width (`clientWidth`) to lay itself out, and in a
+  loop of `BC.chart` calls each read forces the layout the previous chart's drawing left dirty. Among 355 charts in
+  one flex container that is about a quarter of the time (flex lays out all its items each time); among 20, about a
+  tenth; on a 16-chart report, 7 ms of 66. Only reading every width before drawing any avoids it, which `BC.chart`,
+  drawing at once, cannot; `BC.mount` could, but on a page without the stylesheet above its widths would all be read
+  before the scrollbar comes, and every chart drawn again after it.
+- **Also not done:** the tooltip's four elements made on the first hover instead of when attached (about 50 µs and
+  four DOM nodes a chart; the tests look for them before a hover); the widest figure measured once per font instead of
+  once per font and size. Text measured on a canvas costs mostly the first glyphs of each font and size, which the SVG
+  text then finds loaded.
+
 ## Next steps
 
 Done: blocks (sequential/heatmap, text, arc, legend-filter, brush, bin, aggregate, decimate, zoom-controls,
