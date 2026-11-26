@@ -1195,6 +1195,137 @@ footer.site .note {
 .card .bc-chart {
   margin: 4px 0;
 }
+/* the embedding page: a live chart beside its code in each way in, then a card per demo page, each with a live piece */
+.e-intro {
+  color: var(--muted);
+  max-width: 760px;
+}
+.e-start {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 24px;
+  align-items: start;
+  margin: 20px 0 8px;
+}
+.e-live {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 16px 18px 14px;
+}
+.e-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 6px;
+}
+.e-start .install [role='tabpanel'] {
+  padding: 16px 18px 18px;
+}
+.e-start .install .code pre {
+  max-height: 420px;
+}
+.e-more {
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.e-cards {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
+  margin: 20px 0 8px;
+}
+.e-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.e-demo {
+  padding: 14px 14px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.e-demo .bar {
+  margin: 6px 0 2px;
+}
+.e-demo .bar button {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+.e-demo .bar button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.e-theme {
+  border-radius: 10px;
+  padding: 6px;
+  transition: background-color 0.2s;
+}
+.e-body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.e-body h3 {
+  margin: 0;
+  font-size: 17px;
+}
+.e-body h3 a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.e-body h3 a:hover {
+  color: var(--accent);
+}
+.e-body p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14.5px;
+}
+/* a card's snippet is a few short lines: a narrow card wraps one rather than hide its end */
+.e-body pre {
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.e-body .e-more {
+  margin-top: auto;
+}
+.e-report {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 48px 0 8px;
+  padding: 24px 26px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.e-report > div:first-child {
+  flex: 1 1 420px;
+}
+.e-report h2 {
+  margin: 0 0 6px;
+}
+.e-report p {
+  margin: 0;
+  color: var(--muted);
+}
+@media (max-width: 900px) {
+  .e-start {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .ways {
   display: grid;
   gap: 16px;

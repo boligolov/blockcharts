@@ -64,12 +64,24 @@ const cdnBase = (version) => `https://cdn.jsdelivr.net/npm/blockcharts@${version
 
 const indent = (s, by) => s.replace(/\n/g, '\n' + by);
 
+// four regions' sales: the rows of the app snippets, and of the charts of several pages
+const sales = [
+  { region: 'North', total: 42000 },
+  { region: 'South', total: 58000 },
+  { region: 'East', total: 31000 },
+  { region: 'West', total: 66000 },
+];
+
 // ── the framework wrappers as an app uses them: the embed page and the landing page show the same code ──
 // the spec of the snippets: short, as an app keeps it next to its component
 const appSpec = `const spec = {
   scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
-  guides: [{ type: 'axis', scale: 'x' }, { type: 'axis', scale: 'y' }],
+  guides: [
+    { type: 'axis', scale: 'x' },
+    { type: 'axis', scale: 'y', format: 'compact' },
+  ],
   marks: [{ type: 'rect', x: 'region', y: 'total' }],
+  interaction: [{ type: 'tooltip' }],
 };`;
 /** Each wrapper in an app: `name` for a tab, `label` for a snippet, `lang` for the highlighter. */
 const FRAMEWORKS = [
@@ -259,12 +271,6 @@ window.addEventListener('load', function () {
     ],
     interaction: [{ type: 'tooltip', formats: { total: { style: 'currency', currency: 'USD', maximumFractionDigits: 0 } } }],
   };
-  const sales = [
-    { region: 'North', total: 42000 },
-    { region: 'South', total: 58000 },
-    { region: 'East', total: 31000 },
-    { region: 'West', total: 66000 },
-  ];
   pages.push({
     file: 'module.html',
     title: 'As an ES module',
@@ -352,10 +358,49 @@ window.addEventListener('load', function () {
       { type: 'tooltip', content: 'tip' },
     ],
   });
+  // the embedding page's card: the same 90 days (the same numbers as makeRows below), made here
+  const apiNext = rng(7);
+  const apiRows = [];
+  ['web', 'app', 'email'].forEach((channel, c) => {
+    let level = 200 - c * 60;
+    for (let d = 0; d < days; d++) {
+      level = Math.max(20, level + (apiNext() - 0.47) * 24);
+      apiRows.push({ day: new Date(Date.UTC(2024, 0, 1 + d)).toISOString().slice(0, 10), channel, visits: Math.round(level) });
+    }
+  });
+  const apiCardSpec = lineSpec('days90', 'day', {
+    size: [440, 200],
+    guides: [
+      { type: 'grid', scale: 'y' },
+      { type: 'axis', scale: 'x' },
+      { type: 'axis', scale: 'y' },
+      { type: 'legend', scale: 'color', position: 'top' },
+    ],
+    interaction: [{ type: 'zoom', fit: ['y'] }, { type: 'tooltip' }],
+  });
   pages.push({
     file: 'api.html',
     title: 'Control a chart from your code',
     lead: 'BC.chart returns a handle. Use it to move the visible window, swap the spec while keeping the zoom, and put your own content in the tooltip.',
+    card: {
+      lead: 'The handle <code>BC.chart</code> returns moves the visible window and swaps the spec, keeping the zoom. Try the buttons:',
+      data: { days90: apiRows },
+      html: `<div id="e-api"></div>
+<div class="bar"><button type="button" id="e-api-march">Zoom to March</button><button type="button" id="e-api-kind">Points / lines</button><button type="button" id="e-api-reset">Reset</button></div>`,
+      script: `var spec = ${json(apiCardSpec)};
+var chart = BC.chart(document.getElementById('e-api'), spec);
+document.getElementById('e-api-march').onclick = function () { chart.setView('x', [Date.UTC(2024, 2, 1), Date.UTC(2024, 2, 31)]); };
+document.getElementById('e-api-reset').onclick = function () { chart.setView('x', null); };
+document.getElementById('e-api-kind').onclick = function () {
+  var mark = spec.marks[0];
+  mark.type = mark.type === 'line' ? 'point' : 'line';
+  chart.update(spec);
+};`,
+      code: `const chart = BC.chart(element, spec);
+chart.setView('x', [march1, march31]);
+chart.update(nextSpec); // keeps the zoom`,
+      lang: 'javascript',
+    },
     sections: [
       {
         h: 'The handle',
@@ -464,6 +509,38 @@ window.addEventListener('load', function () {
     description:
       'Make a chart clickable: a click on a bar, a point or a slice sends a bc-click event with the row, and your code opens a page, filters another chart or shows details.',
     lead: 'With <code>{"type": "click"}</code> among the interactions, a click on a bar, a point, a slice or a cell sends a <code>bc-click</code> event with its row. What happens next is your code: open a page, filter another chart, show the details.',
+    card: {
+      lead: 'A click on a bar sends <code>bc-click</code> with its row. Here it picks the region the line below shows:',
+      data: { totals },
+      html: `<div id="e-clicks">
+${chartTag({
+  ...clickBars,
+  size: [440, 150],
+  guides: [
+    { type: 'grid', scale: 'y' },
+    { type: 'axis', scale: 'x' },
+    { type: 'axis', scale: 'y' },
+  ],
+})}
+<div id="e-clicks-detail"></div>
+</div>`,
+      script: `var orders = ${json(orders)};
+var spec = ${json({ ...clickLine, size: [440, 130] })};
+function region(name) {
+  BC.data('picked', orders.filter(function (r) { return r.region === name; }));
+  spec.title = name + ', orders by month';
+  return spec;
+}
+var detail = BC.chart(document.getElementById('e-clicks-detail'), region('North'));
+document.getElementById('e-clicks').addEventListener('bc-click', function (e) {
+  detail.update(region(e.detail.values.region));
+});`,
+      code: `host.addEventListener('bc-click', (e) => {
+  const row = e.detail.values;
+  showRegion(row.region);
+});`,
+      lang: 'javascript',
+    },
     sections: [
       {
         h: 'One chart picks what another shows',
@@ -529,6 +606,28 @@ ${chartTag(clickBars)}
     file: 'theme.html',
     title: 'Colors and themes',
     lead: 'Every color of a chart comes from CSS variables, on SVG and on canvas alike: one stylesheet themes them, dark mode is a media query, and print works.',
+    card: {
+      lead: 'Every color is a CSS variable, on SVG and on canvas alike. Pick a theme: only a class on the box changes.',
+      data: { sales },
+      html: `<div class="e-theme" id="e-theme">
+${chartTag({ ...themeSpec, size: [440, 190] })}
+</div>
+<div class="bar" id="e-theme-pick"><button type="button" aria-pressed="true" data-class="">This site</button><button type="button" aria-pressed="false" data-class="theme-warm">Warm</button><button type="button" aria-pressed="false" data-class="theme-mono">Mono</button><button type="button" aria-pressed="false" data-class="theme-neon">Neon</button></div>`,
+      script: `var box = document.getElementById('e-theme');
+var buttons = Array.prototype.slice.call(document.querySelectorAll('#e-theme-pick button'));
+buttons.forEach(function (b) {
+  b.onclick = function () {
+    box.className = ('e-theme ' + b.getAttribute('data-class')).trim();
+    buttons.forEach(function (o) { o.setAttribute('aria-pressed', String(o === b)); });
+  };
+});`,
+      code: `.warm {
+  --bc-c0: #c1440e; /* first color */
+  --bc-grid: #f0e2d0;
+  --bc-text: #5b3a1e;
+}`,
+      lang: 'css',
+    },
     sections: [
       {
         h: 'Three themes, one chart',
@@ -592,6 +691,20 @@ ${dataTag({ sales: sales.map((r) => ({ region: r.region, total: r.total })) })}
     description:
       'Write a chart block of your own: a small script that registers with BC.define, is named by type in the spec, and is carried only by the pages that use it.',
     lead: 'A block is a small classic script that registers itself with BC.define. The built-in ones are made exactly this way, so a block of your own is a first-class part of the chart: the spec names it by type, and only the pages that use it carry it.',
+    card: {
+      lead: 'A block is a small script calling <code>BC.define</code>, as the built-in ones are. This dashed target line is twenty lines in the page:',
+      data: { sales },
+      html: `${targetBlock}
+${chartTag({ ...targetSpec, size: [440, 200], transforms: [{ type: 'sort', field: 'total', order: 'desc' }] })}`,
+      code: `BC.define({
+  role: 'guide',
+  type: 'target',
+  version: 1,
+  params: { value: { kind: 'number' } },
+  render(spec, ctx) { /* shapes */ },
+});`,
+      lang: 'javascript',
+    },
     sections: [
       {
         h: 'A target line, in twenty lines',
@@ -661,6 +774,27 @@ ${forms.map(([label, ,], i) => `  <div class="demo"><p class="muted" style="marg
     file: 'data.html',
     title: 'Ways to hand over data',
     lead: 'The same 2000-point series, four ways. They draw the same picture; they differ in how many bytes the page carries.',
+    card: {
+      lead: 'Rows, columns, gzip or binary columns: the same 2000 points draw the same picture. What each form costs the page:',
+      data: { forms: forms.map(([form, value]) => ({ form, kb: Math.round((size(value) / 1024) * 10) / 10 })) },
+      html: chartTag({
+        data: 'forms',
+        size: [440, 190],
+        padding: { right: 64 },
+        scales: { y: { type: 'band' }, x: { type: 'linear', zero: true, nice: true } },
+        guides: [{ type: 'axis', scale: 'y' }],
+        marks: [
+          { type: 'rect', y: 'form', x: 'kb', radius: 2 },
+          { type: 'text', y: 'form', x: 'kb', text: 'kb', format: { maximumFractionDigits: 1, suffix: ' KB' }, anchor: 'start', dx: 6 },
+        ],
+        interaction: [{ type: 'tooltip', labels: { kb: 'In the page' }, formats: { kb: { maximumFractionDigits: 1, suffix: ' KB' } } }],
+      }),
+      code: `{ "columns": {
+    "t": [0, 1, 2],
+    "v": [50.2, 50.9, 51.4]
+} }`,
+      lang: 'json',
+    },
     sections: [
       {
         h: 'Four datasets, one result',
@@ -758,6 +892,17 @@ ${forms.map(([label, value, what]) => `<tr><td>${label}</td><td data-label="in t
     description:
       'Draw tens of thousands of points: the same chart spec on one canvas instead of an SVG element per mark, with zoom and tooltips as before.',
     lead: 'An SVG chart makes a DOM element for every mark. Fine for thousands, slow for tens of thousands. Add <code>"renderer": "canvas"</code> to the spec and the same chart is drawn on one canvas.',
+    card: {
+      lead: '21,000 points on one canvas instead of an element each, with zoom (Ctrl and the wheel) and a tooltip as on SVG:',
+      data: bigData,
+      html: chartTag({ ...bigSpec('canvas'), size: [440, 240] }),
+      code: `{
+  "data": "points",
+  "renderer": "canvas",
+  "marks": [{ "type": "point", ... }]
+}`,
+      lang: 'json',
+    },
     sections: [
       {
         h: 'The same 21,000 points, two renderers',
@@ -776,4 +921,92 @@ ${forms.map(([label, value, what]) => `<tr><td>${label}</td><td data-label="in t
   return pages;
 }
 
-module.exports = { embedPages, monthly, lineSpec, cdnBase, FRAMEWORKS };
+/** The embedding page: one live chart and the code that draws it in each way in (the app snippets, a kit, the loader),
+ *  then a card for each page that shows more, with a live piece of its demo. `lake` is every dataset the page draws. */
+function embedIndex(root, release) {
+  const pages = embedPages(root, release);
+  const page = (file) => {
+    const p = pages.find((x) => x.file === file);
+    if (!p) throw new Error(`no embed page ${file}`);
+    return p;
+  };
+  const href = (file) => `${root}embed/${file.replace(/\.html$/, '')}/`;
+  const kb = (n) => (n / 1024).toFixed(1) + ' KB';
+  // the chart of the app snippets (appSpec), with the dataset of a page and the click their onClick adds
+  const spec = {
+    data: 'sales',
+    size: [460, 380],
+    scales: { x: { type: 'band' }, y: { type: 'linear', zero: true } },
+    guides: [
+      { type: 'axis', scale: 'x' },
+      { type: 'axis', scale: 'y', format: 'compact' },
+    ],
+    marks: [{ type: 'rect', x: 'region', y: 'total' }],
+    interaction: [{ type: 'tooltip' }, { type: 'click' }],
+  };
+  const inPage = (first) => `${first}
+
+${dataTag({ sales })}
+
+${chartTag(spec)}
+
+<script>
+  document.addEventListener('bc-click', (e) => openRegion(e.detail.values.region));
+</script>`;
+  const app = (id) => {
+    const { name, code, lang } = FRAMEWORKS.find((f) => f.id === id);
+    return { id, name, code, lang };
+  };
+  const wrappers = page('frameworks.html');
+  const ways = [
+    {
+      ...app('react'),
+      note: 'A ready component from <code>blockcharts/react</code>: a spec, your rows, and <code>onClick</code> with the clicked row. On a server it renders an empty element, and the chart is drawn in the browser.',
+      page: wrappers,
+    },
+    {
+      ...app('vue'),
+      note: 'A ready component from <code>blockcharts/vue</code>; <code>@click</code> gets the clicked row. A reactive spec may be changed in place: the chart follows it.',
+      page: wrappers,
+    },
+    { ...app('svelte'), note: 'An action from <code>blockcharts/svelte</code>, plain JavaScript: Svelte 4 and 5.', page: wrappers },
+    {
+      ...app('angular'),
+      note: 'The custom element <code>&lt;block-chart&gt;</code> from <code>blockcharts/element</code>: for Angular, Lit, Solid or any page.',
+      page: wrappers,
+    },
+    {
+      ...app('js'),
+      note: 'No framework: import a kit as an ES module. <code>BC.chart(element, spec)</code> draws and returns a handle to update, zoom or destroy the chart.',
+      page: page('module.html'),
+    },
+    {
+      id: 'kit',
+      name: 'Script tag',
+      note: `No build: a kit is the core and a set of blocks in one file, ${kb(release.kits.basic.js.gzip)} gzipped for bars, lines and areas. The chart is JSON in the HTML.`,
+      code: inPage(`<script src="${cdnBase(release.version)}kits/basic.js"></script>`),
+      lang: 'html',
+      page: page('kit.html'),
+    },
+    {
+      id: 'loader',
+      name: 'Loader',
+      note: `A ${kb(release.loader.bytes)} script reads the specs on the page and fetches the core and only the blocks they use.`,
+      code: inPage(`<script src="${cdnBase(release.version)}loader.js" data-auto></script>`),
+      lang: 'html',
+      page: page('loader.html'),
+    },
+  ].map(({ page: p, ...w }) => ({ ...w, href: href(p.file), more: p.title }));
+
+  const cards = pages.filter((p) => p.card).map((p) => ({ ...p.card, title: p.title, href: href(p.file) }));
+  // one lake for the page: a name two cards share must hold the same rows
+  const lake = { sales };
+  for (const c of cards)
+    for (const [name, rows] of Object.entries(c.data)) {
+      if (name in lake && json(lake[name]) !== json(rows)) throw new Error(`embedding page: two cards name different data "${name}"`);
+      lake[name] = rows;
+    }
+  return { lake, start: { spec, ways }, cards };
+}
+
+module.exports = { embedPages, embedIndex, monthly, lineSpec, cdnBase, FRAMEWORKS };

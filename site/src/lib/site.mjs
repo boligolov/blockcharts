@@ -8,9 +8,10 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const { resolveDataset, jsonForScript, escapeText } = require(path.join(repo, 'scripts', 'compose.js'));
-/** embedPages: the demo pages; cdnBase(version): where jsDelivr serves the release/ files of a published version;
+/** embedPages: the demo pages; embedIndex: the embedding page (a live chart, its code in each way in, a card per page);
+ *  cdnBase(version): where jsDelivr serves the release/ files of a published version;
  *  FRAMEWORKS: each wrapper's code in an app, as the embed page and the landing page show it. */
-const { embedPages, cdnBase, FRAMEWORKS } = require(path.join(repo, 'scripts', 'site-demos.js'));
+const { embedPages, embedIndex, cdnBase, FRAMEWORKS } = require(path.join(repo, 'scripts', 'site-demos.js'));
 /** What code weighs, as the docs and the release say it (scripts/sizes.js): gzip sizes, the core of a report, everything. */
 const sizes = require(path.join(repo, 'scripts', 'sizes.js'));
 const { gzipSize } = sizes;
@@ -22,7 +23,7 @@ export const skillVersion = () => require(path.join(repo, 'scripts', 'build-skil
 /** The roles of blocks, in the order a page loads them. */
 export const { ROLES, scaleWords, scalesFitting } = require(path.join(repo, 'scripts', 'build-manifest.js'));
 
-export { jsonForScript, embedPages, cdnBase, FRAMEWORKS };
+export { jsonForScript, embedPages, embedIndex, cdnBase, FRAMEWORKS };
 export const esc = escapeText;
 export const kb = (n) => (n / 1024).toFixed(1) + ' KB';
 

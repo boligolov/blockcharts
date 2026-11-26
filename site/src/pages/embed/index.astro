@@ -1,22 +1,85 @@
 ---
+// The embedding page: one live chart with the code that draws it in each way in (the app components, plain JavaScript,
+// a kit, the loader), then a card for each page that shows more, each with a live piece of its demo. All of it is made by
+// embedIndex in scripts/site-demos.js, next to the pages it shows, so a card never says what its page does not.
 import Base from '../../layouts/Base.astro';
-import { baseUrl, embedPages, kb, loadRelease } from '../../lib/site.mjs';
+import Highlight from '../../components/Highlight.astro';
+import { baseUrl, embedIndex, jsonForScript, kb, loadRelease } from '../../lib/site.mjs';
 
 const base = baseUrl(import.meta.env.BASE_URL);
 const release = loadRelease();
-const pages = embedPages(base, release);
+const { lake, start, cards } = embedIndex(base, release);
+// a card's script runs on its own (a mistake in one leaves the others working), after the charts of the page are mounted
+const own = (code: string) => `(function () {\n${code}\n})();`;
 ---
-<Base title="Embedding charts in your own page" nav="embed" version={release.version} description={`Put blockcharts charts into a page of your own: one script tag, a ${kb(release.loader.bytes)} loader that fetches only the blocks a page uses, ES modules, themes, data and the API.`}>
+<Base title="Embedding charts in your own page" nav="embed" wide version={release.version} description={`Put blockcharts charts into an app or a page: components for React, Vue, Svelte and Angular, one script tag, a ${kb(release.loader.bytes)} loader, clicks, themes and blocks of your own, all live.`}>
+  <script is:inline src={`${base}release/kits/full.js`}></script>
+  <script is:inline type="application/json" id="bc-data" set:html={jsonForScript(lake)} />
+
   <h1>Embedding</h1>
-  <p class="lead">Put charts into a page you already have. Each demo is live, and the code under it is exactly what runs.</p>
-  <div class="grid">
-    {pages.map((p) => (
-      <div class="card">
-        <h2><a href={`${base}embed/${p.file.replace(/\.html$/, '')}/`}>{p.title}</a></h2>
-        <p set:html={p.lead} />
+  <p class="lead">Put charts into an app or a page you already have. Every chart here is live, drawn by the released blocks, and the code beside it is what draws it.</p>
+
+  <h2>The same chart, wherever it goes</h2>
+  <p class="e-intro">In an app, a ready component; in a page of your own, one script tag. The chart is the same JSON either way. Click a bar: its row is what your code gets.</p>
+  <div class="e-start">
+    <div class="e-live">
+      <p class="e-label">Live</p>
+      <div id="e-start"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(start.spec)} /></div>
+      <pre class="out" id="e-start-out">Click a bar.</pre>
+    </div>
+    <div class="install">
+      <div role="tablist" aria-label="Where the chart goes">
+        {start.ways.map((w, i) => (
+          <button role="tab" type="button" id={`e-tab-${w.id}`} aria-controls={`e-panel-${w.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{w.name}</button>
+        ))}
       </div>
+      {start.ways.map((w, i) => (
+        <div role="tabpanel" id={`e-panel-${w.id}`} aria-labelledby={`e-tab-${w.id}`} hidden={i !== 0}>
+          <p class="note" set:html={w.note} />
+          <div class="code">
+            <Highlight code={w.code} lang={w.lang} />
+            <button class="copy" type="button" aria-label={`Copy the ${w.name} example`}>Copy</button>
+          </div>
+          <a class="e-more" href={w.href}>{w.more} <span aria-hidden="true">→</span></a>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <h2>What else it does</h2>
+  <p class="e-intro">A live piece of each demo. Open one for the whole of it, and the code that runs it.</p>
+  <div class="e-cards">
+    {cards.map((c) => (
+      <article class="e-card">
+        <div class="e-demo" set:html={c.html} />
+        <div class="e-body">
+          <h3><a href={c.href}>{c.title}</a></h3>
+          <p set:html={c.lead} />
+          <Highlight code={c.code} lang={c.lang} />
+          <a class="e-more" href={c.href}>The demo and its code <span aria-hidden="true">→</span></a>
+        </div>
+      </article>
     ))}
   </div>
-  <h2>Or make a report file</h2>
-  <p>If you only need a document with charts in it, skip all of this: write a <code>page.json</code> and let the composer produce one HTML file. See <a href={`${base}guide/#composer`}>the guide</a>.</p>
+
+  <div class="e-report">
+    <div>
+      <h2>Or make a report file</h2>
+      <p>For a document with charts in it, skip all of this: write a <code>page.json</code>, and the composer checks it against the data and writes one HTML file that opens anywhere. Or ask Claude, with the skill.</p>
+    </div>
+    <div class="ctas">
+      <a class="btn btn-primary" href={`${base}examples/`}>Reports in the gallery</a>
+      <a class="btn btn-secondary" href={`${base}guide/#composer`}>The composer</a>
+      <a class="btn btn-secondary" href={`${base}#install`}>The Claude skill</a>
+    </div>
+  </div>
+
+  <script is:inline>
+    // read the data above and draw the charts now: the cards' scripts below use both
+    BC.mount();
+    document.getElementById('e-start').addEventListener('bc-click', function (e) {
+      document.getElementById('e-start-out').textContent = JSON.stringify(e.detail.values);
+    });
+  </script>
+  {cards.filter((c) => c.script).map((c) => <script is:inline set:html={own(c.script)} />)}
 </Base>

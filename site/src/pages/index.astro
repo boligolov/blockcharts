@@ -48,7 +48,7 @@ const sizePages = [
 const [lightName, lightBytes] = Object.entries(sizes).sort((a, b) => a[1] - b[1])[0];
 const lightest = { title: recipe(lightName).title, bytes: lightBytes };
 ---
-<Base title="blockcharts" landing version={release.version} description="Atomic charts for HTML dashboards: a page carries exactly the chart blocks it uses. From npm, with ready components for React, Vue, Svelte and Angular, and an agent skill for HTML reports.">
+<Base title="blockcharts" landing version={release.version} description="Atomic charts for apps, pages and reports: each carries only the chart blocks it uses. Ready components for React, Vue, Svelte and Angular, one script tag, and an agent skill for HTML reports.">
   <script is:inline src={`${base}release/kits/full.js`}></script>
   <script is:inline type="application/json" id="bc-data" set:html={jsonForScript(lake)} />
 
