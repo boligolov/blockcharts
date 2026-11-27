@@ -53,14 +53,17 @@ const name = (lib: string) => libs[lib].name;
 const ratios = [20, 355].flatMap((n) => RIVALS.map((l) => ratio(D, n, l)));
 const [lo, hi] = [Math.min(...ratios), Math.max(...ratios)];
 if (lo <= 1.1) throw new Error(`the page says blockcharts is faster than ${RIVALS.join(', ')}; at 20 or 355 charts one is within ${lo.toFixed(2)}×`);
-const plotRatios = [20, 355].map((n) => ratio(D, n, 'plot'));
-if (plotRatios.some((r) => r < 0.85 || r > 1.15)) throw new Error(`the page says Observable Plot is on a par: ${plotRatios.map((r) => r.toFixed(2)).join(', ')}×`);
-const uplotRatio = Math.max(...[20, 355].map((n) => ratio(D, n, 'uplot')));
-if (uplotRatio > 0.8) throw new Error(`the page says uPlot is faster: ${uplotRatio.toFixed(2)}×`);
+// Observable Plot, SVG too: on a par among hundreds of charts, slower for a dashboard
+const [plot20, plot355] = [20, 355].map((n) => ratio(D, n, 'plot'));
+if (plot355 < 0.85 || plot355 > 1.15) throw new Error(`the page says Observable Plot is on a par at 355 charts: ${plot355.toFixed(2)}×`);
+if (plot20 <= 1.1) throw new Error(`the page says Observable Plot is slower at 20 charts: ${plot20.toFixed(2)}×`);
+// how many times as fast uPlot is, at 20 and 355 charts
+const uplotFaster = [20, 355].map((n) => 1 / ratio(D, n, 'uplot'));
+if (Math.min(...uplotFaster) < 1.25) throw new Error(`the page says uPlot is faster: ${Math.min(...uplotFaster).toFixed(2)} times as fast`);
 const heapRank = ranked(D, 355).sort((a, b) => a.heap - b.heap).map((r) => r.lib);
 if (heapRank.indexOf(BC) > 1) throw new Error(`the page says blockcharts holds the least heap but uPlot's: it is ${heapRank.indexOf(BC) + 1}th`);
-const soonest = ranked(D, 1).slice(0, 3).map((r) => r.lib).sort().join();
-if (soonest !== 'blockcharts,plot,uplot') throw new Error(`the page says only Plot and uPlot draw a page's only chart sooner: ${soonest}`);
+const soonest = ranked(D, 1).map((r) => r.lib);
+if (soonest[0] !== 'uplot' || soonest[1] !== BC) throw new Error(`the page says only uPlot draws a page's only chart sooner: ${soonest.slice(0, 3).join(', ')}`);
 for (const l of RIVALS) if (ratio(C, 20, l) <= 1) throw new Error(`the page says blockcharts stays ahead of ${l} with the CPU slowed`);
 const slowdowns = ids.map((l) => of(C, 20, l).ms.median / of(D, 20, l).ms.median);
 /** How far the middle half of the runs at 20 charts reaches from the median, at most, in percent. */
@@ -190,9 +193,10 @@ node scripts/bench.js --runs=100 --cpu=4 --n=1,20    # the CPU slowed four times
     <div><div class="v num">{kbz(D.meta.gzip[BC])}<small>KB</small></div><div class="l">of JavaScript on the page, gzipped, with the basic kit</div></div>
   </div>
   <p>
-    Not the fastest of all: uPlot, a library made for time series on canvas, draws these charts about twice as fast, and Observable Plot is on a par.
-    blockcharts draws SVG, an element per bar, with the CSS and accessibility that come with it, and is still ahead of the canvas libraries Chart.js
-    and ECharts.
+    Not the fastest of all: uPlot, a library made for time series on canvas, draws these charts {fmt(Math.min(...uplotFaster), 1)} to
+    {fmt(Math.max(...uplotFaster), 1)} times as fast. Observable Plot, which draws SVG too, is on a par among 355 charts and {fmt(plot20, 1)} times
+    slower for a dashboard of 20. blockcharts draws an element per bar, with the CSS and accessibility that come with it, and is still ahead of the
+    canvas libraries Chart.js and ECharts.
   </p>
   <p class="muted">
     Measured on {D.meta.date}: {machine(D)}. A slower machine takes longer for every library, and the order hardly changes (see the slowed CPU below).
@@ -214,9 +218,8 @@ node scripts/bench.js --runs=100 --cpu=4 --n=1,20    # the CPU slowed four times
 
   <h2 id="one">A page's only chart</h2>
   <p>
-    The first chart pays for what a page does once. The browser loads the system font for the first text it draws (5 to 6 ms in a trace, for every
-    library), and blockcharts makes its first number formatter (<code>Intl.NumberFormat</code>) and compiles its code. Observable Plot and uPlot start
-    sooner; from the second chart on, the order is the one above.
+    The first chart pays for what a page does once: the browser compiles the library's code and loads the system font for the first text it draws (5
+    to 6 ms in a trace, for every library). blockcharts takes {ms(of(D, 1, BC).ms.median)} ms; only uPlot draws it sooner.
   </p>
   <div class="demo"><script is:inline type="application/json" data-bc-chart set:html={jsonForScript(bars('t1', 'ms', 'ms', 1))} /></div>
 
