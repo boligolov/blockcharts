@@ -29,7 +29,7 @@ const all: Way[] = [
   {
     id: 'other',
     tab: 'Any agent',
-    note: 'Unpack the folder into the agent’s skills folder (for Claude Code: ~/.claude/skills). It needs Node.js 18 or later.',
+    note: 'Unpack the folder into the agent’s skills folder (for Claude Code: ~/.claude/skills). It needs Node.js 22 or later.',
     blocks: [
       { label: 'macOS · Linux', copy: 'the commands for macOS and Linux', lines: [`curl -fsSL ${SITE}/blockcharts.skill -o /tmp/blockcharts.zip`, 'mkdir -p ~/.claude/skills && unzip -o /tmp/blockcharts.zip -d ~/.claude/skills'] },
       { label: 'Windows · PowerShell', copy: 'the commands for Windows PowerShell', lines: [`Invoke-WebRequest ${SITE}/blockcharts.skill -OutFile $env:TEMP\\blockcharts.zip`, 'Expand-Archive $env:TEMP\\blockcharts.zip $env:USERPROFILE\\.claude\\skills -Force'] },

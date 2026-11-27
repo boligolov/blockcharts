@@ -21,7 +21,7 @@ plots of tens of thousands stay fast.
 
 ## What it runs
 
-The skill runs one local program: `runtime/compose.js`, plain Node.js 18+ with no dependencies. It reads
+The skill runs one local program: `runtime/compose.js`, plain Node.js 22+ with no dependencies. It reads
 the `page.json` Claude writes and the CSV files next to it, and writes the HTML file. Nothing is
 installed, nothing is fetched, and the plugin sends no data anywhere; the page it makes loads nothing
 from the network either.
